@@ -21,37 +21,44 @@ Address resolution order (exact match, no fuzzy):
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
-import json
-
 import typer
-from rich.panel import Panel
 
 import squads._cli._common as common
-from squads import _views as views
+from squads._api import _ops as ops
+from squads._api._dto._roster import RosterAddress, ViewRequest
+from squads._api._dto._skills import (
+    SkillAddRequest,
+    SkillRefRemoveRequest,
+    SkillRefRequest,
+    SkillRefsRequest,
+    SkillRoleRequest,
+    SkillUpdateRequest,
+)
+from squads._cli import _calls as calls
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
-    e,
-    get_service,
-    print_json_clean,
-    register_body_verb,
     register_comment_verbs,
-    register_remove_verb,
-    register_status_verb,
-    render_body_text,
-    resolve_agent_addr,
-    resolve_item_id_any,
-    view_disable_result_message,
 )
-from squads._interactions._skills import (
-    is_system_skill,
-    orphaned_skill_item_type,
-    resolve_operator_invocable,
+from squads._cli._render._roster import (
+    render_ref_change,
+    render_regenerated,
+    render_role_link,
+    render_skill_added,
+    render_skill_refs,
+    render_skill_show,
+    render_updated,
+    render_view_change,
 )
-from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
-from squads._models._item import split_ref
-from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
+from squads._cli._roster import (
+    address_of,
+    finish_write,
+    json_option,
+    parse_address,
+    register_roster_status_verb,
+    register_write_verbs,
+)
+from squads._workflow import ROSTER_SKILL
 
 _INVOCABLE_HELP = (
     "Offer the skill to the person at the keyboard: yes, no, or default to follow the "
@@ -85,8 +92,8 @@ skill_app = typer.Typer(
 
 
 @skill_app.command("add")
-@common.command
-async def skill_add(
+@common.handle_errors
+def skill_add(
     name: str = typer.Argument(..., help="The skill's title; its slug is made from it."),
     desc: str = common.desc_option(),
     when_to_use: str = typer.Option(
@@ -100,20 +107,22 @@ async def skill_add(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill created."),
 ) -> None:
     """Create a skill item and its Claude pointer."""
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
-    item = await svc.add_skill(
-        name,
+    common.declare_actor(as_)
+    request = SkillAddRequest(
+        name=name,
         description=desc,
         when_to_use=when_to_use,
         allowed_tools=allowed_tools,
-        parent=resolved_parent,
+        parent=parent,
         operator_invocable=operator_invocable,
     )
-    console.print(f"created skill [bold]{item.id}[/bold] → {item.path}")
+    response = calls.call(ops.SKILLS_ADD, request)
+    finish_write(
+        ops.SKILLS_ADD, response, json_out, lambda write: render_skill_added(write.entry, console)
+    )
 
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
@@ -126,20 +135,20 @@ _addr = typer.Typer(
 
 
 @_addr.callback()
-@common.command
-async def _resolve_addr(
+@common.handle_errors
+def _resolve_addr(
     ctx: typer.Context,
     addr: str = typer.Argument(
         ..., metavar=common.ADDRESS_METAVAR, help="Skill slug, ID or number."
     ),
 ) -> None:
-    svc = get_service()
-    ctx.obj = await common.address_obj(ctx, lambda: resolve_agent_addr(addr, "skill", svc))
+    """Keep the address for the verb's operation, which resolves it."""
+    parse_address(ctx, ROSTER_SKILL, addr)
 
 
 @_addr.command("show")
-@common.command
-async def skill_show(
+@common.handle_errors
+def skill_show(
     ctx: typer.Context,
     raw: bool = common.raw_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the skill."),
@@ -148,96 +157,17 @@ async def skill_show(
     ),
 ) -> None:
     """Show a skill's metadata panel and body."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    it = await svc.get(item_id)
-    slug = it.slug
-    system = is_system_skill(slug, svc.spec)
-    invocable, invocable_set = resolve_operator_invocable(slug, it, svc.spec)
+    response = calls.call(ops.SKILL_SHOW, RosterAddress(addr=address_of(ctx)))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                {
-                    "id": it.id,
-                    "slug": slug,
-                    "title": it.title,
-                    "status": it.status,
-                    "description": it.description,
-                    "when_to_use": attrs.string_attribute(it, AttributeKey.WHEN_TO_USE) or "",
-                    "allowed_tools": attrs.string_attribute(it, AttributeKey.ALLOWED_TOOLS) or "",
-                    "operator_invocable": invocable,
-                    "operator_invocable_set": invocable_set,
-                    "path": it.path,
-                    **common.origin_json(attrs.origin(it)),
-                    # Stored text with its view tags as tags, and the tags' data, as for any item.
-                    "body": await svc.read_stored_body(it.id),
-                    "views": await svc.view_data(it.id),
-                }
-            )
-        )
+        calls.print_json(ops.SKILL_SHOW, response)
         return
-    await common.warn_duplicate_id(svc, it)
-    rows = [
-        f"[bold]{it.id}[/bold] {e(it.title)}",
-        f"[bold]slug:[/bold] {slug}",
-        f"[bold]origin:[/bold] {attrs.origin(it) or '—'}",
-        f"[bold]status:[/bold] {it.status}",
-        f"[bold]operator invocable:[/bold] {'yes' if invocable else 'no'} "
-        f"({'set by this squad' if invocable_set else 'declared default'})",
-        f"[bold]file:[/bold] {it.path}",
-    ]
-    when_to_use = attrs.string_attribute(it, AttributeKey.WHEN_TO_USE)
-    if when_to_use:
-        rows.append(f"[bold]when to use:[/bold] {e(when_to_use)}")
-    console.print(Panel("\n".join(rows), expand=False))
-    # `read_body` expands a system skill's `sq:view:<name>` tag. An empty system body has
-    # three causes with distinct hints: the documented item type is no longer declared
-    # (`orphaned_skill_item_type`), the view is not in `spec.views`, or `sq sync` has not
-    # filled it yet. A custom skill is empty only because nobody wrote it.
-    dropped_type = orphaned_skill_item_type(slug, svc.spec) if system else None
-    view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug) or (ITEM_SKILL_VIEW_NAME if system else None)
-    if dropped_type is not None:
-        empty_hint = (
-            f"(no definition — the item type {dropped_type!r} this skill described is no "
-            "longer declared; restore the type, or retire this skill)"
-        )
-    elif system and view_name is not None:
-        hint_state = views.empty_body_hint_state(
-            view_name,
-            svc.spec,
-            disabled=await svc.view_tag_state(it.id, view_name) is True,
-        )
-        if hint_state == "disabled":
-            empty_hint = f"(disabled — `sq skill {slug} view add {view_name}` re-enables it)"
-        elif hint_state == "view_undeclared":
-            empty_hint = (
-                f"(empty — the view {view_name!r} this skill renders is not declared in this "
-                "project's spec, so `sq sync` cannot populate it; declare it to restore the "
-                "generated definition — or, if this skill's body still carries this tag from "
-                f"before it was dropped, disable it with `sq skill {slug} view disable "
-                f"{view_name}`)"
-            )
-        else:
-            surface = views.skill_authoring_surface(view_name, slug, svc.spec, svc.playbook)
-            empty_hint = (
-                "(empty — run `sq sync`; if it stays empty, its content's real authoring "
-                f"surface is {surface}; author it there instead — or run "
-                f"`sq skill {slug} view add {view_name}`)"
-            )
-    else:
-        empty_hint = f'(empty — write it with `sq skill {slug} body -m "…"`)'
-    render_body_text(
-        await svc.read_body(it.id),
-        raw=raw,
-        empty_hint=empty_hint,
-    )
-    if comments:
-        common.print_comments(await svc.comments(it.id))
+    calls.print_warnings(response)
+    render_skill_show(response.data, console, raw=raw, comments=comments)
 
 
 @_addr.command("refs")
-@common.command
-async def skill_refs(
+@common.handle_errors
+def skill_refs(
     ctx: typer.Context,
     out: bool = typer.Option(False, "--out", help="Show the refs this skill carries; the default."),
     incoming: bool = typer.Option(
@@ -248,23 +178,12 @@ async def skill_refs(
     ),
 ) -> None:
     """List the skill's refs, or the refs other items carry to it."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    show_out = out or not incoming
-    show_in = incoming
-    data: dict[str, list[dict[str, str]]] = {}
-    if show_out:
-        data["out"] = [{"id": i, "kind": k} for i, k in await svc.refs_out(item_id)]
-    if show_in:
-        data["in"] = [{"id": i, "kind": k} for i, k in await svc.refs_in(item_id)]
+    request = SkillRefsRequest(addr=address_of(ctx), out=out, incoming=incoming)
+    response = calls.call(ops.SKILL_REFS, request)
     if json_out:
-        print_json_clean(json.dumps(data))
+        calls.print_json(ops.SKILL_REFS, response)
         return
-    for direction, label in (("out", "→ refs"), ("in", "← backrefs")):
-        if direction not in data:
-            continue
-        for entry in data[direction]:
-            console.print(f"{label}  {e(entry['id'])}  [dim]{entry['kind']}[/dim]")
+    render_skill_refs(response.data, console)
 
 
 # ---------------------------------------------------------------- ref add / rm
@@ -273,8 +192,8 @@ _ref_app = typer.Typer(no_args_is_help=True, help="Add or remove the skill's ref
 
 
 @_ref_app.command("add")
-@common.command
-async def skill_ref_add(
+@common.handle_errors
+def skill_ref_add(
     ctx: typer.Context,
     target: str = typer.Argument(
         ..., help="Item ID or number to ref; `ID:kind` also sets the kind."
@@ -285,87 +204,100 @@ async def skill_ref_add(
         help="Ref kind (see `sq workflow ref-kinds`); without it, the default kind.",
     ),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill, the ref's target and kind."),
 ) -> None:
     """Add a ref from this skill to TARGET."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    raw_id, embedded_kind = split_ref(target)
-    resolved_id = await resolve_item_id_any(raw_id, svc)
-    effective_kind = embedded_kind or kind or svc.spec.default_ref_kind()
-    await svc.add_ref(item_id, resolved_id, kind=effective_kind)
-    console.print(f"{item_id} → {resolved_id} ([dim]{effective_kind}[/dim])")
+    common.declare_actor(as_)
+    request = SkillRefRequest(addr=address_of(ctx), target=target, kind=kind)
+    response = calls.call(ops.SKILL_REF_ADD, request)
+    finish_write(
+        ops.SKILL_REF_ADD, response, json_out, lambda change: render_ref_change(change, console)
+    )
 
 
 @_ref_app.command("rm")
-@common.command
-async def skill_ref_rm(
+@common.handle_errors
+def skill_ref_rm(
     ctx: typer.Context,
     target: str = typer.Argument(..., help="Item ID or number."),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill and the ref's target."),
 ) -> None:
     """Remove this skill's ref to TARGET."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    raw_id, _ = split_ref(target)
-    resolved_id = await resolve_item_id_any(raw_id, svc)
-    await svc.rm_ref(item_id, resolved_id)
-    console.print(f"removed {item_id} → {resolved_id}")
+    common.declare_actor(as_)
+    request = SkillRefRemoveRequest(addr=address_of(ctx), target=target)
+    response = calls.call(ops.SKILL_REF_RM, request)
+    finish_write(
+        ops.SKILL_REF_RM, response, json_out, lambda change: render_ref_change(change, console)
+    )
 
 
 _addr.add_typer(_ref_app, name="ref")
 
 
 @_addr.command("link-role")
-@common.command
-async def skill_link_role(
+@common.handle_errors
+def skill_link_role(
     ctx: typer.Context,
     role: str = typer.Argument(..., help="Role slug, ID, or number."),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill and the role's id."),
 ) -> None:
     """Scope this skill to ROLE and update that role's pointer at once.
 
     Prefer this to `ref add --kind scopes`, which writes the same ref but leaves
     the role's pointer stale until the next `sq sync`.
     """
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    role_id = await resolve_agent_addr(role, "role", svc)
-    await svc.link_role(item_id, role_id)
-    console.print(f"{item_id} scoped to {role_id} (role resynced)")
+    common.declare_actor(as_)
+    request = SkillRoleRequest(addr=address_of(ctx), role=role)
+    response = calls.call(ops.SKILL_LINK_ROLE, request)
+    finish_write(
+        ops.SKILL_LINK_ROLE,
+        response,
+        json_out,
+        lambda link: render_role_link(link, console, linked=True),
+    )
 
 
 @_addr.command("unlink-role")
-@common.command
-async def skill_unlink_role(
+@common.handle_errors
+def skill_unlink_role(
     ctx: typer.Context,
     role: str = typer.Argument(..., help="Role slug, ID, or number."),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill and the role's id."),
 ) -> None:
     """Unscope this skill from ROLE and update that role's pointer at once."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    role_id = await resolve_agent_addr(role, "role", svc)
-    await svc.unlink_role(item_id, role_id)
-    console.print(f"{item_id} unscoped from {role_id} (role resynced)")
+    common.declare_actor(as_)
+    request = SkillRoleRequest(addr=address_of(ctx), role=role)
+    response = calls.call(ops.SKILL_UNLINK_ROLE, request)
+    finish_write(
+        ops.SKILL_UNLINK_ROLE,
+        response,
+        json_out,
+        lambda link: render_role_link(link, console, linked=False),
+    )
 
 
 @_addr.command("regen")
-@common.command
-async def skill_regen(ctx: typer.Context) -> None:
+@common.handle_errors
+def skill_regen(
+    ctx: typer.Context,
+    json_out: bool = json_option("Print one JSON object: the skill."),
+) -> None:
     """Regenerate the Claude pointer from the item."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await svc.regen(item_id)
-    console.print(f"regenerated pointer for {item_id}")
+    response = calls.call(ops.SKILL_REGEN, RosterAddress(addr=address_of(ctx)))
+    finish_write(
+        ops.SKILL_REGEN,
+        response,
+        json_out,
+        lambda write: render_regenerated(write.entry.id, console),
+    )
 
 
 @_addr.command("update")
-@common.command
-async def skill_update(
+@common.handle_errors
+def skill_update(
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The skill's display title."),
     desc: str | None = common.desc_option(None),
@@ -376,77 +308,85 @@ async def skill_update(
         None, "--operator-invocable", help=_INVOCABLE_HELP
     ),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill after the update."),
 ) -> None:
     """Edit a skill's display fields; its slug never changes."""
     common.require_update_fields(
         title=title, desc=desc, when_to_use=when_to_use, operator_invocable=operator_invocable
     )
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    await svc.update(
-        item_id,
+    common.declare_actor(as_)
+    request = SkillUpdateRequest(
+        addr=address_of(ctx),
         title=title,
         description=desc,
-        set_attributes=(
-            {AttributeKey.WHEN_TO_USE: when_to_use} if when_to_use is not None else None
-        ),
+        when_to_use=when_to_use,
         operator_invocable=operator_invocable,
     )
-    console.print(f"updated {item_id}")
+    response = calls.call(ops.SKILL_UPDATE, request)
+    finish_write(
+        ops.SKILL_UPDATE, response, json_out, lambda write: render_updated(write.entry.id, console)
+    )
 
 
-register_body_verb(_addr, lambda ctx: ctx.obj["id"])
-register_remove_verb(_addr, lambda ctx: ctx.obj["id"])
+register_write_verbs(_addr, body=ops.SKILL_BODY, remove=ops.SKILL_REMOVE)
 register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
-register_status_verb(_addr, lambda ctx: ctx.obj["id"])
+register_roster_status_verb(_addr, status=ops.SKILL_STATUS)
 
 
 # --------------------------------------------------------------------------- view add/disable
 
-# Place, re-enable or disable an unpaired sq:view:<name> tag in the skill's sq:body region, via
-# ServiceCore.add_view/disable_view. `view rm` is retired: a tag is disabled, never deleted.
+# Place, re-enable or disable an unpaired sq:view:<name> tag in the skill's sq:body region. `view
+# rm` is retired: a tag is disabled, never deleted.
 _view_app = typer.Typer(
     no_args_is_help=True, help="Show or hide declared views in the skill's body."
 )
 
 
+def _view_change(
+    ctx: typer.Context, name: str, as_: str | None, *, enable: bool, json_out: bool
+) -> None:
+    op = ops.SKILL_VIEW_ADD if enable else ops.SKILL_VIEW_DISABLE
+    common.declare_actor(as_)
+    response = calls.call(op, ViewRequest(addr=address_of(ctx), name=name))
+    finish_write(
+        op,
+        response,
+        json_out,
+        lambda change: render_view_change(
+            change.entry.id,
+            change.view,
+            console,
+            enable=enable,
+            changed=change.changed,
+            was_present=change.was_present,
+        ),
+    )
+
+
 @_view_app.command("add")
-@common.command
-async def skill_view_add(
+@common.handle_errors
+def skill_view_add(
     ctx: typer.Context,
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill and what the tag change did."),
 ) -> None:
     """Show a declared view in the skill's body, or re-enable it."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    placed = await svc.add_view(item_id, name)
-    if placed:
-        console.print(f"{item_id}: view {e(name)} placed in sq:body")
-    else:
-        console.print(f"{item_id}: view {e(name)} already present, unchanged")
+    _view_change(ctx, name, as_, enable=True, json_out=json_out)
 
 
 @_view_app.command("disable")
-@common.command
-async def skill_view_disable(
+@common.handle_errors
+def skill_view_disable(
     ctx: typer.Context,
     name: str = typer.Argument(
         ..., help="View name; it need not be declared, so a dropped view can be turned off."
     ),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the skill and what the tag change did."),
 ) -> None:
     """Stop showing a view in the skill's body; its tag stays, disabled."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    was_present = await svc.view_tag_present(item_id, name)
-    disabled = await svc.disable_view(item_id, name)
-    console.print(
-        view_disable_result_message(item_id, name, was_present=was_present, changed=disabled)
-    )
+    _view_change(ctx, name, as_, enable=False, json_out=json_out)
 
 
 _addr.add_typer(_view_app, name="view")

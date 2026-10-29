@@ -7,28 +7,34 @@ Grammar:
   sq memory <role> add "<fact>" [--file f] [--slug s]  — jot a new memory
   sq memory <role> forget <slug>            — delete one
 
-The role is a positional subject like `sq inbox <role>` / `sq mine <role>`, resolved once in
-the group callback against the full roster (agents and operators, retired included) with a
-clean SquadsError on an unknown slug. The notebook is read-scoped to the role, not authorship
-on someone else's item, so a retired role's memory stays reachable. Memory has no
+The role is a positional subject like `sq inbox <role>` / `sq mine <role>`, which the group
+callback only takes; each operation resolves it against the full roster (agents and operators,
+retired included) and refuses an unknown slug. The notebook is read-scoped to the role, not
+authorship on someone else's item, so a retired role's memory stays reachable. Memory has no
 counter-allocated id (see `squads._memory._store`); `show`/`forget` take the memory's slug.
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
-import json
-
 import typer
 
 import squads._cli._common as common
-from squads._cli._common import (
-    console,
-    e,
-    get_service,
-    print_json_clean,
-    render_body_text,
-    resolve_body_optional,
-    resolve_slug_or_raise,
+from squads._api import _ops as ops
+from squads._api._dto._memory import (
+    MemoryAddRequest,
+    MemoryForgetRequest,
+    MemoryListRequest,
+    MemorySearchRequest,
+    MemoryShowRequest,
+)
+from squads._cli import _calls as calls
+from squads._cli._common import console, handle_errors, resolve_body_optional
+from squads._cli._render._memory import (
+    render_added,
+    render_forgotten,
+    render_memories,
+    render_memory,
+    render_search,
 )
 
 memory_app = typer.Typer(
@@ -44,18 +50,16 @@ def _role(ctx: typer.Context) -> str:
 
 
 @memory_app.callback()
-@common.command
-async def _resolve_role(
+def _take_role(
     ctx: typer.Context,
     role: str = typer.Argument(..., help="Role or operator slug, such as `python-dev`."),
 ) -> None:
-    svc = get_service()
-    ctx.obj = {_ROLE_KEY: await resolve_slug_or_raise(role, svc, live_only=False)}
+    ctx.obj = {_ROLE_KEY: role}
 
 
 @memory_app.command("list")
-@common.command
-async def list_memories(
+@handle_errors
+def list_memories(
     ctx: typer.Context,
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per memory."
@@ -65,36 +69,18 @@ async def list_memories(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    role_slug = _role(ctx)
-    svc = get_service()
-    entries, unreadable = await svc.memory_list(role_slug)
+    response = calls.call(ops.MEMORY_LIST, MemoryListRequest(role=_role(ctx)))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "slug": m.slug,
-                        "filename": f"{m.slug}.md",
-                        "description": m.summary,
-                        "created_at": m.created_at,
-                    }
-                    for m in entries
-                ]
-            )
-        )
-        common.report_omissions(unreadable, json_out=True)
-        return
-    if not entries:
-        console.print(f"[dim]no memories for {e(role_slug)}[/dim]")
+        calls.print_json(ops.MEMORY_LIST, response)
     else:
-        for m in entries:
-            console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.summary)}")
-    common.report_omissions(unreadable, json_out=False)
+        calls.print_warnings(response)
+        render_memories(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @memory_app.command("search")
-@common.command
-async def search_memories(
+@handle_errors
+def search_memories(
     ctx: typer.Context,
     query: str = typer.Argument(..., help="Text to find (case-insensitive)."),
     json_out: bool = typer.Option(
@@ -105,60 +91,34 @@ async def search_memories(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    role_slug = _role(ctx)
-    svc = get_service()
-    hits, unreadable = await svc.memory_search(role_slug, query)
+    response = calls.call(ops.MEMORY_SEARCH, MemorySearchRequest(role=_role(ctx), query=query))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [{"slug": m.slug, "description": m.summary, "hits": lines} for m, lines in hits]
-            )
-        )
-        common.report_omissions(unreadable, json_out=True)
-        return
-    if not hits:
-        console.print(f"[dim]no matches for {e(query)}[/dim]")
+        calls.print_json(ops.MEMORY_SEARCH, response)
     else:
-        for m, lines in hits:
-            console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.summary)}")
-            for ln in lines[:3]:
-                console.print(f"    {e(ln)}")
-    common.report_omissions(unreadable, json_out=False)
+        calls.print_warnings(response)
+        render_search(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @memory_app.command("show")
-@common.command
-async def show_memory(
+@handle_errors
+def show_memory(
     ctx: typer.Context,
     slug: str = typer.Argument(..., help="Memory slug, as `sq memory <role> list` prints it."),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the memory."),
 ) -> None:
     """Print one memory in full, addressed by its slug."""
-    role_slug = _role(ctx)
-    svc = get_service()
-    entry = await svc.memory_show(role_slug, slug)
+    response = calls.call(ops.MEMORY_SHOW, MemoryShowRequest(role=_role(ctx), slug=slug))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                {
-                    "slug": entry.slug,
-                    "summary": entry.summary,
-                    "created_at": entry.created_at,
-                    "tags": list(entry.tags),
-                    "body": entry.body,
-                }
-            )
-        )
-        return
-    console.print(f"[bold]{e(entry.slug)}[/bold] [dim]({e(entry.created_at)})[/dim]")
-    if entry.tags:
-        console.print(f"[dim]tags: {e(', '.join(entry.tags))}[/dim]")
-    render_body_text(entry.body)
+        calls.print_json(ops.MEMORY_SHOW, response)
+    else:
+        calls.print_warnings(response)
+        render_memory(response.data, console)
 
 
 @memory_app.command("add")
-@common.command
-async def add_memory(
+@handle_errors
+def add_memory(
     ctx: typer.Context,
     fact: str = typer.Argument(
         ...,
@@ -169,23 +129,35 @@ async def add_memory(
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to file the memory under instead of one made from the summary."
     ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the memory written and its role."
+    ),
 ) -> None:
     """Add a memory to the role's notebook."""
-    role_slug = _role(ctx)
-    svc = get_service()
-    body = resolve_body_optional(None, file)
-    entry = await svc.memory_add(role_slug, fact, body=body, slug=slug)
-    console.print(f"remembered [bold]{e(entry.slug)}[/bold] for {e(role_slug)}")
+    request = MemoryAddRequest(
+        role=_role(ctx), summary=fact, body=resolve_body_optional(None, file), slug=slug
+    )
+    response = calls.call(ops.MEMORY_ADD, request)
+    if json_out:
+        calls.print_json(ops.MEMORY_ADD, response)
+    else:
+        calls.print_warnings(response)
+        render_added(response.data, console)
 
 
 @memory_app.command("forget")
-@common.command
-async def forget_memory(
+@handle_errors
+def forget_memory(
     ctx: typer.Context,
     slug: str = typer.Argument(..., help="Memory slug, as `sq memory <role> list` prints it."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the memory as it was and its role."
+    ),
 ) -> None:
     """Delete one memory; git history still holds it."""
-    role_slug = _role(ctx)
-    svc = get_service()
-    await svc.memory_forget(role_slug, slug)
-    console.print(f"forgot [bold]{e(slug)}[/bold] for {e(role_slug)}")
+    response = calls.call(ops.MEMORY_FORGET, MemoryForgetRequest(role=_role(ctx), slug=slug))
+    if json_out:
+        calls.print_json(ops.MEMORY_FORGET, response)
+    else:
+        calls.print_warnings(response)
+        render_forgotten(response.data, console)

@@ -14,7 +14,7 @@ are not relations: each resolves to its own shape (a ``RoleDef``, a :class:`Play
 the host item).
 
 ``sq workflow view --json`` serializes each resolved value in the shape its kind already has a
-serializer for (``squads._cli._workflow_cmd._view_json_payload``). Cost is one loaded index
+serializer for (``squads._services._view_source.view_source``). Cost is one loaded index
 plus an inversion or walk over it; nothing is cached or stored on an item.
 
 :func:`~squads._view_tags.expand_view_tags` is the read-time counterpart of the placement verb
@@ -224,8 +224,8 @@ def children_by_parent(db: SquadsDB) -> dict[str, list[Item]]:
     """Canonical parent to children, width-tolerant, as ``_build_tree_children`` resolves.
 
     It is reimplemented, not imported, because ``_services`` sits above this module. Public because
-    the ``ref``/``subtree`` ``--json`` arm of ``squads._cli._workflow_cmd._view_json_payload``
-    reuses this walk to fill each record's descendant subtree.
+    the ``ref``/``subtree`` arm of ``squads._services._view_source.view_source`` reuses
+    this walk to fill each record's descendant subtree.
     """
     all_ids = {i.id for i in db.items.values()}
     seq_to_id = {number_for_id(i.id): i.id for i in db.items.values()}

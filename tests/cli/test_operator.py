@@ -1,6 +1,7 @@
 """`sq operator …`: registering people, listing them, and the addressed verbs (show, update,
 status, remove, body and the comment listing)."""
 
+import json
 from typing import Any
 
 import pytest
@@ -46,6 +47,7 @@ async def test_add_registers_a_person_under_a_slug_made_from_the_first_name(
             "full_name": "Alice Tester",
             "pronouns": None,
             "status": "Active",
+            "display": {"name": "Alice Tester", "pronouns": None},
         }
     ]
     assert _roster_lines(project) == ["- **Alice Tester** (`op-alice`)"]
@@ -130,6 +132,7 @@ async def test_list_json_describes_each_operator_with_its_status(project, invoke
             "full_name": "Alice Tester",
             "pronouns": None,
             "status": "Active",
+            "display": {"name": "Alice Tester", "pronouns": None},
         },
         {
             "id": "OP-3",
@@ -137,6 +140,7 @@ async def test_list_json_describes_each_operator_with_its_status(project, invoke
             "full_name": "Bob Builder",
             "pronouns": "he/him",
             "status": "Archived",
+            "display": {"name": "Bob Builder (he/him)", "pronouns": "he/him"},
         },
     ]
 
@@ -205,6 +209,19 @@ async def test_show_json_describes_the_operator(project, invoke) -> None:
         "pronouns": "she/her",
         "status": "Active",
         "path": "operators/OP-000002-op-alice.md",
+        "display": {
+            "name": "Alice Tester (she/her)",
+            "pronouns": "she/her",
+            "body": (
+                "# Alice Tester\n\n**Operator (human)**  ·  **Slug:** `op-alice`\n\nA human who "
+                "works on this project — authors items and review points, and can be assigned "
+                "work (including manual steps).\n\nAttribute their words with `sq <type> <n> "
+                'comment --as op-alice -m "…"`,\ncorrect or withdraw their comment with `comment '
+                "<hash> edit|remove --as op-alice`,\nand assign work to them with `--assignee "
+                "op-alice`."
+            ),
+            "discussion": [],
+        },
     }
 
 
@@ -343,3 +360,57 @@ async def test_body_status_and_remove_act_on_the_operator_they_address(project, 
     removed = await invoke(["operator", "op-alice", "remove", "--purge"])
     assert (removed.exit_code, removed.output) == (0, "removed OP-2\n")
     assert [r["slug"] for r in await read_json(invoke, ["role", "list", "--json"])] == ["manager"]
+
+
+# ---------------------------------------------------------------------------- JSON of the writes
+
+
+async def _printed(invoke, args: list[str]) -> str:
+    """What a command that succeeds prints, compared as text so the key order is held too."""
+    result = await invoke(args)
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def _text(document: object) -> str:
+    return json.dumps(document, indent=2) + "\n"
+
+
+def _entry(row: object) -> str:
+    """A write that reports nothing beside its entry: the entry under `entry`."""
+    return _text({"entry": row})
+
+
+@pytest.mark.covers("operator add", "--json")
+async def test_add_json_prints_the_operator_it_registered(project, invoke) -> None:
+    printed = await _printed(
+        invoke, ["operator", "add", "Alice Tester", "--pronouns", "she/her", "--json"]
+    )
+    assert printed == _entry(
+        {
+            "id": "OP-2",
+            "slug": "op-alice",
+            "full_name": "Alice Tester",
+            "pronouns": "she/her",
+            "status": "Active",
+            "display": {"name": "Alice Tester (she/her)", "pronouns": "she/her"},
+        }
+    )
+
+
+@pytest.mark.covers("operator update", "--json")
+async def test_update_json_prints_the_operator_after_the_update(project, invoke) -> None:
+    await _add_alice(invoke)
+    printed = await _printed(
+        invoke, ["operator", "op-alice", "update", "--title", "Alice T", "--json"]
+    )
+    assert printed == _entry(
+        {
+            "id": "OP-2",
+            "slug": "op-alice",
+            "full_name": "Alice T",
+            "pronouns": None,
+            "status": "Active",
+            "display": {"name": "Alice T", "pronouns": None},
+        }
+    )

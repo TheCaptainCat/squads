@@ -9,8 +9,6 @@
 """
 
 import typer
-from rich.markdown import Markdown
-from rich.table import Table
 
 import squads._cli._common as common
 from squads._cli._common import (
@@ -20,11 +18,11 @@ from squads._cli._common import (
     get_service_bypassing_index_cross_check,
     handle_errors,
 )
+from squads._cli._render._package import render_migrations, render_steps
 from squads._errors import SquadsError
 from squads._index._reconcile import ReconcileResult
-from squads._migrations._registry import MIGRATIONS, Migration
+from squads._migrations._registry import MIGRATIONS, Migration, manual_steps, migration_index
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
-from squads._util import version_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
 
@@ -141,19 +139,17 @@ async def migrate_up():
 @migrate_app.command("help")
 @common.past_the_gate(common.Ground.NO_SQUAD_STATE, behind=True, ahead=True)
 @handle_errors
-def migrate_help():
+def migrate_help(
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: every migration squads ships."
+    ),
+):
     """List every migration squads ships, oldest first."""
-    table = Table(title="migration changelog — read steps with `sq migrate chlog vA..vB`")
-    for col in ("Release", "Schema", "Summary", "Manual"):
-        table.add_column(col)
-    for m in MIGRATIONS:
-        table.add_row(
-            f"v{m.version}",
-            f"v{m.from_schema}→v{m.to_schema}",
-            e(m.summary),
-            "yes" if m.manual else "—",
-        )
-    console.print(table)
+    index = migration_index()
+    if json_out:
+        common.print_json_clean(index.model_dump_json())
+        return
+    render_migrations(index, console)
 
 
 @migrate_app.command("chlog")
@@ -165,19 +161,16 @@ def migrate_chlog(
         metavar="vFROM..vTO",
         help="Releases after vFROM up to and including vTO, such as `v0.1.1..v0.2.0`.",
     ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the migrations with manual steps."
+    ),
 ):
     """Print the manual steps of the migrations in a release range."""
-    lo, hi = _parse_span(span)
-    selected = [
-        m for m in MIGRATIONS if version_tuple(lo) < version_tuple(m.version) <= version_tuple(hi)
-    ]
-    manual = [m for m in selected if m.manual]
-    if not manual:
-        console.print(f"[dim]no manual steps for v{lo}..v{hi}[/dim]")
+    steps = manual_steps(*_parse_span(span))
+    if json_out:
+        common.print_json_clean(steps.model_dump_json())
         return
-    for m in manual:
-        heading = f"## v{m.version} — manual steps (schema v{m.from_schema}→v{m.to_schema})"
-        console.print(Markdown(f"{heading}\n\n{m.manual}"))
+    render_steps(steps, console)
 
 
 @migrate_app.command("repad")

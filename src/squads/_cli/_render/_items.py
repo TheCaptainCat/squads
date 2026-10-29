@@ -5,42 +5,18 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from squads._api._dto._items import Comment, ItemList, ItemRow, ItemShow, Subentity
-from squads._cli._render._style import e, status_text
+from squads._api._dto._items import ItemList, ItemRow, ItemShow, Subentity
+from squads._api._dto._queues import MineRow
+from squads._cli._render._comments import (
+    author_label,
+    comment_title,
+    edited_suffix,
+    is_styled,
+    print_comments_plain,
+    print_comments_styled,
+)
+from squads._cli._render._style import cell_text, e, status_text
 from squads._models._item import split_ref
-
-
-def _styled(console: Console) -> bool:
-    """Whether *console* renders markup: a terminal, colour enabled."""
-    return console.is_terminal and not console.no_color
-
-
-def _author_label(cmt: Comment) -> str:
-    """``Name (slug)``, or the slug once when the name is it."""
-    return cmt.author if cmt.author == cmt.author_slug else f"{cmt.author} ({cmt.author_slug})"
-
-
-def _edited(cmt: Comment) -> str:
-    return f" (edited {cmt.edited_ts})" if cmt.edited_ts else ""
-
-
-def _comment_title(cmt: Comment) -> str:
-    return f"{e(cmt.short_hash)}  {e(cmt.ts)}  {e(_author_label(cmt))}{e(_edited(cmt))}"
-
-
-def _print_comments_plain(console: Console, comments: list[Comment]) -> None:
-    for cmt in comments:
-        header = f"--- {cmt.short_hash} [{cmt.ts}] {_author_label(cmt)}{_edited(cmt)} ---"
-        console.print(header, markup=False, highlight=False)
-        console.print(cmt.body, markup=False, highlight=False)
-        console.print()
-
-
-def _print_comments_styled(console: Console, comments: list[Comment]) -> None:
-    from rich.markdown import Markdown
-
-    for cmt in comments:
-        console.print(Panel(Markdown(cmt.body), title=_comment_title(cmt), expand=False))
 
 
 def _refs_line(refs: list[str]) -> str:
@@ -137,7 +113,7 @@ def _print_full_panes(console: Console, show: ItemShow, *, styled: bool, comment
             if sub.body:
                 console.print(sub.body, markup=False, highlight=False)
             if comments:
-                _print_comments_plain(console, sub.discussion)
+                print_comments_plain(console, sub.discussion)
             console.print()
             continue
         from rich.markdown import Markdown
@@ -145,7 +121,7 @@ def _print_full_panes(console: Console, show: ItemShow, *, styled: bool, comment
         inner: list[RenderableType] = [Markdown(sub.body)] if sub.body else []
         if comments:
             inner += [
-                Panel(Markdown(c.body), title=_comment_title(c), expand=False)
+                Panel(Markdown(c.body), title=comment_title(c), expand=False)
                 for c in sub.discussion
             ]
         body: RenderableType = Group(*inner) if inner else Markdown("_(empty)_")
@@ -158,9 +134,9 @@ def _print_discussion(console: Console, show: ItemShow, *, styled: bool) -> None
         return
     console.print()
     if styled:
-        _print_comments_styled(console, show.discussion)
+        print_comments_styled(console, show.discussion)
     else:
-        _print_comments_plain(console, show.discussion)
+        print_comments_plain(console, show.discussion)
 
 
 def _raw_metadata(show: ItemShow) -> list[str]:
@@ -192,7 +168,7 @@ def _render_raw(console: Console, show: ItemShow, *, comments: bool, full: bool)
     if comments:
         lines += ["", "## Discussion"]
         for cmt in show.discussion:
-            head = f"### {cmt.short_hash} {_author_label(cmt)} — {cmt.ts}{_edited(cmt)}"
+            head = f"### {cmt.short_hash} {author_label(cmt)} — {cmt.ts}{edited_suffix(cmt)}"
             lines += ["", head, "", cmt.body]
         if not show.discussion:
             lines += ["", "_(no discussion)_"]
@@ -206,7 +182,7 @@ def render_show(show: ItemShow, console: Console, *, raw: bool, comments: bool, 
         _render_raw(console, show, comments=comments, full=full)
         return
     console.print(Panel("\n".join(_panel_rows(show)), expand=False))
-    styled = _styled(console)
+    styled = is_styled(console)
     _print_body(console, show.display.body, styled=styled)
     _print_summary(console, show)
     if full:
@@ -215,14 +191,11 @@ def render_show(show: ItemShow, console: Console, *, raw: bool, comments: bool, 
         _print_discussion(console, show, styled=styled)
 
 
-def _cell(row: ItemRow, key: str) -> Text | str:
+def item_cell(row: ItemRow | MineRow, key: str) -> Text | str:
+    """The cell of an item row's table that *key* names; the status is coloured by its intent."""
     if key == "status":
         return status_text(row.status, row.display.status.intent)
-    badge = row.display.badges.get(key)
-    if badge is not None:
-        return e(badge.badge)
-    value = getattr(row, key, None)
-    return e(value) if value else ""
+    return cell_text(row, key)
 
 
 def render_list(listing: ItemList, console: Console, *, compact: bool) -> None:
@@ -249,7 +222,7 @@ def render_list(listing: ItemList, console: Console, *, compact: bool) -> None:
     for column in listing.columns:
         table.add_column(column.header)
     for row in listing.items:
-        table.add_row(*(_cell(row, column.key) for column in listing.columns))
+        table.add_row(*(item_cell(row, column.key) for column in listing.columns))
     console.print(table)
 
 

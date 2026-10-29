@@ -134,15 +134,17 @@ async def test_tree_groups_the_entries_by_the_session_that_wrote_them(project, i
 
 @pytest.mark.covers("reflog", "--json")
 async def test_json_prints_one_object_per_entry(history, invoke) -> None:
-    assert await _entries(invoke, "--since", "2026-06-08") == [
-        {
-            "v": "0.17",
-            "ts": "2026-06-08T09:00:00Z",
-            "actor": "manager",
-            "op": "comment",
-            "target": "TASK-4",
-            "delta": {"author": "manager"},
-            "session_id": None,
-            "parent_session_id": None,
-        }
-    ]
+    assert json.dumps(await _entries(invoke, "--since", "2026-06-08")) == json.dumps(
+        [
+            {
+                "v": "0.17",
+                "ts": "2026-06-08T09:00:00Z",
+                "actor": "manager",
+                "op": "comment",
+                "target": "TASK-4",
+                "delta": {"author": "manager"},
+                "session_id": None,
+                "parent_session_id": None,
+            }
+        ]
+    )

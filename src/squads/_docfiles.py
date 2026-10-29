@@ -3,11 +3,12 @@
 Docs are authored at the repo-root ``docs/`` and shipped into the wheel as ``squads/_docs/``
 (hatch ``force-include`` — see ``pyproject.toml``). At runtime we prefer that packaged copy and
 fall back to the repo-root ``docs/`` for editable/dev installs, where force-include does not apply.
-This is a leaf module: it depends only on ``_errors`` to keep the import graph acyclic.
+It depends only on ``_errors`` and the ``_api`` DTOs it builds, to keep the import graph acyclic.
 """
 
 from pathlib import Path
 
+from squads._api._dto._package import Doc, DocEntry, DocIndex
 from squads._errors import SquadsError
 
 _HERE = Path(__file__).resolve()
@@ -39,9 +40,19 @@ def read(name: str) -> str:
 
     Raises ``SquadsError`` listing the available names when ``name`` matches nothing.
     """
+    return doc(name).markdown
+
+
+def doc_index() -> DocIndex:
+    """Every bundled doc's name and title."""
+    return DocIndex(docs=[DocEntry(name=stem, title=title) for stem, title in available()])
+
+
+def doc(name: str) -> Doc:
+    """The doc *name* names, as :func:`read` finds it."""
     target = name.strip().removesuffix(".md").lower()
     for md in sorted(_docs_root().glob("*.md")):
         if md.stem.lower() == target:
-            return md.read_text(encoding="utf-8")
+            return Doc(name=md.stem, markdown=md.read_text(encoding="utf-8"))
     names = ", ".join(stem for stem, _ in available())
     raise SquadsError(f"unknown doc {name!r} (one of: {names})")

@@ -27,7 +27,7 @@ export const MERMAID_NODE_ID_ESCAPE_SOURCE = '_([0-9a-f]{4})';
  * to the same node id, which both merged two distinct items into one diagram node and made the
  * decoded id a guess.
  *
- * The core CLI's own `sq graph --format mermaid` (`_mermaid_node_id` in `_services/_refs.py`)
+ * The core CLI's own `sq graph --format mermaid` (`_mermaid_node_id` in `_cli/_render/_graph.py`)
  * escapes the same way now, for the same reason — fixed-width escaping is the only injective
  * option for encoding an arbitrary id into Mermaid's `[A-Za-z0-9_]` node-id alphabet, so there
  * is one correct answer here rather than two. Its output is also no longer bare escaped ids:
@@ -135,7 +135,7 @@ interface Edge {
  * the bundled default kind's own role, or a project's own), or a semantic this client doesn't
  * otherwise recognise — is shown as its own declared kind spelling (`edge_kind`) verbatim,
  * matching the core CLI's `graph_to_mermaid` label convention
- * (`_services/_refs.py::_collect_edges`) so the two exports read the same way.
+ * (`_cli/_render/_graph.py::_collect_edges`) so the two exports read the same way.
  *
  * The branch is on the declared semantic, never on the kind's spelling — a project may rename
  * its dependency kind (or drop it in favour of only the blocker-direction kind) and this still

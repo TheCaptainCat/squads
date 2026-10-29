@@ -21,7 +21,6 @@ PENDING = frozenset(
         "_import.py",
         "_items.py",
         "_main.py",
-        "_workflow_cmd.py",
     }
 )
 

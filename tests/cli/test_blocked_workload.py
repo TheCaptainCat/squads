@@ -9,10 +9,17 @@ from tests.cli._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
 
+LOW = {"label": "Priority", "badge": "🟢 low", "badge_label": "🟢 Low"}
+
 
 @pytest.fixture
 def readable(copy_squad):
     return copy_squad("readable", init_readable)
+
+
+def _text(document: object) -> str:
+    """*document* as ``--json`` prints it."""
+    return json.dumps(document, indent=2) + "\n"
 
 
 async def _run(invoke, *args: str) -> tuple[int, list[str]]:
@@ -35,13 +42,23 @@ async def test_blocked_says_when_nothing_is_blocked(populated_project, invoke) -
 async def test_blocked_json_prints_one_object_per_waiting_item(readable, invoke) -> None:
     result = await invoke(["blocked", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
-        {
-            "id": "TASK-4",
-            "title": "Rank results",
-            "blockers": [{"id": "TASK-3", "title": "Parse queries", "status": "InProgress"}],
-        }
-    ]
+    # Compared as text, so the key order is held as well as the content.
+    assert result.output == _text(
+        [
+            {
+                "id": "TASK-4",
+                "title": "Rank results",
+                "blockers": [{"id": "TASK-3", "title": "Parse queries", "status": "InProgress"}],
+                "display": {
+                    "type": "Task",
+                    "status": {"badge": "⚪ Draft", "intent": "neutral"},
+                    "badges": {"priority": LOW},
+                    "assignee": None,
+                    "status_code": "Draft",
+                },
+            }
+        ]
+    )
 
 
 async def test_workload_counts_each_assignees_items_and_sub_entities(readable, invoke) -> None:
@@ -59,23 +76,27 @@ async def test_workload_counts_each_assignees_items_and_sub_entities(readable, i
 async def test_workload_json_prints_one_object_per_assignee(readable, invoke) -> None:
     result = await invoke(["workload", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
-        {
-            "assignee": None,
-            "open": 3,
-            "closed": 0,
-            "total": 3,
-            "subentity_open": 3,
-            "subentity_closed": 1,
-            "subentity_total": 4,
-        },
-        {
-            "assignee": "manager",
-            "open": 2,
-            "closed": 1,
-            "total": 3,
-            "subentity_open": 1,
-            "subentity_closed": 0,
-            "subentity_total": 1,
-        },
-    ]
+    assert result.output == _text(
+        [
+            {
+                "assignee": None,
+                "open": 3,
+                "closed": 0,
+                "total": 3,
+                "subentity_open": 3,
+                "subentity_closed": 1,
+                "subentity_total": 4,
+                "display": {"assignee": "(unassigned)"},
+            },
+            {
+                "assignee": "manager",
+                "open": 2,
+                "closed": 1,
+                "total": 3,
+                "subentity_open": 1,
+                "subentity_closed": 0,
+                "subentity_total": 1,
+                "display": {"assignee": "manager"},
+            },
+        ]
+    )

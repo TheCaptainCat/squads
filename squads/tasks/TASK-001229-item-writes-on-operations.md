@@ -3,9 +3,10 @@ id: TASK-1229
 sequence_id: 1229
 type: task
 title: Item writes on operations
-status: Ready
+status: InProgress
 parent: FEAT-1226
 author: tech-lead
+assignee: python-dev
 priority: high
 refs:
 - ADR-1224:implements
@@ -16,26 +17,26 @@ description: create, update, body, retype, remove, refs, views, comment and sub-
 subentities:
 - local_id: ST1
   title: create
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: update, body, retype, remove, refs and views
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: Comment verbs on every host, confirmed remove
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Sub-entity verbs
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST5
   title: JSON output on the 10 item writes
-  status: Todo
+  status: Done
   story: US2
 created_at: '2026-10-28T22:12:38Z'
-updated_at: '2026-10-28T23:32:33Z'
+updated_at: '2026-10-29T04:15:23Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -158,4 +159,25 @@ The sub-entity verbs (`add-<kind>`, `<kind> <k> update`, `body`, `remove`, and t
   - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 2, 3 and 4. For this task: `<host> comment <hash> remove --json` keeps its bare array of removed comments by setting the operation's new `json_field` (`items`); every other write prints `data` whole and sets none. Write responses that print an item row put any display value inside `display` (an item row reserves no other name). The US3 acceptance line should read "`data`, or the field its operation names".
 - [2026-10-28T23:32:33Z] `tech-lead` Olivia Lead:
   - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
+- [2026-10-29T01:34:34Z] `tech-lead` Olivia Lead:
+  - REV-1235 F26 item 1 is this task: delete the roster comment bridge in _cli/_roster.py (COMMENT_VERBS, _resolve_for_comments, _comment_target, the common.resolve_agent_addr call) and the three hosts register_comment_verbs(_addr, lambda ctx: ctx.obj["id"]) lines once the roster comment operations take addr; settle the refusal order for sq role nobody comment -m x (the parent said --as is required first).
+- [2026-10-29T01:35:10Z] `architect` Robert Architect:
+  - @python-dev ADR-1224 point 3a, amended 2026-10-29 (REV-1235 F24): every write in this task whose `--json` is new answers `{entry, …outcome}`. `entry` is the item row or sub-entity object written, or for a delete the resource as it was, and the command's outcome fields sit beside it (for example `view add`/`view disable`: `view`, `changed`, `was_present`; `ref add`/`ref rm`: `target`, `kind`). Wrap even when there is no outcome. Item `status` (TASK-1227's `ITEM_STATUS`) changes to `{entry: ItemRow}` in this task, and its expectation changes with it. `create`, `add-<kind>`, the item and sub-entity `remove` and the comment verbs that already had `--json` keep their documents. Column keys, if you add any, are dotted paths from the row to the value the cell shows (point 5).
+- [2026-10-29T02:02:33Z] `python-dev` Elias Python:
+  - - Landed on branch `worktree-agent-ae67b0c7ddc329acc`, commit 7ce47bed, rebased onto release/0.18 79eac7ad. Not pushed. Task left InProgress.
+      - 41 operations in the item-writes and roster sections of `_api/_ops.py`, bound in `_services/_bindings.py`, handled by `_services/_item_write_ops.py` (`ItemWriteOpsMixin` first in `Service`, plus a `RetypeOpsMixin` after `RosterOpsMixin` so the MRO stays consistent). Routes: `POST /v1/items`, `PATCH`/`DELETE /v1/items/{id}`, `PUT …/body`, `POST …/retype`, `POST …/refs`, `DELETE …/refs/{target}`, `POST …/views`, `POST …/views/{name}/disable`, `POST`/`GET`/`PATCH`/`DELETE …/comments[/{hash}]` and `GET …/comments/{hash}/removal` (the preview), `/v1/items/{id}/subentities[/{local}]` with `/body` and `/comments[...]`, and `/v1/{roles,skills,operators}/{addr}/comments[/{hash}]` (plus GET listing and `/removal`).
+      - DTOs in `_api/_dto/_item_writes.py` and `_api/_dto/_comment_writes.py`; renderers in `_cli/_render/_writes.py`. The comment registrars in `_cli/_common.py` take a `CommentHost` (the host's ops, request types and address reader); one path for items, sub-entities and the three roster kinds.
+      - The item and sub-entity group callbacks only parse; `_VERBS_ON_OPERATIONS`, `_resolve_in_store` and the sub-group store branch are gone. The roster comment bridge (`COMMENT_VERBS`, `_resolve_for_comments`, `_comment_target`, the `ctx.obj["id"]` lambdas) is deleted; roster comment ops take `addr` and resolve it in the operation, the role one with the "activate it first" text. `_create.py` and `_items.py` left the `_services` pending list. CLI helpers left without a caller were removed (`print_block`, `view_disable_result_message`, the id/slug resolvers, `apply_edit_actor`, `register_status_verb`/`register_remove_verb`/`register_body_verb`), and the stale names in `tests/_cli_surface.py` updated: TASK-1232 can skip those.
+      - Shapes per the ADR-1224 amendment (architect bb92a78): the new `--json` writes answer `{entry, …outcome}` (`update`: `nothing_to_clear`; `retype`: `old_id`, `old_status`, `status_reset`, `rewritten`; `ref add`/`rm`: `target`, `kind`; `view add`/`disable`: `view`, `changed`, `was_present`; `<kind> update`: `nothing_to_clear`; `body`, `<kind> body`, `comment` add: entry only). Item `status --json` now answers `{entry: ItemRow}`. `comment remove` sets `json_field = "items"` on all five hosts.
+      - `comment remove` without `--yes`: preview call (`…/removal`, author-checked), prompt, then the remove call with the full hash of the comments shown.
+    - Parity: a scratch squad with an override (custom `incident` type with an alias, a badge field on its own collection, a labelled attribute, its own sub-entity kind `step` with a field, a custom ref kind) and an operator; 231 command lines covering create (every type, alias, guide, stdin, refusals), every `update` flag incl. `--force`, status, body/append/force/file/stdin, retype, remove with and without `--yes` (y and n), refs, views, comments on items, sub-entities, roles, skills and operators incl. show/edit/remove by hash, sub-entity add/update/body/remove. Base and branch run in the same directory, plain and `FORCE_COLOR`: 218 outputs byte-identical each way, 12 `--json` documents differ only by appended keys (old keys in order, values equal), 1 differs: `status --json`, wrapped in `entry` as ruled. The whole squad tree after the sequence (item files, `.squads.json`, `.reflog.jsonl`, CLAUDE.md, `.claude/`) is byte-identical.
+    - Tests: +11 (1610 → 1621 in `tests/meta tests/cli tests/check`): one whole-document case per new flag (10) and the `comment --json HASH show` refusal (exit 2). Each falsified red then restored. Existing expectations edited: `test_status_json_prints_the_moved_items_row` (wrapped in `entry`, per the ruling); keys added only in `test_create.py` (two `--json` cases: `display` with `file`), `test_add_json_prints_where_the_body_region_was_written` (`display`), `test_remove_json_prints_the_removed_subtask` (`item`), `test_edit_json_prints_the_edited_comment` (`item`, `scope`, `changed`, `previous`). Guard lists: `json_field` allow-list (+8: the five comment removes, the three roster comment listings), `EXTRA_ALLOWED` (+`ItemCreated`), pending list (−`_create.py`, −`_items.py`).
+    - Gates: pyright 0 errors; ruff check and format clean; `pytest -n 2 tests/meta tests/cli tests/check` 1621 passed.
+    - Deviations:
+      - Parse-time refusals now come before the item, actor and file checks, as in TASK-1227/1230 (a combined error reports the parse refusal first).
+      - Item and sub-entity `remove` without `--yes` ask before the call, so an unknown item or `--as` slug is refused after the prompt instead of before it (ADR-1224 point 1).
+      - Additive keys on existing documents: `create --json` gains `badges` and `display` (its `display` carries `file`, the path the human line prints); `add-<kind> --json` gains `display` (`item`, `body_command`); sub-entity `remove --json` gains `item`; `comment edit --json` gains `item`, `scope`, `changed`, `previous`.
+    - Adopter-visible, for @tech-writer: `--json` on the 10 keys with the `{entry, …}` shapes above; `status --json` wrapped in `entry`; the additive keys above; `--json` before a comment verb is a usage error (exit 2).
+- [2026-10-29T04:15:23Z] `python-dev` Elias Python:
+  - Rebased onto release/0.18 17c74eb7 (no src or test changes upstream since 79eac7ad): commit is now 6699ef16; pyright 0 errors, ruff clean, tests/meta+cli+check 1621 passed. The many-resource report rule touches none of this task's writes; no column keys added.
 <!-- sq:discussion:end -->

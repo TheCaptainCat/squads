@@ -31,7 +31,6 @@ _FORWARDING_SOURCE = "check_override_issues"
 #: under, in source order. A new site, or a site moved to another rule, fails here until the
 #: row says so; the per-source ``--json`` table then needs a row that drives it.
 _SITES: dict[tuple[str, str], tuple[str, ...]] = {
-    ("squads/_cli/_main.py", "check"): ("playbook_loads", "workflow_loads", "corpus_scans"),
     ("squads/_overrides/_service.py", "_roles_catalog_invalid_issue"): ("override_loads",),
     ("squads/_overrides/_service.py", "_stamp_issue"): ("override_stamped", "override_current"),
     ("squads/_overrides/_service.py", "_check_template_override_issues"): (
@@ -67,6 +66,8 @@ _SITES: dict[tuple[str, str], tuple[str, ...]] = {
         "id_well_formed",
         "fields_valid",
     ),
+    ("squads/_services/_squad_ops.py", "_check_refusal"): ("playbook_loads", "workflow_loads"),
+    ("squads/_services/_squad_ops.py", "check_squad"): ("corpus_scans",),
     ("squads/_services/_validators.py", "on_disk_not_indexed"): ("index_reconciled",),
     ("squads/_services/_validators.py", "not_on_disk"): ("index_reconciled",),
     ("squads/_services/_validators.py", "backend_entry_missing"): ("backend_reconciled",),

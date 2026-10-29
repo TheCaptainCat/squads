@@ -16,26 +16,31 @@ description: role, skill, operator and dev verbs on one operation each, with --j
 subentities:
 - local_id: ST1
   title: role verbs and the shared roster registrars
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST2
   title: skill verbs
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST3
   title: operator and dev verbs
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US1
 - local_id: ST4
   title: Roster display names and columns
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US4
 - local_id: ST5
   title: JSON output on the 24 roster keys
-  status: Todo
+  status: Done
+  assignee: python-dev
   story: US2
 created_at: '2026-10-28T22:12:39Z'
-updated_at: '2026-10-28T23:59:04Z'
+updated_at: '2026-10-29T00:35:45Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -153,4 +158,14 @@ Display for the roster (ADR-1224 point 5): role and operator names with pronouns
   - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 3 and 4. For this task: `role catalog`, `role list` and `operator list` keep their bare-array `--json` by setting the operation's new `json_field` (`items`), so their `columns` reach human mode and HTTP only. The 24 new flags (`dev list` included) print `data` whole, an object, and set none. The US3 acceptance line should read "`data`, or the field its operation names".
 - [2026-10-28T23:32:34Z] `tech-lead` Olivia Lead:
   - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
+- [2026-10-29T00:35:40Z] `python-dev` Elias Python:
+  - - Roster commands on operations, commit 5f156cc1 on branch worktree-agent-adac611660ae546f2 (base 77fac31d). 35 operations in the roster section of `_api/_ops.py`, bound in `_services/_bindings.py` to `RosterOpsMixin` (`_services/_roster_ops.py`, projections in `_services/_roster_dto.py`); DTOs in `_api/_dto/_roles.py`, `_skills.py`, `_operators.py` plus `_roster.py` for the shared address and requests; renderers in `_cli/_render/_roster.py`; shared verbs (body, remove/rm, status) and the address parse in `_cli/_roster.py`.
+    - Routes: `/v1/roles[/{addr}]`, `/v1/skills[/{addr}]`, `/v1/operators[/{addr}]` with `…/body` (PUT), `…/status`, `…/regen`, `…/set-default`, `…/link-role`, `…/unlink-role` (POST), `…/views` and `…/views/{name}/disable`, `…/refs[/{target}]`; `GET /v1/roles/catalog` and `POST /v1/roles/activate` (literals under `/v1/roles/` only for `sq role` group verbs, which no role can be addressed by); `dev add` is `roles.activate`; `dev list` is `GET /v1/developers`, outside `/v1/roles/` so it shadows no addressable slug.
+    - `--json` on the 24 keys; `role catalog`, `role list`, `operator list` keep their bare arrays through `json_field="items"`. Display: `display` appended to role/operator/developer rows (name with pronouns per `[display] pronouns`, the shown pronouns, `live` on roles) and to the three shows (body with view tags expanded, empty-body hints, change hint, discussion); `columns` on role catalog, role list, operator list and dev list. Skills have no listing table, so no skill `columns`.
+    - Proof: scratch squad (core roles, a role override, a self-defined role from a file, dev roles, an archived dev, operators with and without pronouns, an archived operator, comments, `[display] pronouns` both ways, styled and piped, outside a squad), 276 command lines before/after: 234 byte-identical, 33 JSON documents differ only by appended keys (old keys in order, values equal), 2 differ (below), 1 differs by the capture directory name only. The generated tree after all writes (CLAUDE.md, AGENTS.md, `.claude/`, every item file and the index) is byte-identical (`diff -r` empty).
+    - Tests: +24 surface cases (one per new key, whole document compared as text). Existing expectations edited, keys added only: role list --json, role add's show --json (display, body as ANY), skill add's show --json, operator add's list, operator list --json, operator show --json. Bare-key markers dropped where the key gained `--json` and so stopped being a parameterless leaf: three `covers("dev list")`, two `covers("role regen")`, two `covers("skill regen")`. Guards: `json_field` allow-list gains the three roster arrays (one line each); edge table gains `_roles -> _api top` and loses `_cli -> _views top`; the roster body guard now checks `register_write_verbs` and the one `set_body` in `_roster_ops.py`.
+    - Deviations: (1) `role catalog` outside a squad: no operation can compose a service without one, so the CLI answers `NotInitializedError` with the packaged catalog built by `_roles/_listing.bundled_catalog()` (package data, as ADR-1224 3a does for `docs`), not through a composition mode. (2) Parse refusals now come before address resolution: `sq skill nobody status` exits 2 (missing STATUS) instead of 1 (unknown skill); likewise a `--file` read error or a bad `--can-spawn` now precedes an address or actor error. (3) The comment verbs (TASK-1229's) still need a resolved id: the `_addr` callback only parses, except when the verb is `comment`/`comments`, where it resolves through the old path as before; TASK-1229 removes that branch. (4) The comment and body rendering helpers are copied into the roster renderer rather than shared with `_render/_items.py`, to keep the parallel tasks off each other's modules; worth folding together in TASK-1232. (5) Role shows now read the body and discussion in `--json` mode too, so a role whose item file is missing fails `show --json` where it used to print.
+    - Gates: pyright 0 errors, ruff check and format clean, `pytest -n 2 tests/meta tests/cli tests/check` 1596 passed (+25: 24 cases, 1 guard test). Falsified: dropping one key from each roster DTO turns all 24 cases red; a second `set_body` call in the roster operations turns the body guard red.
+    - Dead in `_cli/_common.py` for TASK-1232: `register_status_verb`, `register_remove_verb`, `register_body_verb`, `named_markup`, `origin_json`.
+    - Adopter-visible, for @tech-writer: `--json` on the 24 roster keys; `display` on role list, operator list and role/skill/operator show documents; `dev list --json` prints an object (`items`, `columns`, `template_available`).
 <!-- sq:discussion:end -->

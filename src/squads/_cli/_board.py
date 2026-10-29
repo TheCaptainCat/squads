@@ -13,23 +13,14 @@ across posts or clears.
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
-import json
-
 import typer
 
-import squads._actor as actor
 import squads._cli._common as common
-from squads._cli._common import (
-    command,
-    console,
-    e,
-    get_service,
-    print_json_clean,
-    report_omissions,
-    require_as,
-    resolve_actor_or_raise,
-    resolve_body,
-)
+from squads._api import _ops as ops
+from squads._api._dto._board import BoardClearRequest, BoardListRequest, BoardPostRequest
+from squads._cli import _calls as calls
+from squads._cli._common import console, handle_errors, require_as, resolve_body
+from squads._cli._render._board import render_cleared, render_notices, render_posted
 
 board_app = typer.Typer(
     no_args_is_help=True,
@@ -38,27 +29,32 @@ board_app = typer.Typer(
 
 
 @board_app.command("post")
-@command
-async def post_notice(
+@handle_errors
+def post_notice(
     message: list[str] = common.message_option(),
     file: str | None = common.file_option(),
     until: str | None = typer.Option(
         None, "--until", help="ISO 8601 date or time after which the notice is hidden."
     ),
     as_: str | None = common.as_option(),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the notice posted."
+    ),
 ) -> None:
     """Post a notice to the board, visible to the whole team until it expires."""
-    svc = get_service()
-    slug = await resolve_actor_or_raise(require_as(as_), svc)
-    actor.set_actor(slug)
-    text = resolve_body(message or None, file)
-    notice = await svc.board_post(slug, text, until=until)
-    console.print(f"posted [bold]{e(notice.id)}[/bold] as {e(slug)}")
+    common.declare_actor(require_as(as_))
+    request = BoardPostRequest(body=resolve_body(message or None, file), until=until)
+    response = calls.call(ops.BOARD_POST, request)
+    if json_out:
+        calls.print_json(ops.BOARD_POST, response)
+    else:
+        calls.print_warnings(response)
+        render_posted(response.data, console)
 
 
 @board_app.command("list")
-@command
-async def list_notices(
+@handle_errors
+def list_notices(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per notice."
     ),
@@ -67,44 +63,27 @@ async def list_notices(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    svc = get_service()
-    notices, unreadable = await svc.board_list()
+    response = calls.call(ops.BOARD_LIST, BoardListRequest())
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "n": i,
-                        "id": n.id,
-                        "author": n.author,
-                        "posted_at": n.posted_at,
-                        "until": n.until,
-                        "body": n.body,
-                    }
-                    for i, n in enumerate(notices, start=1)
-                ]
-            )
-        )
-        report_omissions(unreadable, json_out=True)
-        return
-    if not notices:
-        console.print("[dim]no current notices[/dim]")
+        calls.print_json(ops.BOARD_LIST, response)
     else:
-        for i, n in enumerate(notices, start=1):
-            until_part = f"  [dim]until {e(n.until)}[/dim]" if n.until else ""
-            console.print(
-                f"[bold]{i}.[/bold] {e(n.body)}  [dim]({e(n.author)} @ {e(n.posted_at)})[/dim]"
-                f"{until_part}"
-            )
-    report_omissions(unreadable, json_out=False)
+        calls.print_warnings(response)
+        render_notices(response.data, console)
+    calls.finish(response, json_out=json_out)
 
 
 @board_app.command("clear")
-@command
-async def clear_notice(
+@handle_errors
+def clear_notice(
     n: int = typer.Argument(..., help="The notice's number in `sq board list`."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the notice as it was taken down."
+    ),
 ) -> None:
     """Take down a notice by its number in the current listing."""
-    svc = get_service()
-    notice = await svc.board_clear(n)
-    console.print(f"cleared [bold]{e(notice.id)}[/bold]")
+    response = calls.call(ops.BOARD_CLEAR, BoardClearRequest(n=n))
+    if json_out:
+        calls.print_json(ops.BOARD_CLEAR, response)
+    else:
+        calls.print_warnings(response)
+        render_cleared(response.data, console)

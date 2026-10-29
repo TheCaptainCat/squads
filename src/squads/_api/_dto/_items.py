@@ -119,12 +119,11 @@ class _TrailingKeys(DTO):
         return ordered
 
 
-class ItemRow(_TrailingKeys):
-    """An item as a listing row: its fields, each stored attribute flat at the top level, its
-    badges by field code and its display."""
+class ItemFields(_TrailingKeys):
+    """An item's fields, with each stored attribute flat at the top level; a row adds its own
+    keys after them."""
 
     model_config = ConfigDict(extra="allow")
-    TRAILING: ClassVar[tuple[str, ...]] = ("badges", "display")
 
     sequence_id: int
     type: str
@@ -146,6 +145,14 @@ class ItemRow(_TrailingKeys):
     created_session: str | None
     modified_session: str | None
     id: str
+
+
+class ItemRow(ItemFields):
+    """An item as a listing row: its fields, each stored attribute flat at the top level, its
+    badges by field code and its display."""
+
+    TRAILING: ClassVar[tuple[str, ...]] = ("badges", "display")
+
     badges: dict[str, str]
     display: Display
 

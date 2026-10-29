@@ -16,6 +16,7 @@ type (see :class:`~squads._migrations._outcome.MigrationOutcome`).
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from squads._api._dto._package import MigrationEntry, MigrationIndex, MigrationSteps
 from squads._migrations import (
     _v0_1_to_v0_2,
     _v0_2_to_v0_3,
@@ -34,6 +35,7 @@ from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._models._schema import schema_tuple
 from squads._paths import SquadPaths
+from squads._util import version_tuple
 
 
 def _wrap_sync(
@@ -210,3 +212,31 @@ def release_reading_schema(schema: str) -> str:
         if schema_tuple(m.to_schema) >= target:
             return m.version
     return ""
+
+
+def _entry(m: Migration) -> MigrationEntry:
+    return MigrationEntry(
+        version=m.version,
+        from_schema=m.from_schema,
+        to_schema=m.to_schema,
+        summary=m.summary,
+        manual=m.manual,
+    )
+
+
+def migration_index() -> MigrationIndex:
+    """Every migration squads ships, oldest first."""
+    return MigrationIndex(migrations=[_entry(m) for m in MIGRATIONS])
+
+
+def manual_steps(lo: str, hi: str) -> MigrationSteps:
+    """The migrations with manual steps in the releases after *lo* up to and including *hi*."""
+    return MigrationSteps(
+        from_version=lo,
+        to_version=hi,
+        migrations=[
+            _entry(m)
+            for m in MIGRATIONS
+            if m.manual and version_tuple(lo) < version_tuple(m.version) <= version_tuple(hi)
+        ],
+    )

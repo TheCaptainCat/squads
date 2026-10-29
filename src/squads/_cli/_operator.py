@@ -12,27 +12,37 @@ Address resolution order (exact match, no fuzzy):
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
 # pyright: reportUnusedFunction=false
 
-import json
-
 import typer
-from rich.panel import Panel
-from rich.table import Table
 
 import squads._cli._common as common
-from squads import _pronouns
+from squads._api import _ops as ops
+from squads._api._dto._operators import (
+    OperatorAddRequest,
+    OperatorListRequest,
+    OperatorUpdateRequest,
+)
+from squads._api._dto._roster import RosterAddress
+from squads._cli import _calls as calls
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
-    e,
-    get_service,
-    print_json_clean,
-    register_body_verb,
     register_comment_verbs,
-    register_remove_verb,
-    register_status_verb,
-    render_body_text,
-    resolve_agent_addr,
 )
+from squads._cli._render._roster import (
+    render_named_entry,
+    render_operator_list,
+    render_operator_show,
+    render_updated,
+)
+from squads._cli._roster import (
+    address_of,
+    finish_write,
+    json_option,
+    parse_address,
+    register_roster_status_verb,
+    register_write_verbs,
+)
+from squads._workflow import ROSTER_OPERATOR
 
 
 class _OperatorDispatchGroup(AddressDispatchGroup):
@@ -59,65 +69,44 @@ operator_app = typer.Typer(
 
 
 @operator_app.command("add")
-@common.command
-async def operator_add(
+@common.handle_errors
+def operator_add(
     name: str = typer.Argument(..., help='The person\'s display name, such as "Alice Tester".'),
     slug: str | None = typer.Option(
         None, "--slug", help="Slug to use instead of `op-<first name>`."
     ),
     pronouns: str | None = common.pronouns_option(),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the operator registered."),
 ) -> None:
     """Register a person who can be assigned work and write items and comments."""
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    item = await svc.add_operator(name, slug=slug, pronouns=pronouns)
-    name = common.named_markup(svc, item.title, _pronouns.pronouns(item))
-    console.print(f"registered [bold]{name}[/bold] (`{item.slug}`) {item.id}")
+    common.declare_actor(as_)
+    request = OperatorAddRequest(name=name, slug=slug, pronouns=pronouns)
+    response = calls.call(ops.OPERATORS_ADD, request)
+    finish_write(
+        ops.OPERATORS_ADD,
+        response,
+        json_out,
+        lambda write: render_named_entry("registered", write.entry, console),
+    )
 
 
 # --------------------------------------------------------------------------- list
 
 
 @operator_app.command("list")
-@common.command
-async def operator_list(
+@common.handle_errors
+def operator_list(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per operator."
     ),
 ) -> None:
     """List the registered human operators."""
-    svc = get_service()
-    operators = await svc.list_operators()
+    response = calls.call(ops.OPERATORS_LIST, OperatorListRequest())
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        "id": op.id,
-                        "slug": op.slug,
-                        "full_name": op.title,
-                        "pronouns": _pronouns.pronouns(op),
-                        "status": op.status,
-                    }
-                    for op in operators
-                ]
-            )
-        )
+        calls.print_json(ops.OPERATORS_LIST, response)
         return
-    table = Table(box=None, pad_edge=False)
-    for col in ("Slug", "Name", "ID", "Status"):
-        table.add_column(col)
-    for op in operators:
-        table.add_row(
-            e(op.slug),
-            _pronouns.named(
-                op.title, _pronouns.pronouns(op), enabled=svc.paths.config.display.pronouns
-            ),
-            op.id,
-            e(op.status),
-        )
-    console.print(table)
+    render_operator_list(response.data, console)
 
 
 # ---------------------------------------------------------------- addressed subgroup (_addr)
@@ -130,20 +119,20 @@ _addr = typer.Typer(
 
 
 @_addr.callback()
-@common.command
-async def _resolve_addr(
+@common.handle_errors
+def _resolve_addr(
     ctx: typer.Context,
     addr: str = typer.Argument(
         ..., metavar=common.ADDRESS_METAVAR, help="Operator slug, ID or number."
     ),
 ) -> None:
-    svc = get_service()
-    ctx.obj = await common.address_obj(ctx, lambda: resolve_agent_addr(addr, "operator", svc))
+    """Keep the address for the verb's operation, which resolves it."""
+    parse_address(ctx, ROSTER_OPERATOR, addr)
 
 
 @_addr.command("show")
-@common.command
-async def operator_show(
+@common.handle_errors
+def operator_show(
     ctx: typer.Context,
     raw: bool = common.raw_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the operator."),
@@ -152,66 +141,41 @@ async def operator_show(
     ),
 ) -> None:
     """Show an operator's metadata panel and body."""
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    it = await svc.get(item_id)
+    response = calls.call(ops.OPERATOR_SHOW, RosterAddress(addr=address_of(ctx)))
     if json_out:
-        print_json_clean(
-            json.dumps(
-                {
-                    "id": it.id,
-                    "slug": it.slug,
-                    "full_name": it.title,
-                    "pronouns": _pronouns.pronouns(it),
-                    "status": it.status,
-                    "path": it.path,
-                }
-            )
-        )
+        calls.print_json(ops.OPERATOR_SHOW, response)
         return
-    await common.warn_duplicate_id(svc, it)
-    rows = [
-        common.named_markup(svc, it.title, _pronouns.pronouns(it), style="bold"),
-        f"[bold]slug:[/bold] {e(it.slug)}",
-        f"[bold]id:[/bold] {it.id}",
-        f"[bold]status:[/bold] {it.status}",
-        f"[bold]file:[/bold] {it.path}",
-    ]
-    console.print(Panel("\n".join(rows), expand=False))
-    body = await svc.read_body(it.id)
-    render_body_text(
-        body,
-        raw=raw,
-        empty_hint=f'(empty — write their profile with `sq operator {it.slug} body -m "…"`)',
-    )
-    if comments:
-        common.print_comments(await svc.comments(it.id))
+    calls.print_warnings(response)
+    render_operator_show(response.data, console, raw=raw, comments=comments)
 
 
 @_addr.command("update")
-@common.command
-async def operator_update(
+@common.handle_errors
+def operator_update(
     ctx: typer.Context,
     title: str | None = typer.Option(None, "--title", help="The operator's display name."),
     pronouns: str | None = typer.Option(
         None, "--pronouns", help="The operator's pronouns; a blank value clears them."
     ),
     as_: str | None = common.edit_as_option(),
+    json_out: bool = json_option("Print one JSON object: the operator after the update."),
 ) -> None:
     """Rename an operator or set their pronouns; the slug never changes."""
     common.require_update_fields(title=title, pronouns=pronouns)
-    item_id: str = ctx.obj["id"]
-    svc = get_service()
-    await common.apply_edit_actor(as_, svc)
-    await svc.update(item_id, title=title, pronouns=pronouns)
-    await svc.refresh_managed()
-    console.print(f"updated {item_id}")
+    common.declare_actor(as_)
+    request = OperatorUpdateRequest(addr=address_of(ctx), title=title, pronouns=pronouns)
+    response = calls.call(ops.OPERATOR_UPDATE, request)
+    finish_write(
+        ops.OPERATOR_UPDATE,
+        response,
+        json_out,
+        lambda write: render_updated(write.entry.id, console),
+    )
 
 
-register_body_verb(_addr, lambda ctx: ctx.obj["id"])
-register_remove_verb(_addr, lambda ctx: ctx.obj["id"], refresh_managed=True)
+register_write_verbs(_addr, body=ops.OPERATOR_BODY, remove=ops.OPERATOR_REMOVE)
 register_comment_verbs(_addr, lambda ctx: ctx.obj["id"])
-register_status_verb(_addr, lambda ctx: ctx.obj["id"])
+register_roster_status_verb(_addr, status=ops.OPERATOR_STATUS)
 
 operator_app.add_typer(_addr, name="_addr", hidden=True)
 

@@ -67,6 +67,15 @@ def _one(entries: list[dict[str, Any]], key: str, value: str) -> dict[str, Any]:
     return next(entry for entry in entries if entry[key] == value)
 
 
+def _assert_row(
+    entries: list[dict[str, Any]], key: str, value: str, expected: dict[str, Any]
+) -> None:
+    """The row whose *key* is *value* is *expected*, compared as text so the key order is
+    held, and every row has its keys in that order."""
+    assert json.dumps(_one(entries, key, value)) == json.dumps(expected)
+    assert {tuple(entry) for entry in entries} == {tuple(expected)}
+
+
 # --- the cheatsheet -------------------------------------------------------------------------
 
 
@@ -128,23 +137,28 @@ async def test_types_json_prints_one_object_per_type(project, invoke) -> None:
         "skill",
         "operator",
     ]
-    assert _one(entries, "type", "task") == {
-        "type": "task",
-        "order": 30.0,
-        "prefix": "TASK",
-        "reserved": False,
-        "category": "work",
-        "subentity_kind": "subtask",
-        "lifecycle": "work",
-        "fields": [{"code": "priority", "label": "Priority", "collection": "priority"}],
-        "attributes": {},
-        "labels": {
-            "singular": "Task",
-            "plural": "Tasks",
-            "singular_lower": "task",
-            "plural_lower": "tasks",
+    _assert_row(
+        entries,
+        "type",
+        "task",
+        {
+            "type": "task",
+            "order": 30.0,
+            "prefix": "TASK",
+            "reserved": False,
+            "category": "work",
+            "subentity_kind": "subtask",
+            "lifecycle": "work",
+            "fields": [{"code": "priority", "label": "Priority", "collection": "priority"}],
+            "attributes": {},
+            "labels": {
+                "singular": "Task",
+                "plural": "Tasks",
+                "singular_lower": "task",
+                "plural_lower": "tasks",
+            },
         },
-    }
+    )
     milestone = _one(entries, "type", "milestone")
     assert milestone["attributes"] == {
         "target_date": {"kind": "date", "required": False, "settable": True, "label": "target date"}
@@ -167,16 +181,21 @@ async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> Non
 async def test_subentity_kinds_json_prints_one_object_per_kind(project, invoke) -> None:
     entries = await _json(invoke, "subentity-kinds")
     assert _named(entries, "subentity_kind") == ["finding", "story", "subtask"]
-    assert _one(entries, "subentity_kind", "finding") == {
-        "subentity_kind": "finding",
-        "lifecycle": "finding",
-        "plural": "findings",
-        "local_prefix": "F",
-        "container_heading": "Findings",
-        "completion": "Fixed",
-        "maps_parent_story": False,
-        "fields": [{"code": "severity", "label": "Severity", "collection": "severity"}],
-    }
+    _assert_row(
+        entries,
+        "subentity_kind",
+        "finding",
+        {
+            "subentity_kind": "finding",
+            "lifecycle": "finding",
+            "plural": "findings",
+            "local_prefix": "F",
+            "container_heading": "Findings",
+            "completion": "Fixed",
+            "maps_parent_story": False,
+            "fields": [{"code": "severity", "label": "Severity", "collection": "severity"}],
+        },
+    )
 
 
 async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> None:
@@ -206,15 +225,20 @@ async def test_lifecycles_json_prints_one_object_per_lifecycle(project, invoke) 
         "subentity",
         "work",
     ]
-    assert _one(entries, "lifecycle", "agent") == {
-        "lifecycle": "agent",
-        "initial": "Active",
-        "states": ["Active", "Archived"],
-        "transitions": [
-            {"from": "Active", "to": "Archived"},
-            {"from": "Archived", "to": "Active"},
-        ],
-    }
+    _assert_row(
+        entries,
+        "lifecycle",
+        "agent",
+        {
+            "lifecycle": "agent",
+            "initial": "Active",
+            "states": ["Active", "Archived"],
+            "transitions": [
+                {"from": "Active", "to": "Archived"},
+                {"from": "Archived", "to": "Active"},
+            ],
+        },
+    )
 
 
 async def test_collections_lists_every_declared_badge_collection(project, invoke) -> None:
@@ -232,19 +256,24 @@ async def test_collections_lists_every_declared_badge_collection(project, invoke
 async def test_collections_json_prints_one_object_per_collection(project, invoke) -> None:
     entries = await _json(invoke, "collections")
     assert _named(entries, "collection") == ["priority", "severity"]
-    assert _one(entries, "collection", "severity") == {
-        "collection": "severity",
-        "label": "Severity",
-        "ordered": True,
-        "default": "medium",
-        "badges": [
-            {"code": "critical", "label": "Critical", "emoji": "🔴"},
-            {"code": "high", "label": "High", "emoji": "🟠"},
-            {"code": "medium", "label": "Medium", "emoji": "🟡"},
-            {"code": "low", "label": "Low", "emoji": "🟢"},
-            {"code": "info", "label": "Info", "emoji": "🔵"},
-        ],
-    }
+    _assert_row(
+        entries,
+        "collection",
+        "severity",
+        {
+            "collection": "severity",
+            "label": "Severity",
+            "ordered": True,
+            "default": "medium",
+            "badges": [
+                {"code": "critical", "label": "Critical", "emoji": "🔴"},
+                {"code": "high", "label": "High", "emoji": "🟠"},
+                {"code": "medium", "label": "Medium", "emoji": "🟡"},
+                {"code": "low", "label": "Low", "emoji": "🟢"},
+                {"code": "info", "label": "Info", "emoji": "🔵"},
+            ],
+        },
+    )
 
 
 async def test_statuses_lists_every_declared_status_with_its_role(project, invoke) -> None:
@@ -264,11 +293,17 @@ async def test_statuses_lists_every_declared_status_with_its_role(project, invok
 async def test_statuses_json_prints_one_object_per_status(project, invoke) -> None:
     entries = await _json(invoke, "statuses")
     assert len(entries) == 25
-    assert _one(entries, "status", "Blocked") == {
-        "status": "Blocked",
-        "role": "blocked",
-        "badge": "🔴",
-    }
+    _assert_row(
+        entries,
+        "status",
+        "Blocked",
+        {
+            "status": "Blocked",
+            "role": "blocked",
+            "badge": "🔴",
+            "display": {"intent": "danger"},
+        },
+    )
 
 
 async def test_roles_lists_every_status_role(project, invoke) -> None:
@@ -303,15 +338,20 @@ async def test_roles_json_prints_one_object_per_status_role(project, invoke) -> 
         "retired",
         "superseded",
     ]
-    assert _one(entries, "role", "blocked") == {
-        "role": "blocked",
-        "settled": False,
-        "hidden": False,
-        "color": "danger",
-        "live": False,
-        "blocked": True,
-        "deferred": False,
-    }
+    _assert_row(
+        entries,
+        "role",
+        "blocked",
+        {
+            "role": "blocked",
+            "settled": False,
+            "hidden": False,
+            "color": "danger",
+            "live": False,
+            "blocked": True,
+            "deferred": False,
+        },
+    )
 
 
 async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
@@ -340,13 +380,18 @@ async def test_ref_kinds_json_prints_one_object_per_ref_kind(project, invoke) ->
         "supersedes",
         "targets",
     ]
-    assert _one(entries, "kind", "blocks") == {
-        "kind": "blocks",
-        "label": "Blocks",
-        "hint": "A is blocking B; B cannot proceed while A is open",
-        "role": "dependency",
-        "direction": "blocker",
-    }
+    _assert_row(
+        entries,
+        "kind",
+        "blocks",
+        {
+            "kind": "blocks",
+            "label": "Blocks",
+            "hint": "A is blocking B; B cannot proceed while A is open",
+            "role": "dependency",
+            "direction": "blocker",
+        },
+    )
 
 
 async def test_views_lists_every_declared_view(project, invoke) -> None:
@@ -375,12 +420,17 @@ async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
         "role_definition",
         "squads_skill",
     ]
-    assert _one(entries, "view", "milestone_rollup") == {
-        "view": "milestone_rollup",
-        "source_kind": "ref",
-        "source_name": "targets",
-        "transform": {"module": "squads._view_transforms", "function": "milestone_rollup"},
-    }
+    _assert_row(
+        entries,
+        "view",
+        "milestone_rollup",
+        {
+            "view": "milestone_rollup",
+            "source_kind": "ref",
+            "source_name": "targets",
+            "transform": {"module": "squads._view_transforms", "function": "milestone_rollup"},
+        },
+    )
 
 
 # --- view -----------------------------------------------------------------------------------
@@ -428,7 +478,7 @@ async def test_view_refuses_an_item_the_index_lacks(milestone_project, invoke) -
 async def test_view_json_prints_the_records_the_view_resolves(milestone_project, invoke) -> None:
     result = await invoke(["workflow", "view", "milestone_rollup", "8", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
+    expected = [
         {
             "id": "TASK-3",
             "type": "task",
@@ -440,6 +490,21 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
             "badges": {"priority": "urgent"},
             "anchor": False,
             "children": [],
+            "display": {
+                "type": "Task",
+                "status": {"badge": "🟢 Done", "intent": "positive"},
+                "badges": {
+                    "priority": {
+                        "label": "Priority",
+                        "badge": "🔴 urgent",
+                        "badge_label": "🔴 Urgent",
+                    }
+                },
+                "assignee": "Catherine Manager",
+                "dimmed": False,
+                "anchor": None,
+                "pronouns": None,
+            },
         },
         {
             "id": "TASK-4",
@@ -452,16 +517,95 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
             "badges": {"priority": "low"},
             "anchor": False,
             "children": [],
+            "display": {
+                "type": "Task",
+                "status": {"badge": "⚪ Draft", "intent": "neutral"},
+                "badges": {
+                    "priority": {"label": "Priority", "badge": "🟢 low", "badge_label": "🟢 Low"}
+                },
+                "assignee": None,
+                "dimmed": False,
+                "anchor": None,
+                "pronouns": None,
+            },
         },
     ]
+    # Compared as text, so the key order is held as well as the content.
+    assert result.output == json.dumps(expected, indent=2) + "\n"
+
+
+@pytest.mark.covers("workflow view", "--json")
+async def test_view_json_still_prints_the_source_when_the_template_does_not_render(
+    milestone_project, invoke
+) -> None:
+    template = milestone_project.squad_dir / ".overrides" / "templates" / "views"
+    template.mkdir(parents=True)
+    (template / "milestone_rollup.md.j2").write_text(
+        "{{ nope.undefined_thing }}\n", encoding="utf-8"
+    )
+    rendered = await invoke(["workflow", "view", "milestone_rollup", "8"])
+    assert rendered.exit_code == 1
+    result = await invoke(["workflow", "view", "milestone_rollup", "8", "--json"])
+    assert result.exit_code == 0, result.output
+    assert [node["id"] for node in json.loads(result.output)] == ["TASK-3", "TASK-4"]
 
 
 # --- lint -----------------------------------------------------------------------------------
 
 
-@pytest.mark.covers("workflow lint")
 async def test_lint_accepts_a_squad_with_no_override(project, invoke) -> None:
     assert await _run(invoke, "lint") == (
         0,
         ["workflow spec OK — no override file found; using the bundled default."],
+    )
+
+
+# --- json documents -------------------------------------------------------------------------
+
+
+@pytest.mark.covers("workflow show", "--json")
+async def test_show_json_prints_the_cheatsheet_as_markdown(project, invoke) -> None:
+    raw = await invoke(["workflow", "show", "--raw"])
+    result = await invoke(["workflow", "show", "--json"])
+    assert result.exit_code == 0, result.output
+    markdown = raw.output.removesuffix("\n")
+    assert markdown.splitlines()[:4] == CHEATSHEET_HEAD
+    assert result.output == json.dumps({"markdown": markdown}, indent=2) + "\n"
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_json_prints_each_error_with_its_location_and_fix(project, invoke) -> None:
+    (project.squad_dir / ".overrides").mkdir()
+    (project.squad_dir / ".overrides" / "workflow.toml").write_text(
+        "[statuses.Parked]\nrole = 'nowhere'\n", encoding="utf-8"
+    )
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == json.dumps(
+            {
+                "override": True,
+                "errors": [
+                    {
+                        "location": ".overrides/workflow.toml",
+                        "message": "status 'Parked': role 'nowhere' not declared in roles",
+                        "fix_hint": "Fix the referenced key in .overrides/workflow.toml, or add it "
+                        "back (directly or via `selected`), and re-run `sq workflow lint`.",
+                    }
+                ],
+                "warnings": [],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_json_refuses_outside_a_squad_on_stderr(invoke) -> None:
+    result = await invoke(["workflow", "lint", "--json"])
+    assert (result.exit_code, result.stdout) == (1, "")
+    assert result.stderr == (
+        "error: no .squads.toml found in this or any parent directory — run `sq init`\n"
     )

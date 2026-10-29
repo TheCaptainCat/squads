@@ -62,15 +62,24 @@ async def test_inbox_json_prints_one_object_per_item_with_the_mentioning_lines(
 ) -> None:
     result = await invoke(["inbox", "op-pierre", "--json"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
+    # Compared as text, so the key order is held as well as the content.
+    expected = [
         {
             "id": "REV-7",
             "title": "Review the parser",
             "lines": ["- @op-pierre what is your view?"],
             "regions": [None],
             "hashes": ["297f6f158ac5d9ac7bd3dd38efc678ac6c5635d20298f4b553df17fef5dd8c4a"],
+            "display": {
+                "type": "Review",
+                "status": {"badge": "⚪ Requested", "intent": "neutral"},
+                "badges": {},
+                "assignee": None,
+                "status_code": "Requested",
+            },
         }
     ]
+    assert result.output == json.dumps(expected, indent=2) + "\n"
 
 
 @pytest.mark.covers("mine", "ROLE")
@@ -107,7 +116,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
     assert result.exit_code == 0, result.output
     rows = json.loads(result.output)
     assert [row["id"] for row in rows] == ["FEAT-2", "TASK-3", "REV-7"]
-    assert rows[2] == {
+    review = {
         "sequence_id": 7,
         "type": "review",
         "title": "Review the parser",
@@ -140,6 +149,15 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
         "modified_session": None,
         "id": "REV-7",
         "matched_subentities": [
-            {"kind": "finding", "local_id": "F1", "title": "Unbounded recursion", "status": "Open"}
+            {"local_id": "F1", "kind": "finding", "title": "Unbounded recursion", "status": "Open"}
         ],
+        "display": {
+            "type": "Review",
+            "status": {"badge": "⚪ Requested", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "matched": "F1 (Open)",
+        },
     }
+    # Compared as text, so the key order is held as well as the content.
+    assert json.dumps(rows[2], indent=2) == json.dumps(review, indent=2)

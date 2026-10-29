@@ -15,6 +15,7 @@ from squads._badges import resolve_badges
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._models._item import DISPLAY_ID_PADDING, Item, format_item_id, parse_item_token
 from squads._models._vocab import prefix_for
+from squads._services._collab import CollabMixin
 from squads._services._item_dto import (
     LIST_COLUMNS,
     comment_dtos,
@@ -32,13 +33,13 @@ from squads._util import article
 _DUPLICATE_READ_NOTE = "showing the indexed file; run `sq check`"
 
 
-def _badge_pairs(pairs: list[str]) -> dict[str, str]:
+def badge_pairs(pairs: list[str]) -> dict[str, str]:
     """``CODE=VALUE`` pairs as a mapping."""
     split = (pair.partition("=") for pair in pairs)
     return {code: value for code, _, value in split}
 
 
-class ItemOpsMixin(ItemsMixin, SubentitiesMixin):
+class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
     async def addressed_item(self, address: ItemAddress) -> Item:
         """The item *address* names, refused when no item has its number or when the item is
         not of the type the address expects, when it names one."""
@@ -107,8 +108,8 @@ class ItemOpsMixin(ItemsMixin, SubentitiesMixin):
             label=req.label,
             assignee=assignee,
             category=req.category,
-            badges=_badge_pairs(req.badge) or None,
-            badge_min=_badge_pairs(req.min_badge) or None,
+            badges=badge_pairs(req.badge) or None,
+            badge_min=badge_pairs(req.min_badge) or None,
         )
         hidden = 0
         if not (req.all or req.status):

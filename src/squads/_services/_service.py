@@ -10,6 +10,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from squads import _aio
+from squads._api._api import Mode
 from squads._backends._base import AgentBackend
 from squads._backends._registry import get_backend
 from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsError
@@ -23,6 +24,7 @@ from squads._services._check import CheckMixin
 from squads._services._collab import CollabMixin
 from squads._services._import import ImportMixin
 from squads._services._item_ops import ItemOpsMixin
+from squads._services._item_read_ops import ItemReadOpsMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin, ensure_root_tmp_ignored
 from squads._services._memory import MemoryMixin
@@ -31,6 +33,8 @@ from squads._services._rename import RenameMixin
 from squads._services._results import AdoptResult, InitResult
 from squads._services._retype import RetypeMixin
 from squads._services._roster import RosterMixin
+from squads._services._roster_ops import RosterOpsMixin
+from squads._services._squad_ops import SquadStateOpsMixin
 from squads._services._subentities import SubentitiesMixin
 from squads._services._views import ViewsMixin
 from squads._spec_documents import SpecDocuments, SpecSources, resolve_documents, spec_sources
@@ -45,7 +49,10 @@ from squads._workflow._models import WorkflowSpec
 
 
 class Service(
+    ItemReadOpsMixin,
+    RosterOpsMixin,
     ItemOpsMixin,
+    SquadStateOpsMixin,
     ImportMixin,
     ItemsMixin,
     CollabMixin,
@@ -66,8 +73,8 @@ class Service(
     """
 
 
-class Mode(StrEnum):
-    """How :func:`compose_service` chooses the documents a service holds when something fails."""
+class Documents(StrEnum):
+    """The documents a service is composed over; the fallback tables step through them."""
 
     #: The squad's merged workflow spec, checked against the live index, and its merged playbook.
     NORMAL = "normal"
@@ -81,22 +88,39 @@ class Mode(StrEnum):
     BUNDLED_FALLBACK = "bundled-fallback"
 
 
-#: What a command that must still run beside a refusal tries after :attr:`Mode.NORMAL` fails: the
-#: first rung that builds wins, and a refusal on the last one is the caller's.
-BYPASS_FALLBACKS: tuple[Mode, ...] = (Mode.INDEX_CHECK_SKIPPED, Mode.BUNDLED_FALLBACK)
-MIGRATE_FALLBACKS: tuple[Mode, ...] = (Mode.MIGRATE,)
+#: What a command that must still run beside a refusal tries after :attr:`Documents.NORMAL`
+#: fails: the first rung that builds wins, and a refusal on the last one is the caller's.
+BYPASS_FALLBACKS: tuple[Documents, ...] = (
+    Documents.INDEX_CHECK_SKIPPED,
+    Documents.BUNDLED_FALLBACK,
+)
+MIGRATE_FALLBACKS: tuple[Documents, ...] = (Documents.MIGRATE,)
 
-#: What `sq check` falls back to, by the refusal :attr:`Mode.NORMAL` raised; the first row whose
-#: error class matches wins, so the narrower class comes first.
-CHECK_FALLBACKS: tuple[tuple[type[SquadsError], Mode], ...] = (
-    (PlaybookConfigError, Mode.PLAYBOOK_UNAVAILABLE),
-    (SquadsError, Mode.BUNDLED_FALLBACK),
+#: What `sq check` falls back to, by the refusal :attr:`Documents.NORMAL` raised; the first row
+#: whose error class matches wins, so the narrower class comes first.
+CHECK_FALLBACKS: tuple[tuple[type[SquadsError], Documents], ...] = (
+    (PlaybookConfigError, Documents.PLAYBOOK_UNAVAILABLE),
+    (SquadsError, Documents.BUNDLED_FALLBACK),
 )
 
 
-def check_fallback(error: SquadsError) -> Mode:
-    """The mode `sq check` composes its service in after *error* refused :attr:`Mode.NORMAL`."""
-    return next(mode for kind, mode in CHECK_FALLBACKS if isinstance(error, kind))
+#: What an operation that reads only the vocabulary falls back to, by the refusal
+#: :attr:`Documents.NORMAL` raised; a workflow override that does not load is refused, not
+#: fallen back from, and a directory no squad holds gets the bundled documents.
+VOCABULARY_FALLBACKS: tuple[tuple[type[SquadsError], Documents], ...] = (
+    (SquadsError, Documents.PLAYBOOK_UNAVAILABLE),
+)
+
+
+def _fallbacks(mode: Mode) -> tuple[tuple[type[SquadsError], Documents], ...]:
+    """The table *mode* walks after :attr:`Documents.NORMAL` refuses; empty when it has none."""
+    match mode:
+        case Mode.CHECK:
+            return CHECK_FALLBACKS
+        case Mode.VOCABULARY:
+            return VOCABULARY_FALLBACKS
+        case _:
+            return ()
 
 
 def _squad_workflow_spec(resolved_spec: WorkflowSpec | None, sources: SpecSources) -> WorkflowSpec:
@@ -108,7 +132,7 @@ def _squad_workflow_spec(resolved_spec: WorkflowSpec | None, sources: SpecSource
 def _checked_workflow_spec(
     paths: SquadPaths, resolved_spec: WorkflowSpec | None, sources: SpecSources
 ) -> WorkflowSpec:
-    """The workflow spec :attr:`Mode.NORMAL` holds: *resolved_spec* when the caller already
+    """The workflow spec :attr:`Documents.NORMAL` holds: *resolved_spec* when the caller already
     resolved and checked it, else the merged spec checked against the live index, refused in the
     shared wording when either half fails."""
     if resolved_spec is not None:
@@ -125,19 +149,19 @@ def _checked_workflow_spec(
 
 
 def _documents_for(
-    paths: SquadPaths, mode: Mode, resolved_spec: WorkflowSpec | None, sources: SpecSources
+    paths: SquadPaths, mode: Documents, resolved_spec: WorkflowSpec | None, sources: SpecSources
 ) -> SpecDocuments:
     """The documents *mode* puts in a service for the squad at *paths*."""
     squad_dir = paths.squad_dir
     match mode:
-        case Mode.NORMAL:
+        case Documents.NORMAL:
             return resolve_documents(
                 squad_dir, sources, workflow=_checked_workflow_spec(paths, resolved_spec, sources)
             )
-        case Mode.INDEX_CHECK_SKIPPED:
+        case Documents.INDEX_CHECK_SKIPPED:
             spec = _squad_workflow_spec(resolved_spec, sources)
             return resolve_documents(squad_dir, sources, workflow=spec, bundled_playbook=True)
-        case Mode.MIGRATE:
+        case Documents.MIGRATE:
             try:
                 spec = _squad_workflow_spec(resolved_spec, sources)
             except SquadsError as exc:
@@ -152,13 +176,13 @@ def _documents_for(
                 return resolve_documents(squad_dir, sources, workflow=spec)
             except SquadsError as exc:
                 raise SquadsError(f"{exc}\nCorrect the file, then re-run `sq migrate up`.") from exc
-        case Mode.PLAYBOOK_UNAVAILABLE:
+        case Documents.PLAYBOOK_UNAVAILABLE:
             try:
                 spec = _squad_workflow_spec(resolved_spec, sources)
             except SquadsError:
                 spec = bundled_spec()
             return resolve_documents(squad_dir, sources, workflow=spec, bundled_playbook=True)
-        case Mode.BUNDLED_FALLBACK:
+        case Documents.BUNDLED_FALLBACK:
             return resolve_documents(
                 squad_dir, sources, workflow=bundled_spec(), bundled_playbook=True
             )
@@ -175,10 +199,11 @@ def build_service(
     paths: SquadPaths,
     documents: SpecDocuments,
     backends: Callable[[], list[AgentBackend]] | None = None,
+    refusal: SquadsError | None = None,
 ) -> Service:
     """The one place a :class:`Service` is constructed: its index store and backends (the
     squad's configured ones unless *backends* is given) are built here and handed in, with the
-    *documents* it holds."""
+    *documents* it holds and the *refusal* that made its composition fall back to them."""
     return Service(
         paths,
         spec=documents.workflow,
@@ -187,37 +212,99 @@ def build_service(
         backends=backends if backends is not None else _backends_of(paths.config.active_backends),
         catalog=documents.catalog,
         files=documents.files,
+        refusal=refusal,
     )
 
 
-def compose_service(
+def _compose(
     paths: SquadPaths,
+    documents: Documents,
+    resolved_spec: WorkflowSpec | None,
+    sources: SpecSources | None,
+    refusal: SquadsError | None = None,
+) -> Service:
+    sources = sources if sources is not None else spec_sources(paths.squad_dir)
+    return build_service(
+        paths, _documents_for(paths, documents, resolved_spec, sources), refusal=refusal
+    )
+
+
+def _compose_normal(
+    paths: SquadPaths,
+    resolved_spec: WorkflowSpec | None,
+    sources: SpecSources | None,
+    spec_error: str | None,
+) -> Service:
+    """The normal service, refused with *spec_error* when the invocation's spec did not resolve."""
+    if spec_error is not None:
+        raise SquadsError(spec_error)
+    return _compose(paths, Documents.NORMAL, resolved_spec, sources)
+
+
+def _compose_squadless(base: Path | None, refusal: SquadsError) -> Service:
+    """The bundled documents for a directory no squad holds, carrying *refusal*; nothing is read
+    from or written to its paths, which name no squad."""
+    root = base or process_dir()
+    config = SquadsConfig()
+    paths = SquadPaths(root=root, squad_dir=root / config.squad_dir, config=config)
+    documents = resolve_documents(
+        paths.squad_dir,
+        spec_sources(paths.squad_dir),
+        workflow=bundled_spec(),
+        bundled_playbook=True,
+    )
+    return build_service(paths, documents, backends=list, refusal=refusal)
+
+
+def compose_service(
+    paths: SquadPaths | None,
     mode: Mode = Mode.NORMAL,
     *,
     resolved_spec: WorkflowSpec | None = None,
     sources: SpecSources | None = None,
+    spec_error: str | None = None,
+    unresolved: SquadsError | None = None,
+    base: Path | None = None,
 ) -> Service:
-    """The service for the squad at *paths*, holding the documents *mode* chooses; *resolved_spec*
-    and *sources* carry what the caller already resolved or read, so none of it is loaded again."""
-    sources = sources if sources is not None else spec_sources(paths.squad_dir)
-    return build_service(paths, _documents_for(paths, mode, resolved_spec, sources))
+    """The service for the squad at *paths* in *mode*: the documents it names, or, for a mode with
+    a fallback table, the first row that matches the refusal, which the service then carries.
+
+    *resolved_spec*, *sources* and *spec_error* are what the caller already resolved, read or was
+    refused, so none of it is loaded again. *paths* is ``None`` when no squad resolves from
+    *base*, for the reason *unresolved*: only :attr:`Mode.VOCABULARY` composes then.
+    """
+    if paths is None:
+        refusal = unresolved if unresolved is not None else SquadsError("no squad resolves")
+        if mode is not Mode.VOCABULARY:
+            raise refusal
+        return _compose_squadless(base, refusal)
+    fallbacks = _fallbacks(mode)
+    if mode in (Mode.NORMAL, Mode.VOCABULARY) and spec_error is not None:
+        raise SquadsError(spec_error)
+    if not fallbacks:
+        return _compose(paths, Documents(mode.value), resolved_spec, sources)
+    try:
+        return _compose_normal(paths, resolved_spec, sources, spec_error)
+    except SquadsError as exc:
+        fallback = next(documents for kind, documents in fallbacks if isinstance(exc, kind))
+        return _compose(paths, fallback, resolved_spec, sources, refusal=exc)
 
 
 def compose_first_of(
     paths: SquadPaths,
-    modes: Sequence[Mode],
+    modes: Sequence[Documents],
     *,
     resolved_spec: WorkflowSpec | None = None,
     sources: SpecSources | None = None,
 ) -> Service:
     """The service of the first of *modes* that builds; the last one's refusal is raised."""
     sources = sources if sources is not None else spec_sources(paths.squad_dir)
-    for mode in modes[:-1]:
+    for documents in modes[:-1]:
         try:
-            return compose_service(paths, mode, resolved_spec=resolved_spec, sources=sources)
+            return _compose(paths, documents, resolved_spec, sources)
         except SquadsError:
             continue
-    return compose_service(paths, modes[-1], resolved_spec=resolved_spec, sources=sources)
+    return _compose(paths, modes[-1], resolved_spec, sources)
 
 
 def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
@@ -392,9 +479,9 @@ def open_service(
     resolved_spec: WorkflowSpec | None = None,
     sources: SpecSources | None = None,
 ) -> Service:
-    """Resolve the active squad and compose its service in :attr:`Mode.NORMAL`. A workflow spec that
-    fails to load or conflicts with the index raises ``SquadsError`` pointing to ``sq workflow
-    lint``; a playbook that fails raises :class:`~squads._errors.PlaybookConfigError`.
+    """Resolve the active squad and compose its service in :attr:`Documents.NORMAL`. A workflow
+    spec that fails to load or conflicts with the index raises ``SquadsError`` pointing to ``sq
+    workflow lint``; a playbook that fails raises :class:`~squads._errors.PlaybookConfigError`.
     ``client_cwd`` is the requesting client's directory (``None`` is the process cwd);
     ``resolved_spec`` and ``sources`` are what the caller already resolved and read.
     """

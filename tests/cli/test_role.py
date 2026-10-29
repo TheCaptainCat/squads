@@ -1,8 +1,10 @@
 """`sq role …`: the catalog, activating and adding roles, and the addressed verbs (show, update,
 status, set-default, regen, remove, body, views and the comment listing)."""
 
+import json
 from pathlib import Path
 from typing import Any
+from unittest.mock import ANY
 
 import pytest
 
@@ -115,6 +117,7 @@ async def test_list_json_describes_each_activated_role(project, invoke) -> None:
             "capabilities": [],
             "status": "Active",
             "origin": "system",
+            "display": {"name": "Catherine Manager", "pronouns": None, "live": True},
         },
         {
             "id": "ROLE-2",
@@ -127,6 +130,7 @@ async def test_list_json_describes_each_activated_role(project, invoke) -> None:
             "capabilities": [],
             "status": "Active",
             "origin": "system",
+            "display": {"name": "Robert (he/him)", "pronouns": "he/him", "live": True},
         },
     ]
 
@@ -307,6 +311,22 @@ async def test_add_creates_a_role_that_defines_itself(project, invoke) -> None:
         "create_lane": [],
         "responsibilities": [],
         "skills": ["squads", "greeting", "sq-memory"],
+        "display": {
+            "name": "Sam Scout",
+            "pronouns": None,
+            "color": None,
+            "body": ANY,
+            "empty_hint": (
+                "(empty — run `sq sync`; if it stays empty, declare the definition in "
+                "`.overrides/roles.toml`, or `.overrides/roles/<slug>.toml`, or run "
+                "`sq role scout view add role_definition`)"
+            ),
+            "definition_resolves": True,
+            "change_hint": (
+                "To change its definition: `sq role scout update --mission …` (or --file)."
+            ),
+            "discussion": [],
+        },
     }
     assert (await _roles(invoke))["scout"]["description"] == "Scouts ahead"
     assert "You are **Sam Scout**" in _pointer(project, "scout").read_text(encoding="utf-8")
@@ -1090,7 +1110,6 @@ async def test_update_as_refuses_a_slug_that_is_not_registered(project, invoke) 
 # ------------------------------------------------------------------------------------ regen
 
 
-@pytest.mark.covers("role regen")
 async def test_regen_rewrites_a_pointer_that_was_deleted(project, invoke) -> None:
     await _activate(invoke)
     pointer = _pointer(project, "architect")
@@ -1101,7 +1120,6 @@ async def test_regen_rewrites_a_pointer_that_was_deleted(project, invoke) -> Non
     assert pointer.read_text(encoding="utf-8") == before
 
 
-@pytest.mark.covers("role regen")
 async def test_regen_refuses_a_role_that_is_not_activated(project, invoke) -> None:
     result = await invoke(["role", "architect", "regen"])
     assert (result.exit_code, result.output) == (
@@ -1157,3 +1175,160 @@ async def test_view_disable_as_refuses_a_slug_that_is_not_registered(project, in
         1,
         "error: unknown slug 'nobody'; valid slugs: manager\n",
     )
+
+
+# ---------------------------------------------------------------------------- JSON of the writes
+
+MANAGER_ROW = {
+    "id": "ROLE-1",
+    "slug": "manager",
+    "full_name": "Catherine Manager",
+    "pronouns": None,
+    "title": "manager",
+    "description": "Default agent: triages the operator's request and routes it to the right "
+    "specialist.",
+    "is_default": True,
+    "capabilities": [],
+    "status": "Active",
+    "origin": "system",
+    "display": {"name": "Catherine Manager", "pronouns": None, "live": True},
+}
+ARCHITECT_ROW = {
+    "id": "ROLE-2",
+    "slug": "architect",
+    "full_name": "Robert Architect",
+    "pronouns": None,
+    "title": "architect",
+    "description": "System design and architecture decisions (ADRs).",
+    "is_default": False,
+    "capabilities": [],
+    "status": "Active",
+    "origin": "system",
+    "display": {"name": "Robert Architect", "pronouns": None, "live": True},
+}
+
+
+async def _printed(invoke, args: list[str]) -> str:
+    """What a command that succeeds prints, compared as text so the key order is held too."""
+    result = await invoke(args)
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def _text(document: object) -> str:
+    return json.dumps(document, indent=2) + "\n"
+
+
+def _entry(row: object) -> str:
+    """A write that reports nothing beside its entry: the entry under `entry`."""
+    return _text({"entry": row})
+
+
+@pytest.mark.covers("role add", "--json")
+async def test_add_json_prints_the_role_it_created(project, invoke) -> None:
+    printed = await _printed(invoke, ["role", "add", "scout", *SCOUT, "--json"])
+    assert printed == _entry(
+        {
+            "id": "ROLE-2",
+            "slug": "scout",
+            "full_name": "Sam Scout",
+            "pronouns": None,
+            "title": "Scout",
+            "description": "Scouts ahead",
+            "is_default": False,
+            "capabilities": [],
+            "status": "Active",
+            "origin": "project",
+            "display": {"name": "Sam Scout", "pronouns": None, "live": True},
+        }
+    )
+
+
+@pytest.mark.covers("role activate", "--json")
+async def test_activate_json_prints_the_role_it_activated(project, invoke) -> None:
+    printed = await _printed(invoke, ["role", "activate", "architect", "--json"])
+    assert printed == _entry(ARCHITECT_ROW)
+
+
+@pytest.mark.covers("role update", "--json")
+async def test_update_json_prints_the_role_after_the_update(project, invoke) -> None:
+    printed = await _printed(
+        invoke, ["role", "manager", "update", "--title", "Cat Manager", "--json"]
+    )
+    assert printed == _entry(
+        {
+            **MANAGER_ROW,
+            "full_name": "Cat Manager",
+            "display": {"name": "Cat Manager", "pronouns": None, "live": True},
+        }
+    )
+
+
+@pytest.mark.covers("role body", "--json")
+async def test_body_json_prints_the_role_it_wrote(project, invoke) -> None:
+    printed = await _printed(invoke, ["role", "manager", "body", "-m", "Prose", "--json"])
+    assert printed == _entry(MANAGER_ROW)
+
+
+@pytest.mark.covers("role status", "--json")
+async def test_status_json_prints_the_role_after_the_move_and_what_it_severed(
+    project, invoke
+) -> None:
+    await _activate(invoke)
+    printed = await _printed(invoke, ["role", "architect", "status", "Archived", "--json"])
+    assert printed == _text(
+        {
+            "entry": {
+                **ARCHITECT_ROW,
+                "status": "Archived",
+                "display": {"name": "Robert Architect", "pronouns": None, "live": False},
+            },
+            "severed": [],
+        }
+    )
+
+
+@pytest.mark.covers("role set-default", "--json")
+async def test_set_default_json_prints_the_holder_and_whether_it_moved(project, invoke) -> None:
+    printed = await _printed(invoke, ["role", "manager", "set-default", "--json"])
+    assert printed == _text({"entry": MANAGER_ROW, "changed": False, "cleared": []})
+
+
+@pytest.mark.covers("role regen", "--json")
+async def test_regen_json_prints_the_role(project, invoke) -> None:
+    printed = await _printed(invoke, ["role", "manager", "regen", "--json"])
+    assert printed == _entry(MANAGER_ROW)
+
+
+@pytest.mark.covers("role remove", "--json")
+async def test_remove_json_prints_the_role_it_removed(project, invoke) -> None:
+    await _activate(invoke)
+    printed = await _printed(invoke, ["role", "architect", "remove", "--purge", "--json"])
+    assert printed == _entry(ARCHITECT_ROW)
+
+
+@pytest.mark.covers("role rm", "--json")
+async def test_rm_json_prints_the_role_it_removed(project, invoke) -> None:
+    await _activate(invoke)
+    printed = await _printed(invoke, ["role", "architect", "rm", "--purge", "--json"])
+    assert printed == _entry(ARCHITECT_ROW)
+
+
+@pytest.mark.covers("role view add", "--json")
+async def test_view_add_json_prints_the_role_and_that_the_tag_was_there(project, invoke) -> None:
+    printed = await _printed(
+        invoke, ["role", "manager", "view", "add", "role_definition", "--json"]
+    )
+    assert printed == _text(
+        {"entry": MANAGER_ROW, "view": "role_definition", "changed": False, "was_present": True}
+    )
+
+
+@pytest.mark.covers("role view disable", "--json")
+async def test_view_disable_json_is_refused_while_the_spec_declares_the_view(
+    project, invoke
+) -> None:
+    """The bundled spec refuses the edit, so `--json` prints only the refusal."""
+    await _add_scout(invoke)
+    result = await invoke(["role", "scout", "view", "disable", "role_definition", "--json"])
+    assert (result.exit_code, result.output) == (1, VIEW_REFUSAL)

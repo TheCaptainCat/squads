@@ -150,11 +150,11 @@ CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
         "runs the same rebuild as its trailing step and reports both channels in repair's own "
         "wording, exiting 1 on either",
     ),
-    ("squads/_cli/_main.py", "sync"): (
+    ("squads/_cli/_render/_check.py", "render_sync"): (
         "reports-every-channel",
-        "consumes SyncSkips — the deduplicated skip/notice message list sync's own narrower "
-        "sweep produces, printed in full — 'every channel' here means the complete channel "
-        "set this result type exposes, which is the single one sync prints",
+        "consumes SyncReport.skipped — the deduplicated skip/notice message list sync's own "
+        "narrower sweep produces, printed in full — 'every channel' here means the complete "
+        "channel set this result type exposes, which is the single one sync prints",
     ),
     ("squads/_cli/_main.py", "adopt"): (
         "reports-every-channel",

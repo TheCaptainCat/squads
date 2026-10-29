@@ -1,6 +1,7 @@
 """`sq skill …`: creating skills, and the addressed verbs (show, update, status, refs, role links,
 regen, remove, body, views and the comment listing)."""
 
+import json
 from typing import Any
 
 import pytest
@@ -69,6 +70,11 @@ async def test_add_creates_a_skill_with_the_scaffold_body_and_its_pointer(projec
         "origin": "project",
         "body": TEMPLATE_BODY,
         "views": {},
+        "display": {
+            "body": TEMPLATE_BODY,
+            "empty_hint": '(empty — write it with `sq skill deploy-notes body -m "…"`)',
+            "discussion": [],
+        },
     }
     assert _pointer(project).exists()
 
@@ -597,7 +603,6 @@ async def test_unlink_role_as_refuses_a_slug_that_is_not_registered(project, inv
 # ------------------------------------------------------------------------------------ regen
 
 
-@pytest.mark.covers("skill regen")
 async def test_regen_rewrites_a_pointer_that_was_deleted(project, invoke) -> None:
     await _add(invoke)
     pointer = _pointer(project)
@@ -608,7 +613,6 @@ async def test_regen_rewrites_a_pointer_that_was_deleted(project, invoke) -> Non
     assert pointer.read_text(encoding="utf-8") == before
 
 
-@pytest.mark.covers("skill regen")
 async def test_regen_refuses_a_skill_that_does_not_exist(project, invoke) -> None:
     result = await invoke(["skill", "nobody", "regen"])
     assert (result.exit_code, result.output) == (1, _no_skill("nobody"))
@@ -785,3 +789,106 @@ async def test_body_status_and_remove_act_on_the_skill_they_address(project, inv
     removed = await invoke(["skill", SLUG, "remove", "--purge"])
     assert (removed.exit_code, removed.output) == (0, "removed SKILL-2\n")
     assert [r["slug"] for r in await read_json(invoke, ["role", "list", "--json"])] == ["manager"]
+
+
+# ---------------------------------------------------------------------------- JSON of the writes
+
+SKILL_ROW = {
+    "id": "SKILL-2",
+    "slug": SLUG,
+    "title": "Deploy Notes",
+    "status": "Active",
+    "description": "",
+    "when_to_use": "",
+    "allowed_tools": "",
+    "operator_invocable": True,
+    "operator_invocable_set": False,
+    "path": "agents/skills/SKILL-000002-deploy-notes.md",
+    "origin": "project",
+}
+
+
+async def _printed(invoke, args: list[str]) -> str:
+    """What a command that succeeds prints, compared as text so the key order is held too."""
+    result = await invoke(args)
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def _text(document: object) -> str:
+    return json.dumps(document, indent=2) + "\n"
+
+
+def _entry(row: object) -> str:
+    """A write that reports nothing beside its entry: the entry under `entry`."""
+    return _text({"entry": row})
+
+
+@pytest.mark.covers("skill add", "--json")
+async def test_add_json_prints_the_skill_it_created(project, invoke) -> None:
+    printed = await _printed(invoke, ["skill", "add", "Deploy Notes", "--json"])
+    assert printed == _entry(SKILL_ROW)
+
+
+@pytest.mark.covers("skill update", "--json")
+async def test_update_json_prints_the_skill_after_the_update(project, invoke) -> None:
+    await _add(invoke)
+    printed = await _printed(invoke, ["skill", SLUG, "update", "--title", "Deploy", "--json"])
+    assert printed == _entry({**SKILL_ROW, "title": "Deploy"})
+
+
+@pytest.mark.covers("skill link-role", "--json")
+async def test_link_role_json_prints_the_skill_and_the_role(project, invoke) -> None:
+    await _add(invoke)
+    printed = await _printed(invoke, ["skill", SLUG, "link-role", "manager", "--json"])
+    assert printed == _text({"entry": SKILL_ROW, "role": "ROLE-1"})
+
+
+@pytest.mark.covers("skill unlink-role", "--json")
+async def test_unlink_role_json_prints_the_skill_and_the_role(project, invoke) -> None:
+    await _add(invoke)
+    await invoke(["skill", SLUG, "link-role", "manager"])
+    printed = await _printed(invoke, ["skill", SLUG, "unlink-role", "manager", "--json"])
+    assert printed == _text({"entry": SKILL_ROW, "role": "ROLE-1"})
+
+
+@pytest.mark.covers("skill ref add", "--json")
+async def test_ref_add_json_prints_the_skill_the_target_and_the_kind(project, invoke) -> None:
+    await _add(invoke)
+    printed = await _printed(invoke, ["skill", SLUG, "ref", "add", "1", "--json"])
+    assert printed == _text({"entry": SKILL_ROW, "target": "ROLE-1", "kind": "related"})
+
+
+@pytest.mark.covers("skill ref rm", "--json")
+async def test_ref_rm_json_prints_the_skill_and_the_target(project, invoke) -> None:
+    await _add(invoke)
+    await invoke(["skill", SLUG, "ref", "add", "1"])
+    printed = await _printed(invoke, ["skill", SLUG, "ref", "rm", "1", "--json"])
+    assert printed == _text({"entry": SKILL_ROW, "target": "ROLE-1", "kind": None})
+
+
+@pytest.mark.covers("skill regen", "--json")
+async def test_regen_json_prints_the_skill(project, invoke) -> None:
+    await _add(invoke)
+    printed = await _printed(invoke, ["skill", SLUG, "regen", "--json"])
+    assert printed == _entry(SKILL_ROW)
+
+
+@pytest.mark.covers("skill view add", "--json")
+async def test_view_add_json_prints_the_skill_and_the_tag_it_placed(project, invoke) -> None:
+    await _add(invoke)
+    printed = await _printed(invoke, ["skill", SLUG, "view", "add", "greeting_skill", "--json"])
+    assert printed == _text(
+        {"entry": SKILL_ROW, "view": "greeting_skill", "changed": True, "was_present": False}
+    )
+
+
+@pytest.mark.covers("skill view disable", "--json")
+async def test_view_disable_json_prints_the_skill_and_the_tag_it_placed_disabled(
+    project, invoke
+) -> None:
+    await _add(invoke)
+    printed = await _printed(invoke, ["skill", SLUG, "view", "disable", "greeting_skill", "--json"])
+    assert printed == _text(
+        {"entry": SKILL_ROW, "view": "greeting_skill", "changed": True, "was_present": False}
+    )

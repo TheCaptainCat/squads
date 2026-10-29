@@ -16,26 +16,26 @@ description: board, memory, workflow catalogs and views, overrides, reflog, chec
 subentities:
 - local_id: ST1
   title: board and memory
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: workflow catalogs and views
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: override, reflog, check and sync
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Views and catalogs rendered by the operation
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST5
   title: JSON output on the 12 remaining keys
-  status: Todo
+  status: Done
   story: US2
 created_at: '2026-10-28T22:12:40Z'
-updated_at: '2026-10-28T23:59:06Z'
+updated_at: '2026-10-29T00:41:05Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -156,4 +156,35 @@ Display rendered by the operation (ADR-1224 point 5): `workflow view` and `workf
   - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 3 and 4. For this task: `board list`, `memory list`, `memory search`, `override list`, `override diff`, `reflog`, `check` and the eight `workflow` catalogs keep their bare-array `--json` by setting the operation's new `json_field` (`items`); `workflow view` sets `json_field="source"`, the resolved source in its own shape, beside the rendered output human mode prints. `check`'s exit 3 still comes from the DTO. The 12 new flags print `data` whole, an object, and set none; the package-data DTOs are not operations and print whole. The US3 acceptance line should read "`data`, or the field its operation names".
 - [2026-10-28T23:32:35Z] `tech-lead` Olivia Lead:
   - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
+- [2026-10-29T00:41:05Z] `python-dev` Elias Python:
+  - - Landed on branch `worktree-agent-adba49678e342becd`, commit 512aec7e, rebased onto `release/0.18` 77fac31d (my worktree had been created from `main`). Not pushed. Task left InProgress, all five subtasks Done.
+    - What changed:
+      - 26 operations in the squad-state section of `_api/_ops.py`, bound in `_services/_bindings.py`. Their handlers are on a new `SquadStateOpsMixin` (`_services/_squad_ops.py`), the 15th `Service` base.
+      - Catalog projections are in `_services/_catalogs.py`, the `workflow view` source JSON in `_services/_view_source.py`.
+      - DTO modules `_api/_dto/_board`, `_memory`, `_workflow`, `_overrides`, `_reflog`, `_check` (which also holds sync), `_package`. Renderers in the matching `_cli/_render/` modules.
+      - `check` exits 3 from `CheckReport.errors`. Each catalog carries its `columns`. A status row carries `display.intent`. `workflow view` and `workflow show` are rendered by the operation.
+      - `json_field="items"` on board list, memory list and search, override list and diff, reflog, check and the 8 catalogs. `json_field="source"` on workflow view.
+      - The package-data builders are `_docfiles.doc_index()`/`doc()` and `_migrations._registry.migration_index()`/`manual_steps()`. They make no call.
+    - Composition modes, changed outside my sections (deviation):
+      - `_api.Mode` gains `CHECK` and `VOCABULARY`. `LocalApi` composes `CHECK` by the `CHECK_FALLBACKS` rule.
+      - `VOCABULARY` refuses on the invocation's `spec_error`. Otherwise it is the normal service, falling back to `PLAYBOOK_UNAVAILABLE`. Outside a squad it uses `compose_squadless()`, a service over the bundled documents.
+      - The refusal travels as `ServiceCore.refusal`. The catalogs and cheatsheet use `VOCABULARY`, `check` uses `CHECK`, and lint and override list/diff/update use `BUNDLED_FALLBACK`.
+      - The override operations carry the `NO_SQUAD_STATE` behind grant, and their CLI decorators stay until TASK-1232.
+    - Parity: 159 command lines run on scratch squads from the parent commit and from this one. The lines cover human, piped, `FORCE_COLOR`, `NO_COLOR` and `--json` output, 4 overrides with one drifted, a broken workflow override, outside a squad, `check` with findings (exit 3) and clean, writes, and the refusals.
+      - 157 outputs are byte-identical.
+      - `workflow statuses --json` only gains `display` on each row.
+      - `memory ghost show` without a slug now gives the usage error (exit 2) before the roster check, because the group callback only parses (ADR-1224 point 1).
+    - Tests: +12, one whole-document case per new `--json` flag (1571 to 1583). Each was falsified (code mutated, test red, restored, green).
+      - Existing expectation edited, keys added only: `test_statuses_json_prints_one_object_per_status` gains `display`.
+      - Stale bare markers dropped: `covers("sync")` x3, `covers("migrate help")`, `covers("workflow lint")`.
+      - Guards: `json_field` ALLOWED +16, `_workflow_cmd.py` leaves PENDING, the grant guard gets 3 operation rows, the edge table adds `_docfiles/_migrations -> _api`, `_migrations -> _util` and `_services -> _overrides top` and drops 9 dead `_cli` rows. Also updated: check-finding sites, the repair-corridor site (sync moved to `render_sync`) and one subentity-literal allowlist row.
+      - Gates: pyright 0 errors; ruff check and format clean; `pytest -n 2 tests/meta tests/cli tests/check` 1583 passed.
+    - Other deviations:
+      - No `columns` on the board, memory and reflog listings: they print lines, not tables, and nothing in them comes from the spec.
+      - `workflow view --json` keeps the source shapes as they were (the tree node and `show` shape without `display`), so TASK-1228's tree node `display` will not reach it.
+      - `workflow view` now computes both the source and the rendered output, so a template error also fails `--json`.
+      - Memory add and forget answer `{role, memory}` and `{role, slug}`.
+      - `_cli/_common.get_squad_paths` is now unused. Left for TASK-1232.
+    - Adopter-visible: `--json` on board post/clear, memory add/forget, override scaffold/update, sync, workflow show/lint, docs, migrate help/chlog; `display.intent` on `workflow statuses --json` rows. CLAUDE.md's count of `Service` bases is now 15.
+    - @tech-lead for review; @tech-writer for the changelog lines above.
 <!-- sq:discussion:end -->

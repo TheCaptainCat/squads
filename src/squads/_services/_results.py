@@ -50,9 +50,8 @@ class GraphNode:
     id: str
     type: str
     status: str  # spec-defined status name
-    priority: str | None  # the priority badge code, or None — kept for the CLI's bundled-axis
-    #: rendering (``_cli/_main.py``); ``badges`` below is the generic replacement for --json
-    #: consumers, since a type on a different/renamed badge axis leaves ``priority`` null.
+    priority: str | None  # the priority badge code, or None; ``badges`` below is the generic
+    #: map, since a type on a different or renamed badge axis leaves ``priority`` null.
     assignee: str | None
     edge_kind: str | None  # None for root; the stored kind's spelling for all other nodes
     # (declared or not — an undeclared kind still traverses, see edge_semantic below)
@@ -64,22 +63,6 @@ class GraphNode:
     ``{"priority": "high"}``, or ``{"impact": "high", "urgency": "low"}`` for a custom axis) —
     generic over the type's actual vocabulary, unlike the fixed ``priority`` attribute above."""
     children: list[GraphNode] = field(default_factory=lambda: list[GraphNode]())
-
-    def to_dict(self) -> dict[str, Any]:
-        """Serialise to a plain dict (for ``--json`` output)."""
-        return {
-            "id": self.id,
-            "type": self.type,
-            "status": self.status,
-            "priority": self.priority,
-            "badges": self.badges,
-            "assignee": self.assignee,
-            "edge_kind": self.edge_kind,
-            "edge_semantic": self.edge_semantic,
-            "direction": self.direction,
-            "seen": self.seen,
-            "children": [c.to_dict() for c in self.children],
-        }
 
 
 @dataclass

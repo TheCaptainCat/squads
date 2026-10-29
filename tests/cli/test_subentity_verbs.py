@@ -105,8 +105,8 @@ async def test_the_group_refuses_a_local_id_the_item_does_not_hold(
 
 @pytest.mark.covers("<type> <kinds>", "--json")
 async def test_the_plural_listing_prints_every_subtask_as_json(populated_project, invoke) -> None:
-    rows = json.loads(await _ok(invoke, ["task", str(TASK), "subtasks", "--json"]))
-    assert rows == [
+    output = await _ok(invoke, ["task", str(TASK), "subtasks", "--json"])
+    rows = [
         {
             "local_id": "ST1",
             "title": "Tokenise the input",
@@ -115,6 +115,7 @@ async def test_the_plural_listing_prints_every_subtask_as_json(populated_project
             "severity": None,
             "story": "US1",
             "deferred_to": None,
+            "display": _todo_display("US1"),
         },
         {
             "local_id": "ST2",
@@ -124,8 +125,23 @@ async def test_the_plural_listing_prints_every_subtask_as_json(populated_project
             "severity": None,
             "story": None,
             "deferred_to": None,
+            "display": _todo_display(None),
         },
     ]
+    # Compared as text, so the key order is held as well as the content.
+    assert output == json.dumps(rows, indent=2) + "\n"
+
+
+def _todo_display(story: str | None) -> dict[str, Any]:
+    """The display of a subtask at Todo with no assignee."""
+    return {
+        "type": "Subtask",
+        "status": {"badge": "⚪ Todo", "intent": "neutral"},
+        "badges": {},
+        "assignee": None,
+        "story": story,
+        "carrier_title": None,
+    }
 
 
 async def test_the_plural_listing_prints_a_table_of_subtasks(populated_project, invoke) -> None:
@@ -142,7 +158,9 @@ async def test_the_plural_listing_prints_a_table_of_subtasks(populated_project, 
 
 @pytest.mark.covers("<type> <kind> show", "--json")
 async def test_show_json_prints_the_subtask_as_one_object(populated_project, invoke) -> None:
-    assert await _subtask(invoke, 1) == {
+    output = await _ok(invoke, ["task", str(TASK), "subtask", "1", "show", "--json"])
+    kind = {"name": "subtask", "label": "Subtask", "plural": "subtasks", "heading": "Subtasks"}
+    expected = {
         "local_id": "ST1",
         "title": "Tokenise the input",
         "status": "Todo",
@@ -154,7 +172,10 @@ async def test_show_json_prints_the_subtask_as_one_object(populated_project, inv
         "body": NO_BODY,
         "badges": {},
         "discussion": [],
+        "display": {**_todo_display("US1"), "kind": kind, "discussion": None},
     }
+    # Compared as text, so the key order is held as well as the content.
+    assert output == json.dumps(expected, indent=2) + "\n"
 
 
 async def test_show_prints_the_status_story_body_and_discussion(populated_project, invoke) -> None:
