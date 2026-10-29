@@ -109,7 +109,7 @@ def subentity_display(
         status=status_display(sub.status, spec),
         badges=badge_displays(spec, kind, sub.badge_value),
         assignee=names.get(sub.assignee) if sub.assignee else None,
-        story=sub.story if kind_spec is not None and kind_spec.maps_to_parent else None,
+        story=sub.maps_to if kind_spec is not None and kind_spec.maps_to_parent else None,
         carrier_title=carrier_title,
     )
 

@@ -191,7 +191,7 @@ def _build_graph_node(
     already_seen = item.id in ctx.seen
     ctx.seen.add(item.id)
 
-    priority_val = item.priority
+    priority_val = item.badge_value("priority")
     node = GraphNode(
         id=item.id,
         type=item.type,
@@ -437,7 +437,7 @@ class RefsMixin(ServiceCore):
                 id=root_item.id,
                 type=root_item.type,
                 status=root_item.status,
-                priority=root_item.priority,
+                priority=root_item.badge_value("priority"),
                 assignee=root_item.assignee,
                 edge_kind=None,
                 edge_semantic=None,

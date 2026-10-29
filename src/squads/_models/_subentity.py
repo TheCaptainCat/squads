@@ -1,6 +1,6 @@
 """A sub-entity — a user story, subtask, or review finding — tracked on its parent item.
 
-Its **machine state** (status / assignee / severity / mapped story) lives here, in the parent
+Its **machine state** (status / assignee / mapping / field values) lives here, in the parent
 item's frontmatter (single-sourced and validated, like every other item field). The sub-entity's
 **prose** — its ``:body`` and ``:discussion`` — stays in the parent's markdown markers; the heading
 and the derived ``:head`` badge line are re-rendered from this state.
@@ -10,47 +10,63 @@ from typing import Any, cast
 
 from pydantic import BaseModel, field_validator, model_validator
 
+#: The frontmatter keys of a sub-entity entry that the model itself holds. Every other key of an
+#: entry is an attribute: a declared field under its code, or an unknown key kept as written.
+SUBENTITY_CORE_KEYS: tuple[str, ...] = (
+    "local_id",
+    "title",
+    "status",
+    "assignee",
+    "maps_to",
+    "deferred_to",
+)
+
+#: The key the model dumps its attributes under, which is also how the index stores them.
+_ATTRIBUTES_KEY = "attributes"
+
 
 class SubEntity(BaseModel):
-    #: Local id within its parent, kind-prefixed: ``US<n>`` story / ``ST<n>`` subtask /
-    #: ``F<n>`` finding.
+    #: Local id within its parent, kind-prefixed (the kind's ``local_prefix`` and a number).
     local_id: str
     title: str = ""
     #: The sub-entity's status: a plain string, spec-vocabulary.
     status: str
     #: Registered agent slug responsible for it (optional).
     assignee: str | None = None
-    #: Findings only — the finding's severity badge code (spec-declared ``severity`` field).
-    severity: str | None = None
-    #: Subtasks only — the mapped user story's local id (e.g. ``US<n>``).
-    story: str | None = None
+    #: The local id of the sub-entity of the parent's required type that this one maps to.
+    maps_to: str | None = None
     #: Only in a status whose role declares ``deferred`` — the formatted id of the item that
     #: carries the work.
     deferred_to: str | None = None
-    #: Any other spec-declared field's badge code, keyed by field code (e.g. a custom
-    #: ``urgency``). ``severity`` keeps its own typed slot above for byte-identical
-    #: round-trip; this is the generic overflow, the direct analog of ``Item.extra``.
-    extra: dict[str, Any] = {}
+    #: Every other key of the entry: each declared field's badge code under its field code, and any
+    #: unknown key as written. The spec says which are declared; storage never splits on it.
+    attributes: dict[str, Any] = {}
 
     model_config = {"use_enum_values": False}
 
     @model_validator(mode="before")
     @classmethod
-    def _tolerate_loose_frontmatter_spellings(cls, data: Any) -> Any:
-        """Fold the two loose spellings a hand-edited ``subentities:`` block can carry: an
-        empty-string ``severity`` means "no badge" and a ``null`` ``extra`` means "no overflow
-        fields", both normalised to the field's default. It lives on the model because
+    def _gather_attributes(cls, data: Any) -> Any:
+        """Gather every non-core key of a frontmatter entry into ``attributes``, dropping a key
+        whose value is empty (``""`` or ``null``), which means "not set". A non-mapping input
+        (``subentities: [5]``) is returned untouched for pydantic to report, since
         :meth:`Item.from_frontmatter <squads._models._item.Item.from_frontmatter>` passes the raw
-        list to ``model_validate``, the single thing allowed to reject a type-invalid sub-entity, so
-        a non-mapping input (``subentities: [5]``) is returned untouched for pydantic to report.
+        list to ``model_validate``, the single thing allowed to reject a type-invalid sub-entity.
         """
         if not isinstance(data, dict):
             return data
-        out = dict(cast("dict[str, Any]", data))
-        if not out.get("severity"):
-            out["severity"] = None
-        if out.get("extra") is None:
-            out["extra"] = {}
+        raw = cast("dict[str, Any]", data)
+        out = {key: raw[key] for key in SUBENTITY_CORE_KEYS if key in raw}
+        held = raw.get(_ATTRIBUTES_KEY)
+        attributes: dict[str, Any] = (
+            dict(cast("dict[str, Any]", held)) if isinstance(held, dict) else {}
+        )
+        for key, value in raw.items():
+            if key in SUBENTITY_CORE_KEYS or (key == _ATTRIBUTES_KEY and isinstance(held, dict)):
+                continue
+            if value is not None and value != "":
+                attributes[key] = value
+        out[_ATTRIBUTES_KEY] = attributes
         return out
 
     @field_validator("status", mode="before")
@@ -67,26 +83,20 @@ class SubEntity(BaseModel):
         return str(v)
 
     def badge_value(self, code: str) -> str | None:
-        """Generic badge-code getter for any spec-declared field on this sub-entity.
-
-        ``severity`` is a real attribute; any other declared field code (e.g. a custom
-        ``urgency``) has no dedicated attribute and is stored in ``extra`` — the direct
-        analog of :meth:`Item.badge_value <squads._models._item.Item.badge_value>`. No
-        spec needed to read — the code is the stored, authoritative value.
-        """
-        return getattr(self, code, None) if hasattr(self, code) else self.extra.get(code)
+        """The badge code stored under field *code*, ``None`` when the entry stores none. No spec
+        needed to read — the code is the stored, authoritative value."""
+        return self.attributes.get(code)
 
     def set_badge_value(self, code: str, value: str | None) -> None:
         """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""
-        if hasattr(self, code):
-            setattr(self, code, value)
-        elif value is None:
-            self.extra.pop(code, None)
+        if value is None:
+            self.attributes.pop(code, None)
         else:
-            self.extra[code] = value
+            self.attributes[code] = value
 
     def to_frontmatter_dict(self) -> dict[str, Any]:
-        """The compact mapping written into the parent's ``subentities`` frontmatter list."""
+        """The compact mapping written into the parent's ``subentities`` frontmatter list: the
+        core keys that are set, then each attribute flat."""
         data: dict[str, Any] = {
             "local_id": self.local_id,
             "title": self.title,
@@ -94,12 +104,10 @@ class SubEntity(BaseModel):
         }
         if self.assignee:
             data["assignee"] = self.assignee
-        if self.severity:
-            data["severity"] = self.severity
-        if self.story:
-            data["story"] = self.story
+        if self.maps_to:
+            data["maps_to"] = self.maps_to
         if self.deferred_to:
             data["deferred_to"] = self.deferred_to
-        if self.extra:
-            data["extra"] = self.extra
+        for key, value in self.attributes.items():
+            data.setdefault(key, value)
         return data

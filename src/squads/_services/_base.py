@@ -785,7 +785,6 @@ class ServiceCore:
             parent=parent,
             author=author,
             assignee=assignee,
-            priority=checked_priority,
             labels=labels or [],
             refs=refs or [],
             path=squad_rel,
@@ -796,6 +795,7 @@ class ServiceCore:
             slug_in_file=is_roster,
             attributes=attributes or {},
         )
+        item.set_badge_value("priority", checked_priority)
         _stamp_origin(item, self.spec)
         self._set_declared_fields(item, fields or {})
         db.add(item)

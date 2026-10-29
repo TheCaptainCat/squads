@@ -399,12 +399,13 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
                             "`sq role dev-agent update --job-title … --desc … --mission …`"
                         ],
                     ),
+                    applied("0.19.0", 1, []),
                 ],
                 "reconciled": {"indexed": [], "missing": []},
                 "config_dropped": ["squads_version"],
                 "notice": "stripped retired regions from 3 item files — review the diff",
                 "unreadable": [],
-                "manual_span": "v0.14.0..v0.17.0",
+                "manual_span": "v0.14.0..v0.19.0",
             }
         ),
     )

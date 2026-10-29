@@ -119,11 +119,9 @@ class SubentitiesMixin(ServiceCore):
             title=title,
             status=initial_status,
             assignee=assignee,
-            story=story,
+            maps_to=story,
         )
-        # Generic field-code -> badge-code store: ``severity`` (typed attribute) or any
-        # other declared field (SubEntity.extra) — the same dispatch for every code, gated
-        # on the kind's own declarations first.
+        # Field code -> badge code, gated on the kind's own declarations first.
         for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
         self._settle_deferral(db, kind, item, sub, moved=True, deferred_to=deferred_to)
@@ -464,11 +462,11 @@ class SubentitiesMixin(ServiceCore):
         for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
         if clear_story:
-            sub.story = None
+            sub.maps_to = None
         elif story is not None:
             self._check_maps_to_parent(kind)
             self._validate_subtask_story(db, item, story)
-            sub.story = story
+            sub.maps_to = story
         if clear_assignee:
             sub.assignee = None
         elif assignee is not None:
@@ -593,7 +591,7 @@ class SubentitiesMixin(ServiceCore):
             child = db.get(child_id)
             if child is None:
                 continue
-            deps.extend((child, s) for s in child.subentities if s.story == story_local_id)
+            deps.extend((child, s) for s in child.subentities if s.maps_to == story_local_id)
         return deps
 
     async def get_block(self, parent_id: str, kind: str, local_id: str) -> SubentityDetail:

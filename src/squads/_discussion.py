@@ -521,8 +521,7 @@ def summary_columns(kind: str, spec: WorkflowSpec) -> list[str]:
 
 
 def _field_value(sub: SubEntity, code: str) -> str | None:
-    """The stored badge code for a declared field — ``severity``'s typed attribute or any
-    other declared field's generic store (:meth:`SubEntity.badge_value`)."""
+    """The stored badge code for a declared field (:meth:`SubEntity.badge_value`)."""
     return sub.badge_value(code)
 
 
@@ -543,7 +542,7 @@ def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
     row = [sub.local_id, *field_cells, sub.status, sub.assignee or "", sub.title]
     ks = spec.subentity_kinds.get(kind)
     if ks is not None and ks.maps_to_parent:
-        row.append(sub.story or "")
+        row.append(sub.maps_to or "")
     return row
 
 

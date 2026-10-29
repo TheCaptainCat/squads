@@ -304,11 +304,11 @@ class ItemsMixin(ServiceCore):
             item.assignee = assignee or None
         if clear_priority:
             delta["priority"] = None
-            item.priority = None
+            item.set_badge_value("priority", None)
         elif priority is not None:
             checked_priority = self._check_priority(item.type, priority)
             delta["priority"] = checked_priority
-            item.priority = checked_priority
+            item.set_badge_value("priority", checked_priority)
         if author is not None:
             self._check_author(db, item.type, author, item.slug)
             delta["author"] = author

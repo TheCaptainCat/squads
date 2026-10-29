@@ -1507,5 +1507,27 @@ MIGRATIONS = {
             "item; the file then layers over it, and `sq check` warns until you "
             "delete the file.",
         },
+        {
+            "version": "0.19.0",
+            "from_schema": "0.17",
+            "to_schema": "0.19",
+            "summary": "Sub-entity entries are flat: story becomes maps_to, the keys of "
+            "extra move up beside the others, and an empty severity is "
+            "dropped.",
+            "manual": "Edit what `sq migrate up` does not rewrite. (1) An override that"
+            " spells `maps_parent_story`, `subtask_story_mapping` or the "
+            "transform `milestone_rollup` is refused at load, so `sq migrate "
+            "up` stops before any step and changes nothing until you rename "
+            "them to `maps_to_parent`, `subentity_mapping` and "
+            "`status_rollup`. (2) An override template that reads a name this"
+            " release removes fails to render: the sub-entity head no longer "
+            "receives `severity`, `severity_label` or `story` but the "
+            "declared fields (a list of code, label and badge) and the "
+            "mapping (a label and a value); an item's `.priority` and "
+            "`.severity` are read like any other stored value, by field code;"
+            " a sub-entity's `.story` is `.maps_to` and its `.extra` is "
+            "`.attributes`. (3) Reflog entries keep the keys they recorded: "
+            "they are history and are not rewritten.",
+        },
     ]
 }

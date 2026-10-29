@@ -57,8 +57,8 @@ def _unmapped(squad: Squad, level: str) -> dict[str, str]:
     return issue("subentity_mapping", level, squad.task, message)
 
 
-STORY_US1 = "title: Lex\n  status: Todo\n  story: US1"
-STORY_US9 = "title: Lex\n  status: Todo\n  story: US9"
+STORY_US1 = "title: Lex\n  status: Todo\n  maps_to: US1"
+STORY_US9 = "title: Lex\n  status: Todo\n  maps_to: US9"
 
 
 @pytest.mark.breaches("subentity_mapping")

@@ -153,13 +153,6 @@ class Item(BaseModel):
     #: The registered agent (role slug) who authored the item.
     author: str | None = None
     assignee: str | None = None
-    #: Optional importance, independent of status. Unset means no priority assigned. Stores
-    #: only the badge code (spec-declared ``priority`` collection); label/emoji resolve at
-    #: render time.
-    priority: str | None = None
-    #: Item-level severity (the bundled spec declares it on bug only): the badge code, top-level
-    #: like ``priority``.
-    severity: str | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.
     refs: list[str] = []
@@ -238,13 +231,9 @@ class Item(BaseModel):
         return format_item_id(effective_prefix(self.prefix), self.sequence_id, DISPLAY_ID_PADDING)
 
     def badge_value(self, code: str) -> str | None:
-        """Generic badge-code getter for any spec-declared field on this item.
-
-        ``priority``/``severity`` are real attributes; any other declared field code
-        (e.g. a custom ``impact``) has no dedicated field and is stored as an attribute.
-        No spec needed to read — the code is the stored, authoritative value.
-        """
-        return getattr(self, code, None) if hasattr(self, code) else self.attributes.get(code)
+        """The badge code stored under field *code*, ``None`` when the item stores none. No spec
+        needed to read — the code is the stored, authoritative value."""
+        return self.attributes.get(code)
 
     def attribute(self, key: str, default: Any = None) -> Any:
         """The stored value of attribute *key*, or *default* when the item does not carry it.
@@ -254,9 +243,7 @@ class Item(BaseModel):
 
     def set_badge_value(self, code: str, value: str | None) -> None:
         """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""
-        if hasattr(self, code):
-            setattr(self, code, value)
-        elif value is None:
+        if value is None:
             self.attributes.pop(code, None)
         else:
             self.attributes[code] = value
@@ -397,8 +384,6 @@ def _frontmatter_payload(
         "parent": data.get("parent"),
         "author": data.get("author"),
         "assignee": data.get("assignee"),
-        "priority": data.get("priority") or None,
-        "severity": data.get("severity") or None,
         "labels": _empty_list_if_unset(data.get("labels")),
         "refs": _read_refs(data, default_kind=default_kind),
         # Otherwise handed over raw: SubEntity's own validators fold the loose spellings, and
@@ -456,15 +441,6 @@ def _read_refs(data: dict[str, Any], *, default_kind: str | None) -> Any:
     return normalise_ref_kinds(cast("list[str]", refs), default_kind=default_kind)
 
 
-def _add_badge_fields(data: dict[str, Any], item: Item) -> None:
-    """The two top-level badge-code fields (priority/severity) — split out of
-    :func:`_add_optional_frontmatter_fields` to keep it below the C901 ceiling."""
-    if item.priority:
-        data["priority"] = item.priority
-    if item.severity:
-        data["severity"] = item.severity
-
-
 def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
     """Populate *data* with the optional / conditional frontmatter fields of *item*.
 
@@ -476,7 +452,6 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["author"] = item.author
     if item.assignee:
         data["assignee"] = item.assignee
-    _add_badge_fields(data, item)
     if item.refs:
         data["refs"] = list(item.refs)
     if item.labels:

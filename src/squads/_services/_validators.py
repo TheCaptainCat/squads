@@ -421,7 +421,7 @@ def _subentity_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
     ks = ctx.spec.subentity_kinds.get(kind) if kind is not None else None
     if ks is None or not ks.maps_to_parent:
         return []
-    refs = [(s.local_id, s.story) for s in item.subentities if s.story]
+    refs = [(s.local_id, s.maps_to) for s in item.subentities if s.maps_to]
     if not refs:
         return []
     parent = ctx.index.get(item.parent) if (ctx.index is not None and item.parent) else None

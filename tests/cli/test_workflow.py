@@ -501,7 +501,7 @@ GREETING_SKILL_SOURCE = {
     "discussion": [],
     "badges": {},
     "spec": {
-        "schema_version": "0.17",
+        "schema_version": "0.19",
         "override": False,
         "digest": "763066bf35062c577c391af9959a9442e065ccfa2fbf066aae12210b200fcda1",
     },

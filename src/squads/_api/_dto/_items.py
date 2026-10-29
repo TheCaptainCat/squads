@@ -1,9 +1,16 @@
 """The item DTOs: the addressed and listing requests, an item's row, its full show, and a
 listing."""
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
-from pydantic import ConfigDict, Field, JsonValue, SerializerFunctionWrapHandler, model_serializer
+from pydantic import (
+    ConfigDict,
+    Field,
+    JsonValue,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from squads._api._dto._base import DTO
 from squads._api._dto._display import AttributeDisplay, Column, Display
@@ -78,6 +85,22 @@ class SubentityRow(DTO):
     deferred_to: str | None
     extra: dict[str, JsonValue]
 
+    @model_validator(mode="before")
+    @classmethod
+    def _from_stored_entry(cls, data: Any) -> Any:
+        """Read a stored entry (``maps_to`` plus flat ``attributes``) into the row's keys, so the
+        row keeps the shape clients read until the wire shape moves to the stored one."""
+        if not isinstance(data, dict):
+            return data
+        stored = cast("dict[str, Any]", data)
+        if "attributes" not in stored:
+            return stored
+        rest = dict(cast("dict[str, Any]", stored["attributes"]))
+        kept = {k: v for k, v in stored.items() if k not in ("attributes", "maps_to")}
+        return dict(
+            kept, severity=rest.pop("severity", None), story=stored.get("maps_to"), extra=rest
+        )
+
 
 class Subentity(SubentityRow):
     """A sub-entity with its body, badges, discussion and display."""
@@ -139,8 +162,8 @@ class ItemFields(_TrailingKeys):
     parent: str | None
     author: str | None
     assignee: str | None
-    priority: str | None
-    severity: str | None
+    priority: str | None = None
+    severity: str | None = None
     labels: list[str]
     refs: list[str]
     subentities: list[SubentityRow]

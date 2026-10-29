@@ -4,7 +4,7 @@ lock-step with adding a runner to `squads._migrations._registry`. While squads i
 dotted string naming the alpha release that introduced it, not an opaque counter.
 """
 
-SCHEMA_VERSION = "0.17"
+SCHEMA_VERSION = "0.19"
 
 
 def schema_tuple(version: str) -> tuple[int, ...]:

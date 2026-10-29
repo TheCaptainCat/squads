@@ -121,8 +121,8 @@ def to_subentity(b: BlockInfo) -> SubEntity:
         title=b.title,
         status=b.status,
         assignee=b.assignee,
-        severity=b.severity,
-        story=b.story,
+        maps_to=b.story,
+        attributes={"severity": b.severity} if b.severity else {},
     )
 
 

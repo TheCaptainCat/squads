@@ -80,8 +80,6 @@ CORE_KEYS: tuple[str, ...] = (
     "parent",
     "author",
     "assignee",
-    "priority",
-    "severity",
     "labels",
     "refs",
     "subentities",
