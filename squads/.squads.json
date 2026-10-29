@@ -66693,7 +66693,7 @@
         {
           "local_id": "F16",
           "title": "New tests read the job file internally, assert substrings, unit-test set_head; ST3 plural is regular",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66703,7 +66703,7 @@
         {
           "local_id": "F17",
           "title": "Covers check: a call giving only derived options reaches the bare pair, so bare markers over-claim",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66713,7 +66713,7 @@
         {
           "local_id": "F18",
           "title": "Fixed article before declared names in the F8 template text and two spec-load messages",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66733,7 +66733,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-29T22:05:16Z",
+      "updated_at": "2026-10-29T22:24:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

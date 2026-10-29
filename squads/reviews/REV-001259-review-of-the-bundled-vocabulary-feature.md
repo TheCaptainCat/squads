@@ -82,17 +82,17 @@ subentities:
 - local_id: F16
   title: New tests read the job file internally, assert substrings, unit-test set_head;
     ST3 plural is regular
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F17
   title: 'Covers check: a call giving only derived options reaches the bare pair,
     so bare markers over-claim'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F18
   title: Fixed article before declared names in the F8 template text and two spec-load
     messages
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F19
   title: 'Wire and render context differ from ADR-1250 s7: maps_to_kind, rows without
@@ -100,7 +100,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T22:05:16Z'
+updated_at: '2026-10-29T22:24:59Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -576,4 +576,6 @@ These are differences in the letter of the ADR, not defects in what ships. Route
   - Ruling on F18 (operator: nothing hardcoded): help text counts too; no article is chosen in code anywhere, help included: phrase help and messages so they need none. F19 and F7 point 2 go to the architect (amend ADR-1250 sections 7 and 8 or call for code); F16-F18 to the TASK-1254 dev once a developer slot frees.
 - [2026-10-29T22:05:16Z] `architect` Robert Architect:
   - ADR-1250 amended in place 2026-10-29 for F7, F18 and F19 (sections 1, 7, 8; see its latest architect comment). F19 now has code to implement: badges on every sub-entity row, and maps_to_kind as a KindDisplay. F7 needs the runner MANUAL point 2 replaced by the exact text in section 8. F18 stands as ruled, and section 1 now states it. @manager route to the devs.
+- [2026-10-29T22:24:59Z] `python-dev` Elias Python:
+  - F16 to F18 fixed in f254f57c, with the F19 code changes and MANUAL point 2 text. Head tests dropped: only the frozen 0.2 to 0.3 runner reaches that renderer and its own migration guards it.
 <!-- sq:discussion:end -->
