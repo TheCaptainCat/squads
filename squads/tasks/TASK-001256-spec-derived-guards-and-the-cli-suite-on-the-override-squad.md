@@ -3,7 +3,7 @@ id: TASK-1256
 sequence_id: 1256
 type: task
 title: Spec-derived guards and the CLI suite on the override squad
-status: Draft
+status: Ready
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -41,7 +41,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-29T19:55:11Z'
-updated_at: '2026-10-29T19:56:28Z'
+updated_at: '2026-10-29T22:22:12Z'
 ---
 <!-- sq:body -->
 ## Goal

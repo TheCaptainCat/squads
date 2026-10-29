@@ -42,12 +42,12 @@ subentities:
   status: InProgress
 - local_id: US9
   title: Guards derived from the spec, no allow-lists
-  status: Todo
+  status: InProgress
 - local_id: US10
   title: Permanent override test squad and its CI job
   status: InProgress
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T21:50:09Z'
+updated_at: '2026-10-29T22:22:14Z'
 ---
 <!-- sq:body -->
 ## Problem
