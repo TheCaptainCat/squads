@@ -12,59 +12,61 @@ refs:
 - ADR-1250
 - TASK-1253
 - TASK-1254
+- TASK-1255
+- TASK-1257
 subentities:
 - local_id: F1
   title: Badge keys move after the timestamps on first rewrite; normalise once in
     the runner
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: Migration tests do not guard item top-level keys; fixture lacks priority
     and severity
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: story with an empty maps_to loses the mapping silently in the 0.19 runner
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F4
   title: Unknown entry keys with empty values are dropped on write
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: New tests read item files and the index directly and assert substrings (ADR-1172
     rule 5)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: New priority and severity literals in services and the DTO adapter
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: MANUAL point 2 awaits the wire task; refusal hint sends the adopter to the
     roster
-  status: Open
+  status: Verified
   severity: info
 - local_id: F8
   title: 'Generated text made vague instead of derived: review gate, findings, tree
     fields'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: Bundled add-finding with a null or empty severity is now refused at import
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: An empty value on a derived flag is dropped silently instead of refused
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F11
   title: Badge changes through update no longer reach the reflog delta
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F12
   title: Three derived-name collision refusals have no case; mutations stay green
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F13
   title: New tests misdeclare derived-flag markers, read an item file internally,
@@ -73,62 +75,70 @@ subentities:
   severity: low
 - local_id: F14
   title: Import refusals name add-sub, not the op written, and miss the declared selectors
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F15
   title: Derived options are listed after --help
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F16
   title: New tests read the job file internally, assert substrings, unit-test set_head;
     ST3 plural is regular
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F17
   title: 'Covers check: a call giving only derived options reaches the bare pair,
     so bare markers over-claim'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F18
   title: Fixed article before declared names in the F8 template text and two spec-load
     messages
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F19
   title: 'Wire and render context differ from ADR-1250 s7: maps_to_kind, rows without
     badges, item templates'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F20
   title: Kind-rename test renames the source kind and cannot fail on the local_prefix
     claim
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F21
   title: A changed local_prefix leaves entries unreachable and sq check silent
-  status: Fixed
+  status: Open
   severity: low
 - local_id: F22
   title: 'rename-field: itself-refusal and reflog untested; empty kind name in two
     messages'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F23
   title: 'rename-field has no scope: a key held on items and entries moves all or
     nothing'
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F24
   title: VS Code mapping label is made in client code and differs from the server
     label
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F25
   title: VS Code bundled fixtures jq-trimmed, not regenerated; sub-entity shapes unexercised
-  status: Fixed
+  status: Verified
+  severity: low
+- local_id: F26
+  title: Field labels still lowercased in the sub-entity show line and two help strings
+  status: Open
+  severity: low
+- local_id: F27
+  title: New rename-kind and scoped rename-field tests assert substrings of item files
+  status: Open
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T23:11:57Z'
+updated_at: '2026-10-29T23:26:32Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -616,6 +626,14 @@ Fix (architect's call): a `sq check` rule for an entry whose `local_id` does not
 #### Discussion
 
 <!-- sq:finding:F21:discussion -->
+- [2026-10-29T23:25:21Z] `reviewer` Paul Reviewer:
+  - - Reopened at a13a5e3e. `sq migrate rename-kind` works (see the review comment), but the reported defect, "sq check silent", still reproduces on a squad that has not opted in.
+      
+      `subentity_kind_mismatch` is in no category bundle (`CATEGORY_BUNDLES` in `_workflow/_validator_names.py`), so it runs only where a type lists it under `validators`. Neither the bundled spec nor the override test squad does. Driven on a copy of the override squad with only `local_prefix` changed from OC to GO: `sq check --json` gives `[]`, exit 0, and `initiative 8 outcome 1 show` fails with "no outcome GO1 in INI-8", as in the original report. Every new test selects the rule first (`select_validators(...)`), and the rename-kind tests assert `check --json == []` on a squad where the rule is off, so no test sees the default.
+      
+      With the kind renamed outcome to goal (plural changed too), the default check reports only the older `subentity_container_marker` error, whose remedy reads "Revert subentity_kinds.goal.plural in the workflow override, or change it only while no initiative items exist". ADR-1250 section 6 now makes a plural change a data change with one verb, so that remedy should name `sq migrate rename-kind <old> <new>`.
+      
+      Fix: add `subentity_kind_mismatch` to the work bundle (or to every type that hosts a kind), as the section 6 text "reports on each item whose type hosts kind K" reads, and name the verb in the container-marker remedy. If the architect means the rule to stay opt-in, section 6 should say so, and the remedy text still needs the verb.
 <!-- sq:finding:F21:discussion:end -->
 <!-- sq:finding:F21:end -->
 
@@ -693,6 +711,52 @@ Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on e
 <!-- sq:finding:F25:discussion -->
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
+
+<!-- sq:finding:F26 -->
+### F26 — Field labels still lowercased in the sub-entity show line and two help strings
+
+<!-- sq:finding:F26:body -->
+FEAT-1249, the label rule of ADR-1250 section 7 ("a label is printed as the server gives it: no client or renderer changes its case") and the F24 ruling ("the CLI renderers stop lowercasing and title-casing labels").
+
+Read: `_meta_line` in `src/squads/_cli/_render/_subentities.py` (line 30) still prints each field as `b.label.lower()`. The mapping label next to it is now printed as given, so one line mixes the two.
+
+Driven, dev tree at a13a5e3e:
+- bundled squad: `task 3 subtask 1 show` prints `status: Todo   Story: US1`, and `review 4 finding 1 show` prints `severity: high` from the label `Severity`. 0.17 printed `story: US1`.
+- override squad: `job 9 action 1 show` prints `impact: large   Desired outcome: OC1`, with `Impact` lowercased.
+
+The derived option help does the same, added by TASK-1253 (ce46f0eb): `_cli/_field_options.py` lines 68 and 79 build "Clear the {label.lower()}." and "At least this {label.lower()}: ...", so a declared label "Work size" or an acronym label prints in a case the spec never declared.
+
+Fix: print `b.label` as given in the meta line. For the two help strings, print the label as given (for example "Clear Work size." / "At least this Work size: ...", or a phrasing that puts the label first). Re-assert the show lines in their whole-line tests.
+<!-- sq:finding:F26:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F26:discussion -->
+<!-- sq:finding:F26:discussion:end -->
+<!-- sq:finding:F26:end -->
+
+<!-- sq:finding:F27 -->
+### F27 — New rename-kind and scoped rename-field tests assert substrings of item files
+
+<!-- sq:finding:F27:body -->
+FEAT-1249, the new `rename-kind` and scoped `rename-field` tests in `tests/cli/test_migrate.py`, read against ADR-1172 rule 5.
+
+Rule 5 allows a test to read an item file only for the scaffolded hint, or, in a migration test, the files `sq migrate up` rewrote, "as plain text and compares whole files or the whole frontmatter". It asks for whole lines elsewhere.
+
+Read:
+- `test_rename_kind_moves_the_prefix_the_plural_and_the_mappings` (lines 983-986) reads the initiative file and asserts four substrings (`"### GO1 — Fifty active teams" in initiative`, a body marker, the container marker, and `"sq:outcome" not in initiative`). Line 1001 asserts `"OC1" not in table.output`.
+- `test_rename_field_limited_to_a_kind_leaves_the_item_key_in_place` (line 1130) and `test_rename_field_limited_to_a_type_leaves_the_entries_in_place` (line 1148) read the job file and assert line fragments with `in`.
+
+The rewritten markers are what `rename-kind` produces and no CLI output prints them, so reading the file is justified. But the exception covers `migrate up` only, and even there it asks for whole files or the whole frontmatter. Four substrings leave the rest of the file unchecked: an `### OC2` heading left in the old prefix passes them.
+
+Fix: compare the whole rewritten file (or the whole frontmatter plus the marker list) against the expected text, and read the scoped `rename-field` results back through `job 9 show --json` and `job 9 action 1 show --json`, which carry both the item attribute and the entry key. Replace the negative `in` on the table with the whole table. If the file read stays, the architect extends rule 5's migration exception to the `migrate` rewrite verbs.
+<!-- sq:finding:F27:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F27:discussion -->
+<!-- sq:finding:F27:discussion:end -->
+<!-- sq:finding:F27:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -749,4 +813,16 @@ Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on e
   - F21, F23 and the kind-rename body orphaning fixed in fb01519e: sq migrate rename-kind, check rule subentity_kind_mismatch, and rename-field --type/--kind scopes with the scoped command named by frontmatter_key_undeclared.
 - [2026-10-29T23:11:57Z] `typescript-dev` Ada Typescript:
   - F24 (client) and F25 fixed in e4a53565 (clients/vscode): the mapping line reads display.maps_to_kind.label, shown only when it and maps_to are set, no fallback; prefix lookup removed. Fixtures regenerated from the dev tree (bundled and override squads), no jq edits. Lint, tsc, npm test 766, test:canary 90 pass; mapping-line tests falsified.
+- [2026-10-29T23:25:29Z] `reviewer` Paul Reviewer:
+  - - Fourth pass at a13a5e3e (origin/release/0.19), driven with the dev tree on fresh bundled and override scratch squads, against ADR-1250 as amended (sections 3, 6 and 7) and ADR-1172. VS Code: `npm test` 766 passed and `test:canary` 90 passed against the dev-tree `sq`, in a throwaway checkout.
+      - **Verified: F7, F15 to F20, F22 to F25.** F7: the MANUAL point 2 text printed by `sq migrate chlog v0.17.0..v0.19.0` is the section 8 text word for word. F15: create, update, list and tree list the derived options before `--help` on both squads. F16 to F18: covered by whole-line cases (the irregular plural through `add-analysis` refused as "does not host analyses"); the rendered loop gate names reviews and findings for this repository's roster and the template has no fixed article. F17: a bare marker on a call giving only `--outcome` now fails "covers declares pairs no call reached", and passes when the fix is reverted. F19 and F24: `badges` on every sub-entity row, `display.maps_to_kind` a KindDisplay on show rows, sub-entity lists and `<kind> <k> show`, catalog rows carry `label`; the declared label "Desired outcome" reaches option help, the mapping column, the show line, the JSON and the catalog. F20, F22, F23: driven (below). F25: fixtures carry real sub-entity rows, `display.maps_to_kind` and catalog labels; the client reads `display.maps_to_kind.label` with no prefix lookup and no bundled vocabulary in the diff.
+      - **rename-kind, driven.** outcome to goal with OC kept: one item rewritten, bodies reachable through `initiative 8 goal 1 show`, the mapping labelled "Desired goal: OC1". With OC to GO: both items rewritten, markers, container, local ids and `maps_to` moved, reflog line and system comment on each, `check` clean; a second run reports 0 items and writes nothing. Each refusal (undeclared kind, type not hosting it, mixed prefixes, missing block pair) exits 1 with git status clean.
+      - **rename-field scopes, driven.** With `weight` on JOB-9 and on AC1: unscoped and `--type job` refused naming the scopes, `--kind action` moves only the entry, and `--type job` to `work_size` moves only the item. Unknown scopes and "already holds" refused, nothing written. `frontmatter_key_undeclared` names the scoped command.
+      - **Mutations.** Dropping the `maps_to` rewrite in rename-kind turns the prefix test red; ignoring the declared kind label turns five tests red; printing the kind name in the VS Code mapping line turns its test red.
+      - **F21 reopened**: the rule exists but nothing selects it, so the reported silence still reproduces (comment on F21). **New: F26** (a renderer and two help strings still lowercase field labels), **F27** (new rename tests assert substrings of item files).
+      - F1 to F6 and F8 to F12, F14 were verified in the second and third passes (a431394, fb4c881) and are marked Verified now. F13 stays Fixed until TASK-1256 re-declares its markers.
+      - Notes, not findings (older than this feature): `sq create job --help` on an override squad still lists `--install-completion`/`--show-completion`; the attribute option help capitalises its label in `_cli/_create.py` (e3bb9356); the per-kind verb help (`add-outcome`, `outcomes`) names the kind by its name, which is the token typed. `rename-kind` carries a missing body end marker over unchanged rather than refusing; section 6 names only a missing block pair, so that is in the letter. Every `rename-field` refusal appends "(limit the move with --type or --kind)", also when a scope was given.
+      - Verdict: changes requested, low only (F21, F26, F27), plus F13 with TASK-1256. @manager route F21 to @architect (default selection) then the TASK-1255 dev, F26 to the TASK-1254 dev, F27 to the TASK-1255 dev. Approval stays with you.
+- [2026-10-29T23:26:32Z] `manager` Catherine Manager:
+  - Ruling on F21 (operator delegation for this drive): subentity_kind_mismatch runs by default at warn in the bundle that carries frontmatter_key_undeclared, like that rule; the older subentity_container_marker error names `sq migrate rename-kind` instead of revert-only. F26 includes the capitalised attribute label in _cli/_create.py:89: labels print as declared everywhere.
 <!-- sq:discussion:end -->

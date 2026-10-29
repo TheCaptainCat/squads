@@ -66537,13 +66537,15 @@
         "TASK-1252",
         "ADR-1250",
         "TASK-1253",
-        "TASK-1254"
+        "TASK-1254",
+        "TASK-1255",
+        "TASK-1257"
       ],
       "subentities": [
         {
           "local_id": "F1",
           "title": "Badge keys move after the timestamps on first rewrite; normalise once in the runner",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66553,7 +66555,7 @@
         {
           "local_id": "F2",
           "title": "Migration tests do not guard item top-level keys; fixture lacks priority and severity",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66563,7 +66565,7 @@
         {
           "local_id": "F3",
           "title": "story with an empty maps_to loses the mapping silently in the 0.19 runner",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66573,7 +66575,7 @@
         {
           "local_id": "F4",
           "title": "Unknown entry keys with empty values are dropped on write",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66583,7 +66585,7 @@
         {
           "local_id": "F5",
           "title": "New tests read item files and the index directly and assert substrings (ADR-1172 rule 5)",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66593,7 +66595,7 @@
         {
           "local_id": "F6",
           "title": "New priority and severity literals in services and the DTO adapter",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66603,7 +66605,7 @@
         {
           "local_id": "F7",
           "title": "MANUAL point 2 awaits the wire task; refusal hint sends the adopter to the roster",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -66613,7 +66615,7 @@
         {
           "local_id": "F8",
           "title": "Generated text made vague instead of derived: review gate, findings, tree fields",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66623,7 +66625,7 @@
         {
           "local_id": "F9",
           "title": "Bundled add-finding with a null or empty severity is now refused at import",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66633,7 +66635,7 @@
         {
           "local_id": "F10",
           "title": "An empty value on a derived flag is dropped silently instead of refused",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66643,7 +66645,7 @@
         {
           "local_id": "F11",
           "title": "Badge changes through update no longer reach the reflog delta",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66653,7 +66655,7 @@
         {
           "local_id": "F12",
           "title": "Three derived-name collision refusals have no case; mutations stay green",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66673,7 +66675,7 @@
         {
           "local_id": "F14",
           "title": "Import refusals name add-sub, not the op written, and miss the declared selectors",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66683,7 +66685,7 @@
         {
           "local_id": "F15",
           "title": "Derived options are listed after --help",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -66693,7 +66695,7 @@
         {
           "local_id": "F16",
           "title": "New tests read the job file internally, assert substrings, unit-test set_head; ST3 plural is regular",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66703,7 +66705,7 @@
         {
           "local_id": "F17",
           "title": "Covers check: a call giving only derived options reaches the bare pair, so bare markers over-claim",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66713,7 +66715,7 @@
         {
           "local_id": "F18",
           "title": "Fixed article before declared names in the F8 template text and two spec-load messages",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66723,7 +66725,7 @@
         {
           "local_id": "F19",
           "title": "Wire and render context differ from ADR-1250 s7: maps_to_kind, rows without badges, item templates",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66733,7 +66735,7 @@
         {
           "local_id": "F20",
           "title": "Kind-rename test renames the source kind and cannot fail on the local_prefix claim",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66743,7 +66745,7 @@
         {
           "local_id": "F21",
           "title": "A changed local_prefix leaves entries unreachable and sq check silent",
-          "status": "Fixed",
+          "status": "Open",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66753,7 +66755,7 @@
         {
           "local_id": "F22",
           "title": "rename-field: itself-refusal and reflog untested; empty kind name in two messages",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66763,7 +66765,7 @@
         {
           "local_id": "F23",
           "title": "rename-field has no scope: a key held on items and entries moves all or nothing",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "info",
           "story": null,
@@ -66773,7 +66775,7 @@
         {
           "local_id": "F24",
           "title": "VS Code mapping label is made in client code and differs from the server label",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66783,7 +66785,27 @@
         {
           "local_id": "F25",
           "title": "VS Code bundled fixtures jq-trimmed, not regenerated; sub-entity shapes unexercised",
-          "status": "Fixed",
+          "status": "Verified",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F26",
+          "title": "Field labels still lowercased in the sub-entity show line and two help strings",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F27",
+          "title": "New rename-kind and scoped rename-field tests assert substrings of item files",
+          "status": "Open",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66793,7 +66815,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-29T23:11:57Z",
+      "updated_at": "2026-10-29T23:26:32Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
