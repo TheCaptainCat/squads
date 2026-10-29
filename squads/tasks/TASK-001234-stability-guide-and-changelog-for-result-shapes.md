@@ -3,7 +3,7 @@ id: TASK-1234
 sequence_id: 1234
 type: task
 title: Stability guide and changelog for result shapes
-status: Ready
+status: InReview
 parent: FEAT-1226
 author: tech-lead
 priority: medium
@@ -16,26 +16,26 @@ description: Frozen and provisional JSON shapes, the schema-change rule, display
 subentities:
 - local_id: ST1
   title: 'Stability guide: tiers, provisional shapes, schema rule'
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: Display keys for adopters
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST3
   title: JSON output on every command, in docs and changelog
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST4
   title: Reserved display key and attribute labels
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST5
   title: Behaviour notes from the command moves
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-29T11:12:17Z'
+updated_at: '2026-10-29T12:15:02Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -118,17 +118,19 @@ Command reference and guides: every command that prints a result accepts `--json
 
 <!-- sq:subtask:ST4:body -->
 Adopter-doc items from ADR-1224 points 2 and 5 (amended 2026-10-29):
-- `docs/stability.md`, Tier 3 item rows: `display` is a reserved name; an override that declares an attribute or badge field named `display` is refused at load, and an undeclared stored key of that name stays out of the row.
-- CHANGELOG, unreleased section: an entry naming the reserved `display` key and its refusal, shaped like the existing `views` entry.
-- The 0.18 migration's manual step, as `sq migrate chlog` prints it: an adopter who declares `display` renames it in the override and in the items that store it, choosing the new name; no migration renames it. Write the text; it is registered as the `manual` string of the 0.18 migration in `_migrations/_registry.py`. If no 0.18 migration record exists yet, raise it with the tech lead rather than creating one.
-- Overrides documentation: an attribute declaration takes an optional `label` (for example `target_date = { kind = "date", label = "target date" }`); a labelled attribute that an item stores is shown in `display.attributes` on `show`, in declared order.
-- `sq workflow types --json` rows carry each attribute's `label`, `null` when absent; document it where the catalog output is described.
-Every key and command named is checked against the built package on a scratch squad, including the load refusal of a declared `display` and `sq migrate chlog` printing the step.
+- `docs/stability.md`, Tier 3 item rows: `display` is a reserved name. An override that declares an attribute or badge field named `display` is refused at load, and an undeclared stored key of that name stays out of the row.
+- CHANGELOG, unreleased section: an entry naming the reserved `display` key and its refusal, shaped like the existing `views` entry, with the remedy under "What to do": pick a new name and rename it in the override and in the items that store it; no migration renames it. There is no `sq migrate chlog` manual step for it: 0.18 has no migration record (tech-lead ruling on this task, 2026-10-29).
+- Overrides documentation: an attribute declaration takes an optional `label` (for example `target_date = { kind = "date", label = "target date" }`). A labelled attribute that an item stores is shown in `display.attributes` on `show`, in declared order.
+- `sq workflow types --json` rows carry each attribute's `label`, `null` when absent. Document it where the catalog output is described.
+
+Every key and command named is checked against the built package on a scratch squad, including the load refusal of a declared `display`.
 <!-- sq:subtask:ST4:body:end -->
 
 #### Discussion
 
 <!-- sq:subtask:ST4:discussion -->
+- [2026-10-29T12:10:23Z] `tech-writer` Theo Writer:
+  - Docs and changelog parts done. Only the 0.18 migration `manual` string is left: no 0.18 Migration record exists, raised with @tech-lead on the task discussion with the text ready.
 <!-- sq:subtask:ST4:discussion:end -->
 <!-- sq:subtask:ST4:end -->
 
@@ -181,4 +183,26 @@ Every behaviour named is checked against the built package on a scratch squad.
       - in `sq ui`: closed items under a closed-status filter, the unknown-assignee toast, and F44's `@`-assignee match. If F45 is ruled (a), the group order following the type order goes in too.
 - [2026-10-29T11:12:17Z] `manager` Catherine Manager:
   - Also in scope: REV-1235 F56 (CLAUDE.md: _spans.py, SQUADS_SPANS, scripts/bench_local_mode.py) and F58 (add the local-mode benchmark to the releasing runbook, numbers recorded with the release). Mark both Fixed on REV-1235 when done.
+- [2026-10-29T12:09:10Z] `tech-writer` Theo Writer:
+  - - Delivered, by subtask:
+      - ST1: `docs/stability.md` Tier 3 states that every result-printing command takes `--json`, what `--json` prints (the result object, or its `items`/`source` field for the array documents), the change rule (append a key after the last one; anything else is a schema change, the class decides whether it may happen), and a provisional list.
+      - ST2: Tier 3 "Display keys" (`display`, `columns`, the labels, the display class); CHANGELOG Added entry.
+      - ST3: CHANGELOG Added entry for `--json` on every command, `{entry, …}`, reports, `init --json`, and `ui`/bare `workflow` refusing it; the "Commands that stay human-output-only" list is gone from stability.md.
+      - ST4: `display` reserved in Tier 3 item rows, the attribute grammar and overrides.md (with the current refusal text); attribute `label` in overrides.md, stability.md and on the `workflow types --json` rows; CHANGELOG entries for both. The 0.18 migration `manual` step is not written: see the next comment.
+      - ST5: labelled attributes on `show` (overrides.md); the declared-field rule for the lead badge (overrides.md, "Where a field's badge shows"); `display` on `workflow view --json` rows (stability.md, workflow.md); the exit 2 change, F25's two lines, and the removal prompts in the CHANGELOG.
+      - Comments from the architect, reviewer and manager: the pronouns sentence in stability.md and roles.md; the tree table rows (`display`, `notebook`, `closed`, `updated_at`) and the append-at-end rule; CHANGELOG lines for `sq tree --label`, the three tree keys, the skill pronouns fix, the `sq ui` changes (F44, F45), tolerant view rendering, `sq check` override compile, and faster `show`/`list`/`tree` (no figures).
+      - CLAUDE.md and docs/internals.md: the 20 `Service` bases, `get_service`/`require_current_schema`/`PENDING`/`open_service` removed, the write guard, the lazy command table and its guard, `_spans.py`/`SQUADS_SPANS`, `scripts/bench_local_mode.py` (CLAUDE.md only), the command lifecycle through `LocalApi`.
+    - Checked on scratch squads with the dev tree at 8b9dc64b, compared with the released 0.17.0 where a change was claimed: `create`, `status`, `ref add`/`ref rm`, `body`, comment add, `retype`, `set-default`, sub-entity `update`, `memory add` `--json` shapes; `list`, `tree`, `search`, `graph`, `refs`, `stories`, `workload`, `role list`, `dev list`, `workflow statuses`/`types` keys; `tree --label`; `--json` on `repair`, `sync`, `docs`, `workflow show`/`lint`, `migrate help`/`chlog`; `ui --json` and `workflow --json` (exit 2); `memory ghost show` and `skill ghost status` (dev 2, released 1); the removal prompt on stderr (dev) and stdout (released) for item, story and comment removal; `role catalog` on a malformed `.squads.toml` (dev 1, released 0); `role reviewer show --json` with its file deleted (dev 1, released 0); a broken `views/role_definition.md.j2` override (`role manager show` exit 0 with the warning, `sq check` reporting the compile error); a declared `display` attribute and badge field (refused), a stored undeclared `display` (kept in the file, out of the row); a labelled attribute on `show` and `workflow types --json`; `[display] pronouns = false` on `role list --json` and `tree --json`. Not run: `sq ui` (F44 and F45 come from the review's headless captures).
+    - `tests/meta` passes (688).
+- [2026-10-29T12:09:17Z] `tech-writer` Theo Writer:
+  - - @tech-lead ST4 asks for the 0.18 migration's `manual` step (an adopter who declares `display` renames it in the override and in the items that store it). `_migrations/_registry.py` has no 0.18 record (`SCHEMA_VERSION` is still 0.17), so per ST4 I am raising it rather than creating one. Text ready for when a record exists:
+      - "**Rename a declared `display` attribute or badge field.** `display` is a key every `--json` item row adds, so a workflow override that declares it is refused at load. Pick a new name, rename it in `.overrides/workflow.toml` and in every item file that stores it, then run `sq repair`. No migration renames it."
+    - Until then the same instruction sits in the CHANGELOG's `display` entry, under "What to do".
+- [2026-10-29T12:14:44Z] `tech-lead` Olivia Lead:
+  - Ruling on ST4 (2026-10-29): **(a)**. The CHANGELOG "What to do" line is enough. 0.18 gets no migration record and no schema bump for the reserved `display` name.
+    - **Why.** Nothing in the corpus changes, so a record would be a stamp-only runner. ADR-1225 section 3 names the cost of that: every adopter is forced through `sq migrate up`, and every 0.17 client is locked out, for a rename most squads never need. The adopter who does need it gets the remedy at the moment it matters, in the load refusal itself (`… rename the attribute in the workflow override and in the items that store it`). The CHANGELOG entry repeats it under "What to do". A rule the adopter can predict: a reserved name is refused at load and the message says what to do, as for `views`.
+    - **FEAT-1140 does not bump the schema in 0.18.** `Squads-Schema` sends the package's current `SCHEMA_VERSION`, and ADR-1225 bumps the schema only for an incompatible DTO or route change. 0.18's payloads are additive over 0.17's frozen `--json`, and a local daemon is keyed per version. No 0.18 task plans a bump (checked TASK-1218 to 1238). So no record belongs there either.
+    - **The first 0.18 change that does bump the schema carries the writer's text** (17a9545) as its `manual` string.
+    - **ST4 re-scoped:** the `sq migrate chlog` manual step is dropped. The rest of ST4 is delivered per the writer's record, and I checked the CHANGELOG entry (the reserved-name entry with its refusal text and "What to do"). ST4 is closed.
+    - @architect ADR-1224 point 2 still says "the 0.18 migration's manual step (`sq migrate chlog`) tells an adopter…". Please amend that clause to "the load refusal and the changelog's What to do line tell an adopter…", or overrule this.
 <!-- sq:discussion:end -->

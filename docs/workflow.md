@@ -447,14 +447,17 @@ per-node rows, a `subentity` source matches the per-kind list `--json`, `role` m
 <slug> show --json`, `self` matches the host item's `sq show <id> --json` plus a `spec` key
 (`schema_version`, `override`, and a `digest` to compare for equality only — see
 [stability.md](stability.md)), and `playbook` carries its lane plus the live roster — and skips
-presentation entirely. A view that declares a transform has a second machine-readable form: the
+the view's template entirely. Each row carries the `display` object its command's `--json` carries
+(labels and rendered badges as text), never the view's rendered output. A view that declares a transform has a second machine-readable form: the
 item's `show --json` carries the transform's output under `views.<name>`. Those two are the
 supported ways to build on a view; the CLI's own rendering is one presentation over the same data,
 never a second source of truth for it.
 
 **`show --json` returns the body as stored.** Its `body` key is the text of the item's body region
 with each view tag left as a tag (`<!-- sq:view:milestone_rollup -->`), not the rendered view: what
-it reports is what the item file stores. The rendered text is on `sq show` and `sq show --raw`.
+it reports is what the item file stores. The rendered text is on `sq show`, `sq show --raw`, and
+`display.body` of `show --json`. A view whose template fails to render keeps its tag as written
+there, and the command prints a warning on stderr naming the view and the error.
 That body can be written back as it came: `body --force`, `body --append` and an import `body`
 event accept a view tag that is already placed on the item in the same state, and keep it at its
 declared position, so a milestone keeps one roll-up. Any other view tag line is refused, with a

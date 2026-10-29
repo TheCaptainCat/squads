@@ -17,16 +17,17 @@ uv build                # wheel/sdist (templates ship as package data)
 
 ```
 _cli → _api ← _services → (index store, backends, rendering, roles, interactions, …)
-_cli → _services only in _cli/_calls.local_api() (the LocalApi factory), plus the pending modules
+_cli → _services only in _cli/_calls.local_api() (the LocalApi factory)
 _api  imports only pydantic, _errors and _models
 _models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
 ```
 
-The CLI is moving onto the API one command at a time. A moved command calls an operation and
-renders the DTO it answers with; a command not moved yet still reaches the service through
-`_cli._common.get_service`. `tests/meta/test_the_cli_imports_the_service_layer_only_in_the_local_api_factory.py`
-holds the `_cli` modules that still import `_services` in its `PENDING` set, which only shrinks:
-a module leaves it once none of its commands needs the service.
+Every command calls an operation through the `Api` and renders the DTO it answers with; the TUI
+calls the same operations. `tests/meta/test_the_cli_imports_the_service_layer_only_in_the_local_api_factory.py`
+holds that no `_cli` module imports `_services` outside `local_api()`, and
+`tests/meta/test_the_cli_and_the_terminal_ui_write_no_file_themselves.py` that no `_cli` or `_tui`
+module writes a file, directly or through a function, class or factory it reaches: every write
+goes through an operation.
 
 Every package-to-package import edge, with where it runs (module top, inside a function, or
 under `TYPE_CHECKING`), is recorded in
@@ -39,8 +40,8 @@ the graph is not a strict stack; the guard pins that set too.
 leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …). Package
 `__init__.py` files do **not** re-export (this is a CLI, not yet a library API), so internal code
 imports straight from the underscore modules (`from squads._models._item import Item`). The only
-non-empty inits are `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app`, the entry
-point `squads._cli:app`) and `_workflow/__init__` (the bundled-spec accessor); the guard module
+non-empty inits are `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app` and `main`,
+which the entry point `squads.__main__:main` runs) and `_workflow/__init__` (the bundled-spec accessor); the guard module
 lists them.
 Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
 
@@ -130,18 +131,23 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   that every DTO field is JSON-native and every `json_field` names a field of its response.
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
   (create/get/list + backend + role/skill lookups) holding the `_roster_projection.RosterProjection`
-  collaborator (roles, operators and skills projected onto the backends), plus one concern **mixin** per file
-  (`_item_ops`, `_import`, `_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_check`, `_maintenance`,
-  `_retype`, `_rename`, `_memory`, `_board`, `_views` — the 14 `Service` bases, in MRO order;
-  `_item_ops.ItemOpsMixin` holds the operation handlers, each answering with its DTO); the
+  collaborator (roles, operators and skills projected onto the backends), plus the concern
+  **mixins** that are the 20 `Service` bases, in MRO order: the operation mixins, whose handlers
+  each answer with a DTO (`ItemWriteOpsMixin` in `_item_write_ops`, `ItemReadOpsMixin` in
+  `_item_read_ops`, `RosterOpsMixin` in `_roster_ops`, `RetypeOpsMixin` in `_item_write_ops`,
+  `ItemOpsMixin` in `_item_ops`, `SquadStateOpsMixin` in `_squad_ops`, `CorpusOpsMixin` in
+  `_corpus_ops`), then the domain mixins they call, one per file (`_import`, `_items`, `_collab`,
+  `_subentities`, `_refs`, `_roster`, `_check`, `_maintenance`, `_retype`, `_rename`, `_memory`,
+  `_board`, `_views`); the
   corpus-reading helpers both `_check` and `_maintenance` use live on `ServiceCore`, and
   `_corpus_files.py` reads one item file into the tagged record the index rebuild and the check
   scan both consume; `_service.py`
   composes them into the flat `Service` façade and is the **composition root**: `compose_service`
-  (a `Mode` — normal, index check skipped, migrate, playbook unavailable, bundled fallback — picks
-  the workflow spec and playbook; the fallback order is the `BYPASS_FALLBACKS`/`MIGRATE_FALLBACKS`/
-  `CHECK_FALLBACKS` tables there) and `build_service` (the one `Service(...)` construction: it makes
-  the `IndexStore` and the backends and hands them in) sit beside `init`/`adopt`/`open_service`;
+  (an `_api.Mode` — normal, index check skipped, migrate, bundled fallback, check, vocabulary —
+  picks the workflow spec and playbook; the fallback order is the `BYPASS_FALLBACKS`/
+  `MIGRATE_FALLBACKS`/`CHECK_FALLBACKS`/`VOCABULARY_FALLBACKS` tables there) and `build_service`
+  (the one `Service(...)` construction: it makes the `IndexStore` and the backends and hands them
+  in) sit beside `init`/`adopt`;
   `_results.py` has the result dataclasses. Non-mixin helpers live alongside: `_validators.py`
   (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
   `_bindings.py` is the literal table binding each operation to its `Service` handler
@@ -166,13 +172,25 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   The view-name constants for the always-on skills and roles live here too. `_view_tags.py` holds the
   tag placement and read-time expansion engine beside `_sections.py`, and `_view_remedies.py` the
   command text a message names to place, disable or clear a view tag.
-- `_cli/` — Typer app (`__init__` wires sub-typers + the root `-C` callback + version notice);
+- `_cli/` — Typer app (`__init__` holds the root `-C` callback and builds the command table);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
-  A moved command parses its arguments, builds one request DTO and calls one operation through
-  `_calls.py` (`call`, `select_api`, the `local_api()` factory, and the printers for `--json`,
-  warnings and omissions), then renders. `_render/` holds the renderers: they take a DTO and a
-  console only, and a `tests/meta` guard keeps them off `squads._workflow`, `squads._paths`, the
-  configuration model, `_services` and every `_cli` module still on the pending list.
+  The root builds each command group on first lookup: `LAZY_GROUPS` in `_cli/__init__.py` names
+  each group's module and Typer, and each bundled item type and alias gets its app from the
+  bundled spec, built once per root command; `sq --help` builds them all.
+  `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the table to the group
+  Typers the `_cli` modules define. A command parses its arguments, builds one request DTO and
+  calls one operation through `_calls.py` (`call`, `select_api`, the `local_api()` factory, and
+  the printers for `--json`, warnings and omissions), then renders. `_render/` holds the
+  renderers: they take a DTO and a console only, and
+  `tests/meta/test_renderers_read_neither_the_vocabulary_nor_the_configuration.py` keeps them, and
+  `_tui/` through every module it loads, off `squads._workflow`, `squads._paths`, the
+  configuration model, `_services`, `_cli/_calls.py` and `_cli/_common.py`.
+- `_spans.py` — wall-clock spans of one invocation, printed to stderr as `SQUADS_SPAN <name> <ms>`
+  when `SQUADS_SPANS` is non-empty (`t=<perf_counter>` sets the origin `mark` times count from);
+  free when unset. `scripts/bench_local_mode.py` compares the run time of two `sq` builds on a
+  copy of one squad (`--squad DIR --old SQ --new SQ --task N`, `--spans` for the new build's span
+  medians); pass a directory that holds only the project's `.squads.toml` and squad folder, since
+  it is copied whole. The release runbook runs it.
 
 ## Invariants — keep these true
 
@@ -245,7 +263,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - **Schema version & migrations.** `_models/_schema.py::SCHEMA_VERSION` is the single source of
   truth (models default to it). While alpha it's a **dotted string tracking the release that
   introduced the schema** (`"0.1"`, `"0.2"`), not an integer counter — compare with `schema_tuple`,
-  never `<`/`>` on the raw string. The root CLI callback hard-stops on a mismatch (`require_current_schema` →
+  never `<`/`>` on the raw string. `LocalApi` refuses an operation on a mismatch unless its `Grant` covers that direction (`check_grant` in `_services/_local_api.py` →
   run `sq migrate up`). The `sq migrate` Typer app (`_cli/_migrate.py`): `up` runs the ordered
   `_migrations/_registry.py::MIGRATIONS` (each a `Migration` record with a private
   `_vN_M_to_vP_Q.py` runner taking `SquadPaths` (wrapped) or, to open the index, the run's `MigrationContext` + a `manual` string) then `repair` + stamps;
