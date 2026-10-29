@@ -413,7 +413,7 @@ watch = ["don't close findings you didn't actually address"]
 overview = "Project-agnostic best-practice notes on a technology or framework."
 lifecycle = "Draft → Published → Deprecated"
 commands = [
-  'sq create guide "…" --author architect [--tech …] [--tag …]',
+  'sq create guide "…" --author architect [--tech …] [--tags …]',
   "sq guide <n> status Published",
 ]
 

@@ -350,8 +350,8 @@ create_app = typer.Typer(
 )
 
 # Static registration from the bundled spec, like the resource-group loop in _cli/__init__.py:
-# one generic `_make` per creatable type, in ItemSpec.order. `guide` gets its own command below
-# (--tech/--tag); role/skill/operator are roster types with dedicated commands.
+# one generic `_make` per creatable type, in ItemSpec.order; role/skill/operator are roster types
+# with dedicated commands.
 _create_spec = bundled_spec()
 _CREATABLE: tuple[str, ...] = tuple(
     t
