@@ -162,12 +162,34 @@ class CarrierLog:
         return fid
 
 
+@dataclass(frozen=True)
+class MovedFile:
+    """One file given a new number: its id before and after, and its path before and after,
+    relative to the squad folder."""
+
+    old: str
+    new: str
+    file: str
+    target: str
+
+
+@dataclass(frozen=True)
+class LeftReference:
+    """One reference to an old id that a renumber left unchanged: the id, the file holding it,
+    where in that file, and the text."""
+
+    id: str
+    file: str
+    where: str
+    text: str
+
+
 @dataclass
 class SameIdRenumber:
     """What ``repair --renumber`` did about ids carried by more than one file."""
 
-    lines: list[str] = field(default_factory=list[str])
-    references_left: bool = False
+    moved: list[MovedFile] = field(default_factory=list[MovedFile])
+    references: list[LeftReference] = field(default_factory=list[LeftReference])
 
 
 def _rel(squad_dir: Path, md: Path) -> str:
@@ -234,6 +256,7 @@ class RenumberScope:
     folder_for_prefix: dict[str, Path]
     indexed_paths: dict[str, Path]
     list_files: Callable[[], list[Path]]
+    rehint: Callable[[str, dict[str, Any], Path, str], str]
 
 
 def _readable_by_index_scan(md: Path, prefix: str, scope: RenumberScope) -> bool:
@@ -271,13 +294,16 @@ async def _renumberable(files: list[Path], prefix: str, scope: RenumberScope) ->
 async def _renumber_files(
     squad_dir: Path,
     ordered: list[Path],
-    prefix: str,
+    key: str,
     padding: int,
     first_free: int,
-) -> tuple[list[str], int]:
+    scope: RenumberScope,
+) -> tuple[list[MovedFile], int]:
     """Renumber every file after the first in *ordered*; only each file's own ``id``,
-    ``sequence_id`` and name change. Returns the report lines and the next free number."""
-    lines: list[str] = []
+    ``sequence_id``, name and the hint scaffolded from its number change. Returns the moves and
+    the next free number."""
+    prefix = prefix_from_id(key)
+    moved: list[MovedFile] = []
     next_free = first_free
     for md in ordered[1:]:
         new_display = format_item_id(prefix, next_free, DISPLAY_ID_PADDING)
@@ -288,13 +314,13 @@ async def _renumber_files(
         fm["sequence_id"] = next_free
         slug = file_slug(md, fm, prefix)
         target = md.parent / (f"{new_padded}-{slug}.md" if slug else f"{new_padded}.md")
-        await write_text(md, sections.replace_frontmatter(text, fm))
+        new_text = sections.replace_frontmatter(text, fm)
+        new_text = scope.rehint(new_text, fm, target, str(number_for_id(key)))
+        await write_text(md, new_text)
         await _aio.path_rename(md, target)
-        lines.append(
-            f"  renumbered {_rel(squad_dir, md)} -> {new_display} ({_rel(squad_dir, target)})"
-        )
+        moved.append(MovedFile(key, new_display, _rel(squad_dir, md), _rel(squad_dir, target)))
         next_free += 1
-    return lines, next_free
+    return moved, next_free
 
 
 async def renumber_same_id_groups(
@@ -313,7 +339,7 @@ async def renumber_same_id_groups(
     copies is left for the caller to refuse."""
     outcome = SameIdRenumber()
     next_free = first_free
-    renumbered: dict[str, list[str]] = {}
+    renumbered: list[str] = []
     for key, files in sorted(groups.items()):
         prefix = prefix_from_id(key)
         if not await _renumberable(files, prefix, scope):
@@ -322,20 +348,15 @@ async def renumber_same_id_groups(
         indexed = scope.indexed_paths.get(key)
         kept = indexed if indexed in files else by_name[0]
         ordered = [kept, *(md for md in by_name if md != kept)]
-        block = [f"{key}: {len(ordered)} files, different slugs"]
-        block.append(f"  kept       {_rel(squad_dir, kept)}")
-        moved, next_free = await _renumber_files(squad_dir, ordered, prefix, padding, next_free)
-        renumbered[key] = block + moved
+        moved, next_free = await _renumber_files(squad_dir, ordered, key, padding, next_free, scope)
+        outcome.moved += moved
+        renumbered.append(key)
     # References are listed after every rename, so a renumbered file's own text is scanned
     # and an earlier group's renames are visible to a later group.
     current = scope.list_files()
-    for key, block in renumbered.items():
-        refs = await _references_to(squad_dir, current, key)
-        if refs:
-            outcome.references_left = True
-            block.append(f"  references to {key} left unchanged; check each by hand:")
-            block += [f"    {rel}   {where}   {text}" for rel, where, text in refs]
-        else:
-            block.append("  no references")
-        outcome.lines += block
+    for key in renumbered:
+        outcome.references += [
+            LeftReference(key, rel, where, text)
+            for rel, where, text in await _references_to(squad_dir, current, key)
+        ]
     return outcome

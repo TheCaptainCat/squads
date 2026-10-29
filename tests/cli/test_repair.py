@@ -75,6 +75,7 @@ async def test_repair_json_prints_what_the_rebuild_found(populated_project, invo
                     "`sq repair`"
                 ],
                 "renumbered": [],
+                "references": [],
                 "references_left": False,
             }
         ),
@@ -87,7 +88,8 @@ async def test_renumber_gives_a_shared_number_a_new_one(populated_project, invok
     result = await invoke(["repair", "--renumber"])
     assert (result.exit_code, result.output) == (
         0,
-        "rebuilt index: 5 items, counter=5\n  renumbered TASK-2 -> TASK-5\n",
+        "rebuilt index: 5 items, counter=5\n"
+        "  renumbered TASK-2 -> TASK-5 (tasks/TASK-000005-build-the-query-parser.md)\n",
     )
     assert await listed(invoke) == [*ITEMS, TWIN]
 
@@ -123,3 +125,45 @@ async def test_renumber_leaves_an_id_two_files_carry_to_be_merged_by_hand(
         "content you want into one file, delete the other by hand, then run `sq repair`\n",
     )
     assert await listed(invoke) == ITEMS
+
+
+@pytest.mark.covers("repair", "--json")
+async def test_renumber_json_lists_each_moved_file_and_each_reference_left(
+    populated_project, invoke
+) -> None:
+    squad = populated_project.squad_dir
+    original = (squad / TASK_FILE).read_text(encoding="utf-8")
+    twin = original.replace("title: Build the query parser", "title: Twin parser")
+    (squad / "tasks/TASK-000003-twin.md").write_text(twin, encoding="utf-8")
+    kept = squad / TASK_FILE
+    kept.write_text(original.replace("_TODO: describe this task._", "See TASK-3."), "utf-8")
+    result = await invoke(["repair", "--renumber", "--json"])
+    assert (result.exit_code, result.output) == (
+        1,
+        json_text(
+            {
+                "indexed": 5,
+                "counter": 5,
+                "notice": None,
+                "missing": [],
+                "unreadable": [],
+                "renumbered": [
+                    {
+                        "old": "TASK-3",
+                        "new": "TASK-5",
+                        "file": "tasks/TASK-000003-twin.md",
+                        "target": "tasks/TASK-000005-twin.md",
+                    }
+                ],
+                "references": [
+                    {
+                        "id": "TASK-3",
+                        "file": TASK_FILE,
+                        "where": "body:23",
+                        "text": '"See TASK-3."',
+                    }
+                ],
+                "references_left": True,
+            }
+        ),
+    )

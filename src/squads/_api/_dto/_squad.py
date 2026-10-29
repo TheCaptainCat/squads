@@ -14,16 +14,38 @@ class RepairRequest(DTO):
     renumber: bool = False
 
 
+class MovedFile(DTO):
+    """One file given a new number: its id before and after, and its path before and after,
+    relative to the squad folder. Files that shared an id have the same *old*."""
+
+    old: str
+    new: str
+    file: str
+    target: str
+
+
+class LeftReference(DTO):
+    """One reference to an old id that a renumber left unchanged: the id, the file holding it,
+    where in the file (a frontmatter key, ``body:<line>`` or ``comment:<line>``) and the text."""
+
+    id: str
+    file: str
+    where: str
+    text: str
+
+
 class RepairReport(DTO):
     """The rebuilt index's size and counter, the indexed items whose file is gone, the files it
-    could not read, the renumbering it did, and whether refs are left to check by hand."""
+    could not read, each file the renumbering moved, the references to an old id it left to check
+    by hand, and whether there are any."""
 
     indexed: int
     counter: int
     notice: str | None
     missing: list[str]
     unreadable: list[str]
-    renumbered: list[str]
+    renumbered: list[MovedFile]
+    references: list[LeftReference]
     references_left: bool
 
 
@@ -233,5 +255,6 @@ class AdoptReport(DTO):
     roles: list[str]
     notice: str | None
     unreadable: list[str]
-    renumbered: list[str]
+    renumbered: list[MovedFile]
+    references: list[LeftReference]
     warnings: list[str]

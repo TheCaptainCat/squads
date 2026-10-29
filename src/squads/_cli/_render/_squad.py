@@ -10,7 +10,9 @@ from squads._api._dto._squad import (
     ImportIssueRow,
     ImportReport,
     InitReport,
+    LeftReference,
     MigrationReport,
+    MovedFile,
     Reconciled,
     RenameStatusReport,
     RenameTypeReport,
@@ -61,8 +63,21 @@ def render_repair(report: RepairReport, console: Console) -> None:
             "(deleted?)"
         )
     _print_unreadable(report.unreadable, console)
-    for line in report.renumbered:
-        console.print(e(line), soft_wrap=True)
+    _print_renumbered(report.renumbered, report.references, console)
+
+
+def _print_renumbered(
+    moved: list[MovedFile], references: list[LeftReference], console: Console
+) -> None:
+    """Each file given a new number, then, per old id, the references left to check by hand."""
+    for move in moved:
+        console.print(
+            f"  renumbered {e(move.old)} -> {e(move.new)} ({e(move.target)})", soft_wrap=True
+        )
+    for old_id in dict.fromkeys(ref.id for ref in references):
+        console.print(f"  references to {e(old_id)} left unchanged; check each by hand:")
+        for ref in (r for r in references if r.id == old_id):
+            console.print(f"    {e(ref.file)}   {e(ref.where)}   {e(ref.text)}", soft_wrap=True)
 
 
 def render_renumber(report: RenumberReport, console: Console) -> None:
@@ -216,8 +231,7 @@ def render_adopt(report: AdoptReport, console: Console) -> None:
     _print_notice(report.notice, console)
     _print_warnings(report.warnings, console)
     _print_unreadable(report.unreadable, console)
-    for line in report.renumbered:
-        console.print(e(line), soft_wrap=True)
+    _print_renumbered(report.renumbered, report.references, console)
     if report.unreadable:
         return
     console.print(

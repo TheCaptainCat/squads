@@ -79,7 +79,9 @@ async def test_renumber_gives_a_shared_number_a_new_one_and_adopts(adoptable, in
     assert result.exit_code == 0, result.output
     assert flat(result.output) == _adopted(
         adoptable, "squads", "architect,tech-lead,reviewer"
-    ).replace("imported:4", "imported:5").replace(TAIL, "renumberedTASK-3->TASK-5" + TAIL)
+    ).replace("imported:4", "imported:5").replace(
+        TAIL, "renumberedTASK-3->TASK-5(tasks/TASK-000005-build-the-query-parser.md)" + TAIL
+    )
 
 
 @pytest.mark.covers("adopt", "--roles")
@@ -123,6 +125,7 @@ async def test_json_prints_the_squad_adopted_and_what_it_held(adoptable, invoke)
                     "entry, if any, was carried forward as-is; fix the file and repair again"
                 ],
                 "renumbered": [],
+                "references": [],
                 "warnings": [],
             }
         ),
@@ -200,7 +203,15 @@ async def test_renumber_json_lists_the_items_that_moved(adoptable, invoke) -> No
                 "roles": ["architect", "tech-lead", "reviewer"],
                 "notice": None,
                 "unreadable": [],
-                "renumbered": ["  renumbered TASK-3 -> TASK-5"],
+                "renumbered": [
+                    {
+                        "old": "TASK-3",
+                        "new": "TASK-5",
+                        "file": "tasks/TASK-000003-build-the-query-parser.md",
+                        "target": "tasks/TASK-000005-build-the-query-parser.md",
+                    }
+                ],
+                "references": [],
                 "warnings": [],
             }
         ),

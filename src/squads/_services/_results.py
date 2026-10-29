@@ -14,6 +14,7 @@ from squads._models._item import Item
 from squads._models._omission import Omission
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths, number_for_id
+from squads._services._duplicate_ids import LeftReference, MovedFile
 from squads._services._retirement import Severance
 
 #: What a tree surface prints beside a root it invented for a parent cycle (see
@@ -216,8 +217,13 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
-    renumber_report: list[str] = field(default_factory=list[str])
-    references_left: bool = False
+    renumbered: list[MovedFile] = field(default_factory=list[MovedFile])
+    references: list[LeftReference] = field(default_factory=list[LeftReference])
+
+    @property
+    def references_left(self) -> bool:
+        """Whether a renumber left references to an old id for a hand check."""
+        return bool(self.references)
 
     def strip_notice(self) -> str | None:
         """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""

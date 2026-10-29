@@ -25,10 +25,17 @@ from squads._api._dto._squad import (
     RepairReport,
     RepairRequest,
 )
+from squads._api._dto._squad import (
+    LeftReference as LeftReferenceDto,
+)
+from squads._api._dto._squad import (
+    MovedFile as MovedFileDto,
+)
 from squads._api._response import Response
 from squads._context import get_context
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models._schema import SCHEMA_VERSION
+from squads._services._duplicate_ids import LeftReference, MovedFile
 from squads._services._import import ImportMixin
 from squads._services._maintenance import MaintenanceMixin
 from squads._services._rename import RenameMixin
@@ -44,6 +51,16 @@ def unreadable_lines(messages: Sequence[str]) -> list[str]:
     """One sentence per file a rebuild could not read: the message, then the carried-forward
     remedy unless the message names its own."""
     return [m if isinstance(m, SelfRemedied) else f"{m}{_CARRIED_FORWARD}" for m in messages]
+
+
+def moved_files(moves: Sequence[MovedFile]) -> list[MovedFileDto]:
+    """The files a renumber moved, as the report carries them."""
+    return [MovedFileDto(old=m.old, new=m.new, file=m.file, target=m.target) for m in moves]
+
+
+def left_references(refs: Sequence[LeftReference]) -> list[LeftReferenceDto]:
+    """The references a renumber left unchanged, as the report carries them."""
+    return [LeftReferenceDto(id=r.id, file=r.file, where=r.where, text=r.text) for r in refs]
 
 
 def _manual_span(applied: list[Migration]) -> str:
@@ -98,7 +115,8 @@ class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
                 notice=result.strip_notice(),
                 missing=list(result.missing_ids),
                 unreadable=unreadable_lines(result.unreadable),
-                renumbered=list(result.renumber_report),
+                renumbered=moved_files(result.renumbered),
+                references=left_references(result.references),
                 references_left=result.references_left,
             )
         )
