@@ -3,7 +3,7 @@ id: TASK-1243
 sequence_id: 1243
 type: task
 title: Upgrade runtime and dev dependencies, raise lower bounds
-status: Draft
+status: Ready
 parent: FEAT-1242
 author: tech-lead
 priority: high
@@ -42,7 +42,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-29T16:23:49Z'
-updated_at: '2026-10-29T16:43:09Z'
+updated_at: '2026-10-29T23:44:31Z'
 ---
 <!-- sq:body -->
 ## Goal

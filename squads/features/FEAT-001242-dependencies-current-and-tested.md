@@ -3,7 +3,7 @@ id: FEAT-1242
 sequence_id: 1242
 type: feature
 title: Dependencies current and tested
-status: Draft
+status: InProgress
 author: product-owner
 priority: high
 refs:
@@ -13,12 +13,12 @@ description: 'The versions an adopter installs are the versions the suite runs: 
 subentities:
 - local_id: US1
   title: Runtime dependencies upgraded, bounds raised to what is tested
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: Development tools current, gates clean
-  status: Todo
+  status: InProgress
 created_at: '2026-10-29T12:59:18Z'
-updated_at: '2026-10-29T16:24:44Z'
+updated_at: '2026-10-29T23:44:33Z'
 ---
 <!-- sq:body -->
 ## Problem
