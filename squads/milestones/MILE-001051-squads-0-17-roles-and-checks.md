@@ -3,10 +3,10 @@ id: MILE-1051
 sequence_id: 1051
 type: milestone
 title: squads 0.17 - roles and checks
-status: InProgress
+status: Done
 author: product-owner
 created_at: '2026-10-16T11:23:46Z'
-updated_at: '2026-10-25T21:16:52Z'
+updated_at: '2026-10-28T13:48:26Z'
 ---
 <!-- sq:body -->
 The roles and checks release: a squad whose configuration is loaded once and whose checks and role resolution say plainly what is wrong. This milestone holds the engine and check work that makes that so.
@@ -53,4 +53,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
   - Go for the daemon: product owner opens the feature, architect writes the transport ADR.
 - [2026-10-25T21:15:38Z] `op-pierre` Pierre Chat:
   - The daemon leaves 0.17. New milestone squads 0.18 - the daemon takes FEAT-1140 and ADR-1052; more backends moves to 0.19 and the web frontend to 0.20. This milestone is retitled squads 0.17 - roles and checks.
+- [2026-10-28T13:48:26Z] `manager` Catherine Manager:
+  - 0.17.0 published 2026-10-28 (tag v0.17.0); nothing outstanding, closing.
 <!-- sq:discussion:end -->
