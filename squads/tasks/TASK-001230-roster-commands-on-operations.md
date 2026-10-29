@@ -3,9 +3,10 @@ id: TASK-1230
 sequence_id: 1230
 type: task
 title: Roster commands on operations
-status: Ready
+status: InProgress
 parent: FEAT-1226
 author: tech-lead
+assignee: python-dev
 priority: high
 refs:
 - ADR-1224:implements
@@ -34,7 +35,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-10-28T22:12:39Z'
-updated_at: '2026-10-28T22:36:26Z'
+updated_at: '2026-10-28T23:59:04Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -49,6 +50,7 @@ Move the roster commands onto one operation each (ADR-1224 point 8, increment 3)
 - `--file` text (`role add`, `role update`) is read by the CLI and sent as text in the request DTO (ADR-1225 section 2), with today's read-error wording.
 - Display (ADR-1224 point 5): role and operator names with pronouns applied or left out according to `[display] pronouns`; `columns` on `role list`, `role catalog`, `operator list`, `dev list` and the skill listings, whose column sets come from the spec today.
 - **`--json` on 24 keys** (ADR-1224 point 3a): `role add`, `activate`, `update`, `body`, `status`, `set-default`, `regen`, `remove`, `rm`, `view add`, `view disable`; `skill add`, `update`, `link-role`, `unlink-role`, `ref add`, `ref rm`, `regen`, `view add`, `view disable`; `operator add`, `update`; `dev add`, `dev list`. A write prints the roster row it wrote. `body`, `status` and `remove` come from the shared roster registrars, so `skill` and `operator` get the flag through the same registration; the coverage keys fold those hosts onto `role` (`tests/_cli_surface.py`), so they need no cases of their own.
+- **`json_field`** (ADR-1224 points 3 and 4, amended 2026-10-29): `role catalog`, `role list` and `operator list` keep their bare-array `--json` by setting `json_field = "items"`, so their `columns` reach human mode and HTTP only. The 24 new flags, `dev list` included, print `data` whole, an object, and set none.
 - DTOs in `_api/_dto/_roles.py`, `_skills.py`, `_operators.py`; renderers in `_cli/_render/_roster.py`. `build_role_json_payload` stops being called here (TASK-1232 deletes it).
 
 ## Modules touched
@@ -59,7 +61,7 @@ Edited: `_cli/_role.py`, `_cli/_skill.py`, `_cli/_operator.py`, `_cli/_dev.py`, 
 
 - FEAT-1226 US1 for every roster command: one call, a slug not on the roster answered by the operation with today's message, managed files regenerated as today; output, exit codes and error text unchanged.
 - FEAT-1226 US2: the 24 flags, each printing the roster row or report the command produces.
-- FEAT-1226 US3: `--json` is the operation's `data`.
+- FEAT-1226 US3: `--json` prints `data`, or the field its operation names.
 - FEAT-1226 US4: names with pronouns per `[display]`, columns on the roster listings; roster renderers pass the `_cli/_render/` guard.
 - ADR-1224 points 1, 3a, 5 and 8 (increment 3); ADR-1225 sections 1 and 2.
 
@@ -147,4 +149,8 @@ Display for the roster (ADR-1224 point 5): role and operator names with pronouns
 <!-- sq:discussion -->
 - [2026-10-28T22:36:26Z] `tech-lead` Olivia Lead:
   - Roster comment address switch removed from the body and ST3 (now titled operator and dev verbs), since TASK-1229 takes addr from the start (architect 3f2b004 on TASK-1229). Test count unchanged (24).
+- [2026-10-28T23:13:22Z] `architect` Robert Architect:
+  - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 3 and 4. For this task: `role catalog`, `role list` and `operator list` keep their bare-array `--json` by setting the operation's new `json_field` (`items`), so their `columns` reach human mode and HTTP only. The 24 new flags (`dev list` included) print `data` whole, an object, and set none. The US3 acceptance line should read "`data`, or the field its operation names".
+- [2026-10-28T23:32:34Z] `tech-lead` Olivia Lead:
+  - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
 <!-- sq:discussion:end -->

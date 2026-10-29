@@ -14,7 +14,7 @@ description: Each command validates, calls one operation through an Api (local o
   HTTP) and renders the DTO it returns; --json prints the DTO; the CLI never imports
   the service
 created_at: '2026-10-28T20:58:31Z'
-updated_at: '2026-10-28T22:33:51Z'
+updated_at: '2026-10-28T23:31:55Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -80,6 +80,8 @@ The one exception to a single call is `comment remove` without `--yes`. Its user
   - This is what makes "the renderer never calls the service" structural, not a convention. It is also what keeps the remote client from paying the 0.5 s import of `_services` (fact 9).
 - **Their form.** DTOs are pydantic v2 models, frozen, whose fields hold only JSON-native values: strings, numbers, booleans, `None`, lists, string-keyed objects and nested DTOs. Timestamps are the ISO strings the `--json` payloads print today. So `M.model_validate_json(m.model_dump_json()) == m` for every DTO, which is what lets the local API hand the object over directly while the HTTP API parses it from JSON, with the same rendering either way.
   - An item row carries the item's stored attributes flat at the top level, as `to_row()` does today, through `extra="allow"` on that one model.
+  - So every key an item row adds is a name an attribute cannot take. The row adds one display key, `display`, and every display-class value an item row carries, now or later, goes inside it, never beside it: the body with its view tags expanded is `display.body` on `show`. The refactor therefore reserves one name and no more.
+  - A collision is handled as for the keys already added (`badges`, `body`, `discussion`, `matched_subentities`, `views`): a workflow override that declares an attribute or a badge field named `display` is refused when the spec loads, with a message naming the type and the key, and a `display` key stored in an item file without a declaration stays in the file and out of the row. No migration renames such a key, since the new name is the adopter's to choose. `docs/stability.md` lists the reserved names in Tier 3's item rows, the changelog names `display` with its refusal, as it did for `views`, and the 0.18 migration's manual step (`sq migrate chlog`) tells an adopter who declares `display` to rename it in the override and in the items that store it.
   - Fields are declared in today's emitted order, which Tier 3 freezes for `search`, `tree` and `graph`.
 - **Their relation to the models.** A DTO is a projection of `Item`, `SubEntity` and the other models, not a subclass of them, so the storage model can change without changing the contract. Projections are built in `_services`, where the data and the spec are. The flat dataclasses in `_results.py` become DTOs and move to `_api`; those that carry `Item` stay internal to the service and get a DTO counterpart.
 - **Why pydantic, not dataclasses:** it is already a dependency. It validates a parsed response, so a client and a daemon that disagree fail at the boundary rather than in a renderer. And it exports a JSON Schema for each model, which the web front can turn into its types.
@@ -90,9 +92,11 @@ The one exception to a single call is `comment remove` without `--yes`. Its user
   - `data: T`, the payload;
   - `omitted: list[Omission]`, the partial-read report of ADR-947, empty when nothing was left out;
   - `warnings: list[str]`, the notices the service has to pass on: the duplicate-id warning and the working-language notice.
-- **`--json` prints `data`**, through the same `json.dumps(…, indent=2)` as today. For the 47 commands that accept `--json`, the payload is today's document plus the display keys of point 5, which Tier 3's additive rule permits. `omitted` goes out as today's stderr line, followed by exit 4. Human mode renders `data` and prints `warnings` on stderr.
+- **`--json` prints `data`, or the one field of it that the operation names.** `data` is always an object, never a bare list, so a field can be added to any response, the HTTP body included. Where the document Tier 3 froze before 0.18 is not an object, the operation names in `json_field` (point 4) the field of `data` that holds that document, and `--json` prints that field alone. The fields beside it, such as `columns` and `hidden`, reach human mode and HTTP clients, not `--json`. Every other operation leaves `json_field` unset, and `--json` prints `data` whole. One CLI helper reads `json_field` off the operation, so no command chooses what it prints. The output goes through the same `json.dumps(…, indent=2)` as today. For the 47 commands that accept `--json`, the payload is today's document plus the display keys of point 5, which Tier 3's additive rule permits; where the document is an array, the keys are added to its rows.
+  - **The commands that name a field** are those whose frozen document is an array, plus `workflow view`, whose document takes the shape of the view's source. The field is `items` where it holds rows and `source` for `workflow view`. By increment (point 8): 0, `list`; 1, `tree` (its root nodes), `search` (its hits), `inbox`, `mine`, `blocked`, `workload`, `<type> <n> comments` and the sub-entity lists (`<type> <n> <kinds>`); 2, `<host> comment <hash> remove` (the comments removed); 3, `role catalog`, `role list`, `operator list`; 4, `board list`, `memory list`, `memory search`, `override list`, `override diff`, `reflog`, `check`, the eight `workflow` catalogs and `workflow view`. That is 29 keys, and the set is closed: a shape new in 0.18 is an object and names no field.
+  - A `tests/meta` guard checks that each `json_field` names a field of the operation's response type and that only an operation of these commands sets one. `omitted` goes out as today's stderr line, followed by exit 4. Human mode renders `data` and prints `warnings` on stderr.
 - **Exit codes come from the DTO:** 3 when a `check` or `import` report holds findings, 4 when `omitted` is not empty on a command of the partial-result class. A `SquadsError` is still exit 1, and usage errors are still exit 2.
-- **One definition, one contract.** The DTO is the only definition of both the `--json` payload and the HTTP body, so the two cannot drift. Tier 3's additive rule applies to the DTO classes: a field may be added, while removing, renaming or retyping one breaks both surfaces at once. Such a change is allowed only where the shape's stability class allows it, and it always ships as a schema change: a `SCHEMA_VERSION` bump, the hard stop and `sq migrate up`, with a client and a daemon at different schema versions refusing each other (ADR-1225, section 3). `/v1` versions the route grammar and the envelope, not the DTOs. No schema snapshot is added. The surface suite asserts whole JSON documents (ADR-1172, rule 5), so it fails on a removed or renamed field.
+- **One definition, one contract.** The DTO is the only definition of both the `--json` payload and the HTTP body, so the two cannot drift. The HTTP body is the whole `Response` with `data` whole, so a client of the daemon gets `columns` and `hidden` beside the rows, while `--json` prints `data` or the one field of it the operation names. Tier 3's additive rule applies to the DTO classes: a field may be added, while removing, renaming or retyping one breaks both surfaces at once. Such a change is allowed only where the shape's stability class allows it, and it always ships as a schema change: a `SCHEMA_VERSION` bump, the hard stop and `sq migrate up`, with a client and a daemon at different schema versions refusing each other (ADR-1225, section 3). `/v1` versions the route grammar and the envelope, not the DTOs. No schema snapshot is added. The surface suite asserts whole JSON documents (ADR-1172, rule 5), so it fails on a removed or renamed field.
 - **Stability of the shapes that had no `--json`.** Their DTOs are documented and served under `/v1` from 0.18, and stay provisional until the web front consumes them (MILE-868); they are frozen then (op-pierre, 2026-10-28). Because a DTO is the only definition of both surfaces, the `--json` output of point 3a is provisional on exactly the same terms. `docs/stability.md` lists them in Tier 3 under a provisional mark.
 
 ### 3a. `--json` on every command that prints a result
@@ -116,11 +120,12 @@ The operator ruled on 2026-10-28 that the commands without `--json` get it in 0.
 
 ### 4. Operations and the API layer
 
-- **The operation table.** `squads/_api/_ops.py` is one literal table with one entry per operation: `Operation[Req, Res]` holding a `name`, the HTTP `method` and `path` (decided in ADR-1225), the `request` and `response` types, and four more fields:
+- **The operation table.** `squads/_api/_ops.py` is one literal table with one entry per operation: `Operation[Req, Res]` holding a `name`, the HTTP `method` and `path` (decided in ADR-1225), the `request` and `response` types, and five more fields:
   - `mode`: the composition mode of ADR-1128 (normal, index check skipped, migrate, bundled fallback). This moves the choice between `get_service` and `get_service_bypassing_index_cross_check` out of the CLI.
   - `grant`: what the operation may do while the squad's schema is behind the package (ADR-955), which moves today's `Ground` gate declarations out of the CLI.
   - `local_only`: true for `init` and `adopt`.
   - `timeout`: `standard` or `long`, the class `HttpApi` applies (ADR-1225, section 3).
+  - `json_field`: the field of `data` that `--json` prints, unset for every operation but the 29 of point 3.
 - **Handlers are `Service` methods.** One literal table in `_services` binds each operation to its method through `bind(OP, Service.method)`. Pyright checks each pair's request and response types. Like the backend registry, the table has no registration side effect. A `tests/meta` guard checks that every operation is bound exactly once.
 - **The protocol** has one method:
 
@@ -143,17 +148,18 @@ The operator ruled on 2026-10-28 that everything the renderer displays is in the
 
 What a DTO carries beyond codes, built by the operation from the spec, the configuration and the squad's templates:
 
-- **Per item, tree node, graph node, search hit and sub-entity:** a `display` object holding the type's label, the rendered status badge, each declared badge field as its label and rendered badge, and the assignee's display name. `show`'s existing `badges` key stays as Tier 3 has it.
+- **Per item, tree node, graph node, search hit and sub-entity:** a `display` object holding the type's label, the rendered status badge, each declared badge field as its label and rendered badge, and the assignee's display name. `show`'s existing `badges` key stays as Tier 3 has it. On an item row every display value sits inside `display` (point 2).
+- **Per shown item, its declared attributes:** `display.attributes`, one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order, `value` as display text. An attribute declaration takes an optional `label` (`target_date = { kind = "date", label = "target date" }` in the bundled milestone), an addition to the spec grammar, and `sq workflow types --json` carries it on each attribute, `null` when absent. An attribute without a label is not shown. No display field names an item type: the milestone's target date is one of these rows, not a field of its own.
 - **Per table or listing:** `columns`, the ordered `{key, header}` pairs the human table shows. This covers `list`, the sub-entity summaries, `workload` and the roster lists, whose column sets come from the spec today.
 - **Headings and labels:** a sub-entity kind's plural and container heading, a ref kind's label on `refs` rows and graph edges.
-- **Text the squad's templates produce:** the body with its view tags expanded (`rendered_body`, beside the stored `body`), and a view's output rendered through `.overrides/templates/`. Template overrides belong to the squad, so a client never renders them.
+- **Text the squad's templates produce:** the body with its view tags expanded (`display.body` on `show`, beside the stored `body`), and a view's output rendered through `.overrides/templates/`. Template overrides belong to the squad, so a client never renders them.
 - **Names:** role and operator names with pronouns already applied or left out according to `[display] pronouns`.
 - **Notices:** the working-language notice, as a `warnings` entry.
 
 Consequences for the contract:
 
 - These keys are additions to payloads Tier 3 already freezes, which its additive rule permits. Their values are of the **display** class: the key is frozen, its content is not, and no client parses or compares it.
-- Their shape (`display`, `columns`, `rendered_body` and the label keys) is provisional under the ruling of point 3 until the web front consumes it, on every payload, the frozen ones included. The codes beside them keep their current class, so a client that joins codes to the workflow catalogs, as Tier 3 tells it to, is unaffected.
+- Their shape (`display`, `columns` and the label keys) is provisional under the ruling of point 3 until the web front consumes it, on every payload, the frozen ones included. The codes beside them keep their current class, so a client that joins codes to the workflow catalogs, as Tier 3 tells it to, is unaffected.
 - The rendering functions live in `_cli/_render/`, which a `tests/meta` guard keeps from importing `squads._workflow`, `squads._paths` or the configuration model: they take a DTO and a console, nothing else.
 
 ### 6. What does not change
@@ -262,4 +268,14 @@ Increment 0 (for `status`) and increments 2 to 5 each add the `--json` flags of 
   - Point 3a table: `status --json` moves from increment 2 (now 10 keys) to a new increment 0 row (1 key), since status moves with the foundation. Point 8 says increment 0 adds that flag. Total still 55.
   - Point 3a, new bullet "The package-data DTOs": `docs`, `migrate help` and `migrate chlog` get DTOs in `_api/_dto/_package.py`, built by a function beside their data (`_docfiles`, the migration registry), which the command calls directly. They are not operations and have no route. New edges `_docfiles -> _api` and `_migrations -> _api`.
   - @tech-lead TASK-1227 and TASK-1231 can be updated.
+- [2026-10-28T23:11:56Z, edited 2026-10-28T23:12:11Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for the two questions TASK-1227 raised (eb4503f, deviation 1 and the reserved names), board rule 6. Status unchanged.
+  - Point 3: `--json` prints `data`, or the one field of it the operation names in a new `json_field`. `data` is always an object. The field is set only where the document frozen before 0.18 is not an object: 29 keys, listed by increment (`list` in 0; `tree`, `search`, `inbox`, `mine`, `blocked`, `workload`, `comments`, sub-entity lists in 1; `comment remove` in 2; `role catalog`, `role list`, `operator list` in 3; `board list`, `memory list`/`search`, `override list`/`diff`, `reflog`, `check`, the 8 catalogs and `workflow view` in 4). Field name `items` for rows, `source` for `workflow view`. New guard: the field exists on the response type, and only those operations set one. "One definition" now says the HTTP body is the whole `data`, so the front gets `columns` and `hidden`.
+  - Point 4: the operation table's fifth field, `json_field`.
+  - Point 2: an item row adds one display key, `display`; every display value on an item row goes inside it. `rendered_body` becomes `display.body` on `show`, so the refactor reserves one name. A collision uses the existing mechanism (load refusal for a declared attribute or badge field, an undeclared stored key stays out of the row); no migration. Stability doc and changelog name it, as for `views`.
+  - Point 5: `rendered_body` references updated to `display.body`.
+- [2026-10-28T23:31:55Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 for REV-1235 F8 and F1 (board rule 6). Status unchanged.
+  - Point 5: new bullet `display.attributes` on `show`, one `{key, label, value}` per declared attribute that has a `label` and a stored value, in declared order. Attribute declarations take an optional `label` (spec grammar addition; the bundled milestone's `target_date` gets `label = "target date"`), and `sq workflow types --json` carries it, `null` when absent. No display field names a type; `display.target_date` goes.
+  - Point 2: the 0.18 migration's manual step (`sq migrate chlog`) names the `display` rename for an adopter who declares it.
 <!-- sq:discussion:end -->

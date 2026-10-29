@@ -8,7 +8,6 @@ registered as a Typer sub-app in ``_cli/__init__.py``.
 """
 
 import json
-import math
 import sys
 from collections.abc import Callable
 from typing import Any
@@ -21,7 +20,10 @@ from rich.tree import Tree
 
 import squads._cli._common as common
 from squads import _badges as badges
-from squads._badges import resolve_badges as resolve_item_badges
+from squads._api import _ops as ops
+from squads._api._dto._items import ItemListRequest
+from squads._badges import badge_rank
+from squads._cli import _calls as calls
 from squads._cli import app
 from squads._cli._common import (
     ItemRowFields,
@@ -43,6 +45,7 @@ from squads._cli._common import (
     resolve_slug_or_raise,
     status_text,
 )
+from squads._cli._render._items import render_list
 from squads._context import get_context
 from squads._errors import PlaybookConfigError, SquadsError
 from squads._index._reflog import REFLOG_OPS
@@ -94,24 +97,6 @@ def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
             raise SquadsError(f"expected CODE=VALUE, got {pair!r}")
         out[code.strip()] = value.strip().lower()
     return out
-
-
-def _badge_rank(it: Item, field_code: str, spec: WorkflowSpec) -> float:
-    """The badge's position in its ordered collection (lower = first); unresolvable sorts last."""
-    field = next((f for f in spec.fields_for(it.type) if f.code == field_code), None)
-    coll = spec.collections.get(field.collection) if field else None
-    value = it.badge_value(field_code)
-    if coll is None or value is None:
-        return math.inf
-    codes = [b.code for b in coll.badges]
-    return codes.index(value) if value in codes else math.inf
-
-
-def _sort_by_badge(items: list[Item], sort: str | None, spec: WorkflowSpec) -> list[Item]:
-    """Stable-sort *items* by a badge field's rank when ``--sort CODE`` is given."""
-    if sort is None:
-        return items
-    return sorted(items, key=lambda it: _badge_rank(it, sort, spec))
 
 
 def _print_empty_or_hidden_hint(hidden_count: int) -> None:
@@ -182,8 +167,7 @@ def _build_badge_filters(
 
 # TTY detection — injectable for testing (monkeypatch this callable).
 def _default_is_tty() -> bool:
-    terminal = get_context().terminal
-    return terminal.stdin_tty if terminal is not None else sys.stdin.isatty()
+    return sys.stdin.isatty()
 
 
 # Module-level slot; tests monkeypatch this to control TTY behaviour.
@@ -250,15 +234,6 @@ def _item_table(
             row.append(e(", ".join(f"{s.local_id} ({s.status})" for s in subs)))
         table.add_row(*row)
     return table
-
-
-def _compact_lines(items: list[Item], spec: WorkflowSpec) -> list[Text]:
-    """One borderless line per item: ID, status, title. The caller prints each unwrapped, cut
-    with an ellipsis at the terminal width."""
-    return [
-        Text.assemble((it.id, "bold"), "  ", status_text(it.status, spec), "  ", it.title)
-        for it in items
-    ]
 
 
 def _parse_backend_option(raw: list[str]) -> list[str]:
@@ -368,8 +343,10 @@ async def init(
             # Prompt: show the default name, allow blank to keep it.
             default_name = rdef.full_name
             try:
-                typed = common.prompt_or_signal(
-                    f"Name for {slug!r} (Enter to keep default '{default_name}')"
+                typed = typer.prompt(
+                    f"Name for {slug!r} (Enter to keep default '{default_name}')",
+                    default="",
+                    show_default=False,
                 ).strip()
             # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
             # ruff's py314-target formatter would otherwise strip the parens back off.
@@ -478,8 +455,8 @@ async def adopt(
 
 
 @app.command(name="list")
-@common.command
-async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
+@handle_errors
+def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
     type: str | None = common.type_filter_option(),
     status: str | None = common.status_filter_option(),
     parent: str | None = typer.Option(
@@ -530,52 +507,26 @@ async def list_items(  # noqa: PLR0913 — the badge axis is generic, not a grow
     """
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
-    svc = get_service()
-    spec = get_active_spec()
-    # --assignee is a filter, not authorship: a retired role's already-assigned items must
-    # stay reachable, so this validates against the full roster, not live-only.
-    validated_assignee = (
-        await resolve_slug_or_raise(assignee, svc, live_only=False) if assignee else None
-    )
-    resolved_parent = await resolve_item_id_any(parent, svc) if parent else None
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
-    items = await svc.list_items(
-        item_type=parse_type(type) if type else None,
+    request = ItemListRequest(
+        type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
-        parent=resolved_parent,
+        parent=parent,
         label=label,
-        assignee=validated_assignee,
+        assignee=assignee,
         category=parse_category(category) if category else None,
-        badges=badges or None,
-        badge_min=badge_min or None,
+        badge=[f"{code}={value}" for code, value in badges.items()],
+        min_badge=[f"{code}={value}" for code, value in badge_min.items()],
+        sort=sort,
+        all=all_,
     )
-    hidden_count = 0
-    if not (all_ or status):
-        visible = [i for i in items if not spec.hidden_by_default(i.type, i.status)]
-        hidden_count = len(items) - len(visible)
-        items = visible
-    items = _sort_by_badge(items, sort, spec)
+    response = calls.call(ops.ITEMS_LIST, request)
     if json_out:
-        print_json_clean(
-            json.dumps(
-                [
-                    {
-                        **i.to_row(),
-                        "badges": resolve_item_badges(spec, i.type, i.badge_value),
-                    }
-                    for i in items
-                ]
-            )
-        )
-        return
-    if not items:
-        _print_empty_or_hidden_hint(hidden_count)
-        return
-    if compact:
-        for line in _compact_lines(items, spec):
-            console.print(line, no_wrap=True, overflow="ellipsis")
-        return
-    console.print(_item_table(items, spec))
+        calls.print_json(ops.ITEMS_LIST, response)
+    else:
+        calls.print_warnings(response)
+        render_list(response.data, console, compact=compact)
+    calls.finish(response, json_out=json_out)
 
 
 @app.command()
@@ -679,7 +630,12 @@ async def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
         if sort is None:
             return tns
         sort_code = sort
-        return sorted(tns, key=lambda tn: _badge_rank(tn.item, sort_code, spec))
+        return sorted(
+            tns,
+            key=lambda tn: badge_rank(
+                tn.item.type, sort_code, tn.item.badge_value(sort_code), spec
+            ),
+        )
 
     if json_out:
         blocked_ids = {t.id for t, _ in await svc.blocked()}

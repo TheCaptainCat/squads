@@ -35,7 +35,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-10-28T22:12:38Z'
-updated_at: '2026-10-28T22:36:46Z'
+updated_at: '2026-10-28T23:32:33Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -50,6 +50,7 @@ Move the item writes onto one operation each (ADR-1224 point 8, increment 2) and
 - **Prompts sit between calls, never inside one.** Item removal and sub-entity removal ask first and then make their one call. `comment remove` without `--yes` makes two: a preview operation returning the comments the hash prefix selects with their full hash, then, once the user confirms, the remove operation sent with that full hash, so a comment edited or removed in between answers not-found and nothing is removed (ADR-1224 point 1, ADR-1225 section 3 "comment remove after a confirmation"). With `--yes`, one call resolving the typed prefix.
 - **Comment verbs on every host.** `register_comment_verbs` and `register_comment_group` are one code path for items, sub-entities, roles, skills and operators, so this task moves them for every host (`<host> comment` is one ADR-1172 key). On a roster host the comment operations take the parsed `addr` from the start and resolve it themselves, an unresolved address answering not-found with today's text; they are served at `/v1/roles/{addr}/comments[/{hash}]` and the skill and operator equivalents, with the same methods and DTOs as the item comment routes, the roster kind given by the route, never by a request field (ADR-1225 section 1). They are bound the way TASK-1230 binds the shared roster verbs.
 - **`--json` on 10 keys** (ADR-1224 point 3a, minus `status`): `<host> comment` when it adds a comment, `<type> update`, `body`, `retype`, `ref add`, `ref rm`, `view add`, `view disable`, `<type> <kind> update`, `<type> <kind> body`. A write prints the item row or sub-entity object it wrote. `--json` on the comment group given together with a verb (`edit`, `remove`, `show`) is a usage error, exit 2.
+- **`json_field`** (ADR-1224 points 3 and 4, amended 2026-10-29): `<host> comment <hash> remove --json` keeps its bare array of removed comments by setting `json_field = "items"`; every other write prints `data` whole and sets none. A write that prints an item row puts any display value inside `display`; an item row reserves no other name.
 - DTOs: write requests and the comment preview in `_api/_dto/_item_writes.py` and `_api/_dto/_comment_writes.py`; responses reuse the item row, sub-entity and comment DTOs (appending fields only where a write needs one). Renderers in `_cli/_render/_writes.py`.
 
 ## Modules touched
@@ -61,7 +62,7 @@ Edited: `_cli/_create.py`, `_cli/_items.py` (update, body, retype, remove, ref a
 
 - FEAT-1226 US1: one call per command, `comment remove` without `--yes` previews then removes exactly the comments shown; human output, exit codes and error text unchanged.
 - FEAT-1226 US2: the 10 flags print the written resource; the comment-group usage error.
-- FEAT-1226 US3: `--json` is the operation's `data`.
+- FEAT-1226 US3: `--json` prints `data`, or the field its operation names.
 - FEAT-1140 US2, sixth bullet, in local mode: a comment changed between preview and confirmation is not removed.
 - ADR-1224 points 1, 3a and 8 (increment 2); ADR-1225 sections 2 and 3.
 
@@ -153,4 +154,8 @@ The sub-entity verbs (`add-<kind>`, `<kind> <k> update`, `body`, `remove`, and t
   - Consequence: if the roster comment operations take `addr` from the start, the CLI can pass the parsed address right away, and the address switch TASK-1230 carries goes away. @tech-lead please update the task body and the ST3 note.
 - [2026-10-28T22:36:25Z] `tech-lead` Olivia Lead:
   - Body and ST3 updated per the architect (3f2b004): roster comment operations take the parsed addr from the start, routes /v1/{roles,skills,operators}/{addr}/comments[/{hash}]; the TASK-1230 hand-off is gone. Test count unchanged (11).
+- [2026-10-28T23:13:21Z] `architect` Robert Architect:
+  - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 2, 3 and 4. For this task: `<host> comment <hash> remove --json` keeps its bare array of removed comments by setting the operation's new `json_field` (`items`); every other write prints `data` whole and sets none. Write responses that print an item row put any display value inside `display` (an item row reserves no other name). The US3 acceptance line should read "`data`, or the field its operation names".
+- [2026-10-28T23:32:33Z] `tech-lead` Olivia Lead:
+  - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
 <!-- sq:discussion:end -->

@@ -16,9 +16,17 @@ uv build                # wheel/sdist (templates ship as package data)
 ## Architecture & layering
 
 ```
-_cli → _services → (index store, backends, rendering, roles, interactions, …)
+_cli → _api ← _services → (index store, backends, rendering, roles, interactions, …)
+_cli → _services only in _cli/_calls.local_api() (the LocalApi factory), plus the pending modules
+_api  imports only pydantic, _errors and _models
 _models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
 ```
+
+The CLI is moving onto the API one command at a time. A moved command calls an operation and
+renders the DTO it answers with; a command not moved yet still reaches the service through
+`_cli._common.get_service`. `tests/meta/test_the_cli_imports_the_service_layer_only_in_the_local_api_factory.py`
+holds the `_cli` modules that still import `_services` in its `PENDING` set, which only shrinks:
+a module leaves it once none of its commands needs the service.
 
 Every package-to-package import edge, with where it runs (module top, inside a function, or
 under `TYPE_CHECKING`), is recorded in
@@ -109,11 +117,23 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `_interactions/_cheatsheet.py`, the role derivations in `_interactions/_role_guidance.py`; the
   `RoleView`/`OperatorView` roster projection in `_roles/_projection.py`). Workflow cheatsheet partial: `_rendering/templates/workflow.md.j2` (shared by
   the `squads` skill and `sq workflow`).
+- `_api/` — the command layer's contract. `_api.py` holds `Operation` (name, HTTP method and
+  path, request and response DTOs, the composition `Mode`, the schema-gate `Grant`, `local_only`,
+  `timeout`, and `json_field`, the one field of `data` that `--json` prints where the document is
+  not an object) and the one-method `Api` protocol (`async call(op, req) -> Response[Res]`);
+  `_ops.py` is the literal operation table (`OPERATIONS`, one section per resource group);
+  `_response.py` the `Response[T]` envelope (`data`, `omitted`, `warnings`); `_dto/` the frozen,
+  JSON-native pydantic DTOs (`_items.py`, and `_display.py` for the display content: labels,
+  rendered badges, columns; a display value on an item row goes inside its `display`);
+  `_errors.py` the wire form of an error; `_http.py` the HTTP wire helpers. It imports nothing
+  above `_models`/`_errors`, so a remote client never imports `_services`. `tests/meta` guards
+  that every DTO field is JSON-native and every `json_field` names a field of its response.
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
   (create/get/list + backend + role/skill lookups) holding the `_roster_projection.RosterProjection`
   collaborator (roles, operators and skills projected onto the backends), plus one concern **mixin** per file
-  (`_import`, `_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_check`, `_maintenance`,
-  `_retype`, `_rename`, `_memory`, `_board`, `_views` — the 13 `Service` bases, in MRO order); the
+  (`_item_ops`, `_import`, `_items`, `_collab`, `_subentities`, `_refs`, `_roster`, `_check`, `_maintenance`,
+  `_retype`, `_rename`, `_memory`, `_board`, `_views` — the 14 `Service` bases, in MRO order;
+  `_item_ops.ItemOpsMixin` holds the operation handlers, each answering with its DTO); the
   corpus-reading helpers both `_check` and `_maintenance` use live on `ServiceCore`, and
   `_corpus_files.py` reads one item file into the tagged record the index rebuild and the check
   scan both consume; `_service.py`
@@ -124,6 +144,13 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   the `IndexStore` and the backends and hands them in) sit beside `init`/`adopt`/`open_service`;
   `_results.py` has the result dataclasses. Non-mixin helpers live alongside: `_validators.py`
   (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
+  `_bindings.py` is the literal table binding each operation to its `Service` handler
+  (`bind(OP, Service.method)`, pair-checked by pyright; a `tests/meta` guard holds every operation
+  bound exactly once). `_local_api.py` is `LocalApi`: it checks the operation's `Grant` against the
+  squad's schema, composes the service for `op.mode`, runs the handler inside a read scope and
+  returns the `Response` as an object. `_item_dto.py` projects `Item`/`SubEntity` onto their DTOs
+  with the display content the spec and roster decide. Projections live in `_services`, never in
+  `_cli`.
 - `_services/_corpus_fit.py` — the check before the first migration runner: whether the reconciled index
   fits the vocabulary the run resolved (file locations, unindexed files, declared values).
 - `_discussion.py` — top-level, not under `_services/`: comment formatting + `@mention` extraction,
@@ -141,6 +168,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   command text a message names to place, disable or clear a view tag.
 - `_cli/` — Typer app (`__init__` wires sub-typers + the root `-C` callback + version notice);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
+  A moved command parses its arguments, builds one request DTO and calls one operation through
+  `_calls.py` (`call`, `select_api`, the `local_api()` factory, and the printers for `--json`,
+  warnings and omissions), then renders. `_render/` holds the renderers: they take a DTO and a
+  console only, and a `tests/meta` guard keeps them off `squads._workflow`, `squads._paths`, the
+  configuration model, `_services` and every `_cli` module still on the pending list.
 
 ## Invariants — keep these true
 

@@ -260,31 +260,45 @@ async def test_compact_prints_one_line_per_item(readable, invoke) -> None:
 async def test_json_prints_one_object_per_item(readable, invoke) -> None:
     result = await invoke(["list", "--json", "--type", "decision"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [
-        {
-            "sequence_id": 5,
-            "type": "decision",
-            "title": "Pick an index",
-            "slug": "pick-an-index",
-            "status": "Proposed",
-            "description": "Why an inverted index",
-            "parent": None,
-            "author": "manager",
-            "assignee": None,
-            "priority": None,
-            "severity": None,
-            "labels": [],
-            "refs": [],
-            "subentities": [],
-            "path": "adrs/ADR-000005-pick-an-index.md",
-            "created_at": "2026-06-07T10:00:00Z",
-            "updated_at": "2026-06-07T10:00:00Z",
-            "created_session": None,
-            "modified_session": None,
-            "id": "ADR-5",
-            "badges": {},
-        }
-    ]
+    # Compared as text, so the key order is held as well as the content.
+    assert (
+        result.output
+        == json.dumps(
+            [
+                {
+                    "sequence_id": 5,
+                    "type": "decision",
+                    "title": "Pick an index",
+                    "slug": "pick-an-index",
+                    "status": "Proposed",
+                    "description": "Why an inverted index",
+                    "parent": None,
+                    "author": "manager",
+                    "assignee": None,
+                    "priority": None,
+                    "severity": None,
+                    "labels": [],
+                    "refs": [],
+                    "subentities": [],
+                    "path": "adrs/ADR-000005-pick-an-index.md",
+                    "created_at": "2026-06-07T10:00:00Z",
+                    "updated_at": "2026-06-07T10:00:00Z",
+                    "created_session": None,
+                    "modified_session": None,
+                    "id": "ADR-5",
+                    "badges": {},
+                    "display": {
+                        "type": "Decision",
+                        "status": {"badge": "⚪ Proposed", "intent": "neutral"},
+                        "badges": {},
+                        "assignee": None,
+                    },
+                }
+            ],
+            indent=2,
+        )
+        + "\n"
+    )
 
 
 # --- interactions ---------------------------------------------------------------------------

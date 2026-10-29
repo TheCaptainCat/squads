@@ -59,6 +59,23 @@ def effective_prefix(prefix: str) -> str:
     return prefix or UNRESOLVED_PREFIX
 
 
+def parse_item_token(token: str) -> tuple[int, str | None]:
+    """An item token as ``(sequence_number, prefix_or_None)``.
+
+    A bare number (``"35"``, ``"000035"``) gives ``(seq, None)``; a full ID (``"PREFIX-000035"``)
+    gives ``(seq, head_upper)``. Raises :class:`SquadsError` on unparseable input.
+    """
+    t = token.strip()
+    if t.isdigit():
+        return int(t), None
+    head, sep, num = t.rpartition("-")
+    if sep and num.isdigit():
+        return int(num), head.upper()
+    raise SquadsError(
+        f"invalid item id {token!r} (use a bare number or a full ID like TYPE-NNNNNN)"
+    )
+
+
 def prefix_from_id(item_id: str) -> str:
     """The type-prefix segment of a formatted id (``"INC-49"`` -> ``"INC"``).
 

@@ -173,7 +173,7 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
     - ``lifecycle`` names the machine the type binds, by name.
     - ``fields`` is the declared field-to-collection bindings (``[]`` when none).
     - ``attributes`` is the declared non-badge frontmatter keys, name to ``{kind, required,
-      settable}`` (``{}`` when none).
+      settable, label}`` (``{}`` when none; ``label`` is ``null`` when undeclared).
     - ``labels`` is the four resolved display forms (``singular``/``plural``/``singular_lower``/
       ``plural_lower``) from ``labels_for``, so a client need not title-case the type string.
     """
@@ -189,7 +189,12 @@ def _type_catalog(spec: WorkflowSpec) -> list[dict[str, object]]:
             "lifecycle": spec.items[t].lifecycle,
             "fields": _field_entries(t, spec),
             "attributes": {
-                name: {"kind": a.kind, "required": a.required, "settable": a.settable}
+                name: {
+                    "kind": a.kind,
+                    "required": a.required,
+                    "settable": a.settable,
+                    "label": a.label,
+                }
                 for name, a in spec.item_attributes(t).items()
             },
             "labels": labels_for(t, spec),

@@ -209,6 +209,8 @@ __main__ -> _cli local
 __main__ -> squads top
 _actor -> _context top
 _aio -> _errors top
+_api -> _errors top
+_api -> _models top
 _backends -> _aio top
 _backends -> _errors top
 _backends -> _interactions local
@@ -230,6 +232,7 @@ _board -> _models top
 _board -> _paths top
 _board -> _sections top
 _cli -> _actor top
+_cli -> _api top
 _cli -> _badges top
 _cli -> _clock local
 _cli -> _context local
@@ -267,6 +270,7 @@ _cli -> _workflow typing
 _cli -> squads local
 _cli -> squads top
 _clock -> _context top
+_context -> _api typing
 _context -> _spec_documents typing
 _context -> _workflow typing
 _discussion -> _badges top
@@ -366,6 +370,7 @@ _sections -> _errors top
 _sections -> _models top
 _services -> _actor top
 _services -> _aio top
+_services -> _api top
 _services -> _backends top
 _services -> _badges top
 _services -> _board top
@@ -398,6 +403,7 @@ _services -> _view_remedies top
 _services -> _view_tags top
 _services -> _views top
 _services -> _workflow top
+_services -> squads top
 _spec_documents -> _errors top
 _spec_documents -> _interactions top
 _spec_documents -> _roles top

@@ -28,7 +28,7 @@ subentities:
   status: Todo
   story: US4
 created_at: '2026-10-28T22:12:42Z'
-updated_at: '2026-10-28T22:28:29Z'
+updated_at: '2026-10-28T23:32:36Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -40,9 +40,10 @@ Take the terminal UI off the service (ADR-1224 point 7, increment 6): `sq ui` ha
 - **The seam for a long session.** The app holds the selection rule, not one selected API (ADR-1224 point 7): each call asks a selector for the API to use. In this task the selector always returns `LocalApi`; TASK-1219 makes it resolve the endpoint per call, re-resolve after a retirement or a refused connection, and reload the catalogs after a retirement. Each `LocalApi` call opens its own read scope, which the reader skips today.
 - **Screens onto operations** (ADR-1224 point 7 table):
   - browse tree: the `tree` operation with the same filter fields as `sq tree`; roster nodes call `memory list` per slug, and names with pronouns come from the tree DTO's display names, so the `roster_all`/`operators_all` calls go;
-  - reader: the item `show` operation, whose DTO carries the rendered body, the discussion and every sub-entity block;
+  - reader: the item `show` operation, whose DTO carries the rendered body as `display.body`, the discussion and every sub-entity block;
   - memory reader: `memory show`; search: `search`; board: `board list`;
   - filter screen and search filters: the workflow catalog operations (`types`, `statuses`, `collections`) instead of `svc.spec`.
+- Every screen reads the whole `data` of its operation, never the `--json` projection (`json_field`), so `columns` and `hidden` are there for it (ADR-1224 point 3, amended 2026-10-29).
 - `sort_siblings` and `populate_tree` work on DTOs instead of `TreeNode` and `Item`; the `[display] pronouns` read of `svc.paths.config` goes.
 - `_tui/` joins the renderer guard of TASK-1227: no `_tui` module imports `squads._services`, `squads._workflow`, `squads._paths` or the configuration model.
 
@@ -90,7 +91,7 @@ _Add with `sq task 1233 add-subtask "<title>"`; track with `sq task 1233 subtask
 ### ST2 — Screens onto operations
 
 <!-- sq:subtask:ST2:body -->
-Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` with the same filter fields as `sq tree`, roster nodes on `memory list` per slug with names from the tree DTO (the `roster_all`/`operators_all` calls go); the reader on the item `show` operation; the memory reader on `memory show`; search on `search`; the board on `board list`; the filter screen and search filters on `workflow types`, `statuses` and `collections`. `sort_siblings` and `populate_tree` work on DTOs. A field a screen needs and a DTO lacks is appended to that DTO's module, never computed in `_tui`. Checked by eye by the operator against the released build.
+Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` with the same filter fields as `sq tree`, roster nodes on `memory list` per slug with names from the tree DTO (the `roster_all`/`operators_all` calls go); the reader on the item `show` operation (rendered body from `display.body`); every screen reads the whole `data`, never the `--json` projection; the memory reader on `memory show`; search on `search`; the board on `board list`; the filter screen and search filters on `workflow types`, `statuses` and `collections`. `sort_siblings` and `populate_tree` work on DTOs. A field a screen needs and a DTO lacks is appended to that DTO's module, never computed in `_tui`. Checked by eye by the operator against the released build.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -116,4 +117,8 @@ Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` wit
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-28T23:13:24Z] `architect` Robert Architect:
+  - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70). For this task: the reader's rendered body is `display.body` on the show DTO (no `rendered_body` key), and every screen reads the whole `data`, never the `--json` projection, so `columns` and `hidden` are there for it.
+- [2026-10-28T23:32:36Z] `tech-lead` Olivia Lead:
+  - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
 <!-- sq:discussion:end -->

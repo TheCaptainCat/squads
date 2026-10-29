@@ -1,10 +1,11 @@
 """Resource-oriented item commands: ``sq <type> <num> <verb> …`` (sub-entities nest one level).
 
-:func:`build_item_app` builds one Typer group per work-item type. The group callback resolves
-``<num>`` to a full item id (validating the type) into the Click context; each verb reads it
-back and wraps an existing ``svc.*`` method. A type that declares a sub-entity kind also gets
-``add-<kind>``, a ``<plural>`` list verb and a nested ``<kind> <n> <verb>`` subgroup, built
-generically from the resolved ``SubentityKindSpec`` (see :func:`_register_subentity`).
+:func:`build_item_app` builds one Typer group per work-item type. The group callback puts the
+item's address in the Click context: parsed only, for a verb whose operation checks the item, and
+resolved against the store (validating the type) for the others, which wrap a ``svc.*`` method.
+A type that declares a sub-entity kind also gets ``add-<kind>``, a ``<plural>`` list verb and a
+nested ``<kind> <n> <verb>`` subgroup, built generically from the resolved ``SubentityKindSpec``
+(see :func:`_register_subentity`).
 """
 # Commands are nested closures registered via Typer decorators (side effect), so they read as
 # "unused" to static analysis — disable that one check for this factory module.
@@ -25,8 +26,10 @@ from rich.table import Table
 import squads._cli._common as common
 from squads import _badges as badges
 from squads import _discussion as discussion
+from squads._api import _ops as ops
+from squads._api._dto._items import ItemShowRequest, ItemStatusRequest
+from squads._cli import _calls as calls
 from squads._cli._common import (
-    build_item_json,
     build_subentity_json,
     build_subentity_row_json,
     console,
@@ -38,7 +41,6 @@ from squads._cli._common import (
     parse_status,
     parse_type,
     print_block,
-    print_item,
     print_json_clean,
     print_subentity,
     resolve_body,
@@ -49,15 +51,29 @@ from squads._cli._common import (
     resolve_slug_or_raise,
     view_disable_result_message,
 )
+from squads._cli._render._items import render_show, render_status
 from squads._errors import SquadsError
 from squads._models._item import split_ref
 from squads._models._subentity import SubEntity
 from squads._services._service import Service
 from squads._workflow._models import Field, WorkflowSpec
 
+#: The verbs whose operation checks the addressed item, so the group only parses the number.
+_VERBS_ON_OPERATIONS: frozenset[str] = frozenset(
+    {
+        "show",
+        "status",
+    }
+)
+
 
 def _id(ctx: typer.Context) -> str:
     return ctx.obj["id"]
+
+
+def _address(ctx: typer.Context) -> dict[str, str]:
+    """The parsed address the group put on *ctx*."""
+    return {key: ctx.obj[key] for key in ("id", "type", "address")}
 
 
 def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
@@ -255,14 +271,21 @@ def build_item_app(
     if spec is None:
         spec = common.get_active_spec()
 
-    @item.callback()
     @common.command
-    async def _resolve(
+    async def _resolve_in_store(ctx: typer.Context, num: str) -> None:
+        svc = get_service()
+        ctx.obj = await common.address_obj(ctx, lambda: resolve_item_id_typed(num, item_type, svc))
+
+    @item.callback()
+    @handle_errors
+    def _resolve(
         ctx: typer.Context,
         num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
     ):
-        svc = get_service()
-        ctx.obj = await common.address_obj(ctx, lambda: resolve_item_id_typed(num, item_type, svc))
+        if ctx.invoked_subcommand in _VERBS_ON_OPERATIONS:
+            ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
+        else:
+            _resolve_in_store(ctx, num)
 
     _cmd_show(item)
     _cmd_update(item, item_type, spec)
@@ -289,8 +312,8 @@ def build_item_app(
 
 def _cmd_show(item: typer.Typer) -> None:
     @item.command("show")
-    @common.command
-    async def show(
+    @handle_errors
+    def show(
         ctx: typer.Context,
         json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
         raw: bool = common.raw_option(),
@@ -302,13 +325,13 @@ def _cmd_show(item: typer.Typer) -> None:
         ),
     ):
         """Show the item's metadata, body, sub-entity summary, and optional panes."""
-        svc = get_service()
-        it = await svc.get(_id(ctx))
+        response = calls.call(ops.ITEM_SHOW, ItemShowRequest(**_address(ctx)))
         if json_out:
-            print_json_clean(await build_item_json(svc, it))
-            return
-        await common.warn_duplicate_id(svc, it)
-        await print_item(svc, it, raw=raw, comments=comments, full=full)
+            calls.print_json(ops.ITEM_SHOW, response)
+        else:
+            calls.print_warnings(response)
+            render_show(response.data, console, raw=raw, comments=comments, full=full)
+        calls.finish(response, json_out=json_out)
 
 
 def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
@@ -415,18 +438,26 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
 
 def _cmd_status(item: typer.Typer) -> None:
     @item.command("status")
-    @common.command
-    async def status(
+    @handle_errors
+    def status(
         ctx: typer.Context,
         new_status: str = typer.Argument(..., metavar="STATUS", help=common.MOVE_STATUS_HELP),
         force: bool = common.force_transition_option(),
         as_: str | None = common.edit_as_option(),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item's row after the move."
+        ),
     ):
         """Move the item to another status."""
-        svc = get_service()
-        await common.apply_edit_actor(as_, svc)
-        it = await svc.set_status(_id(ctx), parse_status(new_status), force=force)
-        console.print(f"{it.id} → [bold]{it.status}[/bold]")
+        common.declare_actor(as_)
+        request = ItemStatusRequest(**_address(ctx), status=parse_status(new_status), force=force)
+        response = calls.call(ops.ITEM_STATUS, request)
+        if json_out:
+            calls.print_json(ops.ITEM_STATUS, response)
+        else:
+            calls.print_warnings(response)
+            render_status(response.data, console)
+        calls.finish(response, json_out=json_out)
 
 
 def _cmd_body(item: typer.Typer) -> None:
@@ -524,7 +555,7 @@ def _cmd_remove(item: typer.Typer) -> None:
         svc = get_service()
         await common.apply_edit_actor(as_, svc)
         if not yes:
-            common.confirm_or_signal(f"Remove {item_id}? This cannot be undone.")
+            typer.confirm(f"Remove {item_id}? This cannot be undone.", abort=True)
         res = await svc.remove_work_item(item_id, force=force)
         if json_out:
             print_json_clean(
@@ -1141,7 +1172,7 @@ def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None
         svc = get_service()
         await common.apply_edit_actor(as_, svc)
         if not yes:
-            common.confirm_or_signal(f"Remove {kind} {lid} from {pid}? This cannot be undone.")
+            typer.confirm(f"Remove {kind} {lid} from {pid}? This cannot be undone.", abort=True)
         await svc.remove_block(pid, kind, lid)
         if json_out:
             print_json_clean(json.dumps({"removed": f"{kind} {lid}"}))

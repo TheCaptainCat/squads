@@ -3,7 +3,7 @@ id: TASK-1227
 sequence_id: 1227
 type: task
 title: Api foundation and the item show, list and status reference
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -15,30 +15,30 @@ description: The _api package, LocalApi, the binding table and the guards; item 
 subentities:
 - local_id: ST1
   title: 'The _api package: envelope, operation table, Api, wire form'
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST2
   title: LocalApi, the binding table and the API on the request
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: 'Guards: _services imports, renderers, bindings, DTO fields'
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST4
   title: Item show, list and status end to end
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST5
   title: Display content and renderers for items
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST6
   title: JSON output on item status
-  status: Todo
+  status: Done
   story: US2
 created_at: '2026-10-28T22:12:36Z'
-updated_at: '2026-10-28T22:34:08Z'
+updated_at: '2026-10-29T00:07:16Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -194,4 +194,47 @@ Display content for items (ADR-1224 point 5): a `display` object on the show DTO
 <!-- sq:discussion -->
 - [2026-10-28T22:34:08Z] `architect` Robert Architect:
   - ADR-1224 point 3a now lists `status --json` under a new increment 0 row (1 key), and increment 2 has 10. Point 8 says increment 0 adds that flag. ST6 and the body no longer contradict the ADR. @tech-lead you can drop the "ADR-1224 point 3a lists it under increment 2" sentence from the body and ST6. No code impact for the python-dev.
+- [2026-10-28T23:05:38Z] `python-dev` Elias Python:
+  - Increment 0 implemented, all six subtasks done; uncommitted in the tree, task left InProgress.
+    - Landed: `squads/_api/` (`_response`, `_api` with `Operation`/`Grant`/`Mode`/`Timeout`/`Api`, `_ops` with marked sections, `_errors` wire form and type/status tables, `_http` encode/parse helpers, `_dto/_base`, `_dto/_display`, `_dto/_items`); `_services/_local_api.py`, `_services/_bindings.py`, `_services/_item_ops.py` (handlers), `_services/_item_dto.py` (projections); `_cli/_calls.py` (the `local_api()` factory, `select_api()`, `call`), `_cli/_render/_items.py` and `_cli/_render/_style.py`. `sq <type> <n> show`, `sq list` and `sq <type> <n> status` (now with `--json`) go through one call each.
+    - Seeded-request code removed: `attachments`, `terminal`/`TerminalFacts`, `run(seed=)`, attachment-served reads, `NeedsTerminal`, `confirm_or_signal`/`prompt_or_signal` (back to `typer.confirm`/`typer.prompt`), the root callback's copying.
+    - Proof: scratch squad, 125 command lines (human, piped, FORCE_COLOR styled, `--json`, refusals, status writes) before/after: 225 outputs byte-identical, 20 JSON documents differ only by the added `display`/`rendered_body` keys (key order of everything else preserved), 4 differ only by a wall-clock `updated_at`, 1 differs by refusal order (below).
+    - Gates: pyright 0 errors, ruff check and format clean, `pytest -n 4 tests/meta tests/cli tests/check` 1566 passed (was 1558: +1 surface case, +7 guard tests).
+    - Falsified, each red then green: `_services` import in a non-pending CLI module, in a renderer function, and at module level of `_calls.py`; a stale PENDING entry; `_paths`/`_models._config` import in a renderer; an unbound and a twice-bound operation; a `datetime` DTO field; status answering the pre-move row; an operation declaring a grant. pyright now rejects a binding whose handler does not match its operation (it did not while `BINDINGS` was annotated with `Any`).
+    - Edited test expectations, keys added only: `tests/cli/test_list.py::test_json_prints_one_object_per_item` gains `display`. New: `test_status_json_prints_the_moved_items_row`.
+    - Deviation 1, `list --json`: the list response is `ItemList{items, columns, hidden}`, and `--json` prints `data.items`, because Tier 3 freezes a bare array and an object would not be an additive change. The same conflict will meet `search`, `tree` and `graph`. @tech-lead: keep printing the rows, or should `columns` live elsewhere (a field on the envelope is ruled out by ADR-1224 point 3)?
+    - Deviation 2: a combined error now reports the vocabulary refusal first (`sq task 6 status Sleeping --as ghost` names the unknown status, not the unknown slug), per ADR-1224 point 1.
+    - Deviation 3: the item request carries `address` (the token as typed) besides `id` and `type`, so "5 is FEAT-5 (feature), not a task" keeps its text; `type` is required (the any-type form of `sq show` can relax it in increment 1).
+    - Deviation 4: `--as` travels as `RequestContext.actor_override` (root callback no longer seeds "system"; `current_actor()` still defaults to it), checked by `adopt_declared_actor()` in the operation.
+    - Deviation 5: the working-language notice is in every response's `warnings`; the root callback still prints it for unmoved commands, so printed notices are de-duplicated per invocation. JSON mode prints no response warnings (the duplicate-id warning was human-only).
+    - Adopter-visible, for @tech-writer: `status --json`; `display` on `list --json` rows and `display`/`rendered_body` on `show --json`; `display` and `rendered_body` become reserved attribute names (`ROW_ADDED_KEYS`). `Service` gains a 14th base, `ItemOpsMixin`, so the CLAUDE.md architecture line counting 13 is stale.
+- [2026-10-28T23:12:35Z, edited 2026-10-28T23:12:49Z] `architect` Robert Architect:
+  - @manager CLAUDE.md architecture draft for the main loop to apply (outside the squads-managed region; nothing edited by me). Apply it once the `json_field` follow-up in my next comment lands. Four edits in "Architecture & layering".
+    
+    1. The layering block becomes:
+    
+    ```
+    _cli → _api ← _services → (index store, backends, rendering, roles, interactions, …)
+    _cli → _services only inside _cli/_calls.local_api() (the LocalApi factory)
+    _api  imports only pydantic, _errors and _models
+    _models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
+    ```
+    
+    2. New bullet, before the `_services/` bullet:
+    
+    - `_api/` — the command layer's contract (ADR-1224): `_ops.py` is the literal operation table (`Operation[Req, Res]`: name, HTTP method and path, request and response DTOs, composition `Mode`, schema-gate `Grant`, `local_only`, `timeout`, and `json_field`, the one field of `data` that `--json` prints where the frozen document is not an object); `_api.py` holds `Operation` and the one-method `Api` protocol (`call(op, req) -> Response[Res]`); `_response.py` the `Response[T]` envelope (`data`, `omitted`, `warnings`); `_dto/` the frozen, JSON-native pydantic DTOs (`_items.py`, `_display.py` for the display content: labels, rendered badges, columns); `_errors.py` the wire form of an error; `_http.py` `HttpApi`'s wire helpers. It imports nothing above `_models`/`_errors`, so the remote client never imports `_services`.
+    
+    3. In the `_services/` bullet: the mixin list gains `_item_ops` first (`ItemOpsMixin`: the handlers of the operations, each answering with its DTO) and "the 13 `Service` bases" becomes "the 14 `Service` bases". Append: "`_bindings.py` is the literal table binding each operation to its `Service` handler (`bind(OP, Service.method)`, checked by pyright; a `tests/meta` guard holds every operation bound exactly once); `_local_api.py` is `LocalApi`, which composes the service for `op.mode`, opens the read scope around the call and returns the DTO as an object; `_item_dto.py` projects `Item`/`SubEntity` onto their DTOs with the display content the spec and roster decide. Projections live in `_services`, never in `_cli`."
+    
+    4. The `_cli/` bullet becomes: "`_cli/` — Typer app (`__init__` wires sub-typers + the root `-C` callback + version notice); one `_module` per command group; `_common.py` has the shared console/error decorator/parsers. A moved command parses, refuses what the vocabulary alone decides (exit 2), builds one request DTO and calls one operation through `_calls.py` (`call`, `select_api`, the `local_api()` factory — the one place `_cli` imports `_services` — and the printers for `--json`, warnings and omissions), then renders. `_render/` holds the renderers: they take a DTO and a console only, and a `tests/meta` guard keeps them off `squads._workflow`, `squads._paths` and the configuration model. Commands not moved yet still reach the service through `get_service`; the `_services` import guard's pending list names their modules and shrinks as they move."
+- [2026-10-28T23:13:00Z] `architect` Robert Architect:
+  - @python-dev ADR-1224 amended 2026-10-29 for deviation 1 and the reserved names (ADR comment ad65a70). Keep printing the rows; the projection becomes declared, not hand-picked. Follow-up on this task, small:
+  - `Operation` gains `json_field: str | None = None`, the field of `data` that `--json` prints. `ITEMS_LIST` sets `json_field="items"`. `calls.print_json` takes the operation and the response and prints `data` whole or that field, so `list` stops calling `print_json(list(response.data.items))` by hand. `data` stays an object (`ItemList`); the HTTP body is the whole `data`.
+  - New `tests/meta` guard: every `json_field` names a field of its operation's response type, and only the operations of the 29 commands ADR-1224 point 3 lists may set one (today only `list`). Falsify once each.
+  - `rendered_body` moves inside `display`: `ItemShowDisplay` gains `body` (the body with view tags expanded), `ItemShow` drops `rendered_body` from its fields and `TRAILING`, the renderer reads `display.body`, and `rendered_body` leaves `ROW_ADDED_KEYS`. Every later display value on an item row goes inside `display`, so `display` is the one name this refactor reserves. The collision handling stays the existing one (load refusal for a declared attribute or badge field, undeclared stored key kept out of the row); no migration. Update the `show --json` expectations accordingly.
+  - Adopter-visible delta for the writer (TASK-1234): `display` is a reserved attribute name; `rendered_body` is not.
+- [2026-10-28T23:43:01Z] `python-dev` Elias Python:
+  - Round 2 (uncommitted): json_field on Operation (list prints `items`) with its guard; REV-1235 F1-F5, F7, F8 fixed and commented there. Gates: pyright 0, ruff clean; tests/meta+cli+check 1562 passed, 7 failed - all the override-manifest/kind-uniformity tests, because the bundled workflow.toml changed (milestone `target_date` label) while the working version is still the released 0.17.0. Proven on a scratch copy: bumping the working version to 0.18.0 and running scripts/gen_template_manifest.py turns all 59 of those tests green. I did not bump: a version bump is the release owner's call, and regenerating at 0.17.0 would overwrite the released entry. @manager
+- [2026-10-29T00:07:16Z] `manager` Catherine Manager:
+  - Done 2026-10-29: REV-1235 has nothing open for this task (F1-F8, F12 Verified; F9 Noted; F10/F11 deferred to TASK-1232). Full suite 1570 passed on 98b13ffe.
 <!-- sq:discussion:end -->

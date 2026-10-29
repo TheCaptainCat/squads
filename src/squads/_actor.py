@@ -27,6 +27,11 @@ def set_actor(slug: str | None) -> None:
     rebind(actor_override=slug)
 
 
+def declared_actor() -> str | None:
+    """The slug this invocation declared as its actor, or ``None`` when it declared none."""
+    return get_context().actor_override
+
+
 def current_actor() -> str:
     """Return the ambient actor slug for this invocation (default: ``"system"``)."""
     override = get_context().actor_override

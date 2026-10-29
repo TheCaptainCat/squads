@@ -3,9 +3,10 @@ id: TASK-1231
 sequence_id: 1231
 type: task
 title: Board, memory, workflow and maintenance reads on operations
-status: Ready
+status: InProgress
 parent: FEAT-1226
 author: tech-lead
+assignee: python-dev
 priority: high
 refs:
 - ADR-1224:implements
@@ -34,7 +35,7 @@ subentities:
   status: Todo
   story: US2
 created_at: '2026-10-28T22:12:40Z'
-updated_at: '2026-10-28T22:36:47Z'
+updated_at: '2026-10-28T23:59:06Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -48,6 +49,7 @@ Move the rest of the squad's readers and writers onto one operation each (ADR-12
 - `check` returns its report as a DTO, and the exit code 3 for findings comes from it (ADR-1224 point 3).
 - Display (ADR-1224 point 5): `workflow view` and `workflow show` output is rendered by the operation, through the squad's `.overrides/templates/`; the catalogs carry their labels and headers; `reflog` and the memory and board listings carry `columns` where their tables come from the spec.
 - **`--json` on 12 keys** (ADR-1224 point 3a): `board post`, `board clear`, `memory add`, `memory forget`, `override scaffold`, `override update`, `sync`, `workflow show`, `workflow lint`, `docs`, `migrate help`, `migrate chlog`. A write prints what it wrote; `sync` and `workflow lint` print their report; the package-data commands print their text or index as data. Their DTOs live in `_api/_dto/_package.py` and are built by a function beside the data they read (`_docfiles` for `docs`, the migration registry for `migrate help` and `migrate chlog`), called directly by the command: no operation, no route, no call (ADR-1224 point 3a). The import-edge table gains `_docfiles -> _api` and `_migrations -> _api`.
+- **`json_field`** (ADR-1224 points 3 and 4, amended 2026-10-29): `board list`, `memory list`, `memory search`, `override list`, `override diff`, `reflog`, `check` and the eight `workflow` catalogs keep their bare-array `--json` by setting `json_field = "items"`; `workflow view` sets `json_field = "source"`, the resolved source in its own shape, beside the rendered output human mode prints. `check`'s exit 3 still comes from the DTO. The 12 new flags print `data` whole, an object, and set none; the package-data DTOs are not operations and print whole.
 - DTOs in `_api/_dto/_board.py`, `_memory.py`, `_workflow.py`, `_overrides.py`, `_reflog.py`, `_check.py`, `_package.py`; renderers in the matching `_cli/_render/` modules.
 
 ## Modules touched
@@ -59,7 +61,7 @@ Edited: `_cli/_board.py`, `_cli/_memory.py`, `_cli/_workflow_cmd.py`, `_cli/_ove
 
 - FEAT-1226 US1 for every command listed: one call (none for the three package-data commands), `check` exit 3 on findings, output and error text unchanged.
 - FEAT-1226 US2: the 12 flags print the written resource, the report, or the package text or index.
-- FEAT-1226 US3: `--json` is the operation's `data`.
+- FEAT-1226 US3: `--json` prints `data`, or the field its operation names.
 - FEAT-1226 US4: view and workflow output rendered by the operation through the squad's templates; renderers pass the `_cli/_render/` guard.
 - ADR-1224 points 1, 3, 3a, 4, 5 and 8 (increment 4).
 
@@ -150,4 +152,8 @@ Display rendered by the operation (ADR-1224 point 5): `workflow view` and `workf
   - @tech-lead please update the task body and ST5.
 - [2026-10-28T22:36:27Z] `tech-lead` Olivia Lead:
   - Body and ST5 updated per the architect (7ffc067): package-data DTOs in _api/_dto/_package.py, built beside _docfiles and the migration registry, no operation or route; two new import-edge rows. Test count unchanged (12).
+- [2026-10-28T23:13:23Z] `architect` Robert Architect:
+  - @tech-lead ADR-1224 amended 2026-10-29 (comment ad65a70), points 3 and 4. For this task: `board list`, `memory list`, `memory search`, `override list`, `override diff`, `reflog`, `check` and the eight `workflow` catalogs keep their bare-array `--json` by setting the operation's new `json_field` (`items`); `workflow view` sets `json_field="source"`, the resolved source in its own shape, beside the rendered output human mode prints. `check`'s exit 3 still comes from the DTO. The 12 new flags print `data` whole, an object, and set none; the package-data DTOs are not operations and print whole. The US3 acceptance line should read "`data`, or the field its operation names".
+- [2026-10-28T23:32:35Z] `tech-lead` Olivia Lead:
+  - Body updated per the architect (ADR-1224 amended 2026-10-29): the json_field share for this task and the US3 acceptance line ("data, or the field its operation names"). Test count unchanged.
 <!-- sq:discussion:end -->

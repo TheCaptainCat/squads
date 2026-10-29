@@ -68,7 +68,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-28T22:31:29Z'
+updated_at: '2026-10-28T23:29:12Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -204,6 +204,8 @@ This cannot be fixed by forcing our consoles; it needs the request scope's stdio
   - The deferral has a real home: TASK-1218 ST9 states the fix (stdio buffers that report the client isatty, colour per request) and parity rows for help and usage errors.
 - [2026-10-28T22:31:12Z] `reviewer` Paul Reviewer:
   - Subject gone; no fix will be made. ADR-1225 (Accepted) replaces the command endpoint with resource routes, and its section 9 removes the seeded terminal facts and `run`'s seed. TASK-1227 ST4 deletes that code. In remote mode the CLI is the client process: it parses, renders and prints `--help` and usage errors itself, so Typer's consoles read the user's own stdio and environment, exactly as in local mode (ADR-1225 section 5; Consequences: "the renderer always runs in the user's own process"). The daemon builds no consoles (section 7). No concern survives in another form: help and usage errors never make a call, so the mode-parity job has nothing to compare for them. Deferral re-pointed from TASK-1218 ST9, which now holds the schema and vocabulary checks, to TASK-1227, which removes the subject. The lifecycle has no edge out of Deferred, so this stays Deferred rather than WontFix.
+- [2026-10-28T23:29:09Z] `reviewer` Paul Reviewer:
+  - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -227,6 +229,8 @@ ST2's acceptance is "consoles built per invocation … from the terminal facts".
   - The colour and width tests went with the deleted module. Terminal facts reaching the consoles is now a case in TASK-1218 ST10 (terminal client vs pipe client).
 - [2026-10-28T22:31:13Z] `reviewer` Paul Reviewer:
   - Subject gone; no fix will be made. The finding asked for tests of `TerminalFacts` reaching the consoles. ADR-1225 section 9 removes terminal facts as a request seed, and TASK-1227 ST4 deletes them; consoles stay built per invocation from the process's own stdio, which the existing surface tests already drive (the `forced_terminal` fixture with `TTY_COMPATIBLE`). The TASK-1218 ST10 case this finding pointed to no longer exists: ST10 now holds the OpenAPI document and route guards. Deferral re-pointed to TASK-1227. The lifecycle has no edge out of Deferred, so this stays Deferred rather than WontFix.
+- [2026-10-28T23:29:10Z] `reviewer` Paul Reviewer:
+  - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -272,6 +276,8 @@ Today every prompt site asks before it writes, and the per-site ordering tests p
   - The deferral has a real home: TASK-1218 ST8 states the flag recorded on commit, the error exit, and a test that commits then prompts.
 - [2026-10-28T22:31:15Z] `reviewer` Paul Reviewer:
   - Subject gone; no fix will be made. The hazard was a `NeedsTerminal` raised after a write had committed, which would make the client re-run a partly committed command. ADR-1225 section 3 drops `needs_terminal`, section 8 removes ADR-1052 point 12's prompt branch, and section 9 turns `confirm_or_signal`/`prompt_or_signal` back into `typer.confirm`/`typer.prompt`; TASK-1227 ST4 does the removal. Prompts now run in the CLI between calls, and an operation never prompts, so there is no re-run to make unsafe. Checked on bb306416: all four prompt sites are in `_cli` (`_items.py` x2, `_common.py` comment removal, `_main.py`); none is in `_services`. What remains is the ordinary ask-before-write rule, which TASK-1229 states for removals ("prompts sit between calls, never inside one") and which its own review checks. TASK-1218 ST8 now holds the request scope and headers, not a post-commit flag. Deferral re-pointed to TASK-1227. The lifecycle has no edge out of Deferred, so this stays Deferred rather than WontFix.
+- [2026-10-28T23:29:11Z] `reviewer` Paul Reviewer:
+  - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -318,6 +324,8 @@ Two minor points; nothing to fix in this task.
   - The vacuous --version stderr row went with test_in_process_entry.py (deleted); nothing remains of it.
 - [2026-10-28T22:31:16Z] `reviewer` Paul Reviewer:
   - Point 1's subject is gone: there is no daemon-side stdout buffer to discard and no client re-run, because ADR-1225 removes `needs_terminal` and stdio redirection (sections 3 and 7; TASK-1227 ST4 removes `NeedsTerminal`). The concern survives in one form, output printed before a prompt: `comment remove` without `--yes` becomes a preview call that lists the comments with their full hashes, a confirmation in the CLI, then the remove call (ADR-1225 section 3, "comment remove after a confirmation"). TASK-1229 builds that flow, so the listing must print once, before the prompt, and nothing must print or be removed after a refusal. Re-pointed from TASK-1218 ST8 (now the request scope and headers) to TASK-1229, to check in its review. Point 2 (the vacuous `--version` row) went with the deleted test module and needs nothing.
+- [2026-10-28T23:29:12Z] `reviewer` Paul Reviewer:
+  - Disposition: subject removed, nothing left to fix. ADR-1225 section 9 dropped the seeded terminal facts, NeedsTerminal and the signalling prompt helpers; commit 3b3cfbd9 (TASK-1227) removed them. Verified on that commit: no reference to TerminalFacts, NeedsTerminal, confirm_or_signal, prompt_or_signal or attachments remains in src or tests, build_consoles takes no terminal, and the four prompt sites are plain typer.confirm/typer.prompt again (each asked and wrote nothing when answered n under a pseudo-terminal). Left Deferred, which has no outgoing transition; this comment is the closing record (REV-1235).
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
