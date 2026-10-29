@@ -145,7 +145,9 @@ async def test_chlog_refuses_a_range_without_two_dots(invoke) -> None:
 
 
 @pytest.mark.covers("migrate chlog", "vFROM..vTO")
-@pytest.mark.parametrize("span", ["a..b", "v0.17.0..v0.1.0", "v0.2.0..v0.2.0"])
+@pytest.mark.parametrize(
+    "span", ["a..b", "v1x..v2y", "v0.1.0..v0.2.0..v0.3.0", "v0.17.0..v0.1.0", "v0.2.0..v0.2.0"]
+)
 async def test_chlog_refuses_a_bound_that_is_no_version_or_a_range_not_ascending(
     invoke, span
 ) -> None:

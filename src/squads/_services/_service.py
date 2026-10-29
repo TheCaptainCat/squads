@@ -408,10 +408,16 @@ async def init(
         init_names=effective_names,
         working_language=DEFAULT_WORKING_LANGUAGE,
     )
+    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
+    if _holds_item_files(sp, effective_spec):
+        # The rebuild below would refuse a corpus whose files share a number; say so before
+        # anything is written, so the corrected corpus can be initialised afresh.
+        await compose_service(
+            sp, resolved_spec=effective_spec, sources=sources
+        ).refuse_shared_numbers()
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
-    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
     for ts in effective_spec.items.values():
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)

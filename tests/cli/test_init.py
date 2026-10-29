@@ -15,6 +15,11 @@ MANAGER = "- **Catherine Manager** — manager (`manager`)"
 TESTER = "- **Mara Tester** — QA engineer (`qa`)"
 BAD_BACKEND = "error: unknown backend 'bogus' (available: claude_code, agents_md)\n"
 MINIMAL = ["init", "--roles", "minimal"]
+REFUSED_FOLDERS = [
+    ("/abs", "error: --squad-dir must be relative to the project root, got '/abs'\n"),
+    ("../up", "error: --squad-dir must stay inside the project root, got '../up'\n"),
+    ("", "error: --squad-dir must name a folder, not an empty value\n"),
+]
 
 
 def _created(root: Path, folder: str, roles: str, backends: str) -> str:
@@ -35,13 +40,13 @@ async def test_squad_dir_names_the_folder_the_squad_lives_in(invoke) -> None:
 
 
 @pytest.mark.covers("init", "--squad-dir")
-@pytest.mark.parametrize("folder", ["/abs", "../up", ""])
-async def test_squad_dir_refuses_an_absolute_empty_or_escaping_folder(invoke, folder) -> None:
+@pytest.mark.parametrize(("folder", "message"), REFUSED_FOLDERS)
+async def test_squad_dir_refuses_an_absolute_empty_or_escaping_folder(
+    invoke, folder, message
+) -> None:
     root = Path.cwd()
     result = await invoke([*MINIMAL, "--squad-dir", folder])
-    assert result.exit_code == 1, result.output
-    assert result.output.startswith("error: --squad-dir must ")
-    assert len(result.output.splitlines()) == 1
+    assert (result.exit_code, result.output) == (1, message)
     assert sorted(root.iterdir()) == []
 
 

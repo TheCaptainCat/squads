@@ -69,6 +69,7 @@ from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
+from squads._rendering._engine import creation_template_name, render
 from squads._roles._loader import LEGACY_DEV_TABLE_MESSAGE, ROLES_OVERRIDE_FILENAME
 from squads._roles._projection import RoleView
 from squads._sections import join_frontmatter
@@ -1473,7 +1474,7 @@ class MaintenanceMixin(ServiceCore):
                 previous_counter, previous_padding, known_corpus
             )
             await self._renumber()
-        await self._refuse_shared_numbers()
+        await self.refuse_shared_numbers()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
             rerun=rerun,
@@ -1517,7 +1518,7 @@ class MaintenanceMixin(ServiceCore):
             references_left=renumbered.references_left,
         )
 
-    async def _refuse_shared_numbers(self) -> None:
+    async def refuse_shared_numbers(self) -> None:
         """Refuse, before the index is rebuilt, a number carried by files of different ids: the
         index is keyed by number, so the rebuild would keep one file and hide the other."""
         groups = shared_number_groups(await self._id_carriers())
@@ -1723,7 +1724,7 @@ class MaintenanceMixin(ServiceCore):
         if not remap:
             return
         await rewrite_ids(list(paths), remap)
-        for old_path, _item_type, slug, new_id in renames:
+        for old_path, item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
             # Use the parent directory of the existing file — avoids resolving the type
             # through folder_for and works for both built-in and custom types.
@@ -1733,9 +1734,43 @@ class MaintenanceMixin(ServiceCore):
             fm, _ = sections.split_frontmatter(text, source=str(new_path))
             if fm:
                 fm["sequence_id"] = number_for_id(new_id)
-                await write_text(
-                    new_path, sections.replace_frontmatter(text, fm, source=str(new_path))
+                text = sections.replace_frontmatter(text, fm, source=str(new_path))
+                text = self._rehint(
+                    text, fm, new_path, old_number=stem_digit_run(old_path, item_type, self.spec)
                 )
+                await write_text(new_path, text)
+
+    def _rehint(self, text: str, fm: dict[str, Any], path: Path, *, old_number: str | None) -> str:
+        """*text* with the lines its creation template renders from the item's number moved from
+        the old number to the new one. A line the author has since edited no longer matches and is
+        left alone."""
+        if old_number is None:
+            return text
+        try:
+            item = Item.from_frontmatter(
+                fm, path=path.name, default_kind=self.spec.default_ref_kind()
+            )
+            template = creation_template_name(item.type, self.spec, from_squad=self.paths.squad_dir)
+            stale = item.model_copy(update={"sequence_id": int(old_number)})
+            old_lines, new_lines = (
+                render(
+                    template,
+                    from_squad=self.paths.squad_dir,
+                    item=it,
+                    description=it.description,
+                    spec=self.spec,
+                ).splitlines()
+                for it in (stale, item)
+            )
+        except SquadsError:
+            return text
+        if len(old_lines) != len(new_lines):
+            return text
+        lines = text.split("\n")
+        for old, new in zip(old_lines, new_lines, strict=True):
+            if old != new and old in lines:
+                lines[lines.index(old)] = new
+        return "\n".join(lines)
 
     async def _renumber(self) -> dict[str, str]:
         """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""

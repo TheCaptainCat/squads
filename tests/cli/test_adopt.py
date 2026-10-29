@@ -58,6 +58,16 @@ async def test_squad_dir_names_the_folder_to_adopt(adoptable, invoke) -> None:
     assert await _held(invoke) == [*EXISTING, *CORE_ROLES]
 
 
+@pytest.mark.covers("adopt", "--squad-dir")
+async def test_squad_dir_refuses_a_folder_outside_the_project(adoptable, invoke) -> None:
+    result = await invoke(["adopt", "--roles", "core", "--squad-dir", "../up"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: --squad-dir must stay inside the project root, got '../up'\n",
+    )
+    assert not (adoptable / ".squads.toml").exists()
+
+
 @pytest.mark.covers("adopt", "--roles")
 async def test_roles_activates_the_roles_the_folder_does_not_hold_yet(adoptable, invoke) -> None:
     result = await invoke(["adopt", "--roles", "architect,qa"])

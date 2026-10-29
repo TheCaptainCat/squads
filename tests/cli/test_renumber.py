@@ -50,6 +50,24 @@ async def test_by_rewrites_the_references_to_a_moved_item(populated_project, inv
 
 
 @pytest.mark.covers("renumber", "--by")
+async def test_by_moves_the_scaffolded_hints_to_the_new_numbers(populated_project, invoke) -> None:
+    result = await invoke(["renumber", "--from", "2", "--by", "10"])
+    assert result.exit_code == 0, result.output
+    hints = {
+        "tasks/TASK-000013-build-the-query-parser.md": (
+            '_Add with `sq task 13 add-subtask "<title>"`; track with '
+            "`sq task 13 subtask <n> update --status <Status>`._"
+        ),
+        "features/FEAT-000012-search.md": (
+            '_Add with `sq feature 12 add-story "As a <role>, I want … so that …"`; track with '
+            "`sq feature 12 story <n> update --status <Status>`._"
+        ),
+    }
+    for name, hint in hints.items():
+        assert hint in (populated_project.squad_dir / name).read_text(encoding="utf-8")
+
+
+@pytest.mark.covers("renumber", "--by")
 async def test_by_refuses_an_offset_that_does_not_clear_the_branch_counter(
     populated_project, invoke
 ) -> None:
