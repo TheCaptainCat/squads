@@ -13,6 +13,7 @@ refs:
 - BUG-1190:fixes
 - BUG-1191:fixes
 - MILE-1241:targets
+- BUG-1248:fixes
 description: Refuse bad backend, squad-dir, chlog range and repad width before writing;
   repair refuses a shared number
 subentities:
@@ -31,8 +32,11 @@ subentities:
 - local_id: ST5
   title: Make repair refuse two files sharing one number
   status: Done
+- local_id: ST6
+  title: Renumber refreshes the scaffold hint that names the item number
+  status: Done
 created_at: '2026-10-29T16:27:28Z'
-updated_at: '2026-10-29T16:51:12Z'
+updated_at: '2026-10-29T17:17:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -153,6 +157,19 @@ Fixes BUG-1191.
 <!-- sq:subtask:ST5:discussion -->
 <!-- sq:subtask:ST5:discussion:end -->
 <!-- sq:subtask:ST5:end -->
+
+<!-- sq:subtask:ST6 -->
+### ST6 — Renumber refreshes the scaffold hint that names the item number
+
+<!-- sq:subtask:ST6:body -->
+sq repair --renumber and sq renumber rewrite an item to a new number but leave the scaffolded add/track hint naming the old one, which then addresses a different item. Re-render every hint rendered from the item templates on renumber, for every type that scaffolds one. Regression test in tests/regressions plus the surface case on the renumber paths (see BUG-1248).
+<!-- sq:subtask:ST6:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST6:discussion -->
+<!-- sq:subtask:ST6:discussion:end -->
+<!-- sq:subtask:ST6:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -160,4 +177,6 @@ Fixes BUG-1191.
 <!-- sq:discussion -->
 - [2026-10-29T16:51:11Z] `python-dev` Elias Python:
   - @manager handback. Branch worktree-agent-a4a27e01490d44cc2, commits 5e32ddb3 (fixes + surface tests) and b8756004 (tests/regressions). BUG-1187..1191 Fixed; all 8 new regression tests shown red on the unfixed code. Gates: pyright, ruff, format clean; tests/meta, the four cli modules and tests/regressions pass (765). Repair now also refuses via init, adopt and migrate up when two ids share a number.
+- [2026-10-29T17:17:52Z] `python-dev` Elias Python:
+  - @manager review round done: 9dc8388a fixes F1, F2, F7 (adopt part), F6 (squad-dir part) and BUG-1248 (ST6).
 <!-- sq:discussion:end -->

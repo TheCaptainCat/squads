@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1247,
+  "counter": 1248,
   "padding": 6,
   "items": {
     "12": {
@@ -60296,7 +60296,7 @@
       "subentities": [],
       "path": "adrs/ADR-001172-cli-surface-tests-one-case-per-parameter-guarded-coverage.md",
       "created_at": "2026-10-27T21:25:41Z",
-      "updated_at": "2026-10-29T05:08:56Z",
+      "updated_at": "2026-10-29T17:11:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65250,7 +65250,8 @@
         "BUG-1189:fixes",
         "BUG-1190:fixes",
         "BUG-1191:fixes",
-        "MILE-1241:targets"
+        "MILE-1241:targets",
+        "BUG-1248:fixes"
       ],
       "subentities": [
         {
@@ -65302,11 +65303,21 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Renumber refreshes the scaffold hint that names the item number",
+          "status": "Done",
+          "assignee": null,
+          "severity": null,
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "tasks/TASK-001244-fix-setup-and-maintenance-bugs-init-adopt-migrate-repair.md",
       "created_at": "2026-10-29T16:27:28Z",
-      "updated_at": "2026-10-29T16:51:12Z",
+      "updated_at": "2026-10-29T17:17:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65520,7 +65531,7 @@
         {
           "local_id": "F1",
           "title": "migrate chlog still accepts non-version bounds such as v1x..v2y and answers no manual steps",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65530,7 +65541,7 @@
         {
           "local_id": "F2",
           "title": "init over a shared-number corpus writes .squads.toml before the repair refusal; a plain re-run is refused",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65560,7 +65571,7 @@
         {
           "local_id": "F5",
           "title": "import with no op still prints pydantic wording: Unable to extract tag using discriminator 'op'",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65630,7 +65641,7 @@
         {
           "local_id": "F12",
           "title": "The depth option's min=0 makes Click say 'deep' is not a valid integer range; regression pins Click wording",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -65640,12 +65651,39 @@
       ],
       "path": "reviews/REV-001247-review-of-the-0-18-1-bug-batch.md",
       "created_at": "2026-10-29T17:02:38Z",
-      "updated_at": "2026-10-29T17:06:17Z",
+      "updated_at": "2026-10-29T17:19:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1247"
+    },
+    "1248": {
+      "sequence_id": 1248,
+      "type": "bug",
+      "title": "Renumber leaves the scaffold hint naming the old number",
+      "slug": "renumber-leaves-the-scaffold-hint-naming-the-old-number",
+      "status": "Fixed",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "priority": "low",
+      "severity": "medium",
+      "labels": [],
+      "refs": [
+        "REV-1247",
+        "MILE-1241:targets"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001248-renumber-leaves-the-scaffold-hint-naming-the-old-number.md",
+      "created_at": "2026-10-29T17:11:35Z",
+      "updated_at": "2026-10-29T17:17:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "BUG-1248"
     }
   }
 }

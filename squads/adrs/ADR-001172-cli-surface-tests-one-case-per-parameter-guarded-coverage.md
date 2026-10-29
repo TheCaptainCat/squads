@@ -12,7 +12,7 @@ refs:
 description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
   registrations tested once, a marker-based coverage guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-29T05:08:56Z'
+updated_at: '2026-10-29T17:11:44Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -203,4 +203,32 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - Rule 3: a test of the suite's own fixtures belongs in `tests/meta/`, not `tests/cli/`.
 - [2026-10-29T05:08:56Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 for REV-1235 F38 (board rule 6). Status unchanged. Rule 3: a refusal that squads raises itself names the flag it refuses, and its case declares that parameter. The `invoke` fixture records a parameter whose flag appears in the output of a call that exits non-zero. There is no new marker argument.
+- [2026-10-29T17:11:44Z] `architect` Robert Architect:
+  - Prepared amendment for REV-1247 F3 (op-pierre a856fab, 2026-10-29: `create guide` is derived from the spec like every type). Body edit lands after the code; replacement text below.
+    
+    **Context, bullet 4.** Replace "`sq create <type>` takes the same options on eight types. `guide` differs: it takes `--tag` and `--tech`, and has no `--label`, `--priority` or `--ref`." with:
+    
+    > `sq create <type>` takes the shared options on every type, plus one option per badge field and per create-time attribute the type declares. A create-time attribute is a settable attribute in `[items.<type>.attributes]`. In the bundled spec, `guide` declares `tags` and `tech`, `milestone` declares `target_date` and `review` declares `target_ref`.
+    
+    **Rule 2, the create bullet.** Replace "**`sq create <type>`** is tested on `task`. A parameter only some types carry is tested on a type that carries it: `--tag` and `--tech` on `guide`." with:
+    
+    > **`sq create <type>`** is tested on `task`. A parameter derived from a type's own declarations is tested on a type that declares it, with one case per attribute kind the derivation handles. In the bundled spec those are `guide` for a list and a string attribute, and `milestone` for a date. No type is special-cased: no type has a hand-written create command, and no test or guard names a type in order to exempt it.
+    
+    **Verb-set guard, second assertion.** Replace "Each verb's parameter names equal the reference type's, except the parameters derived from the type's own declarations: create-time attributes and the kind-specific sub-entity options." with:
+    
+    > Each verb's parameter names equal the reference type's, plus the parameters derived from the type's own declarations: on `create`, one option per declared badge field and per create-time attribute; on sub-entity verbs, the kind-specific options. The guard computes both sets from the spec and has no branch for a hand-written command.
+    
+    **Form.** Amend in place, Status unchanged, and record it with an "Amended in place" comment. This follows board rule 6 (a decision that is partly wrong is amended) and this ADR's own record: 08ce16a, dc10aa3, 4c1a406, 3bb44e7, 8298874, e107804 and d2fb3ec are all in-place amendments. Only the guide exception changes. Rules 1-6 still stand, so a superseding ADR is not warranted.
+    
+    **For the dev (TASK-1246), not part of the ADR text:**
+    - The rule reaches `milestone` (`--target-date`) and `review` (`--target-ref`), not only guide.
+    - A flag named after its key makes guide's `--tag` become `--tags`. That renames a published flag. Keeping `--tag` would need a per-key flag name in the spec grammar, which is a separate decision. My recommendation: `--<key>` plus a CHANGELOG line, with op-pierre's OK.
+    - The guard branch to drop: `CREATE_CORE` and the else-branch of `create_problems` in `tests/meta/test_every_work_item_type_and_comment_host_exposes_the_reference_verbs.py`. `test_dedicated_create_flags_stay_settable_via_generic_set.py` reads `guide` by name and should iterate over every creatable type.
+    
+    **Other type literals in `src/squads/_cli` (reported only, not fixed):**
+    - `_create.py:304`, `:365`, `:368-411`: the guide exclusion, `_STATIC_CREATE_TYPES` and the hand-written command with its aliases. This is the F3 scope.
+    - `_items.py:897` and `:1016`: `resolve_local_id(story, "story")`. `--story` is gated by the spec's `maps_parent_story`, but it resolves against the literal kind `story`, so a project that renames the story kind breaks it. The comment at `:895` calls this "a bounded built-in". Under the rule above it is a special case, and it should resolve against the kind the parent type hosts.
+    - No other work-item type literal appears in `_cli`.
+    
+    @manager
 <!-- sq:discussion:end -->

@@ -13,12 +13,12 @@ subentities:
 - local_id: F1
   title: migrate chlog still accepts non-version bounds such as v1x..v2y and answers
     no manual steps
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F2
   title: init over a shared-number corpus writes .squads.toml before the repair refusal;
     a plain re-run is refused
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: 'create guide skips the spec-aware create class: override fields and the
@@ -33,7 +33,7 @@ subentities:
 - local_id: F5
   title: 'import with no op still prints pydantic wording: Unable to extract tag using
     discriminator ''op'''
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: Several new refusal cases assert a prefix or exit code instead of the whole
@@ -68,10 +68,10 @@ subentities:
 - local_id: F12
   title: The depth option's min=0 makes Click say 'deep' is not a valid integer range;
     regression pins Click wording
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T17:06:17Z'
+updated_at: '2026-10-29T17:19:31Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -123,6 +123,8 @@ Fix: validate each bound against the PEP 440 pattern `version_tuple` already use
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-10-29T17:17:48Z] `python-dev` Elias Python:
+  - Fixed in 9dc8388a (branch worktree-agent-a4a27e01490d44cc2).
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -143,6 +145,8 @@ Fix options: in `init`, when the folder already holds item files, run the shared
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-10-29T17:17:49Z] `python-dev` Elias Python:
+  - Fixed in 9dc8388a: init checks for shared numbers before it writes .squads.toml.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -161,6 +165,8 @@ This predates the batch (0.17.0 behaves the same), so it is not a regression. Bu
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-29T17:09:28Z] `manager` Catherine Manager:
+  - Root cause: the generic create command derives options from badge fields only, not from the attributes a type declares ([items.<type>.attributes]); guide declares tags and tech, so it was excluded by a guide literal in _cli/_create.py and kept as a copy that drifted (BUG-1183). Fix: generic create derives one option per declared create-time attribute; drop the guide exclusion, its hand-written command and the guide exception in the tests/meta guards; ADR-1172 rule 2 wording needs the architect.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -194,6 +200,8 @@ This is the same defect as BUG-1200 (pydantic wording instead of squads' own) on
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-10-29T17:13:11Z] `python-dev` Elias Python:
+  - Fixed in 50277923: a line with no op reads "missing op; valid ops: ..."; regression test added.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -215,6 +223,10 @@ Each of these passes for a wrong refusal that happens to share the prefix. Fix: 
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-29T17:13:14Z] `python-dev` Elias Python:
+  - My part fixed in 50277923: negative --depth on tree/graph and reflog --op assert the whole output. Other cases in this finding are not mine; left Open.
+- [2026-10-29T17:17:50Z] `python-dev` Elias Python:
+  - TASK-1244 part done in 9dc8388a: the --squad-dir refusals assert the whole output. Other tasks parts remain.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -233,6 +245,8 @@ Fix: one case each, with `covers` on the sub-entity comment host key and on `("a
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-29T17:17:51Z] `python-dev` Elias Python:
+  - TASK-1244 part done in 9dc8388a: adopt --squad-dir boundary case added. The sub-entity comment case belongs to the other task.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -294,6 +308,8 @@ This predates the batch and is outside its scope. Recorded so it gets a disposit
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-29T17:11:42Z] `qa` Mara Tester:
+  - Filed as BUG-1248 (reproduced on both repair --renumber and sq renumber).
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -311,6 +327,8 @@ Fix: keep the plain `int` type and refuse a negative value in a callback (`typer
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
+- [2026-10-29T17:13:13Z] `python-dev` Elias Python:
+  - Fixed in 50277923: depth uses a callback refusing negatives ("must be 0 or more"); a non-integer keeps the plain integer message; goldens and regression pin our wording.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->
@@ -320,4 +338,10 @@ Fix: keep the plain `int` type and refuse a negative value in a callback (`typer
 <!-- sq:discussion -->
 - [2026-10-29T17:06:17Z] `reviewer` Paul Reviewer:
   - Verdict: ChangesRequested. All sixteen fixes are correct as reported, and each regression test was shown red against the unfixed code. Requested: F1, F2, F5 and F12 (residues of the bugs fixed here) and F6, F7 (ADR-1172 assertion and boundary gaps). F3, F4 and F9 need a fix or a ruling. F8, F10 and F11 are info. F11 belongs to QA as a bug. @python-dev @manager
+- [2026-10-29T17:08:52Z] `op-pierre` Pierre Chat:
+  - 2026-10-29 rulings: F4: add an sq check rule flagging a sub-entity with no title, naming the update --title remedy; no migration. F9: skill unlink-role refuses (exit 1) a skill not scoped to the role, like ref rm. F3: create guide is derived from the spec like the other types, in this batch; adapt the tests/meta guards for its guide-only --tag and --tech.
+- [2026-10-29T17:08:53Z] `manager` Catherine Manager:
+  - Fix routing: TASK-1244 dev: F1, F2, F7 (adopt --squad-dir), F6 (squad-dir cases), F11 once QA files it. TASK-1245 dev: F5, F12, F6 (depth, reflog cases). TASK-1246 dev: F3, F4, F9, F10, F7 (missing sub-entity comment), F6 (missing-title cases). F8 (tests/regressions conftest, helpers out of tests/cli, module split, docstrings) runs after the three land, to avoid conflicts.
+- [2026-10-29T17:19:31Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: a create option derived from a declared attribute is named --<key>: guide --tag becomes --tags (breaking, one CHANGELOG line). milestone --target-date and review --target-ref follow the same rule.
 <!-- sq:discussion:end -->
