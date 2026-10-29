@@ -342,7 +342,7 @@ discussion — all written through commands.
 
 **Maintenance**
 - `sq check` — lint markers, dangling parent/ref IDs, invalid status, index drift
-- `sq repair [--renumber]` — rebuild the index from frontmatter, **and rewrite item files** on the same pass: it removes what squads computes on every read and canonicalises legacy ref encodings, so run it on a clean working tree. Files of different ids that share a number are refused, naming `--renumber`, which resolves merged ID collisions ([how](docs/faq.md#handling-id-collisions)). `sq adopt`, `sq renumber` and the rebuild ending `sq migrate up` reach the same sweep — [what it writes](docs/faq.md#does-sq-repair-change-my-files)
+- `sq repair [--renumber]` — rebuild the index from frontmatter, **and rewrite item files** on the same pass: it removes what squads computes on every read and canonicalises legacy ref encodings, so run it on a clean working tree. Files that share a number or an id are refused before rebuilding, naming `--renumber` when it can resolve them; it resolves merged ID collisions ([how](docs/faq.md#handling-id-collisions)). `sq adopt`, `sq renumber` and the rebuild ending `sq migrate up` reach the same sweep — [what it writes](docs/faq.md#does-sq-repair-change-my-files)
 - `sq renumber --from N (--onto M | --by K)` — shift this branch's IDs clear of another branch's range before a merge; `--from` is the lowest local sequence number to shift
 - `sq reflog [--item|--actor|--op|--since|--tail|--tree] [--json]` — the chronological log of every mutating `sq` command
 

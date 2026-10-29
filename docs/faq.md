@@ -203,17 +203,20 @@ What it does depends on the collision:
   (file, frontmatter key or body/comment line, and the text) and exits `1` while any remain. Check
   each one by hand.
 - **Refused:** two files with the same slug, byte-identical copies, or a file outside its type's
-  folder. Those are copies, not a merge collision. Nothing is renamed, and the files are reported
-  the way plain `sq repair` reports them (below).
+  folder. Those are copies, not a merge collision. Nothing is renamed or rebuilt, and the message
+  asks you to merge them by hand, as plain `sq repair` does (below).
 
 Use this only when collisions already exist. The pre-merge path is safer when you have the chance,
 because it keeps every reference meaning what it says.
 
 **Two files with the same ID.** `sq check` reports each such ID as an error, naming every file
-that carries it. Plain `sq repair` will not pick one: it keeps the previous index entry for that
-ID, names the files and exits `1`. `show` renders the indexed file with a warning, and every write
-to that ID is refused until it is resolved. Merge the content you want into one file, delete the
-other, and run `sq repair`, or use `sq repair --renumber` as above.
+that carries it. Plain `sq repair` will not pick one: it refuses before rebuilding, leaves the
+index as it was, names the files and exits `1`. When the files have different slugs, the message
+names `sq repair --renumber`; otherwise it asks you to merge the content you want into one file,
+delete the other, and run `sq repair`. Until then, `show` renders the indexed file with a warning,
+and every write to that ID is refused. `sq init` and `sq adopt` refuse the same files before
+writing anything; on a folder with no configuration yet, they name `sq adopt --renumber`, or end
+the merge-by-hand remedy with `sq adopt`.
 
 ### What exit codes does `sq` use?
 

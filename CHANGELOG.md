@@ -49,7 +49,9 @@ All notable changes to this project are documented here. The format follows
     - 2 files carry the id TASK-26 (tasks/TASK-000026-x.md, tasks/TASK-000026-y.md); run `sq adopt --renumber` to give one of them a new number and adopt
   ```
 
-  Identical copies, two files with the same slug, or a file outside its type's folder cannot be renumbered, so the message asks you to merge the content into one file and delete the other by hand, and `sq adopt --renumber` refuses them the same way. Plain `sq repair` over a squad that is already set up still rebuilds the index and reports two files carrying one id as unreadable.
+  Identical copies, two files with the same slug, or a file outside its type's folder cannot be renumbered, so the message asks you to merge the content into one file and delete the other by hand, and `sq adopt --renumber` refuses them the same way. On a folder with no configuration yet, that message ends with `then run sq adopt`.
+
+  Plain `sq repair` refuses two files carrying the same id the same way, before rebuilding: the index is left as it was, the command exits `1`, and the message names `sq repair --renumber` when the files have different slugs, or the merge by hand (`… then run sq repair`) when they cannot be renumbered. It used to rebuild the index and then report the pair as unreadable.
 
 - **Typos in filters and ranges are refused instead of answering nothing.** Each of these used to exit `0` with an empty or unchanged result; each now exits `1` with the values it accepts:
   - `sq list --sort` and `sq tree --sort` with a field that is not an ordered badge field: `unknown sort field 'ghost' (one of: priority, severity)`.
