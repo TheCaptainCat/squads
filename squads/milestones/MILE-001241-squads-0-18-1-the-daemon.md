@@ -3,7 +3,7 @@ id: MILE-1241
 sequence_id: 1241
 type: milestone
 title: squads 0.18.1 - the daemon
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - MILE-1152:depends-on
@@ -11,7 +11,7 @@ refs:
 description: The daemon serving the command layer's operations as resource routes,
   with dependencies upgraded and tested
 created_at: '2026-10-29T12:59:12Z'
-updated_at: '2026-10-29T16:32:00Z'
+updated_at: '2026-10-29T16:42:53Z'
 ---
 <!-- sq:body -->
 The daemon release: a local process that serves the squad as resource routes on the adopter's own machine, and a CLI and terminal UI that call those routes or read the squad directly, with the same output either way. It builds on the command layer of 0.18.0, whose operations the routes serve. It makes that line usable on one machine, for one person; the browser frontend (MILE-868) builds on the same routes.

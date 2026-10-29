@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:39Z'
-updated_at: '2026-10-29T16:31:28Z'
+updated_at: '2026-10-29T16:42:44Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -40,4 +40,6 @@ low
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T16:42:44Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: fixed upstream by typer 0.27.3; the surface test lands with the typer upgrade in TASK-1243, not in TASK-1245.
 <!-- sq:discussion:end -->

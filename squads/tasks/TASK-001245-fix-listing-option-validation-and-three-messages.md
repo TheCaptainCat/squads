@@ -3,11 +3,10 @@ id: TASK-1245
 sequence_id: 1245
 type: task
 title: Fix listing option validation and three messages
-status: Draft
+status: Ready
 author: tech-lead
 priority: low
 refs:
-- BUG-1192:fixes
 - BUG-1193:fixes
 - BUG-1194:fixes
 - BUG-1195:fixes
@@ -20,7 +19,7 @@ description: list/tree/reflog/graph refuse unknown values; clean unknown-option,
 subentities:
 - local_id: ST1
   title: Print the unknown-option suggestion without a tuple repr
-  status: Todo
+  status: Cancelled
 - local_id: ST2
   title: Refuse an unknown --sort field on list and tree
   status: Todo
@@ -40,7 +39,7 @@ subentities:
   title: Name an unknown import op in squads' own words
   status: Todo
 created_at: '2026-10-29T16:27:29Z'
-updated_at: '2026-10-29T16:31:35Z'
+updated_at: '2026-10-29T16:42:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -91,6 +90,8 @@ Fixes BUG-1192.
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-29T16:42:51Z] `manager` Catherine Manager:
+  - Moved to TASK-1243 per op-pierre on BUG-1192 (2026-10-29).
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 

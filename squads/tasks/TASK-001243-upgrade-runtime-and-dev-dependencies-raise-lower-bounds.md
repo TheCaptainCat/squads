@@ -9,6 +9,7 @@ author: tech-lead
 priority: high
 refs:
 - ADR-1172
+- BUG-1192:fixes
 description: Lock typer 0.27, filelock 4, pydantic 2.14, anyio 4.15, ruff 0.17, pyright,
   pytest; bounds raised to the versions the suite runs
 subentities:
@@ -36,8 +37,12 @@ subentities:
   title: Report adopter-visible changes for the changelog
   status: Todo
   story: US1
+- local_id: ST7
+  title: Surface test for the unknown-option suggestion (BUG-1192)
+  status: Todo
+  story: US1
 created_at: '2026-10-29T16:23:49Z'
-updated_at: '2026-10-29T16:24:43Z'
+updated_at: '2026-10-29T16:43:09Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -211,6 +216,19 @@ Report every adopter-visible change the upgrades cause to the technical writer, 
 <!-- sq:subtask:ST6:discussion -->
 <!-- sq:subtask:ST6:discussion:end -->
 <!-- sq:subtask:ST6:end -->
+
+<!-- sq:subtask:ST7 -->
+### ST7 — Surface test for the unknown-option suggestion (BUG-1192)
+
+<!-- sq:subtask:ST7:body -->
+An unknown option on a command prints the suggestion as plain text (No such option: --slug (Possible options: --as)), not a Python tuple. typer 0.27.3 fixes the rendering; add a CLI surface test pinning the message and exit code 2, and check it fails under typer 0.26.7.
+<!-- sq:subtask:ST7:body:end -->
+
+#### Discussion
+
+<!-- sq:subtask:ST7:discussion -->
+<!-- sq:subtask:ST7:discussion:end -->
+<!-- sq:subtask:ST7:end -->
 <!-- sq:subtasks:end -->
 
 ## Discussion
@@ -218,4 +236,6 @@ Report every adopter-visible change the upgrades cause to the technical writer, 
 <!-- sq:discussion -->
 - [2026-10-29T16:24:43Z] `tech-lead` Olivia Lead:
   - Planned 2026-10-29: one task, six subtasks (ST1-ST4, ST6 on US1; ST5 on US2), left Draft. Versions measured with uv lock --upgrade --dry-run; typer, filelock and ruff changes probed under both versions. The released 0.18.0 uv tool on the reference host already resolves typer 0.27.3, filelock 4.2.4, pydantic 2.14.1, anyio 4.15.1. Expected new tests: 4 (index lock). TASK-1218 now depends on this task.
+- [2026-10-29T16:42:45Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: accept the new messages and usage text the upgraded dependencies print (typer 0.27 included); no metavar= workarounds to keep the old wording. List each change for the changelog. This task also carries the BUG-1192 surface test.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-1244
 sequence_id: 1244
 type: task
 title: 'Fix setup and maintenance bugs: init, adopt, migrate, repair'
-status: Draft
+status: Ready
 author: tech-lead
 priority: high
 refs:
@@ -32,7 +32,7 @@ subentities:
   title: Make repair refuse two files sharing one number
   status: Todo
 created_at: '2026-10-29T16:27:28Z'
-updated_at: '2026-10-29T16:30:57Z'
+updated_at: '2026-10-29T16:42:54Z'
 ---
 <!-- sq:body -->
 ## Goal

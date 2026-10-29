@@ -3,7 +3,7 @@ id: TASK-1246
 sequence_id: 1246
 type: task
 title: 'Fix item verb bugs: guide options, ref rm, sub-entities, view ID'
-status: Draft
+status: Ready
 author: tech-lead
 priority: medium
 refs:
@@ -32,7 +32,7 @@ subentities:
   title: Refuse a wrong ID prefix in workflow view
   status: Todo
 created_at: '2026-10-29T16:27:30Z'
-updated_at: '2026-10-29T16:30:59Z'
+updated_at: '2026-10-29T16:42:56Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -158,4 +158,6 @@ Fixes BUG-1240.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T16:42:43Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: BUG-1185 is ruled: the sub-entity title is required everywhere (see BUG-1185).
 <!-- sq:discussion:end -->
