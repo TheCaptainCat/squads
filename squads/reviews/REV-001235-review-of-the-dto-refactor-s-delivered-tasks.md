@@ -133,7 +133,7 @@ subentities:
 - local_id: F25
   title: 'Catalog on a malformed .squads.toml and role show --json on a missing file
     now exit 1: changelog lines'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F26
   title: Roster comment bridge, a stale registrar comment and two duplicates are on
@@ -222,7 +222,7 @@ subentities:
 - local_id: F44
   title: 'TUI parity: an @-prefixed assignee now matches, and a stale undeclared badge
     no longer sorts'
-  status: Open
+  status: Noted
   severity: info
 - local_id: F45
   title: _tui/_filter.py copies the engine's closed category set
@@ -284,7 +284,7 @@ subentities:
   severity: low
 - local_id: F58
   title: Releasing runbook does not run bench_local_mode.py as the task requires
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F59
   title: 'Benchmark: fixed old-first order, repo-specific --task default, no-op SQUADS_DAEMON'
@@ -326,10 +326,10 @@ subentities:
 - local_id: F67
   title: Per-payload display table has no row for add-<kind>, which gains display
     {item, body_command}
-  status: Open
+  status: Verified
   severity: low
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T12:28:59Z'
+updated_at: '2026-10-29T12:38:38Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -1083,6 +1083,8 @@ Two adopter-visible behaviour changes that the dev's parity proof records only a
 <!-- sq:finding:F25:discussion -->
 - [2026-10-29T12:09:44Z] `tech-writer` Theo Writer:
   - CHANGELOG 0.18.0, Changed: "`sq role catalog` with a malformed `.squads.toml` fails." (exit 1 with the parse error, human and `--json`) and "`sq role <slug> show --json` fails when the role's item file is missing." (exit 1, `run sq repair`). Both checked on a scratch squad: dev 1, released 0.17.0 0.
+- [2026-10-29T12:38:33Z] `manager` Catherine Manager:
+  - Noted: the CHANGELOG 0.18.0 line quoted above landed in cf27bbc8.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
 
@@ -1617,6 +1619,8 @@ Both are improvements, and neither needs a code change. Item 1 earns a line in t
 <!-- sq:finding:F44:discussion -->
 - [2026-10-29T12:09:45Z, edited 2026-10-29T12:10:04Z] `tech-writer` Theo Writer:
   - CHANGELOG 0.18.0, Changed, `sq ui` entry: "An assignee filter takes `@` and any letter case (`@Manager` matches `manager`), and an unknown assignee shows an error and keeps the current view. A sort on a badge field reads only the fields an item's type declares, so a stale code its type no longer declares sorts last." The second sentence is item 2, from your TASK-22 repro; I did not run `sq ui` myself.
+- [2026-10-29T12:38:36Z] `manager` Catherine Manager:
+  - Noted: the CHANGELOG 0.18.0 line quoted above landed in cf27bbc8.
 <!-- sq:finding:F44:discussion:end -->
 <!-- sq:finding:F44:end -->
 
@@ -2074,6 +2078,8 @@ The task's test approach says the script "is a release-time check ... and the re
 <!-- sq:finding:F58:discussion -->
 - [2026-10-29T12:09:36Z] `tech-writer` Theo Writer:
   - The releasing-squads skill (SKILL-508), section 1 Gates, now runs `scripts/bench_local_mode.py`: copy `.squads.toml` and `squads/` to `~/.cache/sq-bench/squad`, `--old ~/.local/bin/sq --new "$PWD/.venv/bin/sq" --task <n>`, expect `new/old median` <= 1.0 on show, list and tree, raise anything above with the operator, and post the table as a comment on the release milestone. Smoke-run of that exact command at 8b9dc64b, 3 runs: show 0.751, list 0.705, tree 0.719. A schema-bump release cannot compare (the old build refuses the copy); the step says to record the new build spans then.
+- [2026-10-29T12:38:38Z] `manager` Catherine Manager:
+  - Verified: SKILL-508 Gates section runs scripts/bench_local_mode.py against the released sq on a copied squad and records the medians with the release.
 <!-- sq:finding:F58:discussion:end -->
 <!-- sq:finding:F58:end -->
 
@@ -2262,6 +2268,10 @@ So `add-<kind>` gains a key in this release, appended last as the rule asks, but
 #### Discussion
 
 <!-- sq:finding:F67:discussion -->
+- [2026-10-29T12:35:28Z] `tech-writer` Theo Writer:
+  - Fixed (uncommitted): stability display table gains an `add-<kind>` row (`item`, `body_command`), and the one-sub-entity row now covers the `entry` of sub-entity `update` and `body`; the CHANGELOG display entry names both. Checked at bd7aab88: `sq feature 21 add-story --json` gives `display: {item: "FEAT-21", body_command: "sq feature 21 story US2 body -m \"…\""}`; `subtask 1 update --json` and `subtask 1 body --json` entries carry `kind` and `discussion`. Same round: `display.assignee` following `[display] pronouns` is in the CHANGELOG pronouns entry, stability (Display settings and the table note) and roles.md, verified on list/graph/search/sub-entity update (on) and list/tree (off).
+- [2026-10-29T12:35:54Z] `manager` Catherine Manager:
+  - Verified: the stability display table has the add-<kind> row (item, body_command) and the one-sub-entity row covers update/body entries; the writer's dev-tree run printed both shapes.
 <!-- sq:finding:F67:discussion:end -->
 <!-- sq:finding:F67:end -->
 <!-- sq:findings:end -->

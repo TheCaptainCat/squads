@@ -312,6 +312,55 @@ async def test_json_prints_one_object_per_item(readable, invoke) -> None:
     )
 
 
+def _crash_row(assignee_name: str) -> dict[str, object]:
+    """The closed bug's row, its assignee shown as *assignee_name*."""
+    return {
+        "sequence_id": 6,
+        "type": "bug",
+        "title": "Empty query crash",
+        "slug": "empty-query-crash",
+        "status": "Verified",
+        "description": "",
+        "parent": None,
+        "author": "manager",
+        "assignee": "manager",
+        "priority": "medium",
+        "severity": "medium",
+        "labels": [],
+        "refs": [],
+        "subentities": [],
+        "path": "bugs/BUG-000006-empty-query-crash.md",
+        "created_at": "2026-06-07T10:00:00Z",
+        "updated_at": "2026-06-07T10:00:00Z",
+        "created_session": None,
+        "modified_session": None,
+        "id": "BUG-6",
+        "badges": {"priority": "medium", "severity": "medium"},
+        "display": {
+            "type": "Bug",
+            "status": {"badge": "🟢 Verified", "intent": "positive"},
+            "badges": {
+                "priority": {"label": "Priority", "badge": "🟡 medium", "badge_label": "🟡 Medium"},
+                "severity": {"label": "Severity", "badge": "🟡 medium", "badge_label": "🟡 Medium"},
+            },
+            "assignee": assignee_name,
+        },
+    }
+
+
+@pytest.mark.covers("list", "--json")
+async def test_json_names_the_assignee_with_pronouns_unless_the_squad_hides_them(
+    readable, invoke
+) -> None:
+    await invoke(["role", "manager", "update", "--pronouns", "she/her"])
+    shown = await invoke(["list", "--json", "--type", "bug", "--all"])
+    assert shown.output == json.dumps([_crash_row("Catherine Manager (she/her)")], indent=2) + "\n"
+    config = readable.config_path.read_text(encoding="utf-8")
+    readable.config_path.write_text(config + "\n[display]\npronouns = false\n", encoding="utf-8")
+    hidden = await invoke(["list", "--json", "--type", "bug", "--all"])
+    assert hidden.output == json.dumps([_crash_row("Catherine Manager")], indent=2) + "\n"
+
+
 # --- interactions ---------------------------------------------------------------------------
 
 

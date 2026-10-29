@@ -51,8 +51,8 @@ async def _tree_source(svc: Service, records: list[Item]) -> list[TreeNode]:
     blocked_ids = {t.id for t, _ in await svc.blocked()}
     db = await svc.store.load()
     by_parent = children_by_parent(db)
-    names = participant_names(db)
     pronouns = await svc.shown_pronouns()
+    names = participant_names(db, pronouns)
     return [
         tree_node(
             _subtree(r, by_parent, {r.id}),
@@ -68,7 +68,7 @@ async def _tree_source(svc: Service, records: list[Item]) -> list[TreeNode]:
 
 async def _subentity_source(svc: Service, kind: str, subs: list[SubEntity]) -> list[SubentityEntry]:
     db = await svc.store.load()
-    names = participant_names(db)
+    names = await svc.display_names(db)
     entries: list[SubentityEntry] = []
     for sub in subs:
         carrier = db.get(sub.deferred_to) if sub.deferred_to else None

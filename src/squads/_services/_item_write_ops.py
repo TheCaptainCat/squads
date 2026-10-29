@@ -57,7 +57,7 @@ from squads._api._dto._subentities import SubentityRequest, SubentityShow
 from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item, make_ref, split_ref
-from squads._services._item_dto import comment_dtos, item_display, item_row, participant_names
+from squads._services._item_dto import comment_dtos, item_display, item_row
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
 from squads._services._results import FoundComment
@@ -108,7 +108,7 @@ class RetypeOpsMixin(ItemOpsMixin, RetypeMixin):
         item = await self.addressed_item(req)
         await self.adopt_declared_actor()
         res = await self.retype(item.id, req.target)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         retyped = ItemRetyped(
             entry=item_row(res.item, self.spec, names),
             old_id=res.old_id,
@@ -124,7 +124,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
 
     async def _row(self, item: Item) -> ItemRow:
         """*item*'s row."""
-        return item_row(item, self.spec, participant_names(await self.store.load()))
+        return item_row(item, self.spec, await self.display_names())
 
     # ------------------------------------------------------------------------- items
 
@@ -152,7 +152,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             attributes=dict(req.attributes) or None,
             body=req.body,
         )
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         created = ItemCreated.model_validate(
             {
                 **res.item.to_row(),

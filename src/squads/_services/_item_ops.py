@@ -14,6 +14,7 @@ from squads._api._dto._items import (
 from squads._api._response import Response
 from squads._badges import resolve_badges
 from squads._errors import ItemNotFoundError, SquadsError
+from squads._models._index import SquadsDB
 from squads._models._item import DISPLAY_ID_PADDING, Item, format_item_id, parse_item_token
 from squads._models._vocab import prefix_for
 from squads._services._collab import CollabMixin
@@ -41,6 +42,19 @@ def badge_pairs(pairs: list[str]) -> dict[str, str]:
 
 
 class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
+    async def shown_pronouns(self) -> dict[str, str | None]:
+        """Each role's and operator's pronouns by slug, or none when the squad hides them."""
+        if not self.paths.config.display.pronouns:
+            return {}
+        roles = {r.slug: r.pronouns for r in await self.roster_all()}
+        return roles | {o.slug: o.pronouns for o in await self.operators_all()}
+
+    async def display_names(self, db: SquadsDB | None = None) -> dict[str, str]:
+        """Each role's and operator's display name by slug, with pronouns when the squad shows
+        them; *db* is the index when the caller already loaded it."""
+        loaded = db if db is not None else await self.store.load()
+        return participant_names(loaded, await self.shown_pronouns())
+
     async def addressed_item(self, address: ItemAddress) -> Item:
         """The item *address* names, refused when no item has its number or when the item is
         not of the type the address expects, when it names one."""
@@ -77,7 +91,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         displayed body."""
         item = await self.addressed_item(req)
         warnings = await self._duplicate_warnings(item)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         kind = self.spec.item_subentity_kind(item.type)
         row = item.to_row()
         expanded = await self.read_body(item.id, keep_view=keep_view)
@@ -126,7 +140,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             visible = [i for i in items if not self.spec.hidden_by_default(i.type, i.status)]
             hidden = len(items) - len(visible)
             items = visible
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         with spans.span("dto"):
             rows = [
                 item_row(i, self.spec, names) for i in sort_by_badge(items, req.sort, self.spec)
@@ -138,5 +152,5 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         item = await self.addressed_item(req)
         await self.adopt_declared_actor()
         moved = await self.set_status(item.id, req.status, force=req.force)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         return Response(data=ItemWritten(entry=item_row(moved, self.spec, names)))

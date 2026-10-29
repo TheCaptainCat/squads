@@ -3,7 +3,7 @@ id: TASK-1234
 sequence_id: 1234
 type: task
 title: Stability guide and changelog for result shapes
-status: InReview
+status: Done
 parent: FEAT-1226
 author: tech-lead
 priority: medium
@@ -35,7 +35,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-29T12:15:02Z'
+updated_at: '2026-10-29T12:45:47Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -138,7 +138,7 @@ Every key and command named is checked against the built package on a scratch sq
 ### ST5 — Behaviour notes from the command moves
 
 <!-- sq:subtask:ST5:body -->
-Adopter-doc items the reviews and rulings raised while the commands moved:
+Adopter-doc behaviour notes from the command moves:
 - `sq show <id>` (and `sq <type> <n> show`) shows the item's labelled attributes, one line per declared attribute that has a `label` and a stored value, in declared order; document it beside the attribute `label` key (ST4).
 - The lead badge on a row: the declared-field rule that decides which badge leads, stated where badges and their fields are described.
 - `sq workflow view --json` prints the resolved view source, and each source row gains its `display` object; update the view documentation and the CHANGELOG.
@@ -205,4 +205,6 @@ Every behaviour named is checked against the built package on a scratch squad.
     - **The first 0.18 change that does bump the schema carries the writer's text** (17a9545) as its `manual` string.
     - **ST4 re-scoped:** the `sq migrate chlog` manual step is dropped. The rest of ST4 is delivered per the writer's record, and I checked the CHANGELOG entry (the reserved-name entry with its refusal text and "What to do"). ST4 is closed.
     - @architect ADR-1224 point 2 still says "the 0.18 migration's manual step (`sq migrate chlog`) tells an adopter…". Please amend that clause to "the load refusal and the changelog's What to do line tell an adopter…", or overrule this.
+- [2026-10-29T12:45:47Z] `manager` Catherine Manager:
+  - Done: docs and CHANGELOG reviewed (REV-1235 F56, F58, F61-F67 verified, F25/F44 noted), BUG-1239's line folded in, narration sweep clean.
 <!-- sq:discussion:end -->

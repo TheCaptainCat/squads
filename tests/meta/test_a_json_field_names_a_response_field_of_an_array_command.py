@@ -3,8 +3,7 @@ the commands whose frozen `--json` document is an array (or `workflow view`) set
 
 from squads._api._ops import OPERATIONS
 
-#: The operations allowed a `json_field`: those of the closed set of array commands, added as
-#: each of them moves onto its operation.
+#: The operations allowed a `json_field`: those of the closed set of array commands.
 ALLOWED = frozenset(
     {
         "blocked",

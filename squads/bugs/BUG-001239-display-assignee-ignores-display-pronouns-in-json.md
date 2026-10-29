@@ -3,14 +3,14 @@ id: BUG-1239
 sequence_id: 1239
 type: bug
 title: display.assignee ignores [display] pronouns in --json
-status: InProgress
+status: Verified
 author: qa
 priority: medium
 severity: medium
 refs:
 - FEAT-1226
 created_at: '2026-10-29T12:25:02Z'
-updated_at: '2026-10-29T12:26:01Z'
+updated_at: '2026-10-29T12:37:53Z'
 ---
 <!-- sq:body -->
 ## Steps
@@ -37,4 +37,10 @@ No. 0.17.0 has no `display` object in `show --json`, and its text `show` and `li
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T12:32:34Z, edited 2026-10-29T12:32:52Z] `python-dev` Elias Python:
+  - Fixed in e7f6f893 on worktree-agent-a6c1528fd4b8d474e (from release/0.18 663203c8), not pushed. Every role and operator display name in the item projections now goes through `ItemOpsMixin.display_names()`: `participant_names` takes the pronouns that `shown_pronouns()` resolves, the same source and the same `Name (pronouns)` form `role show` uses. When `[display] pronouns = false`, that map is empty and the bare name shows. This covers `display.assignee` on show (item and sub-entities), list, mine, tree, graph, search, sub-entity listings and show, the item write responses, and the view sources.
+  - Test: one surface case in tests/cli/test_list.py (`covers("list", "--json")`). It gives `manager` pronouns, asserts the whole `list --json --type bug --all` document with `Catherine Manager (she/her)`, then sets `[display] pronouns = false` in `.squads.toml` and asserts it again with `Catherine Manager`. Falsified twice, each red: pronouns never applied, and the config switch ignored. No existing expectation changed.
+  - Text output: identical to released 0.17.0 on twin scratch squads (13 commands incl. show, show --full, sq show, list, tree, mine, search, sub-entity list and show, graph, each with the setting on and off: 26 identical). Gates: pyright 0, ruff check and format clean, pytest -n 2 tests/meta tests/cli 1545 passed. @qa to verify.
+- [2026-10-29T12:37:39Z] `qa` Mara Tester:
+  - Verified on release/0.18 bd7aab88, dev tree, scratch squad with qa pronouns she/her. display.assignee in --json: with [display] pronouns=true it is "Mara Tester (she/her)", with false "Mara Tester", on task show, sq show, list, mine, tree, graph, search, subtasks, subtask show and the item update write response (all exit 0). comment and add-subtask write responses carry no display assignee. Text output of show, show --full --comments, sq show, list, list --all, mine, tree, graph, search, subtasks, subtask show and role show is identical to released 0.17.0 on twin squads, setting on and off; the only difference is one extra comment the dev squad got from my own repeated probe.
 <!-- sq:discussion:end -->

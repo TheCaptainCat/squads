@@ -5,6 +5,7 @@ from typing import cast
 
 from squads import _badges as badges
 from squads import _discussion as discussion
+from squads import _pronouns
 from squads._api._dto._display import AttributeDisplay, BadgeDisplay, Column, Display, StatusDisplay
 from squads._api._dto._items import (
     Comment,
@@ -35,10 +36,12 @@ LIST_COLUMNS: tuple[Column, ...] = (
 )
 
 
-def participant_names(db: SquadsDB) -> dict[str, str]:
-    """Each role's and operator's name, by slug."""
+def participant_names(db: SquadsDB, pronouns: Mapping[str, str | None]) -> dict[str, str]:
+    """Each role's and operator's name, by slug, followed by the pronouns *pronouns* gives it."""
     return {
-        it.slug: it.title for it in db.items.values() if it.type in (ROSTER_ROLE, ROSTER_OPERATOR)
+        it.slug: _pronouns.named(it.title, pronouns.get(it.slug), enabled=True).plain
+        for it in db.items.values()
+        if it.type in (ROSTER_ROLE, ROSTER_OPERATOR)
     }
 
 
