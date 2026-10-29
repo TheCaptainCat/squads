@@ -11,8 +11,9 @@ refs:
 - ADR-696
 - ADR-320
 - ADR-982
+- ADR-1250
 created_at: '2026-07-21T16:26:15Z'
-updated_at: '2026-10-25T21:34:33Z'
+updated_at: '2026-10-29T19:50:46Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -131,7 +132,7 @@ Every type runs a **common core** of cross-cutting item hygiene (`COMMON_CORE`:
   at create/update and `sq check` reports any parented record.
 - **`work`** add the parent validator and the sub-entity validators (`subentity_status_valid`,
   `subentity_container_marker`, `subentity_body_written`, `subentity_deferral_resolved`,
-  `subtask_story_mapping`), each a no-op for a type that hosts no matching kind.
+  `subentity_mapping`), each a no-op for a type that hosts no matching kind.
 - **`roster`** add only `pronouns_valid`: no parent or sub-entity rules.
 
 Everything else in the catalog is opt-in, selected per type (for example `no_status_banner` and
@@ -236,4 +237,6 @@ rename:
   - What was genuinely owed is done: the two present-tense readings are marked forward, so a conformance sweep does not hunt for a referent in `src/` and report a gap. The `records` membership list now reads "and `contract` (PRD) once it exists". Applied ADR-320s rewording at that end too and added the reciprocal edge, so the pair is linked. Also flagged for the sweep, not as an amendment: the squad-global validator catalog holds four rather than the two named here — this decision says "seed members", so nothing is owed.
 - [2026-10-25T21:34:33Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body rewritten in the present tense; Axis A, Axis B, the composition rules and the two planes are unchanged. The seed catalog and bundles were stale: the common core is COMMON_CORE (no no_status_banner; adds parent_acyclic and attribute_valid), work adds subentity_container_marker and subentity_deferral_resolved but not subentity_title_max, roster runs pronouns_valid, and no_status_banner and subentity_title_max are opt-in per ADR-864. Replaced the seed list with the catalog modules and ADR-864/ADR-982 as owners of placement, levels and squad-global selection. Folded the 2026-07-31 floor narrowing and the 2026-10-09 ADR-982 note; contract and milestone exist, so the forward-design note is gone. Removed the 5-parented-ADRs migration sequencing.
+- [2026-10-29T19:50:46Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. The validator name `subtask_story_mapping` becomes `subentity_mapping` (ADR-1250 §1); no other change.
 <!-- sq:discussion:end -->

@@ -8,10 +8,11 @@ author: architect
 refs:
 - REV-1099:addresses
 - FEAT-1108
+- ADR-1250
 description: Spec-declared Python transforms feed a view's template and a views key
   in show --json; body returns the stored text
 created_at: '2026-10-24T13:07:46Z'
-updated_at: '2026-10-27T21:05:32Z'
+updated_at: '2026-10-29T19:50:53Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -79,7 +80,7 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 
 ### `milestone_rollup`
 
-- `[views.milestone_rollup]` declares `transform = { module = "squads._view_transforms", function = "milestone_rollup" }`. `squads._view_transforms` is a new private module that imports only `_models` and `_workflow`.
+- `[views.milestone_rollup]` declares `transform = { module = "squads._view_transforms", function = "status_rollup" }`. `squads._view_transforms` is a new private module that imports only `_models` and `_workflow`.
 - It partitions the `targets` members on status roles alone, never on a status name. `delivered`: `spec.is_delivered(type, status)`. `settled`: `spec.role_for(status).settled` and not delivered (Cancelled, Superseded, and the like). `outstanding`: everything else.
 - The output is `{"delivered": [row], "outstanding": [row], "settled": [row]}`. Each `row` is `{id, type, title, status, assignee}`, with `assignee` `null` when unset. Each list is sorted by type and then `sequence_id`, case-sensitively, the order the template uses today. Consumers that want more fields read `sq show <id> --json`.
 - `templates/views/milestone_rollup.md.j2` is rewritten to read `data` and no longer partitions on its own.
@@ -146,4 +147,6 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
   - Audited 2026-10-25: holds. _transform.py (ViewTransformError, exec of compiled bytes), read_stored_body, the views key in show --json and the milestone_rollup transform match the record.
 - [2026-10-27T21:05:32Z] `architect` Robert Architect:
   - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
+- [2026-10-29T19:50:53Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. The transform function in `squads._view_transforms` is `status_rollup` (ADR-1250 §1); the view keeps its spec name `milestone_rollup`, as do its template and the `views` key. No other change.
 <!-- sq:discussion:end -->

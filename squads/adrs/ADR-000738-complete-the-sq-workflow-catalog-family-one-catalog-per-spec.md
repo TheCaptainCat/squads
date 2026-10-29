@@ -13,11 +13,12 @@ refs:
 - ADR-474
 - REV-736
 - TASK-737
+- ADR-1250
 description: 'Closes the sq workflow --json catalog family at one command per declared
   WorkflowSpec map: adds subentity-kinds and lifecycles under a single row grammar,
   plus two reference keys on ADR-459''s type row.'
 created_at: '2026-08-03T15:34:51Z'
-updated_at: '2026-10-27T21:05:30Z'
+updated_at: '2026-10-29T19:50:49Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -98,7 +99,7 @@ One row per entry of `spec.subentity_kinds`, ascending kind name:
   "local_prefix": "F",
   "container_heading": "Findings",
   "completion": "Fixed",
-  "maps_parent_story": false,
+  "maps_to_parent": false,
   "fields": [{"code": "severity", "label": "Severity", "collection": "severity"}]
 }
 ```
@@ -121,7 +122,7 @@ One row per entry of `spec.subentity_kinds`, ascending kind name:
   writes into the file.
 - **`completion`** is the done-target status inside this kind's own lifecycle — what a "mark done"
   action targets instead of hardcoding `Done`/`Fixed`. ADR-348 rules it declared, not derivable.
-- **`maps_parent_story`** completes the column derivation. ADR-348 derives a kind's roll-up columns
+- **`maps_to_parent`** completes the column derivation. ADR-348 derives a kind's roll-up columns
   as a fixed base, plus one column per declared field, plus a story column iff this flag. A client
   handed `fields` but not the flag can build every column but the last, and would hardcode that one.
 - **`placeholder` is not published.** Scaffold prose is content the engine writes into a file, not
@@ -287,4 +288,6 @@ permitted under rule 6, and the adopter-facing docs say plainly that it has no c
   - 2026-10-25 audit: partly stale, targeted present-tense edits; the rule, row grammar and the two catalogs are unchanged. §1 now lists the family as it stands, including ref-kinds (ADR-775) and views (ADR-1109) added under the same rule; §7 no longer lists extra_fields as unpublished (attributes is on the type row, ADR-1007); folded the ADR-1025 note into §8; §9 states the by-consumer/by-row delivery rule without the 0.13/0.14 plan; Consequences drop the F22/F23 closure narrative and the stale 8-lifecycles/10-types count.
 - [2026-10-27T21:05:30Z] `architect` Robert Architect:
   - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
+- [2026-10-29T19:50:49Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. The catalog key `maps_parent_story` becomes `maps_to_parent` in the example row and its bullet (ADR-1250 §1, §7); no other change.
 <!-- sq:discussion:end -->

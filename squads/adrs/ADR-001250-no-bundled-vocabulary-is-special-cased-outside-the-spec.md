@@ -23,7 +23,7 @@ description: Options, import keys, stored keys, wire keys and generated text der
   from the active spec; badge values and the mapping are stored flat under declared
   or neutral keys
 created_at: '2026-10-29T19:08:39Z'
-updated_at: '2026-10-29T19:46:01Z'
+updated_at: '2026-10-29T19:51:16Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -245,4 +245,6 @@ Each overlap below is a clause-level amendment (board rule 6): the older decisio
   - 2026-10-29: on the open points: the mapping is stored under the neutral key maps_to; derived per-field flags sit beside the generic --set/--badge/--min-badge; a value under a renamed or dropped field code is kept as an unknown key, reported by sq check, and moved by sq migrate rename-field; a mapping kind on a type without parent_required is refused at spec load. The release is 0.19.0, so the schema becomes 0.19.
 - [2026-10-29T19:46:00Z] `op-pierre` Pierre Chat:
   - 2026-10-29: ADR-1250 accepted.
+- [2026-10-29T19:51:16Z] `architect` Robert Architect:
+  - §11 applied 2026-10-29: ADR-323 §4/§5, ADR-348 §1/§4/§7, ADR-622 (Addressing, the op set), ADR-1007 §1/§4, and the neutral names in ADR-541, ADR-738, ADR-864 and ADR-1109 are amended in place, each with a dated comment and a related ref back here. ADR-1172 needed nothing further (its amendment b2bb2a8 already matches §10). Statuses unchanged.
 <!-- sq:discussion:end -->

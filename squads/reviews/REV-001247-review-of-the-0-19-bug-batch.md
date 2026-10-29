@@ -2,7 +2,7 @@
 id: REV-1247
 sequence_id: 1247
 type: review
-title: Review of the 0.18.1 bug batch
+title: Review of the 0.19 bug batch
 status: ChangesRequested
 author: reviewer
 refs:
@@ -18,7 +18,7 @@ subentities:
 - local_id: F2
   title: init over a shared-number corpus writes .squads.toml before the repair refusal;
     a plain re-run is refused
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: 'create guide skips the spec-aware create class: override fields and the
@@ -89,13 +89,17 @@ subentities:
   title: 'New create-attribute meta test cannot fail: it never reads the built CLI'
   status: Verified
   severity: info
+- local_id: F17
+  title: adopt --renumber does not say which item it gave a new number
+  status: Open
+  severity: low
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T19:24:54Z'
+updated_at: '2026-10-29T19:50:22Z'
 ---
 <!-- sq:body -->
 ## Scope
 
-The 0.18.1 bug batch on `release/0.18.1`, sixteen bugs in three tasks:
+The 0.19 bug batch on `release/0.19`, sixteen bugs in three tasks:
 
 - TASK-1244 (commits 5a6c61d3, 391a9d85): BUG-1187, BUG-1188, BUG-1189, BUG-1190, BUG-1191.
 - TASK-1245 (commits f3fe8028, 9389aceb): BUG-1193, BUG-1194, BUG-1195, BUG-1196, BUG-1197, BUG-1200.
@@ -112,7 +116,7 @@ BUG-1192 is out of scope here (moved to TASK-1243).
 
 ## Judgment points
 
-- **BUG-1191 remedy.** Plain `repair`, `init` (with or without `--force`) and `adopt` over a corpus whose files share a number all print the same refusal, and it names `sq repair --renumber`. That remedy works on each path once the corpus is current-schema. `migrate up` never reaches the new refusal, because its pre-runner fit check already refuses a shared number with hand-renumber instructions, which is the right answer on a behind-schema corpus where `sq repair` is gated. On `init` over a corpus the config is written before the refusal; see the findings.
+- **BUG-1191 remedy.** Plain `repair` over a corpus whose files share a number refuses and names `sq repair --renumber`. `init` (with or without `--force`) and `adopt` refuse before writing anything and name `sq adopt --renumber`, which needs no configuration. `migrate up` never reaches the new refusal, because its pre-runner fit check already refuses a shared number with hand-renumber instructions, which is the right answer on a behind-schema corpus where `sq repair` is gated. See F2.
 - **repad width 32.** Thirty-two digits, a 60-character slug and a short prefix stay well inside 255 bytes. The bound is checked in the service before the index is loaded, so nothing is renamed.
 - **`--depth deep`.** Click's `IntRange` gives "'deep' is not a valid integer range.", which reads as if a range were expected. See the findings.
 - **BUG-1183.** `create guide` is still hand-written and is not built with the spec-aware create command class. Override-declared fields therefore do not reach it. This gap predates the batch (0.17.0 behaves the same), so it is not a regression, but ST1 asked for the derived form.
@@ -187,6 +191,8 @@ Fix options: in `init`, when the folder already holds item files, run the shared
     - If a new option is out of scope for 0.18.1, the fallback is to keep the current text and record the half-written refused adopt as a separate finding. I would still prefer the option.
 - [2026-10-29T19:24:54Z] `python-dev` Elias Python:
   - Fixed in ac46f4c4: plain adopt and init refuse before writing and name sq adopt --renumber; adopt --renumber resolves and adopts in one step.
+- [2026-10-29T19:49:18Z] `reviewer` Paul Reviewer:
+  - Verified at 7ed41e73. Driven on a scratch squad (TASK-14 and BUG-14 sharing a number, no `.squads.toml`, no index, no `.gitignore`): `sq init`, `sq adopt` and `sq init --force` each exit 1 with the refusal naming `sq adopt --renumber`, and `diff -r` against a pristine copy shows nothing written. `sq adopt --renumber` then exits 0 (TASK-14 moved to TASK-15), `sq check` exits 0, and a later plain or `--renumber` adopt exits 0. Targeted tests: 61 passed. Falsified in a scratch worktree: dropping adopt's pre-write check turns the regression case red; dropping `renumber=renumber` from the repair call turns it and the new `tests/cli/test_adopt.py` case red. One gap in the new option's output is filed as F17.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -428,7 +434,7 @@ The op-pierre ruling renamed guide's `--tag` to `--tags`, but three texts still 
 - `README.md:300`: "guides take `--tech`/`--tag` in place of `--label`/`--ref`/`--priority`". Both halves are false: guides take `--tags`, and they take `--label`, `--ref` and `--priority` like every type.
 - `README.md:339`: `sq create guide TITLE [--tech] [--tag]`.
 
-`CHANGELOG.md` has no 0.18.1 entry yet for the rename, which the ruling asked for as one breaking line, nor for `--target-date`/`--target-ref`. Fix: the playbook line with the dev (it regenerates the skill, so `sq sync` and the template manifest follow); README and CHANGELOG with the tech writer.
+`CHANGELOG.md` has no 0.19.0 entry yet for the rename, which the ruling asked for as one breaking line, nor for `--target-date`/`--target-ref`. Fix: the playbook line with the dev (it regenerates the skill, so `sq sync` and the template manifest follow); README and CHANGELOG with the tech writer.
 <!-- sq:finding:F14:body:end -->
 
 #### Discussion
@@ -436,6 +442,8 @@ The op-pierre ruling renamed guide's `--tag` to `--tags`, but three texts still 
 <!-- sq:finding:F14:discussion -->
 - [2026-10-29T19:21:15Z] `reviewer` Paul Reviewer:
   - Still Open, as planned: it ships with the version bump. The dev updates the playbook guide command and @tech-writer updates the README and CHANGELOG lines that still give guide --tag.
+- [2026-10-29T19:48:37Z] `python-dev` Elias Python:
+  - Code half done in 1a0e8a8c: playbook.toml names --tags, version bumped to 0.19.0 with the manifest 0.19.0 entry appended (0.18.0 entry byte-identical to the tag), CHANGELOG heading renamed. README and changelog entries remain for the tech writer.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -476,6 +484,21 @@ What it does pin is that the bundled spec keeps those three attributes settable,
   - Verified at 1ad3f7b5. The guard now reads the real `create guide --help` under an override, so it can fail. Falsified in a git-archive extract: dropping the settable check, and dropping str from CREATE_ATTRIBUTE_KINDS, each turn it red; the restored code turns it green.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
+
+<!-- sq:finding:F17 -->
+### F17 — adopt --renumber does not say which item it gave a new number
+
+<!-- sq:finding:F17:body -->
+`sq adopt --renumber` gives a file a new number without saying which. Driven: over TASK-14 and BUG-14 it moved TASK-14 to TASK-15, and the panel said only "imported: 15 existing item(s)". `sq repair --renumber` prints one line per moved item (`render_repair` prints `report.renumbered`), but `AdoptReport` has no field for those lines, so neither the panel nor `--json` shows them. An adopter whose commits or documents cite TASK-14 has no way to learn it moved, other than diffing the folder.
+
+Fix: carry the repair's renumbered lines on `AdoptReport` and print them in the adopt renderer as `render_repair` does. Assert the line in `test_renumber_gives_a_shared_number_a_new_one_and_adopts`.
+<!-- sq:finding:F17:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F17:discussion -->
+<!-- sq:finding:F17:discussion:end -->
+<!-- sq:finding:F17:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -531,4 +554,6 @@ What it does pin is that the bundled spec keeps those three attributes settable,
   - - Round 3 at 1ad3f7b5, read-only. Verified: F13, F15, F16. Kept Open: F2 (simplicity, see its comment) and F14 (ships with the version bump and @tech-writer). Review stays ChangesRequested.
     - Method: diffs of d95c404e and 1ad3f7b5; 117 targeted tests pass; ruff clean; each fix driven from the dev tree on scratch squads. The new tests were falsified in a git-archive extract: pre-fix code for F13 and F15, and two mutations of the create option derivation for F16.
     - @manager F2: the three-step remedy works, but step 1 depends on a refused adopt leaving a config and an index behind. Proposed one-step rule: `sq adopt --renumber`, with plain adopt refusing before it writes. S.
+- [2026-10-29T19:50:22Z] `reviewer` Paul Reviewer:
+  - Round 4 at 7ed41e73, read-only. Verified: F2 (init, adopt and init --force refuse before writing and name `sq adopt --renumber`; that command resolves and adopts; both new tests falsified). New: F17 (low), `sq adopt --renumber` does not report which item it renumbered. Kept Open: F14 (playbook with the version bump, README and CHANGELOG with the tech writer). Retitled for 0.19 and updated the scope line and the BUG-1191 judgment point to the current remedy. @manager F17 for the TASK-1244 dev, size S; with F14 and F17 closed I recommend Approved.
 <!-- sq:discussion:end -->

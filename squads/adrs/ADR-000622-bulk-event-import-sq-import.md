@@ -9,11 +9,12 @@ refs:
 - REV-565
 - ADR-955
 - ADR-1009
+- ADR-1250
 description: A JSONL event-import command that replays a project's history in one
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-10-29T19:09:17Z'
+updated_at: '2026-10-29T19:50:42Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -59,7 +60,7 @@ not a sort key — real history legitimately contains out-of-order dated backfil
 ### Addressing: client-supplied handles
 
 Events reference their target through a **local handle** — a client-chosen label, file-scoped,
-namespaced away from real IDs. A creating op (`create`, `add-story`/`add-subtask`/`add-finding`)
+namespaced away from real IDs. A creating op (`create`, `add-<kind>`/`add-sub`)
 may carry `"handle": "<label>"`; the importer records `handle → allocated-id` (and, for
 sub-entities, `handle → (parent-id, local-id)`) as it applies. Any later event's `target`/`to`/
 `parent` resolves against the handle map first, then falls back to a literal existing ID. This is
@@ -83,31 +84,30 @@ a distinct, harder problem and is out of scope here.
 Every op carries the common `op`/`at`/`as` fields above; per-op fields:
 
 - **`create`** — `type`, `title`; optional `description`, `parent`, `labels`, `refs`
-  (`["ID-or-handle", "ID-or-handle:kind"]`), `assignee`, badge fields (`priority`, `severity`, …),
+  (`["ID-or-handle", "ID-or-handle:kind"]`), `assignee`, `fields` (field code to badge code),
   `status` (initial-status override), `slug`, `body`, `handle`. Allocates a fresh ID.
 - **`status`** — `target`, `status`; optional `force`. Transition-checked against the type's
   workflow (same gate as the interactive verb).
 - **`body`** — `target`, `body` (markdown); optional `append`. Marker-safe.
 - **`comment`** — `target`, `messages` (list) or `message`; optional sub-entity selector
-  (`story`/`subtask`/`finding`, or the generic `sub: [kind, local-or-handle]`). `as` is the author.
+  (`<kind>` for any declared kind, or the generic `sub: [kind, local-or-handle]`). `as` is the author.
 - **`ref`** — `target` (source), `to` (target ID/handle), optional `kind` (a declared ref kind;
   omitted, the spec's default kind, ADR-775). Forward edge only; there is no removal variant, since
   a `create`-time `refs` list covers the migration path.
-- **`add-story` / `add-subtask` / `add-finding`** — `target` (the parent feature/task/review
-  ID/handle), `title`; optional `assignee`, `status`, `body`, `handle`; `add-subtask` also takes
-  `story` (map to a parent story by handle/local), `add-finding` also takes `severity`. These are
-  ergonomic fronts over one generic form, **`add-sub`** with an explicit `kind`, which covers any
-  project-declared custom sub-entity kind (maps to the service's `add_block`).
+- **`add-<kind>`**, for every declared kind: `add-sub` with `kind` set, plus the kind's field codes
+  as top-level keys and the target kind's name when the kind maps. **`add-sub`** is the generic
+  form, with `fields` and `maps_to`. Both take `target` (the parent ID/handle), `title`; optional
+  `assignee`, `status`, `body`, `handle` (maps to the service's `add_block`).
 - **`sub-status`** — `target` (parent), `kind`, `local` (or a sub-handle), `status`; optional
   `force`.
 - **`sub-body`** — `target`, `kind`, `local`/handle, `body`; optional `append`. Marker-safe.
 - **`assign`** — `target` (item, or a sub via `kind`+`local`), `assignee`.
 - **`update`** — the general metadata escape hatch: `target` plus any of
-  `title`/`description`/`assignee`/`priority`/`labels` (add/remove)/`parent`/`status`/badge
-  set-unset. `assign`/`status`/`body` are named conveniences over the hot-path subset of this.
+  `title`/`description`/`assignee`/`fields`/`unset_fields`/`labels` (add/remove)/`parent`/
+  `status`. `assign`/`status`/`body` are named conveniences over the hot-path subset of this.
 
 Sub-entity **prose** (`body`/comment) is marker-owned in the parent body; sub-entity **state**
-(status/assignee/severity/story mapping) is frontmatter — the ops above mutate exactly those
+(status, assignee, field values, mapping) is frontmatter — the ops above mutate exactly those
 seams, never a hand-authored body region directly.
 
 ### Atomicity, validation, idempotency
@@ -218,4 +218,6 @@ the interactive behaviour.
   - 2026-10-25 audit: partly stale, targeted present-tense edits; the import design is unchanged. CLI surface corrected to the shipped flags: --dry-run, --json, --as (an event with no actor to inherit is refused); the time default is the global --at, the squad is -C (folded the ADR-1009 note); there is no --check-monotonic flag and no ref removal variant. Folded the ADR-955 recovery note into the apply contract, stated the exit-3 applied-with-error-findings case from sq import --help, and replaced the v1/deferred framing with in/out of scope.
 - [2026-10-29T19:09:17Z] `architect` Robert Architect:
   - 2026-10-29: ADR-1250 (related) narrows "The op set". `add-<kind>` and the `<kind>` comment selector exist for every declared kind in place of the three bundled fronts. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment (board rule 6).
+- [2026-10-29T19:50:42Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. Addressing: `add-<kind>`/`add-sub` replace the three bundled fronts. The op set: `create` takes `fields`; the `comment` selector is `<kind>` for any declared kind or `sub`; the add bullet becomes `add-<kind>` for every declared kind plus the generic `add-sub` with `fields` and `maps_to`; `update` takes `fields`/`unset_fields` (the trailing "badge set-unset" is dropped as now redundant); the closing paragraph reads "status, assignee, field values, mapping". See ADR-1250 §4.
 <!-- sq:discussion:end -->
