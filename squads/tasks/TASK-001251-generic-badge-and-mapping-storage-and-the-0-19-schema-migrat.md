@@ -3,7 +3,7 @@ id: TASK-1251
 sequence_id: 1251
 type: task
 title: Generic badge and mapping storage, and the 0.19 schema migration
-status: Ready
+status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -16,22 +16,22 @@ description: Badge values and the mapping stored flat under declared or neutral 
 subentities:
 - local_id: ST1
   title: Item badge values stored as attributes
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST2
   title: Flat sub-entity entries with maps_to
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST3
   title: Stored-key collision rule at spec load
-  status: Todo
+  status: Done
   story: US6
 - local_id: ST4
   title: Schema 0.19 runner on a fixture corpus
-  status: Todo
+  status: Done
   story: US6
 created_at: '2026-10-29T19:55:06Z'
-updated_at: '2026-10-29T20:41:19Z'
+updated_at: '2026-10-29T20:58:36Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -157,4 +157,31 @@ This repository's own squad is migrated later, at the release cut (see the guard
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:58:35Z] `python-dev` Elias Python:
+  - @manager Handback for TASK-1251, ready for review. Branch `worktree-agent-ab1cb87aabb269f4e`, commits 6feb2cf9 and a472109f, on top of origin/release/0.19. Gates: pyright, ruff check and format clean; `pytest -n 4 tests/meta tests/cli tests/regressions tests/check` 1721 passed. Existing `--json` and render goldens pass unchanged.
+    
+    - ST1: `Item.priority` and `Item.severity` are gone, as are the two `CORE_KEYS`; every badge value lives in `Item.attributes` behind `badge_value` and `set_badge_value`. Service readers moved to the accessor. `ItemFields.priority` and `.severity` default to `None`, so the row shape is unchanged. Test: an override-declared field is stored top-level and reported in `badges` (via `update --set`; `create` has no `--set`). Falsified by storing under another key.
+    - ST2: `SubEntity` has core keys local_id, title, status, assignee, maps_to, deferred_to plus `attributes`. `severity`, `story` and `extra` are removed. Entries are written flat, `maps_to` only when set. Unknown keys and empty values are handled by a before-validator. The `SubentityRow` DTO adapts the stored entry back to today's `severity`/`story`/`extra` wire keys, to be removed by the wire task. Tests: flat field plus `maps_to` on the entry; an unknown key survives `update` and `repair`. Both falsified.
+    - ST3: stored-key collision rule in `_workflow/_validity.py`. Item side: model fields plus row-added keys, with `priority`/`severity` no longer exempt. Kind side: the entry's fields plus `body`, `badges`, `discussion`, `display` (new `SUBENTITY_ROW_ADDED_KEYS`). A kind named `sub` is refused. `extra` left the reserved set. 3 refusal tests at `workflow lint --json`, falsified together.
+    - ST4: `SCHEMA_VERSION` is 0.19. Runner `_migrations/_v0_17_to_v0_19.py` is registered as release 0.19.0, schema 0.17 to 0.19. It scans first and refuses with nothing written on `story`+`maps_to` or an `extra` key clashing with a core or top-level key. An unchanged file is not written, so a rerun is a no-op. Fixture `tests/fixtures/corpus/v0_17/` plus 4 tests through `migrate up`, falsified.
+    
+    Rebase notes for the sibling task: `maps_parent_story` is untouched on my side; I edited the adjacent `story` reads in `_services/_subentities.py`, `_validators.py`, `_item_dto.py` and `_discussion.py`. In `_validity.py` I changed `_reserved_*`, `check_field_codes`, `check_attributes` and `check_subentity_kinds`.
+    
+    Findings for review:
+    1. Frontmatter key order: `priority` and `severity` are written after the timestamps, where they used to follow `assignee`. Values and keys are the same, but an item file is reordered the first time it is rewritten.
+    2. `_duplicate_ids.py` and `_import.py` needed no change: the legacy item-level `extra` slug read must stay for unmigrated files, and the import `story` is a request key.
+    3. No bundled template changed, so the template manifest was not regenerated.
+    4. The `_ALLOWED` pair in the bundled-kind-literal guard test for `_models/_subentity.py` was dead and was removed.
+    
+    Adopter-visible changes, as draft changelog lines:
+    - Schema 0.19: a sub-entity entry in an item's frontmatter is flat. `story` becomes `maps_to` and the keys of `extra` sit beside the others. `sq migrate up` rewrites existing entries and refuses, writing nothing, an entry holding both `story` and `maps_to` or an `extra` key already present on the entry.
+    - A field code that equals a core, `path`, `prefix`, row-added or sub-entity-object key, or a sub-entity kind named `sub`, is refused when the workflow spec loads. A field named `priority` or `severity` is no longer special.
+    - Unknown keys on a sub-entity entry are kept through updates and `sq repair`.
+    
+    Migration manual step text:
+    "Edit what `sq migrate up` does not rewrite. (1) An override that spells `maps_parent_story`, `subtask_story_mapping` or the transform `milestone_rollup` is refused at load, so `sq migrate up` stops before any step and changes nothing until you rename them to `maps_to_parent`, `subentity_mapping` and `status_rollup`. (2) An override template that reads a name this release removes fails to render: the sub-entity head no longer receives `severity`, `severity_label` or `story` but the declared fields (a list of code, label and badge) and the mapping (a label and a value); an item's `.priority` and `.severity` are read like any other stored value, by field code; a sub-entity's `.story` is `.maps_to` and its `.extra` is `.attributes`. (3) Reflog entries keep the keys they recorded: they are history and are not rewritten."
+    
+    Left for others:
+    - The load-time refusal of the three old spellings (sibling task) must land for point (1) to hold. If the template context names differ from what that task and the wire task settle, adjust point (2).
+    - The runner was not run on `squads/`.
 <!-- sq:discussion:end -->

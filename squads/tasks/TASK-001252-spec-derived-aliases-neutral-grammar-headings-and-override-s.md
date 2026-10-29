@@ -3,7 +3,7 @@ id: TASK-1252
 sequence_id: 1252
 type: task
 title: Spec-derived aliases, neutral grammar, headings and override squad
-status: Ready
+status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -16,26 +16,26 @@ description: Aliases from the active spec, maps_to_parent and target kind, headi
 subentities:
 - local_id: ST1
   title: Override test squad and its fixture
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST2
   title: Root aliases from the active spec
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST3
   title: Neutral grammar names and the target kind
-  status: Todo
+  status: Done
   story: US4
 - local_id: ST4
   title: Container heading key on sub-entity kinds
-  status: Todo
+  status: Done
   story: US5
 - local_id: ST5
   title: Generated agent text from the spec
-  status: Todo
+  status: Done
   story: US5
 created_at: '2026-10-29T19:55:07Z'
-updated_at: '2026-10-29T20:41:21Z'
+updated_at: '2026-10-29T21:01:30Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -181,4 +181,31 @@ Tests (1): on the override squad, `sq skill squads show` and the CLAUDE.md secti
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T21:01:29Z] `python-dev` Elias Python:
+  - @manager Handback for TASK-1252: commit f31e2951 on branch worktree-agent-a79a454ba3f87496e (worktree /home/pchat/projects/squads/.claude/worktrees/agent-a79a454ba3f87496e, based on origin/release/0.19). Gates run: pyright, ruff check, ruff format --check clean; `pytest -n 4 tests/meta tests/cli tests/regressions tests/check` 1713 passed. Full suite is yours.
+    
+    **ST1 override squad.** `tests/fixtures/override_squad/{workflow,playbook}.toml`, builder `init_overridden` in `tests/_squads.py`, populated builder `tests/_override_populated.py` (INI-8, JOB-9, REC-10), `override_project` fixture in `tests/cli/conftest.py`. The override keeps only role/skill/operator and declares initiative (outcome, urgency, heading, alias f), job (action, impact, work_size, parent_required, maps_to_parent), record (replaces ref kind), a deferred-status lifecycle on action, create-time attributes of every kind (date, list, str, bool). Test: checks clean and lists only its vocabulary.
+    
+    **ST2 aliases.** RESERVED_CLI_ALIASES / reserved_alias_owner and their meta guard are gone. Spec load checks an alias against RESERVED_CLI_VERBS, declared type names and the other declared aliases. The root table re-routes a token the active spec gives to another type (`common.retargeted_type`). Tests: reused alias runs the new owner (override squad); shadowing a kept owner's alias is refused naming it.
+    
+    **ST3 neutral names.** maps_to_parent, subentity_mapping, status_rollup (bundled view keeps its name). Old spellings are refused at load and in `sq workflow lint`, naming the neutral one. `WorkflowSpec.mapping_target_kind(kind)` is the one target-kind method; load refuses a mapping kind whose host has no parent_required or whose parent_required type hosts no kind, naming both remedies. Catalog column renamed. Tests: three renamed spellings as rows; two refusal rows.
+    
+    **ST4 heading.** `heading` key on `[subentity_kinds.<kind>]`; absent means the title-cased plural; bundled declares the three; code table and its pairing guard removed. Test on the override squad (declared vs derived).
+    
+    **ST5 generated text.** squads skill, CLAUDE.md section, workflow cheatsheet derive the mapping option, example and kind list from the spec (new `cheatsheet_alias_example`); the per-kind hint table is gone. Static prose that used dropped-type words was reworded (greeting example, "review points", "findings", "decision", "stability contract", "e.g. a bug"). Test: on the override squad, `sq skill squads show` and CLAUDE.md name no word the bundled spec declares and the override drops.
+    
+    **Falsification.** Each new test was run red once: playbook removed (ST1), retargeting disabled (alias reuse), duplicate-alias check disabled, rename check returning nothing, mapping-target check removed, heading ignored, and a hardcoded `story` put back in the CLAUDE.md template. Restored after each.
+    
+    **Left for others / notes.**
+    - `tests/meta/test_generated_agent_text_names_no_bundled_vocabulary.py` still keeps its literal sets (ADR-1250 section 9, a later guard task).
+    - `sq list` on the override squad still shows a Priority column and `Story` header (the derived-options task).
+    - The 0.19.0 manifest key and content_store were regenerated once from a clean checkout; the 0.18.0 block is untouched. The bundled spec digest in `tests/cli/test_workflow.py` changed with workflow.toml.
+    - This repository's own CLAUDE.md managed section and skills need `sq sync` (templates changed); I did not touch `squads/`.
+    
+    **Draft changelog lines (adopter-visible).**
+    - Root type aliases come from the squad's workflow spec: an override that drops `feature` can give `f` to another type; keeping the owner and reusing its alias is refused at load.
+    - Renamed spec grammar: the kind key `maps_parent_story` is `maps_to_parent`, the validator `subtask_story_mapping` is `subentity_mapping`, and the bundled view transform function `milestone_rollup` is `status_rollup` (the view keeps its name). An override spelling an old name is refused with a message naming the new one. `sq workflow subentity-kinds --json` reports `maps_to_parent`.
+    - A kind with `maps_to_parent = true` needs a host type whose `parent_required` type hosts a sub-entity kind; otherwise the spec is refused at load, naming both remedies.
+    - New optional `heading` key on `[subentity_kinds.<kind>]` sets the container heading; without it the heading is the title-cased `plural` (docs/overrides.md entry for the writer). An override that renames a bundled kind's `plural` now keeps the bundled `heading` until it declares its own.
+    - The squads skill, CLAUDE.md section and workflow cheatsheet read every example from the squad's own vocabulary instead of bundled type and kind names.
 <!-- sq:discussion:end -->
