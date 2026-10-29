@@ -655,8 +655,8 @@ with the parenthesis dimmed. `sq role list --json`, `sq role <slug> show --json`
 `sq operator list --json` and `sq operator <slug> show --json` carry `pronouns`, right after
 `full_name`: the resolved value (a role's own, else the default) or `null`, on every row. An item
 row (`sq list -t role --json`) carries the stored key only, like any attribute. The display
-name of a role or operator in a `--json` payload (`display.name`, and `display.pronouns` on a
-`sq tree --json` node) carries them the way human output does. Pronouns never appear in a
+name of a role or operator in a `--json` payload (`display.name`, `display.assignee`, and
+`display.pronouns` on a `sq tree --json` node) carries them the way human output does. Pronouns never appear in a
 comment header or a discussion entry.
 
 **Turning the display off.** `.squads.toml` takes a `[display]` table with one key:
@@ -667,8 +667,8 @@ pronouns = false
 ```
 
 It removes the pronouns from human CLI output, from `sq ui` and from the display names of
-`--json` payloads (`display.name` reads `Robert Architect`, and a tree node's `display.pronouns`
-is `null`). The `pronouns` key of a roster row keeps the resolved value, and exit codes, stored
+`--json` payloads (`display.name` and `display.assignee` read `Robert Architect`, and a tree
+node's `display.pronouns` is `null`). The `pronouns` key of a roster row keeps the resolved value, and exit codes, stored
 data and generated agent files are the same either way. An unknown key or a value that is not a
 boolean (a quoted `"false"` is a string) never stops a command: the default (`true`) applies and
 `sq check` warns, through the always-on `display_config_valid` check:

@@ -34,7 +34,7 @@ subentities:
   title: Local commands are no slower than in 0.17.0
   status: Todo
 created_at: '2026-10-28T22:00:08Z'
-updated_at: '2026-10-29T07:12:29Z'
+updated_at: '2026-10-29T12:44:17Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -235,4 +235,6 @@ Done when:
   - 2026-10-29: the refactor does not close slower than 0.17.0 in local mode. Measured today: show/list/tree 20-30 % slower (e.g. task show 1088 -> 1304 ms median). Add a local-mode performance pass to this feature, with the criterion: 0.18 local is not slower than 0.17.0 on show, list and tree (median of 31 runs). The remote client budget stays with TASK-1219.
 - [2026-10-29T07:12:29Z] `product-owner` Nina Product:
   - Added US6, local commands no slower than 0.17.0 (show, list, tree; median of 31 interleaved runs on the reference host; script under scripts/), per op-pierre 2026-10-29.
+- [2026-10-29T12:44:17Z] `tech-writer` Theo Writer:
+  - Process-narration sweep done over the 0.17.0..HEAD diff (added comments, docstrings and assert messages in src/tests/scripts, docs, CHANGELOG 0.18.0, CLAUDE.md, CONTRIBUTING.md, and the bodies of FEAT-1226 and its tasks). Two code comments rewritten: the json_field allowlist comment in tests/meta no longer describes the move onto operations, and the _cli/_skill.py view comment says there is no view rm instead of calling it retired. Two sq bodies reworded: the TASK-1238 lines about levers moving from TASK-1219, and the TASK-1234 ST5 lead-in. Gates: ruff, format, pyright 0 errors, tests/meta 688 passed, sq check clean. Nothing committed. @manager
 <!-- sq:discussion:end -->

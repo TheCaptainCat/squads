@@ -348,8 +348,8 @@ register_roster_status_verb(_addr, status=ops.SKILL_STATUS)
 
 # --------------------------------------------------------------------------- view add/disable
 
-# Place, re-enable or disable an unpaired sq:view:<name> tag in the skill's sq:body region. `view
-# rm` is retired: a tag is disabled, never deleted.
+# Place, re-enable or disable an unpaired sq:view:<name> tag in the skill's sq:body region. There
+# is no `view rm`: a tag is disabled, never deleted.
 _view_app = typer.Typer(
     no_args_is_help=True, help="Show or hide declared views in the skill's body."
 )

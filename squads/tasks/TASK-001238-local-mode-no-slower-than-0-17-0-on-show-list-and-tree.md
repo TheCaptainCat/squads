@@ -26,7 +26,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-29T07:11:29Z'
-updated_at: '2026-10-29T11:49:38Z'
+updated_at: '2026-10-29T12:42:24Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -45,10 +45,10 @@ For each of `show`, `list` and `tree`, the median of 31 interleaved runs of 0.18
 
 1. **Measure first, without a profiler.** Wall-clock spans around the root callback, `LocalApi` composition, the operation, the DTO build and validation, and rendering, taken in the script's runs, not under cProfile, whose overhead distorts pydantic and import-heavy paths. Post the span breakdown per command before changing anything.
 2. **Candidates to check:** `LocalApi` composition (a service composed per mode, the binding table walk); pydantic DTO build and validation on objects built in-process (`model_construct` where the service already holds valid data, validation kept at the HTTP boundary); building the full `display` object when the command shows only part of it; Typer converting the whole command tree on every invocation.
-3. **Levers from ADR-1225 section 5 that serve local mode,** applied here: lazy command modules (a literal command-name table at the root that imports only the invoked group's module, root `--help` still loading all, with a `tests/meta` guard comparing the table to the registered tree); `gc.freeze()` once output is flushed and `gc.disable()` for start-up, in `main`; `__version__` without `importlib.metadata`; `defer_build` on the DTO modules and `rich.markdown` imported only when a body is rendered (check each is in place and effective). These move here from TASK-1219.
+3. **Levers from ADR-1225 section 5 that serve local mode,** applied here: lazy command modules (a literal command-name table at the root that imports only the invoked group's module, root `--help` still loading all, with a `tests/meta` guard comparing the table to the registered tree); `gc.freeze()` once output is flushed and `gc.disable()` for start-up, in `main`; `__version__` without `importlib.metadata`; `defer_build` on the DTO modules and `rich.markdown` imported only when a body is rendered (check each is in place and effective). TASK-1219 does not apply them.
 4. Fix what the spans show, re-measure, repeat until the criterion holds.
 
-The remote-client budget (275/235 ms), its import guard and its benchmark stay in TASK-1219; that task now builds on the levers landed here.
+The remote-client budget (275/235 ms), its import guard and its benchmark stay in TASK-1219, which builds on the levers this task lands.
 
 ## Modules touched
 

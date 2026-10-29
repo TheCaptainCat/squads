@@ -77,8 +77,8 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
             root, filter=item_filter, depth=req.depth, include_closed=include_closed
         )
         blocked_ids = {target.id for target, _ in await self.blocked()}
-        names = participant_names(await self.store.load())
         pronouns = await self.shown_pronouns()
+        names = participant_names(await self.store.load(), pronouns)
         with spans.span("dto"):
             roots = [
                 tree_node(
@@ -102,13 +102,6 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         )
         return sum(1 for i in matching if self.spec.hidden_by_default(i.type, i.status))
 
-    async def shown_pronouns(self) -> dict[str, str | None]:
-        """Each role's and operator's pronouns by slug, or none when the squad hides them."""
-        if not self.paths.config.display.pronouns:
-            return {}
-        roles = {r.slug: r.pronouns for r in await self.roster_all()}
-        return roles | {o.slug: o.pronouns for o in await self.operators_all()}
-
     async def graph_items(self, req: GraphRequest) -> Response[GraphNode]:
         """The items linked to the root by refs, a few hops out."""
         root = await self.resolve_any_id(req.root)
@@ -119,13 +112,13 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
             direction=req.direction,
             include_closed=req.all,
         )
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         return Response(data=graph_node(node, self.spec, names))
 
     async def search_items(self, req: SearchRequest) -> Response[SearchResults]:
         """The items that match the query; an unreadable item file is named in ``omitted``."""
         found, unreadable = await self.search(req.q, item_type=req.type, status=req.status)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         hits = [search_hit(r, self.spec, names) for r in found]
         return Response(data=SearchResults(items=hits), omitted=unreadable)
 
@@ -135,7 +128,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         # A read: a retired role's past mentions stay reachable.
         slug = await self.resolve_participant(req.slug, live_only=False)
         hits, unreadable = await self.inbox(slug)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         entries = [inbox_entry(h, self.spec, names) for h in hits]
         return Response(data=Inbox(slug=slug, items=entries), omitted=unreadable)
 
@@ -144,13 +137,13 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         # A read: a retired role's open items stay reachable.
         slug = await self.resolve_participant(req.slug, live_only=False)
         rows = await self.mine(slug, include_closed=req.all)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         mine = [mine_row(r, self.spec, names) for r in rows]
         return Response(data=Mine(slug=slug, items=mine, columns=list(MINE_COLUMNS)))
 
     async def blocked_items(self, req: BlockedRequest) -> Response[Blocked]:
         """The open items that wait on another open item."""
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         rows = [blocked_entry(t, bs, self.spec, names) for t, bs in await self.blocked()]
         return Response(data=Blocked(items=rows))
 
@@ -187,7 +180,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         kind = self._hosted_kind(item, req.kind)
         subs = await self.list_blocks(item.id, kind)
         db = await self.store.load()
-        names = participant_names(db)
+        names = await self.display_names(db)
         entries: list[SubentityEntry] = []
         for sub in subs:
             carrier = db.get(sub.deferred_to) if sub.deferred_to else None
@@ -205,7 +198,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         item = await self.addressed_item(req)
         kind = self._hosted_kind(item, req.kind)
         detail = await self.get_block(item.id, kind, req.local)
-        names = participant_names(await self.store.load())
+        names = await self.display_names()
         full = subentity_dto(kind, detail, self.spec, names)
         unparsed = detail.discussion if detail.discussion and not detail.comments else None
         display = SubentityShowDisplay(

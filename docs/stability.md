@@ -436,7 +436,8 @@ input.
 
 A `[display]` table in `.squads.toml` holds one boolean, `pronouns` (default `true`), which decides
 whether a role's or operator's name is shown with its pronouns: in human CLI output, in `sq ui`,
-and in the roster display names of `--json` payloads (`display.name` and `display.pronouns`, see
+and in the display names of `--json` payloads (`display.name`, `display.pronouns` and
+`display.assignee`, see
 [Tier 3](#tier-3---json-output-shapes-stable-additive-changes-only)). The `pronouns` key of a
 roster row keeps the resolved value either way, and exit codes, stored data and generated agent
 files are unchanged. The table is closed: an unknown key or a non-boolean value is ignored with a
@@ -822,7 +823,8 @@ what `sq` shows without reading the vocabulary. `display` holds one of these set
 | tree node | the item row's keys, plus `dimmed` (the node is only on a match's path), `anchor` and `pronouns` (a role's or operator's pronouns, `null` otherwise) |
 | graph node | the item row's keys, plus `edge` and `edge_label` (the label of the ref kind that reached the node) |
 | sub-entity list row | the item row's keys (`type` is the kind's label), plus `story` and `carrier_title` |
-| one sub-entity (`<kind> <k> show`) | the list row's keys, plus `kind` (`{name, label, plural, heading}`) and `discussion` |
+| one sub-entity (`<kind> <k> show`, and the `entry` of a sub-entity `update` or `body`) | the list row's keys, plus `kind` (`{name, label, plural, heading}`) and `discussion` |
+| `add-<kind>` | `item` (the parent's id) and `body_command` (the command that sets the new sub-entity's body) |
 | `role list` row | `name`, `pronouns`, `live` |
 | `operator list` and `dev list` row | `name`, `pronouns` |
 | `role <addr> show` | `name`, `pronouns`, `color`, `body`, `empty_hint`, `definition_resolves`, `change_hint`, `discussion` |
@@ -834,7 +836,9 @@ what `sq` shows without reading the vocabulary. `display` holds one of these set
 
 A roster `display.name` is the name with its pronouns, `Robert Architect (she/her)`, and
 `display.pronouns` the pronouns, when [`[display] pronouns`](#display-settings-in-squadstoml) is on;
-with it off, the bare name and `null`. The same holds for a tree node's `display.pronouns`.
+with it off, the bare name and `null`. The same holds for a tree node's `display.pronouns`, and for
+`display.assignee` wherever it appears: a role's or operator's name with its pronouns,
+`Mara Tester (she/her)`, when the setting is on, the bare name when it is off.
 
 **`columns`**, on a result that a table shows, is one `{key, header}` per column, in order, where
 `key` is the dotted path from a row to the value its cell shows (`status`,
