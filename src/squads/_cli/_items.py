@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from rich.console import Console
 
 import squads._cli._common as common
+import squads._cli._field_options as field_options
 from squads import _badges as badges
 from squads._api import _ops as ops
 from squads._api._api import Operation
@@ -187,28 +188,6 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
         raise SquadsError("nothing to update (pass at least one field, e.g. --title/--status)")
 
 
-def _priority_help(item_type: str, spec: WorkflowSpec, template: str) -> str:
-    """``--priority`` help from the collection *item_type* binds, or a spec pointer if it has none.
-
-    Resolution is strict (:func:`squads._badges.declared_collection`): the same-name fallback
-    would list the bundled ``priority`` codes for a type that never declared the field,
-    advertising a flag that can only error.
-    """
-    # sanctioned field-code literal: `--priority` is the flag *for* this field code
-    coll_code = badges.declared_collection(item_type, "priority", spec)
-    coll = spec.collections.get(coll_code) if coll_code else None
-    if coll and coll.badges:
-        return template.format(codes="|".join(b.code for b in coll.badges))
-    return "Priority code (as defined by your workflow's priority collection)."
-
-
-def _declares_priority(item_type: str, spec: WorkflowSpec) -> bool:
-    """Whether *item_type* declares a ``priority`` field — drives whether ``--priority`` is
-    advertised at all (a type that doesn't can only ever be refused by the service gate)."""
-    # sanctioned field-code literal: `--priority` is the flag *for* this field code
-    return badges.declared_collection(item_type, "priority", spec) is not None
-
-
 #: One entry per aspect of a sub-entity kind that shapes the generated command surface.
 type _FieldSignature = tuple[str, str, str, bool, str | None]
 type KindSignature = tuple[str, str, bool, tuple[_FieldSignature, ...]] | None
@@ -329,7 +308,7 @@ def build_item_app(
         cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else common.HelpAwareGroup,
     )
 
-    # Resolved once, so every builder below (retype's target help, update's --priority help)
+    # Resolved once, so every builder below (retype's target help, the sub-entity surface)
     # derives its help from the same spec that decides eligibility.
     if spec is None:
         spec = common.get_active_spec()
@@ -343,7 +322,7 @@ def build_item_app(
         ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
 
     _cmd_show(item)
-    _cmd_update(item, item_type, spec)
+    _cmd_update(item, item_type)
     _cmd_status(item)
     _cmd_body(item)
     common.register_comment_verbs(item, common.ITEM_COMMENTS)
@@ -389,23 +368,8 @@ def _cmd_show(item: typer.Typer) -> None:
         calls.finish(response, json_out=json_out)
 
 
-def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
-    priority_help = _priority_help(item_type, spec, "Priority: {codes}.")
-
-    def _refresh_priority_help(params: list[object]) -> None:
-        live_spec = common.get_active_spec()
-        text = _priority_help(item_type, live_spec, "Priority: {codes}.")
-        # Hidden, not removed, on a type declaring no priority field: the flag still parses
-        # so the service's declared-field gate owns the one accurate refusal, but a flag that
-        # can only ever error is never offered in --help (same split as the create side).
-        declared = _declares_priority(item_type, live_spec)
-        for p in params:
-            if getattr(p, "name", None) in ("priority", "no_priority"):
-                p.hidden = not declared  # type: ignore[attr-defined]
-            if getattr(p, "name", None) == "priority":
-                p.help = text  # type: ignore[attr-defined]
-
-    @item.command("update", cls=common.spec_aware_command_cls(_refresh_priority_help))
+def _cmd_update(item: typer.Typer, item_type: str) -> None:
+    @item.command("update", cls=field_options.update_command_cls(item_type))
     @handle_errors
     def update(  # noqa: PLR0913 — the one metadata entry point
         ctx: typer.Context,
@@ -418,8 +382,6 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         no_parent: bool = typer.Option(False, "--no-parent", help="Clear the parent."),
         assignee: str | None = common.assignee_option(),
         clear_assignee: bool = typer.Option(False, "--clear-assignee", help="Remove the assignee."),
-        priority: str | None = typer.Option(None, "--priority", help=priority_help),
-        no_priority: bool = typer.Option(False, "--no-priority", help="Clear the priority."),
         add_label: list[str] = typer.Option(None, "--add-label", help="Label to add (repeatable)."),
         rm_label: list[str] = typer.Option(
             None, "--rm-label", help="Label to remove (repeatable)."
@@ -437,11 +399,14 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
     ):
         """Change the item's title, status, parent, assignee, labels or attributes."""
         # `is not None`, not truthiness: `--parent ""` is a supplied value, and a truth test
-        # let it through and report "updated" for a parent never written. Same for priority.
+        # let it through and report "updated" for a parent never written.
         if parent is not None and no_parent:
             raise SquadsError("use either --parent or --no-parent, not both")
-        if priority is not None and no_priority:
-            raise SquadsError("use either --priority or --no-priority, not both")
+        field_values = field_options.given_values(ctx)
+        cleared = field_options.given_unset(ctx)
+        if both := sorted(field_values.keys() & set(cleared)):
+            flag = field_options.flag_name(both[0])
+            raise SquadsError(f"use either --{flag} or --no-{flag}, not both")
         if parent is not None and not parent.strip():
             raise SquadsError("--parent needs an item ID; use --no-parent to clear the parent")
         set_attributes: dict[str, str] = {}
@@ -451,7 +416,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_attributes[key.strip()] = value
         others = (
-            title, desc, author, status, parent, no_parent, priority, no_priority,
+            title, desc, author, status, parent, no_parent, field_values, cleared,
             add_label, rm_label, set_, unset,
         )  # fmt: skip
         _guard_update(
@@ -471,14 +436,12 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             clear_parent=no_parent,
             assignee=assignee,
             clear_assignee=clear_assignee,
-            # No pre-parse: the collection `priority` binds is per-type, resolved by the operation
-            # from this item's own declared field.
-            priority=priority,
-            clear_priority=no_priority,
             add_labels=add_label or [],
             rm_labels=rm_label or [],
-            set_attributes=set_attributes,
-            unset_attributes=unset or [],
+            # No pre-parse: the collection a field binds is per-type, resolved by the operation
+            # from this item's own declared field.
+            set_attributes={**set_attributes, **field_values},
+            unset_attributes=[*(unset or []), *cleared],
         )
         _finish(ops.ITEM_UPDATE, request, json_out, render_updated)
 

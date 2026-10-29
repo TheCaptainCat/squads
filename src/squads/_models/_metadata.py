@@ -4,7 +4,7 @@ imports no spec. Global fields are dedicated ``update`` flags and item-level bad
 own setter, so this covers only type-declared attributes.
 """
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import date
 from typing import Any, cast
 
@@ -146,14 +146,18 @@ def coerce_attribute(
 
 
 def require_settable(
-    item_type: str, key: str, attributes: Mapping[str, AttributeSpec]
+    item_type: str,
+    key: str,
+    attributes: Mapping[str, AttributeSpec],
+    badge_codes: Collection[str] = (),
 ) -> AttributeSpec:
     """The settable attribute named ``key`` on ``item_type``, or a ``SquadsError`` listing the
-    valid ones — the one check ``set`` and ``unset`` share."""
+    valid ones — the settable attributes and *badge_codes*, the badge fields the type declares.
+    The one check ``set`` and ``unset`` share."""
     fields = settable(attributes)
     spec = fields.get(key)
     if spec is None:
-        valid = ", ".join(sorted(fields)) or "(none)"
+        valid = ", ".join(sorted({*fields, *badge_codes})) or "(none)"
         hint = _refusal_hint(item_type, key, attributes)
         raise SquadsError(f"{key!r} is not a settable field on a {item_type}{hint}; valid: {valid}")
     return spec

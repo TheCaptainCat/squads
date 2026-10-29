@@ -171,8 +171,6 @@ class ItemsMixin(ServiceCore):
         description: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        priority: str | None = None,
-        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -197,8 +195,6 @@ class ItemsMixin(ServiceCore):
                 description=description,
                 assignee=assignee,
                 clear_assignee=clear_assignee,
-                priority=priority,
-                clear_priority=clear_priority,
                 add_labels=add_labels,
                 rm_labels=rm_labels,
                 author=author,
@@ -258,8 +254,6 @@ class ItemsMixin(ServiceCore):
         description: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        priority: str | None = None,
-        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -281,7 +275,7 @@ class ItemsMixin(ServiceCore):
         """
         item = require_item(db, item_id)
         # Only what the role document or playbook supplies is gated; tracking metadata
-        # (labels, assignee, parent, priority, author) and project-declared attributes stay
+        # (labels, assignee, parent, author) and project-declared attributes stay
         # writable.
         self._gate_roster_update(
             item_id, item, title, description, set_attributes, unset_attributes
@@ -302,13 +296,6 @@ class ItemsMixin(ServiceCore):
             self._check_assignee(db, assignee or None)
             delta["assignee"] = assignee or None
             item.assignee = assignee or None
-        if clear_priority:
-            delta["priority"] = None
-            item.set_badge_value("priority", None)
-        elif priority is not None:
-            checked_priority = self._check_priority(item.type, priority)
-            delta["priority"] = checked_priority
-            item.set_badge_value("priority", checked_priority)
         if author is not None:
             self._check_author(db, item.type, author, item.slug)
             delta["author"] = author
@@ -351,8 +338,6 @@ class ItemsMixin(ServiceCore):
         description: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        priority: str | None = None,
-        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -378,8 +363,6 @@ class ItemsMixin(ServiceCore):
             description=description,
             assignee=assignee,
             clear_assignee=clear_assignee,
-            priority=priority,
-            clear_priority=clear_priority,
             add_labels=add_labels,
             rm_labels=rm_labels,
             author=author,
@@ -418,6 +401,16 @@ class ItemsMixin(ServiceCore):
         if rm:
             item.labels = [lab for lab in item.labels if lab not in rm]
 
+    def _require_settable(self, item_type: str, key: str) -> None:
+        """Refuse *key* unless it is a settable attribute of *item_type*; the refusal names the
+        declared badge fields beside the attributes."""
+        require_settable(
+            item_type,
+            key,
+            self.spec.item_attributes(item_type),
+            [f.code for f in self.spec.fields_for(item_type)],
+        )
+
     def _apply_attributes(
         self, item: Item, set_attributes: dict[str, str] | None, unset: list[str] | None
     ) -> None:
@@ -426,6 +419,7 @@ class ItemsMixin(ServiceCore):
             if field is not None:
                 item.set_badge_value(field.code, self._parse_badge_code(field, raw))
             else:
+                self._require_settable(item.type, key)
                 value = coerce_attribute(item.type, key, raw, self.spec.item_attributes(item.type))
                 if item.type == ROSTER_ROLE and key == AttributeKey.MODEL:
                     problem = model_problem(value)
@@ -437,7 +431,7 @@ class ItemsMixin(ServiceCore):
             if field is not None:
                 item.set_badge_value(field.code, None)
             else:
-                require_settable(item.type, key, self.spec.item_attributes(item.type))
+                self._require_settable(item.type, key)
                 item.attributes.pop(key, None)
 
     def _apply_own_choices(

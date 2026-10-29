@@ -14,6 +14,7 @@ from pathlib import Path
 import typer
 
 import squads._cli._common as common
+import squads._cli._field_options as field_options
 from squads._api import _ops as ops
 from squads._api._dto._check import CheckRequest, SyncRequest
 from squads._api._dto._graph import GraphRequest
@@ -60,7 +61,7 @@ from squads._paths import load_config, process_dir, resolve
 from squads._roles._catalog import resolve_roles
 
 # ---------------------------------------------------------------------------
-# Generic badge helpers — one path for priority/severity/any project-declared axis.
+# Generic badge helpers — one path for every declared badge axis.
 # ---------------------------------------------------------------------------
 
 
@@ -77,21 +78,20 @@ def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
 
 
 def _build_badge_filters(
-    priority: str | None, min_priority: str | None, badge: list[str], min_badge: list[str]
+    ctx: typer.Context, badge: list[str], min_badge: list[str]
 ) -> tuple[dict[str, str], dict[str, str]]:
-    """Merge the dedicated ``--priority``/``--min-priority`` sugar into the generic
-    ``--badge``/``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``.
+    """Merge the derived ``--<code>``/``--min-<code>`` options into the generic ``--badge``/
+    ``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``: each means exactly its generic
+    form.
 
-    The sugar validates cross-type (:func:`parse_filter_badge_code`) because the filter
-    itself is cross-type — no single type's bound collection is the authority here."""
+    Values validate cross-type (:func:`parse_filter_badge_code`) because the filter itself is
+    cross-type — no single type's bound collection is the authority here."""
     filters = _parse_badge_pairs(badge)
-    if priority:
-        # sanctioned field-code literal: `--priority` is the flag *for* this field code
-        filters["priority"] = parse_filter_badge_code("priority", priority)
+    for code, value in field_options.given_values(ctx).items():
+        filters[code] = parse_filter_badge_code(code, value)
     badge_min = _parse_badge_pairs(min_badge)
-    if min_priority:
-        # sanctioned field-code literal: `--min-priority` is the flag *for* this field code
-        badge_min["priority"] = parse_filter_badge_code("priority", min_priority)
+    for code, value in field_options.given_min(ctx).items():
+        badge_min[code] = parse_filter_badge_code(code, value)
     return filters, badge_min
 
 
@@ -332,9 +332,10 @@ def adopt(
         raise typer.Exit(1)
 
 
-@app.command(name="list")
+@app.command(name="list", cls=field_options.FilterCommand)
 @handle_errors
 def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
+    ctx: typer.Context,
     type: str | None = common.type_filter_option(),
     status: str | None = common.status_filter_option(),
     parent: str | None = typer.Option(
@@ -345,16 +346,6 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
-    priority: str | None = typer.Option(
-        None,
-        "--priority",
-        help="Priority code (as defined by your workflow's priority collection).",
-    ),
-    min_priority: str | None = typer.Option(
-        None,
-        "--min-priority",
-        help="At-least-this-priority threshold (your workflow's priority collection).",
-    ),
     badge: list[str] = typer.Option(
         [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
     ),
@@ -364,7 +355,7 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
         help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
     ),
     sort: str | None = typer.Option(
-        None, "--sort", help="Sort by an ordered badge field's rank (e.g. priority)."
+        None, "--sort", help="Sort by an ordered badge field's rank, by its code."
     ),
     all_: bool = common.closed_option(),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
@@ -385,7 +376,7 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     """
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
-    badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+    badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
     if sort is not None:
         sort = parse_badge_field(sort, ordered=True)
     request = ItemListRequest(
@@ -409,9 +400,10 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     calls.finish(response, json_out=json_out)
 
 
-@app.command()
+@app.command(cls=field_options.FilterCommand)
 @handle_errors
 def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
+    ctx: typer.Context,
     root_id: str | None = typer.Argument(
         None, help="Item ID or number to root the tree at; omit for the whole squad."
     ),
@@ -422,16 +414,6 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
     label: str | None = typer.Option(None, "--label", help="Show only items carrying this label."),
-    priority: str | None = typer.Option(
-        None,
-        "--priority",
-        help="Priority code (as defined by your workflow's priority collection).",
-    ),
-    min_priority: str | None = typer.Option(
-        None,
-        "--min-priority",
-        help="At-least-this-priority threshold (your workflow's priority collection).",
-    ),
     badge: list[str] = typer.Option(
         [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
     ),
@@ -468,7 +450,7 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     absent from the tree while `sq list` still returned it; the anchor is a tiebreak, since
     every member is an equally good root.
     """
-    badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+    badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
     if sort is not None:
         sort = parse_badge_field(sort, ordered=True)
     request = TreeRequest(

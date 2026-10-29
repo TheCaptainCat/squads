@@ -23,17 +23,24 @@ from squads._services._results import SubentityDetail
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
 
-#: The columns of the ``list`` table, each keyed by the path to the value its cell shows. The
-#: priority column is the dedicated ``--priority`` field's badge.
-LIST_COLUMNS: tuple[Column, ...] = (
-    Column(key="id", header="ID"),
-    Column(key="type", header="Type"),
-    Column(key="status", header="Status"),
-    Column(key="display.badges.priority.badge", header="Priority"),
-    Column(key="title", header="Title"),
-    Column(key="parent", header="Parent"),
-    Column(key="assignee", header="Assignee"),
-)
+
+def list_columns(spec: WorkflowSpec) -> list[Column]:
+    """The columns of the ``list`` table, each keyed by the path to the value its cell shows.
+
+    One badge column sits after the status: the first field on an ordered collection, headed by
+    its label, and none when no type declares one.
+    """
+    field = badges.first_ordered_field(spec)
+    badge = [Column(key=f"display.badges.{field.code}.badge", header=field.label)] if field else []
+    return [
+        Column(key="id", header="ID"),
+        Column(key="type", header="Type"),
+        Column(key="status", header="Status"),
+        *badge,
+        Column(key="title", header="Title"),
+        Column(key="parent", header="Parent"),
+        Column(key="assignee", header="Assignee"),
+    ]
 
 
 def participant_names(db: SquadsDB, pronouns: Mapping[str, str | None]) -> dict[str, str]:

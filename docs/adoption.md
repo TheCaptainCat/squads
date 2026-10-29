@@ -250,7 +250,7 @@ on a sub-entity.
 | `body` | `target`, `body` | `append`, `force`, `at`, `as` | Writes the item's body. Replacing a written body needs `force`; `append` adds to it. |
 | `comment` | `target`, and `message` or `messages` | `story`, `subtask`, `finding`, `sub`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `story`, `subtask` or `finding` names the local id, `sub` is `[kind, local]`. Give at most one. |
 | `ref` | `target`, `to` | `kind`, `at`, `as` | Adds a ref from `target` to `to`. Without `kind`, the workflow's default kind. |
-| `add-sub` | `target`, `kind`, `title` | `story`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `story` maps a subtask to a story of the task's parent feature. |
+| `add-sub` | `target`, `kind`, `title` | `maps_to`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `maps_to` is the local id of the sub-entity of the host item's parent that this one maps to. |
 | `add-story` | `target`, `title` | `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `story`. |
 | `add-subtask` | `target`, `title` | `story`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `subtask`. |
 | `add-finding` | `target`, `title` | `severity`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `finding`; `severity` is the finding's severity code. |

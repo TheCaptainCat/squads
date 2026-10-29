@@ -49,6 +49,22 @@ def first_ordered_field(spec: WorkflowSpec) -> Field | None:
     return None
 
 
+def filterable_fields(spec: WorkflowSpec, *, ordered: bool = False) -> list[Field]:
+    """The badge fields some non-roster type declares, once per code, in type declaration order.
+
+    The fields a cross-type filter or sort can name; with *ordered*, only those bound to an
+    ordered collection.
+    """
+    found: dict[str, Field] = {}
+    for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
+        for f in spec.fields_for(item_type):
+            coll = spec.collections.get(f.collection)
+            if coll is None or (ordered and not coll.ordered):
+                continue
+            found.setdefault(f.code, f)
+    return list(found.values())
+
+
 def status_badge(status_value: str, spec: WorkflowSpec) -> str:
     """``"InProgress"`` → ``"🟡 In Progress"`` (emoji + spaced label) for the header.
 

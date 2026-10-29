@@ -458,6 +458,42 @@ async def test_lint_refuses_a_kind_field_code_a_sub_entity_object_adds(project, 
 
 
 @pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_a_field_code_equal_to_an_option_of_the_command_it_derives_onto(
+    project, invoke
+) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[items.task]\nfields = [{ code = "force", label = "F", collection = "priority" },'
+        ' { code = "sort", label = "S", collection = "priority" }]\n',
+    )
+    assert messages == [
+        "task update: field 'force' gives --force, which task update already takes — rename it "
+        "in the workflow override",
+        "list: field 'sort' gives --sort, which list already takes — rename it in the workflow "
+        "override",
+        "tree: field 'sort' gives --sort, which tree already takes — rename it in the workflow "
+        "override",
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_a_field_whose_import_key_equals_a_fixed_key_of_its_op(
+    project, invoke
+) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.finding]\nfields = [{ code = "handle", label = "H",'
+        ' collection = "severity" }]\n',
+    )
+    assert messages == [
+        "import op add-finding: field 'handle' gives handle, which import op add-finding "
+        "already takes — rename it in the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
 async def test_lint_refuses_a_kind_named_like_the_generic_selector(project, invoke) -> None:
     messages = await _lint_messages(
         project,

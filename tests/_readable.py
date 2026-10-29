@@ -21,7 +21,7 @@ REVIEW = 7
 async def _populate(root: Path) -> None:
     svc = make_service(paths_of(root))
     feature = await create_item(
-        svc, "feature", "Search", priority="high", labels=["core"], assignee="manager"
+        svc, "feature", "Search", fields={"priority": "high"}, labels=["core"], assignee="manager"
     )
     await svc.add_block(feature.item.id, "story", "Query the index")
     await svc.add_block(feature.item.id, "story", "Rank the results")
@@ -30,7 +30,7 @@ async def _populate(root: Path) -> None:
         "task",
         "Parse queries",
         parent=feature.item.id,
-        priority="urgent",
+        fields={"priority": "urgent"},
         labels=["parser"],
         assignee="manager",
     )
@@ -38,10 +38,12 @@ async def _populate(root: Path) -> None:
     await svc.add_block(parser.item.id, "subtask", "Tokenise the input", story="US1")
     await svc.add_block(parser.item.id, "subtask", "Parse the operators")
     await svc.update_block(parser.item.id, "subtask", "ST2", status="Done", force=True)
-    ranking = await create_item(svc, "task", "Rank results", parent=feature.item.id, priority="low")
+    ranking = await create_item(
+        svc, "task", "Rank results", parent=feature.item.id, fields={"priority": "low"}
+    )
     await svc.add_ref(ranking.item.id, parser.item.id, kind="depends-on")
     await create_item(svc, "decision", "Pick an index", description="Why an inverted index")
-    crash = await create_item(svc, "bug", "Empty query crash", priority="medium")
+    crash = await create_item(svc, "bug", "Empty query crash", fields={"priority": "medium"})
     await svc.update(crash.item.id, assignee="manager")
     await svc.set_status(crash.item.id, "Verified", force=True)
     review = await create_item(svc, "review", "Review the parser", labels=["parser"])

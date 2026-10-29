@@ -1567,15 +1567,7 @@ def parse_badge_field(
     With *ordered*, only a field bound to an ordered collection is accepted (the ones that rank).
     """
     active_spec = spec if spec is not None else get_active_spec()
-    codes: list[str] = []
-    for item_type in sorted(
-        active_spec.non_roster_types(), key=lambda t: (active_spec.items[t].order, t)
-    ):
-        for field in active_spec.fields_for(item_type):
-            coll = active_spec.collections.get(field.collection)
-            if coll is None or (ordered and not coll.ordered) or field.code in codes:
-                continue
-            codes.append(field.code)
+    codes = [f.code for f in badges.filterable_fields(active_spec, ordered=ordered)]
     code = field_code.strip()
     if code not in codes:
         kind = "sort field" if ordered else "badge field"

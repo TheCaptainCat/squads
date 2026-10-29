@@ -457,6 +457,49 @@ def _role_node(pronouns: str | None) -> dict[str, Any]:
 # --- interactions ---------------------------------------------------------------------------
 
 
+@pytest.mark.covers("tree", "--severity")
+@pytest.mark.covers("tree", "--min-severity")
+async def test_a_field_only_some_types_declare_filters_exactly_and_by_threshold(
+    readable, invoke
+) -> None:
+    assert await _roots(invoke, "--all", "--severity", "medium") == ["BUG-6"]
+    assert await _roots(invoke, "--all", "--min-severity", "high") == []
+
+
+@pytest.mark.covers("tree", "--json")
+async def test_a_derived_filter_means_exactly_its_generic_form(override_project, invoke) -> None:
+    created = await invoke(
+        ["create", "initiative", "Later one", "--author", "manager", "--urgency", "later"]
+    )
+    assert created.exit_code == 0, created.output
+    for derived, generic in (
+        (["--urgency", "later"], ["--badge", "urgency=later"]),
+        (["--min-urgency", "soon"], ["--min-badge", "urgency=soon"]),
+    ):
+        ids = await _roots(invoke, *derived)
+        assert ids == await _roots(invoke, *generic)
+        assert ids == (["INI-11"] if "later" in derived else ["INI-8"])
+    refused = await invoke(["tree", "--json", "--priority", "high"])
+    assert refused.exit_code == 2
+    assert "No such option: --priority" in refused.output
+
+
+@pytest.mark.covers("tree", "--json")
+async def test_a_generic_form_refuses_a_code_no_type_declares_naming_the_declared_ones(
+    override_project, invoke
+) -> None:
+    for option, value, what in (
+        ("--badge", "priority=high", "badge field"),
+        ("--min-badge", "priority=high", "badge field"),
+        ("--sort", "priority", "sort field"),
+    ):
+        result = await invoke(["tree", "--json", option, value])
+        assert (result.exit_code, result.output) == (
+            1,
+            f"error: unknown {what} 'priority' (one of: urgency, work_size)\n",
+        )
+
+
 @pytest.mark.covers("tree", "--priority", "--min-priority")
 async def test_priority_and_min_priority_both_apply_to_one_tree(readable, invoke) -> None:
     both = await _tree(invoke, "--priority", "urgent", "--min-priority", "high")

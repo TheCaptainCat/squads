@@ -1068,7 +1068,7 @@ def check_category_consistency(
             errors.extend(clause(t, ts, effective, kinds, ref_kinds))
 
 
-def _reserved_item_keys() -> frozenset[str]:
+def reserved_item_keys() -> frozenset[str]:
     """Names a field code or an attribute may not take: the model's own fields (derived from
     ``Item``, never hand-copied) and the names a ``--json`` row adds. ``path`` and ``prefix`` are
     model fields that are not frontmatter, and are refused for the same reason: a key of that name
@@ -1084,7 +1084,7 @@ def _reserved_kind(name: str, row_added: tuple[str, ...], row: str) -> str:
     return f"key every --json {row} adds" if name in row_added else "frontmatter key"
 
 
-def _reserved_subentity_keys() -> frozenset[str]:
+def reserved_subentity_keys() -> frozenset[str]:
     """Sub-entity keys a field code may not shadow: the entry's own fields (derived from
     ``SubEntity``) and the names a ``--json`` sub-entity object adds."""
     from squads._models._subentity import SubEntity
@@ -1112,8 +1112,8 @@ def check_field_codes(
     errors: list[str],
 ) -> None:
     """Field-code uniqueness per owner + reserved-frontmatter-key collision."""
-    reserved_item = _reserved_item_keys()
-    reserved_subentity = _reserved_subentity_keys()
+    reserved_item = reserved_item_keys()
+    reserved_subentity = reserved_subentity_keys()
     for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
         seen: set[str] = set()
         reserved = reserved_item if is_item else reserved_subentity
@@ -1162,7 +1162,7 @@ PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
 def check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
     """Attribute names are free of reserved keys and badge codes, and each roster type declares
     its pinned attributes with the pinned kind."""
-    reserved = _reserved_item_keys()
+    reserved = reserved_item_keys()
     for owner, ts in items.items():
         codes = {f.code for f in ts.fields}
         for name in ts.attributes:

@@ -28,17 +28,20 @@ from squads._models._subentity import SubEntity
 from squads._models._vocab import label_for
 from squads._services import _results as results
 from squads._services._item_dto import (
-    LIST_COLUMNS,
     badge_displays,
     item_display,
+    list_columns,
     status_display,
     subentity_display,
 )
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
 
-#: The columns of the ``mine`` table: the listing's, then the sub-entities that match.
-MINE_COLUMNS: tuple[Column, ...] = (*LIST_COLUMNS, Column(key="display.matched", header="Matched"))
+
+def mine_columns(spec: WorkflowSpec) -> list[Column]:
+    """The columns of the ``mine`` table: the listing's, then the sub-entities that match."""
+    return [*list_columns(spec), Column(key="display.matched", header="Matched")]
+
 
 #: The columns of the ``workload`` table.
 WORKLOAD_COLUMNS: tuple[Column, ...] = (

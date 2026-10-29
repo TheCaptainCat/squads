@@ -1103,6 +1103,7 @@ class WorkflowSpec(BaseModel):
     @model_validator(mode="after")
     def _validate(self) -> WorkflowSpec:
         """Fail-closed validation."""
+        from squads._workflow._derived_names import check_derived_names
         from squads._workflow._validity import (
             check_attributes,
             check_category_consistency,
@@ -1187,6 +1188,9 @@ class WorkflowSpec(BaseModel):
 
         # Field-code uniqueness + reserved-key collision (per item type / sub-entity kind).
         check_field_codes(self.items, self.subentity_kinds, errors)
+
+        # Derived flags and import keys against the fixed names of their surface.
+        check_derived_names(self, errors)
 
         # Attribute names + the pinned roster attributes.
         check_attributes(self.items, errors)

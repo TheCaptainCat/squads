@@ -19,6 +19,8 @@ from squads._context import RequestContext, bind_context, get_context
 from squads._paths import SquadPaths
 from squads._rendering._engine import _env_cache
 from squads._workflow import bundled_spec
+from squads._workflow._loader import load_workflow_spec
+from squads._workflow._models import WorkflowSpec
 from tests import _cli_surface as cli_surface
 from tests import _write_guard
 from tests._helpers import make_service
@@ -175,6 +177,26 @@ def _covers_markers_need_invoke(request: pytest.FixtureRequest):  # pyright: ign
         )
 
 
+def _squad_spec() -> WorkflowSpec:
+    """The workflow spec of the squad in the working directory, the bundled one outside a squad."""
+    try:
+        return load_workflow_spec(paths_of(Path.cwd()).squad_dir)
+    except Exception:  # pylint: disable=broad-except  # no squad here, or its override is broken
+        return bundled_spec()
+
+
+def _reached(
+    args: list[str], spec: WorkflowSpec, refusal: str | None = None
+) -> set[cli_surface.Pair]:
+    """The pairs *args* reach on the tree, read with *spec* as the active spec as a run binds it."""
+    prior = get_context()
+    bind_context(replace(prior, active_spec=spec))
+    try:
+        return cli_surface.reached_pairs(args, spec, refusal)
+    finally:
+        bind_context(prior)
+
+
 @pytest.fixture
 def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     """`runner.invoke` on a worker thread with a fresh template cache, so an async test can call
@@ -186,11 +208,12 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     reached: set[cli_surface.Pair] = set()
 
     async def _invoke(args: list[str], **kw: Any) -> Any:
-        reached.update(cli_surface.reached_pairs(args, bundled_spec()))
+        spec = _squad_spec()
+        reached.update(_reached(args, spec))
         _env_cache.clear()
         result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
         if result.exit_code != 0:
-            reached.update(cli_surface.reached_pairs(args, bundled_spec(), result.output))
+            reached.update(_reached(args, spec, result.output))
         return result
 
     yield _invoke

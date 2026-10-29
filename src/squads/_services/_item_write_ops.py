@@ -165,7 +165,6 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             labels=req.labels or None,
             refs=refs or None,
             assignee=assignee,
-            priority=req.priority,
             fields=req.fields or None,
             attributes=self._coerced_create_attributes(req.type, req.attributes),
             body=req.body,
@@ -193,7 +192,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
         if clear_assignee and item.assignee is None:
             others = (
                 req.title, req.description, req.author, req.status, req.parent, req.clear_parent,
-                req.priority, req.clear_priority, req.add_labels, req.rm_labels,
+                req.add_labels, req.rm_labels,
                 req.set_attributes, req.unset_attributes,
             )  # fmt: skip
             if not _asked(*others):
@@ -210,8 +209,6 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             description=req.description,
             assignee=assignee,
             clear_assignee=clear_assignee,
-            priority=req.priority,
-            clear_priority=req.clear_priority,
             add_labels=req.add_labels or None,
             rm_labels=req.rm_labels or None,
             author=author,

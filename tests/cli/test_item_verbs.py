@@ -242,6 +242,46 @@ async def test_update_clears_the_priority(populated_project, invoke) -> None:
     assert (await _show(invoke))["priority"] is None
 
 
+@pytest.mark.covers("<type> update", "--severity")
+@pytest.mark.covers("<type> update", "--no-severity")
+async def test_update_sets_and_clears_a_field_only_some_types_declare(
+    populated_project, invoke
+) -> None:
+    await _ok(invoke, ["create", "bug", "Crash", "--author", "manager"])
+    await _ok(invoke, ["bug", "5", "update", "--severity", "high"])
+    assert (await _show(invoke, 5, "bug"))["severity"] == "high"
+    await _ok(invoke, ["bug", "5", "update", "--no-severity"])
+    assert "severity" not in (await _show(invoke, 5, "bug"))["badges"]
+    refused = await _ran(invoke, ["task", str(TASK), "update", "--severity", "high"])
+    assert refused[0] == 2
+    assert "No such option: --severity" in refused[1]
+
+
+@pytest.mark.covers("<type> update", "--json")
+async def test_update_takes_a_flag_per_declared_field_and_a_negation_per_optional_one(
+    override_project, invoke
+) -> None:
+    initiative = await _ok(invoke, ["initiative", "8", "update", "--urgency", "later", "--json"])
+    assert json.loads(initiative)["entry"]["badges"] == {"urgency": "later"}
+    job = await _ok(invoke, ["job", "9", "update", "--work-size", "l", "--json"])
+    assert json.loads(job)["entry"]["badges"] == {"work_size": "l"}
+    cleared = await _ok(invoke, ["job", "9", "update", "--no-work-size", "--json"])
+    assert json.loads(cleared)["entry"]["badges"] == {}
+    both = await _ran(invoke, ["job", "9", "update", "--work-size", "s", "--no-work-size"])
+    assert both == (1, "error: use either --work-size or --no-work-size, not both\n")
+    for flag in ("--priority", "--no-priority"):
+        refused = await _ran(invoke, ["initiative", "8", "update", flag])
+        assert refused[0] == 2
+        assert f"No such option: {flag}" in refused[1]
+
+
+@pytest.mark.covers("<type> update", "--priority", "--no-priority")
+async def test_update_refuses_a_flag_and_its_negation_together(populated_project, invoke) -> None:
+    assert await _ran(
+        invoke, ["task", str(TASK), "update", "--priority", "high", "--no-priority"]
+    ) == (1, "error: use either --priority or --no-priority, not both\n")
+
+
 @pytest.mark.covers("<type> update", "--add-label")
 async def test_update_adds_each_repeated_label_once(populated_project, invoke) -> None:
     out = await _ran(
@@ -311,7 +351,7 @@ async def test_update_refuses_to_set_an_attribute_the_type_does_not_declare(
 ) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--set", "colour=red"]) == (
         1,
-        "error: 'colour' is not a settable field on a task; valid: (none)\n",
+        "error: 'colour' is not a settable field on a task; valid: priority\n",
     )
 
 
@@ -329,7 +369,7 @@ async def test_update_refuses_to_unset_an_attribute_the_type_does_not_declare(
 ) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--unset", "colour"]) == (
         1,
-        "error: 'colour' is not a settable field on a task; valid: (none)\n",
+        "error: 'colour' is not a settable field on a task; valid: priority\n",
     )
 
 

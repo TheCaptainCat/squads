@@ -19,9 +19,9 @@ from squads._models._item import DISPLAY_ID_PADDING, Item, format_item_id, parse
 from squads._models._vocab import prefix_for
 from squads._services._collab import CollabMixin
 from squads._services._item_dto import (
-    LIST_COLUMNS,
     comment_dtos,
     item_row,
+    list_columns,
     participant_names,
     show_display,
     sort_by_badge,
@@ -145,7 +145,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             rows = [
                 item_row(i, self.spec, names) for i in sort_by_badge(items, req.sort, self.spec)
             ]
-        return Response(data=ItemList(items=rows, columns=list(LIST_COLUMNS), hidden=hidden))
+        return Response(data=ItemList(items=rows, columns=list_columns(self.spec), hidden=hidden))
 
     async def move_item_status(self, req: ItemStatusRequest) -> Response[ItemWritten]:
         """Move the item to the requested status, as the declared actor; answers its new row."""

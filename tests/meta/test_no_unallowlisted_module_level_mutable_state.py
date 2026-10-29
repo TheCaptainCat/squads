@@ -46,6 +46,12 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             # materialises into agent-host files; the loader refuses a spec that lacks one
         }
     ),
+    "src/squads/_workflow/_derived_names.py": frozenset(
+        {
+            "FIXED_OPTIONS",  # fixed command -> options the derived flags are checked against
+            "FIXED_IMPORT_KEYS",  # fixed import op -> keys the derived keys are checked against
+        }
+    ),
     "src/squads/_rendering/_engine.py": frozenset(
         {"_env_cache"}  # compiled-template cache, per-squad-dir, LRU-bounded
     ),

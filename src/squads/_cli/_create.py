@@ -6,7 +6,6 @@ active spec at Click dispatch time, after the root callback has bound it.
 """
 
 import contextlib
-from collections.abc import Callable
 from typing import Any, ClassVar
 
 import typer
@@ -15,7 +14,7 @@ import typer.core
 import typer.main
 
 import squads._cli._common as common
-from squads import _badges as badges
+import squads._cli._field_options as field_options
 from squads._api import _ops as ops
 from squads._api._dto._item_writes import ItemCreateRequest
 from squads._cli import _calls as calls
@@ -24,7 +23,6 @@ from squads._cli._render._writes import render_created
 from squads._errors import SquadsError
 from squads._models._attributes import AttributeSpec
 from squads._workflow import bundled_spec
-from squads._workflow._models import Field, WorkflowSpec
 
 
 def _check_parent_option(parent: str | None) -> None:
@@ -47,80 +45,16 @@ def _create(request: ItemCreateRequest, json_out: bool) -> None:
     calls.finish(response, json_out=json_out)
 
 
-def _priority_help(item_type: str) -> str:
-    """``--priority`` help for ``create <item_type>``, from the collection *item_type* binds.
-
-    Read at registration time this is the bundled spec; statically registered commands re-derive
-    it at ``--help`` render time through :func:`common.spec_aware_command_cls`. It resolves
-    strictly (:func:`squads._badges.declared_collection`): a type declaring no ``priority`` field
-    enumerates nothing and the flag is hidden (see :func:`_refresh_priority_help`).
-    """
-    spec = common.get_active_spec()
-    # sanctioned field-code literal: `--priority` is the flag *for* this field code
-    coll_code = badges.declared_collection(item_type, "priority", spec)
-    coll = spec.collections.get(coll_code) if coll_code else None
-    if coll and coll.badges:
-        return f"Priority: {'|'.join(b.code for b in coll.badges)}."
-    return "Priority code (as defined by your workflow's priority collection)."
-
-
-def _refresh_priority_help(item_type_str: str) -> Callable[[list[object]], None]:
-    """A spec_aware_command_cls refresh re-deriving --priority's help from the live spec.
-
-    On a type declaring no ``priority`` field the flag is hidden from ``--help`` but still
-    parses, so the service's declared-field gate (``ServiceCore._check_priority``) owns the one
-    accurate refusal.
-    """
-
-    def _refresh(params: list[object]) -> None:
-        text = _priority_help(item_type_str)
-        # sanctioned field-code literal: `--priority` is the flag *for* this field code
-        declared = (
-            badges.declared_collection(item_type_str, "priority", common.get_active_spec())
-            is not None
-        )
-        for p in params:
-            if getattr(p, "name", None) == "priority":
-                p.help = text  # type: ignore[attr-defined]
-                p.hidden = not declared  # type: ignore[attr-defined]
-
-    return _refresh
-
-
-def _field_help(item_type: str, field: Field, spec: WorkflowSpec) -> str:
-    """``--<field-code>`` help for *field* on *item_type*: its label and the codes of the
-    collection it binds."""
-    coll = spec.collections.get(field.collection)
-    if coll and coll.badges:
-        return f"{field.label}: {'|'.join(b.code for b in coll.badges)}."
-    return f"{field.label} badge code."
-
-
-#: ``Context.meta`` key under which the declared-field options file the values they receive.
-_FIELDS_META_KEY = "squads.create_fields"
-
-
-def _remember_field(ctx: _click.Context, param: _click.Parameter, value: str | None) -> None:
-    """Option callback: file *value* under its field code. The options are added per
-    invocation, so the command function has no parameter to receive them."""
-    if value is not None and param.name is not None:
-        ctx.meta.setdefault(_FIELDS_META_KEY, {})[param.name] = value
-
-
 def _declared_field_options(item_type: str, taken: set[str]) -> list[typer.core.TyperOption]:
     """One ``--<field-code>`` option per field *item_type* declares in the active spec, skipping
-    the codes whose option already exists (``--priority`` is a static option)."""
+    the codes whose option already exists."""
     spec = common.get_active_spec()
     return [
-        typer.core.TyperOption(
-            param_decls=[f"--{f.code}", f.code],
-            default=None,
-            help=_field_help(item_type, f, spec),
-            expose_value=False,
-            callback=_remember_field,
+        field_options.value_option(
+            f, field_options.field_help(f, field_options.field_codes(f, spec))
         )
         for f in spec.fields_for(item_type)
-        if f.code not in taken
+        if field_options.flag_name(f.code) not in taken
     ]
 
 
@@ -178,9 +112,8 @@ def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
     alike, after the per-invocation spec is bound. Fail-soft for the reason
     :func:`common.spec_aware_command_cls` documents.
     """
-    base = common.spec_aware_command_cls(_refresh_priority_help(item_type))
 
-    class _CreateCommand(base):
+    class _CreateCommand(typer.core.TyperCommand):
         def get_params(self, ctx: Any) -> list[Any]:
             params = super().get_params(ctx)
             with contextlib.suppress(Exception):
@@ -195,12 +128,6 @@ def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
             return params
 
     return _CreateCommand
-
-
-def _given_fields(ctx: typer.Context) -> dict[str, str] | None:
-    """The values the declared-field options received, keyed by field code; ``None`` when none
-    was given."""
-    return dict(ctx.meta.get(_FIELDS_META_KEY, {})) or None
 
 
 def _given_attributes(ctx: typer.Context) -> dict[str, str | list[str]]:
@@ -372,7 +299,6 @@ def _make(item_type_str: str):
             None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
         ),
         assignee: str | None = common.assignee_option(),
-        priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
         message: list[str] = common.message_option(),
         file: str | None = common.file_option(),
         json_out: bool = typer.Option(
@@ -389,10 +315,7 @@ def _make(item_type_str: str):
             labels=label or [],
             refs=ref or [],
             assignee=assignee,
-            # No pre-parse: the collection `priority` binds is per-type, resolved by the operation
-            # from the type's own declared field.
-            priority=priority,
-            fields=_given_fields(ctx) or {},
+            fields=field_options.given_values(ctx),
             attributes=_given_attributes(ctx),
             body=resolve_body_optional(message or None, file),
         )

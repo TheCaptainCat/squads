@@ -166,8 +166,7 @@ class ItemFilter:
     #: declares it, and never matches without ``spec``, like ``badge_min``. The value is
     #: validated at the CLI edge against ``squads._workflow.CATEGORIES``.
     category: str | None = None
-    #: Exact badge-field filters, keyed by field CODE (e.g. ``priority``, or a project's own
-    #: custom axis) — generic over ``fields_for()``, not a hand-written priority-only param.
+    #: Exact badge-field filters, keyed by field CODE — generic over ``fields_for()``.
     badges: tuple[tuple[str, str], ...] = ()
     #: Threshold badge-field filters (ordered collections only): (field code, minimum code).
     #: Resolving "at least as high as" needs the field's declared collection, so this variant
@@ -551,7 +550,6 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
         attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -575,7 +573,6 @@ class ServiceCore:
                 labels=labels,
                 refs=refs,
                 assignee=assignee,
-                priority=priority,
                 attributes=attributes,
                 status=status,
                 slug=slug,
@@ -697,7 +694,6 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
         attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -708,9 +704,9 @@ class ServiceCore:
         """The pure half of create: every check, the id allocation and the ``Item``, with no file
         I/O, returning ``(item, lane_warning)``. Shared by :meth:`_create_core` and the bulk
         importer's pre-pass, which runs it on a throwaway ``db`` copy so the allocation stays within
-        invariant #2, passing the event's ``at`` as *now*. ``fields`` (a badge-code map) is applied
-        after ``priority``, so it wins on a repeated code. ``author`` is required in practice and
-        keyword-with-default only to keep test call sites type-correct.
+        invariant #2, passing the event's ``at`` as *now*. ``fields`` is a badge-code map.
+        ``author`` is required in practice and keyword-with-default only to keep test call sites
+        type-correct.
         """
         item_type = str(item_type)  # coerce StrEnum members to plain str
         # Membership gate: later lookups index `self.spec.items[item_type]` unguarded, so a type
@@ -768,12 +764,6 @@ class ServiceCore:
         filename = f"{item_id}-{slug}.md"
         squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
         sid, _psid = actor.current_session()
-        # The dedicated `priority` kwarg is the same axis as `--set priority=<code>` — route
-        # it through the identical declared-field gate rather than assigning it unconditionally
-        # (a type whose `fields` doesn't declare `priority` must refuse it here too).
-        checked_priority = (
-            self._check_priority(item_type, priority) if priority is not None else None
-        )
         item = Item(
             sequence_id=db.counter,
             type=str(item_type),
@@ -795,7 +785,6 @@ class ServiceCore:
             slug_in_file=is_roster,
             attributes=attributes or {},
         )
-        item.set_badge_value("priority", checked_priority)
         _stamp_origin(item, self.spec)
         self._set_declared_fields(item, fields or {})
         db.add(item)
@@ -852,7 +841,6 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
         attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -876,7 +864,6 @@ class ServiceCore:
             labels=labels,
             refs=refs,
             assignee=assignee,
-            priority=priority,
             attributes=attributes,
             status=status,
             slug=slug,
@@ -1300,7 +1287,7 @@ class ServiceCore:
 
     def _badge_field(self, item_type: str, key: str) -> Field | None:
         """The declared field for *key* on *item_type*, generic over every axis (``--set
-        <field>=<code>``): priority/severity/a project's own custom axis alike — not a
+        <field>=<code>``): every declared axis alike — not a
         hand-maintained allowlist of attribute-backed codes."""
         return next((f for f in self.spec.fields_for(item_type) if f.code == key), None)
 
@@ -1325,19 +1312,6 @@ class ServiceCore:
             choices = ", ".join(b.code for b in coll.badges)
             raise SquadsError(f"invalid {field.code} {raw!r} (one of: {choices})")
         return code
-
-    def _check_priority(self, item_type: str, raw: str) -> str:
-        """Gate the dedicated ``--priority`` kwarg through the same declared-field check as
-        the generic ``--set priority=<code>`` door (:meth:`_badge_field`/:meth:`_parse_badge_code`)
-        — a type that doesn't declare ``priority`` in its ``fields`` must refuse it here too,
-        not just on the ``--set`` path. Two doors into the same axis, one gate."""
-        field = self._badge_field(item_type, "priority")
-        if field is None:
-            valid = ", ".join(f.code for f in self.spec.fields_for(item_type)) or "(none)"
-            raise SquadsError(
-                f"'priority' is not a settable field on a {item_type}; valid: {valid}"
-            )
-        return self._parse_badge_code(field, raw)
 
     # ------------------------------------------------------------------ shared helpers
     async def _locked_section_edit(

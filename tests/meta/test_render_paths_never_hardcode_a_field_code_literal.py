@@ -19,16 +19,8 @@ _SCANNED_TREES = (
 )
 _SCANNED_SUFFIXES = (".md.j2", ".py")
 
-#: (path, field code) -> reason. The dedicated-flag exemption; nothing else belongs here.
-SANCTIONED: dict[tuple[str, str], str] = {
-    ("src/squads/_cli/_create.py", "priority"): (
-        "`--priority` on `sq create <type>`: the flag is named for this field code, so its "
-        "own help text and offered/hidden decision resolve that exact code deliberately"
-    ),
-    ("src/squads/_cli/_items.py", "priority"): (
-        "`--priority` on `sq <type> <n> update`: same dedicated-flag resolution as the create side"
-    ),
-}
+#: (path, field code) -> reason. Nothing is exempt: a render path names no field code.
+SANCTIONED: dict[tuple[str, str], str] = {}
 
 
 def _repo_root() -> Path:

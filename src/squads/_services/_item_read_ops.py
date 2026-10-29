@@ -32,12 +32,12 @@ from squads._services._base import ItemFilter
 from squads._services._item_dto import comment_dtos, participant_names, subentity_dto
 from squads._services._item_ops import ItemOpsMixin, badge_pairs
 from squads._services._item_read_dto import (
-    MINE_COLUMNS,
     WORKLOAD_COLUMNS,
     blocked_entry,
     graph_node,
     inbox_entry,
     kind_display,
+    mine_columns,
     mine_row,
     ref_entry,
     search_hit,
@@ -139,7 +139,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         rows = await self.mine(slug, include_closed=req.all)
         names = await self.display_names()
         mine = [mine_row(r, self.spec, names) for r in rows]
-        return Response(data=Mine(slug=slug, items=mine, columns=list(MINE_COLUMNS)))
+        return Response(data=Mine(slug=slug, items=mine, columns=mine_columns(self.spec)))
 
     async def blocked_items(self, req: BlockedRequest) -> Response[Blocked]:
         """The open items that wait on another open item."""

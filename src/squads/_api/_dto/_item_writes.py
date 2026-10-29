@@ -25,7 +25,6 @@ class ItemCreateRequest(DTO):
     labels: list[str] = Field(default_factory=list[str])
     refs: list[str] = Field(default_factory=list[str])
     assignee: str | None = None
-    priority: str | None = None
     fields: dict[str, str] = Field(default_factory=dict[str, str])
     attributes: dict[str, str | list[str]] = Field(default_factory=dict[str, str | list[str]])
     body: str | None = None
@@ -50,7 +49,8 @@ class ItemCreated(ItemRow):
 
 class ItemUpdateRequest(ItemAddress):
     """Change the fields given; a ``clear_*`` flag empties its field, ``set_attributes`` holds
-    ``key: value`` pairs and ``force`` makes a status transition the lifecycle does not allow."""
+    ``key: value`` pairs (a badge field by its code among them), ``unset_attributes`` the keys to
+    remove and ``force`` makes a status transition the lifecycle does not allow."""
 
     title: str | None = None
     description: str | None = None
@@ -61,8 +61,6 @@ class ItemUpdateRequest(ItemAddress):
     clear_parent: bool = False
     assignee: str | None = None
     clear_assignee: bool = False
-    priority: str | None = None
-    clear_priority: bool = False
     add_labels: list[str] = Field(default_factory=list[str])
     rm_labels: list[str] = Field(default_factory=list[str])
     set_attributes: dict[str, str] = Field(default_factory=dict[str, str])

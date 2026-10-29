@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+from squads._itemfile import read_frontmatter
 from tests._squadwide import listed
 
 pytestmark = pytest.mark.anyio
@@ -301,3 +302,114 @@ async def test_a_comment_event_naming_an_unknown_sub_entity_is_refused(
         f"line 7: no {kind} {missing}\n1 issue(s) found — nothing written.\n",
     )
     assert await listed(invoke) == ONLY_ROLE
+
+
+# --- the override squad: kinds, fields and mapping keys follow the declared vocabulary ----------
+
+AS = {"as": "manager"}
+
+
+async def _import_ok(invoke, *events: dict[str, Any]) -> str:
+    result = await invoke(["import", _events(*events)])
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def _stored_action(project, local_id: str) -> dict[str, Any]:
+    """The sub-entity *local_id* of the job as its file stores it."""
+    (path,) = (project.squad_dir / "jobs").glob("JOB-000009-*.md")
+    return next(s for s in read_frontmatter(path)["subentities"] if s["local_id"] == local_id)
+
+
+async def _shown(invoke, *address: str) -> dict[str, Any]:
+    result = await invoke([*address, "show", "--json"])
+    assert result.exit_code == 0, result.output
+    return json.loads(result.output)
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_add_kind_takes_each_field_and_the_target_kind_as_keys_and_a_comment_names_the_kind(
+    override_project, invoke
+) -> None:
+    output = await _import_ok(
+        invoke,
+        {"op": "add-outcome", "target": "INI-8", "title": "A third outcome", "handle": "o3", **AS},
+        {
+            "op": "add-action",
+            "target": "JOB-9",
+            "title": "Ship it",
+            "impact": "small",
+            "outcome": "OC1",
+            "handle": "a3",
+        },
+        {"op": "comment", "target": "INI-8", "outcome": "OC3", "message": "agreed"},
+        {"op": "comment", "target": "JOB-9", "action": "a3", "message": "shipped"},
+    )
+    assert "add-outcome: 1" in output
+    assert "add-action: 1" in output
+    action = _stored_action(override_project, "AC3")
+    assert (action["impact"], action["maps_to"]) == ("small", "OC1")
+    outcome = await _shown(invoke, "initiative", "8", "outcome", "3")
+    assert [c["body"] for c in outcome["discussion"]] == ["- agreed"]
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_an_op_or_a_selector_for_a_kind_the_squad_does_not_declare_is_unknown(
+    override_project, invoke
+) -> None:
+    events = _events(
+        {"op": "add-story", "target": "INI-8", "title": "No such kind", **AS},
+        {"op": "comment", "target": "INI-8", "story": "US1", "message": "x", **AS},
+    )
+    result = await invoke(["import", events])
+    assert result.exit_code == 1
+    assert result.output.splitlines() == [
+        "line 1: unknown op 'add-story'; valid ops: create, status, body, comment, ref, "
+        "add-sub, add-outcome, add-action, sub-status, sub-body, assign, update",
+        "line 2: comment.story: Extra inputs are not permitted",
+        "2 issue(s) found — nothing written.",
+    ]
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_add_sub_takes_the_mapping_as_maps_to_and_the_fields_in_fields(
+    override_project, invoke
+) -> None:
+    await _import_ok(
+        invoke,
+        {
+            "op": "add-sub",
+            "target": "JOB-9",
+            "kind": "action",
+            "title": "Verify",
+            "maps_to": "OC2",
+            "fields": {"impact": "large"},
+            **AS,
+        },
+    )
+    action = _stored_action(override_project, "AC3")
+    assert (action["impact"], action["maps_to"]) == ("large", "OC2")
+    old = {"op": "add-sub", "target": "JOB-9", "kind": "action", "title": "T", "story": "OC1"}
+    refused = await invoke(["import", _events(old | AS)])
+    assert refused.exit_code == 1
+    assert "story: Extra inputs are not permitted" in refused.output
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_create_and_update_take_badge_fields_by_code_in_fields_and_unset_fields(
+    override_project, invoke
+) -> None:
+    sized = {"op": "create", "type": "job", "parent": "INI-8", "fields": {"work_size": "s"}}
+    await _import_ok(
+        invoke,
+        {**sized, "title": "Sized", "handle": "j", **AS},
+        {"op": "update", "target": "j", "fields": {"work_size": "l"}},
+        {**sized, "title": "Unsized", "handle": "u"},
+        {"op": "update", "target": "u", "unset_fields": ["work_size"]},
+    )
+    assert (await _shown(invoke, "job", "11"))["badges"] == {"work_size": "l"}
+    assert (await _shown(invoke, "job", "12"))["badges"] == {}
+    keyed = {"op": "create", "type": "initiative", "title": "Keyed", "urgency": "now"}
+    refused = await invoke(["import", _events(keyed | AS)])
+    assert refused.exit_code == 1
+    assert "urgency: Extra inputs are not permitted" in refused.output
