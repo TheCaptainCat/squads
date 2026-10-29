@@ -423,3 +423,31 @@ async def test_sort_decides_the_order_of_the_json_array(readable, invoke) -> Non
         "REV-7",
     ]
     assert await _ids(invoke) == ["ROLE-1", "FEAT-2", "TASK-3", "TASK-4", "ADR-5", "REV-7"]
+
+
+@pytest.mark.covers("list", "--sort")
+async def test_sort_refuses_a_field_that_is_not_an_ordered_badge_field(readable, invoke) -> None:
+    assert await _list(invoke, "--sort", "ghost") == (
+        1,
+        ["error: unknown sort field 'ghost' (one of: priority, severity)"],
+    )
+
+
+@pytest.mark.covers("list", "--badge")
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("priority=ghost", "unknown priority 'ghost' (one of: urgent, high, medium, low)"),
+        ("ghost=x", "unknown badge field 'ghost' (one of: priority, severity)"),
+    ],
+)
+async def test_badge_refuses_an_unknown_field_or_value(readable, invoke, value, message) -> None:
+    assert await _list(invoke, "--badge", value) == (1, [f"error: {message}"])
+
+
+@pytest.mark.covers("list", "--min-badge")
+async def test_min_badge_refuses_an_unknown_value(readable, invoke) -> None:
+    assert await _list(invoke, "--min-badge", "priority=ghost") == (
+        1,
+        ["error: unknown priority 'ghost' (one of: urgent, high, medium, low)"],
+    )

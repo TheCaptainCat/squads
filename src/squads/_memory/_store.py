@@ -182,7 +182,7 @@ async def search(
     out: list[tuple[MemoryEntry, list[str]]] = []
     for entry in entries:
         candidates = [entry.summary, *entry.body.splitlines()]
-        hits = [ln.strip() for ln in candidates if ln and needle in ln.lower()]
+        hits = list(dict.fromkeys(ln.strip() for ln in candidates if ln and needle in ln.lower()))
         if hits:
             out.append((entry, hits))
     return out, unreadable

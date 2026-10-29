@@ -35,6 +35,7 @@ from squads._cli._common import (
     console,
     err_console,
     handle_errors,
+    parse_badge_field,
     parse_category,
     parse_filter_badge_code,
     parse_status,
@@ -70,7 +71,8 @@ def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
         code, sep, value = pair.partition("=")
         if not sep or not code.strip():
             raise SquadsError(f"expected CODE=VALUE, got {pair!r}")
-        out[code.strip()] = value.strip().lower()
+        field = parse_badge_field(code)
+        out[field] = parse_filter_badge_code(field, value)
     return out
 
 
@@ -378,6 +380,8 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+    if sort is not None:
+        sort = parse_badge_field(sort, ordered=True)
     request = ItemListRequest(
         type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
@@ -459,6 +463,8 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     every member is an equally good root.
     """
     badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+    if sort is not None:
+        sort = parse_badge_field(sort, ordered=True)
     request = TreeRequest(
         root=root_id,
         type=parse_type(type) if type else None,
@@ -814,6 +820,8 @@ def reflog(
                 soft_wrap=True,
             )
             raise typer.Exit(1) from None
+    if op is not None and op not in REFLOG_OPS:
+        raise SquadsError(f"unknown operation {op!r} (one of: {', '.join(REFLOG_OPS)})")
     request = ReflogRequest(
         item=item, actor=actor, op=op, since=since_ts, tail=tail if tail > 0 else None
     )

@@ -162,7 +162,9 @@ async def test_a_refused_line_leaves_the_valid_events_before_it_unapplied(projec
     )
     result = await invoke(["import", events])
     assert result.exit_code == 1
-    assert result.output.splitlines()[1:] == [
+    assert result.output.splitlines() == [
+        "line 2: unknown op 'nope'; valid ops: create, status, body, comment, ref, add-sub, "
+        "add-story, add-subtask, add-finding, sub-status, sub-body, assign, update",
         "line 3: no item 'TASK-99' in the index",
         "2 issue(s) found — nothing written.",
     ]

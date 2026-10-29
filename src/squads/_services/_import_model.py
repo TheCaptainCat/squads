@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
+from pydantic_core import ErrorDetails
 
 from squads import _clock as clock
 from squads._services._results import ImportIssue
@@ -332,6 +333,16 @@ def generic_add_sub(ev: ImportEvent) -> AddSubEvent:
     raise TypeError(f"{ev.op!r} is not an add-sub-shaped event")
 
 
+def _validation_message(error: ErrorDetails) -> str:
+    """One validation error as an issue message: squads' own words for an unknown ``op``."""
+    if error["type"] == "union_tag_invalid":
+        ctx = error.get("ctx", {})
+        tags = str(ctx.get("expected_tags", "")).replace("'", "")
+        return f"unknown op {ctx.get('tag')!r}; valid ops: {tags}"
+    loc = ".".join(str(p) for p in error["loc"])
+    return f"{loc}: {error['msg']}" if loc else str(error["msg"])
+
+
 def parse_events(
     text: str, *, default_at: datetime, default_as: str | None = None
 ) -> tuple[list[ResolvedEvent], list[ImportIssue]]:
@@ -362,8 +373,7 @@ def parse_events(
             parsed = _EVENT_ADAPTER.validate_python(data)
         except ValidationError as exc:
             first = exc.errors()[0]
-            loc = ".".join(str(p) for p in first["loc"])
-            issues.append(ImportIssue(line=line_no, message=f"{loc}: {first['msg']}"))
+            issues.append(ImportIssue(line=line_no, message=_validation_message(first)))
             continue
 
         event = parsed

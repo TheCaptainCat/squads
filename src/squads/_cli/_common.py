@@ -580,6 +580,7 @@ def depth_option(default: int | None, *flags: str) -> Any:
         default,
         "--depth",
         *flags,
+        min=0,
         help="How many levels below the root to show; 0 shows only the root.",
     )
 
@@ -1520,6 +1521,30 @@ def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None
     if coll is None or code not in coll.badge_codes:
         choices = ", ".join(b.code for b in coll.badges) if coll else ""
         raise SquadsError(f"unknown {collection_code} {value!r} (one of: {choices})")
+    return code
+
+
+def parse_badge_field(
+    field_code: str, *, ordered: bool = False, spec: WorkflowSpec | None = None
+) -> str:
+    """Validate *field_code* as a badge field some non-roster type declares.
+
+    With *ordered*, only a field bound to an ordered collection is accepted (the ones that rank).
+    """
+    active_spec = spec if spec is not None else get_active_spec()
+    codes: list[str] = []
+    for item_type in sorted(
+        active_spec.non_roster_types(), key=lambda t: (active_spec.items[t].order, t)
+    ):
+        for field in active_spec.fields_for(item_type):
+            coll = active_spec.collections.get(field.collection)
+            if coll is None or (ordered and not coll.ordered) or field.code in codes:
+                continue
+            codes.append(field.code)
+    code = field_code.strip()
+    if code not in codes:
+        kind = "sort field" if ordered else "badge field"
+        raise SquadsError(f"unknown {kind} {field_code!r} (one of: {', '.join(codes)})")
     return code
 
 

@@ -327,3 +327,10 @@ async def test_forget_json_prints_the_memory_as_it_was_and_its_role(project, inv
     }
     assert result.output == json.dumps({"entry": entry, "role": "manager"}, indent=2) + "\n"
     assert await read_json(invoke, ["memory", "manager", "list", "--json"]) == []
+
+
+@pytest.mark.covers("memory search", "QUERY")
+async def test_search_shows_a_line_once_when_the_body_repeats_the_summary(project, invoke) -> None:
+    await _remember(invoke, "Widget quirk", "--slug", "widget")
+    result = await invoke(["memory", "manager", "search", "widget"])
+    assert (result.exit_code, result.output) == (0, "widget  Widget quirk\n    Widget quirk\n")

@@ -66,7 +66,7 @@ async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) ->
             "Usage: sq graph [OPTIONS] ID",
             "Try 'sq graph --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--depth' / '-d': 'deep' is not a valid integer.           │",
+            "│ Invalid value for '--depth' / '-d': 'deep' is not a valid integer range.     │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
@@ -271,3 +271,9 @@ MERMAID = (
     "    TASK_002d4 -->|related| REV_002d7\n"
     "    TASK_002d4 -->|depends on| TASK_002d3\n"
 )
+
+
+@pytest.mark.covers("graph", "--depth")
+async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
+    code, out = await _graph(invoke, "4", "--depth", "-1")
+    assert (code, any("Invalid value for '--depth'" in line for line in out)) == (2, True)
