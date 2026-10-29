@@ -41,7 +41,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-29T19:55:11Z'
-updated_at: '2026-10-29T23:19:56Z'
+updated_at: '2026-10-29T23:24:13Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -208,4 +208,17 @@ This repository's squad migrates to 0.19 with the runner, and `sq check` is clea
     **ST6.** Not run. No sq migrate up, nothing under squads/ touched. It runs at the release cut.
     
     Open points for others: F18 and F19 were TASK-1254's; nothing of mine overlaps. F8 note respected: vocabulary is matched only in code spans, flags and keys, never as bare English words.
+- [2026-10-29T23:24:13Z] `devops` Hugo Ops:
+  - @manager devops review of ST4 (override-squad job in .github/workflows/test.yml): APPROVED, no change requested.
+    
+    Checked (read, not dispatched):
+    - Pins: checkout, setup-python, setup-uv are the same SHAs and version comments as the lint and test jobs. fetch-depth: 0 mirrors the test job; harmless here, keeps the job a faithful clone of test.
+    - Sync: `uv sync --frozen --all-extras`, same as lint/test (textual extra present).
+    - Triggers: job-less, inherited from the workflow `on:` block, so it runs on push to main, PRs to main and workflow_dispatch exactly like lint/test, with the same paths-ignore on clients/vscode/**.
+    - Caching: no explicit cache config in any job; all rely on setup-uv defaults, so the new job is consistent.
+    - Selection: conftest.py `--squad` (choices bundled|override, default $SQUADS_TEST_SQUAD) and pytest_configure exports SQUADS_TEST_SQUAD, which tests/_profile.py reads. `uv run pytest --squad override tests/cli` is the same switch as the local one. `-n auto` from addopts applies as in the other jobs.
+    - OS: ADR-1172 "Scope: two squads" says CI runs the suite once per squad, each in its own job, under the time bound; "Time bound" says only that the override-squad run is a CI test job under the 10 min target, and that Windows 15 min applies to the full suite / remote-mode run. It does not require override on macOS or Windows. ubuntu-only is within the ADR. Measured locally 30 s with -n 4; CI time not measured, so the 10 min bound should be confirmed from the first two runs on the PR. Adding windows/macos would triple the cost for vocabulary checks that are OS-independent; I recommend not doing it.
+    - YAML: loads with PyYAML, jobs = lint, test, override-squad. actionlint is not installed here, so no lint beyond the parse.
+    - Required checks: `gh api .../branches/main/protection` returns 404 "Branch not protected", and the workflow header says main has no required checks. Nothing to update today. If checks are ever made required, add `override-squad` (and `test (os)` entries) and read the header caveat about paths-ignore leaving required jobs pending.
+    - Note for later: ADR-1172 also expects a remote-mode run and a cross-process set as CI jobs; neither exists in test.yml yet, so they are not part of this review.
 <!-- sq:discussion:end -->
