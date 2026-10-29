@@ -419,7 +419,7 @@ async def init(
         # `sq repair` needs a configuration this folder lacks, so the remedy named is adopt's.
         await compose_service(
             sp, resolved_spec=effective_spec, sources=sources
-        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY)
+        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY, same_id=True)
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
@@ -507,11 +507,12 @@ async def adopt(
         )
     sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sources)
-    if not renumber and _holds_item_files(sp, effective_spec):
-        # Refused before anything is written, as in init(); --renumber resolves it in one step.
+    if _holds_item_files(sp, effective_spec):
+        # Refused before anything is written, as in init(); --renumber resolves what it can in
+        # one step, so only the groups it cannot resolve are refused then.
         await compose_service(
             sp, resolved_spec=effective_spec, sources=sources
-        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY)
+        ).refuse_shared_numbers(ADOPT_RENUMBER_REMEDY, same_id=True, renumbering=renumber)
     if existing is None:
         await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)

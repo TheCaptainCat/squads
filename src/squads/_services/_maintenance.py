@@ -88,13 +88,17 @@ from squads._services._corpus_files import (
 )
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
+    DUPLICATE_ID_REMEDY,
     SHARED_NUMBER_REMEDY,
+    LeftReference,
     MovedFile,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
     normalized_id,
+    references_left,
     renumber_same_id_groups,
+    renumberable,
     shared_number_groups,
 )
 from squads._services._results import (
@@ -1471,11 +1475,15 @@ class MaintenanceMixin(ServiceCore):
                 pass
 
         renumbered = SameIdRenumber()
+        references: list[LeftReference] = []
         if renumber:
             renumbered = await self._renumber_same_id(
                 previous_counter, previous_padding, known_corpus
             )
             renumbered.moved += await self._renumber()
+            references = await references_left(
+                self.paths.squad_dir, self._all_item_files(), renumbered.ids
+            )
         await self.refuse_shared_numbers()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
@@ -1517,21 +1525,57 @@ class MaintenanceMixin(ServiceCore):
             canonicalized=canonicalized,
             stripped=stripped,
             renumbered=renumbered.moved,
-            references=renumbered.references,
+            references=references,
         )
 
-    async def refuse_shared_numbers(self, remedy: str = SHARED_NUMBER_REMEDY) -> None:
+    async def refuse_shared_numbers(
+        self,
+        remedy: str = SHARED_NUMBER_REMEDY,
+        *,
+        same_id: bool = False,
+        renumbering: bool = False,
+    ) -> None:
         """Refuse, before the index is rebuilt, a number carried by files of different ids: the
-        index is keyed by number, so the rebuild would keep one file and hide the other. *remedy*
-        is the command the message names."""
-        groups = shared_number_groups(await self._id_carriers())
-        if not groups:
-            return
-        lines = "\n".join(
+        index is keyed by number, so the rebuild would keep one file and hide the other. With
+        *same_id*, an id carried by several files is refused too: *remedy* when a renumber can
+        resolve it, the merge-by-hand remedy when not. *renumbering* says the caller renumbers, so
+        only what a renumber cannot resolve is refused. *remedy* is the command the message
+        names."""
+        carriers = await self._id_carriers()
+        lines = [
             f"  - {self._shared_number_message(number, files, remedy)}"
-            for number, files in sorted(groups.items())
+            for number, files in sorted(shared_number_groups(carriers).items())
+            if not renumbering
+        ]
+        if same_id:
+            scope = self._renumber_scope(None)
+            for key, files in sorted(duplicate_groups(carriers).items()):
+                fixable = await renumberable(files, prefix_from_id(key), scope)
+                named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
+                if fixable and renumbering:
+                    continue
+                how = remedy if fixable else DUPLICATE_ID_REMEDY
+                lines.append(f"  - {len(files)} files carry the id {key} ({named}); {how}")
+        if lines:
+            body = "\n".join(lines)
+            raise SquadsError(f"refusing to rebuild the index: it keys items by number:\n{body}")
+
+    def _renumber_scope(self, known_corpus: SquadsDB | None) -> RenumberScope:
+        """Where the same-id renumber may act, with the previous index's files as the kept ones."""
+        previous: list[Item] = list(known_corpus.items.values()) if known_corpus else []
+        indexed: dict[str, Path] = {}
+        for it in previous:
+            key = normalized_id(it.id)
+            if key is not None:
+                indexed[key] = self.paths.abspath(it.path)
+        return RenumberScope(
+            folder_for_prefix={
+                ts.prefix: self.paths.squad_dir / ts.folder for ts in self.spec.items.values()
+            },
+            indexed_paths=indexed,
+            list_files=self._all_item_files,
+            rehint=lambda text, fm, path, old: self._rehint(text, fm, path, old_number=old),
         )
-        raise SquadsError(f"refusing to rebuild the index: it keys items by number:\n{lines}")
 
     async def _renumber_same_id(
         self, previous_counter: int, padding: int, known_corpus: SquadsDB | None
@@ -1546,20 +1590,7 @@ class MaintenanceMixin(ServiceCore):
             run = stem_digit_run(md, item_type, self.spec)
             if run is not None:
                 numbers.append(int(run))
-        previous: list[Item] = list(known_corpus.items.values()) if known_corpus else []
-        indexed: dict[str, Path] = {}
-        for it in previous:
-            key = normalized_id(it.id)
-            if key is not None:
-                indexed[key] = self.paths.abspath(it.path)
-        scope = RenumberScope(
-            folder_for_prefix={
-                ts.prefix: self.paths.squad_dir / ts.folder for ts in self.spec.items.values()
-            },
-            indexed_paths=indexed,
-            list_files=self._all_item_files,
-            rehint=lambda text, fm, path, old: self._rehint(text, fm, path, old_number=old),
-        )
+        scope = self._renumber_scope(known_corpus)
         return await renumber_same_id_groups(
             squad_dir=self.paths.squad_dir,
             groups=groups,

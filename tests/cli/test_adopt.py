@@ -216,3 +216,41 @@ async def test_renumber_json_lists_the_items_that_moved(adoptable, invoke) -> No
             }
         ),
     )
+
+
+@pytest.mark.covers("adopt", "--roles")
+async def test_a_same_id_pair_is_refused_before_anything_is_written(adoptable, invoke) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_text(encoding="utf-8")
+    (squad / "tasks/TASK-000003-twin.md").write_text(
+        original.replace("title: Build the query parser", "title: Twin parser"), encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "core"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
+        "tasks/TASK-000003-twin.md); run `sq adopt --renumber` to give one of them a new "
+        "number and adopt\n",
+    )
+    assert not (adoptable / ".squads.toml").exists()
+    assert not (squad / ".squads.json").exists()
+
+
+@pytest.mark.covers("adopt", "--renumber")
+async def test_renumber_refuses_identical_copies_before_anything_is_written(
+    adoptable, invoke
+) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_bytes()
+    (squad / "tasks/TASK-000003-copy.md").write_bytes(original)
+    result = await invoke(["adopt", "--roles", "core", "--renumber"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
+        "tasks/TASK-000003-copy.md); merge the content you want into one file, delete the "
+        "other by hand, then run `sq repair`\n",
+    )
+    assert not (adoptable / ".squads.toml").exists()
+    assert not (squad / ".squads.json").exists()

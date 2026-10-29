@@ -189,7 +189,7 @@ class SameIdRenumber:
     """What ``repair --renumber`` did about ids carried by more than one file."""
 
     moved: list[MovedFile] = field(default_factory=list[MovedFile])
-    references: list[LeftReference] = field(default_factory=list[LeftReference])
+    ids: list[str] = field(default_factory=list[str])
 
 
 def _rel(squad_dir: Path, md: Path) -> str:
@@ -220,12 +220,11 @@ def _text_hits(text: str, pattern: re.Pattern[str], first_line: int) -> list[tup
             in_discussion = True
         elif pattern.search(line):
             where = f"{'comment' if in_discussion else 'body'}:{first_line + offset}"
-            snippet = line.strip()
-            hits.append((where, f'"{snippet[:70]}{"..." if len(snippet) > 70 else ""}"'))
+            hits.append((where, line.strip()))
     return hits
 
 
-async def _references_to(
+async def references_to(
     squad_dir: Path, item_files: list[Path], old_id: str
 ) -> list[tuple[str, str, str]]:
     """``(file, where, text)`` for every reference to *old_id* in any item file's frontmatter
@@ -280,7 +279,7 @@ async def _group_slugs(files: list[Path], prefix: str) -> list[str]:
     return slugs
 
 
-async def _renumberable(files: list[Path], prefix: str, scope: RenumberScope) -> bool:
+async def renumberable(files: list[Path], prefix: str, scope: RenumberScope) -> bool:
     """A group is renumbered only when every file is one the index scan reads, no two share a
     slug, and the files are not all byte-identical (an identical set is a copy, not a merge)."""
     if not all(_readable_by_index_scan(md, prefix, scope) for md in files):
@@ -323,6 +322,17 @@ async def _renumber_files(
     return moved, next_free
 
 
+async def references_left(
+    squad_dir: Path, item_files: list[Path], old_ids: list[str]
+) -> list[LeftReference]:
+    """Every reference to each of *old_ids* in *item_files*, as the files stand now."""
+    return [
+        LeftReference(old_id, rel, where, text)
+        for old_id in old_ids
+        for rel, where, text in await references_to(squad_dir, item_files, old_id)
+    ]
+
+
 async def renumber_same_id_groups(
     *,
     squad_dir: Path,
@@ -331,18 +341,17 @@ async def renumber_same_id_groups(
     padding: int,
     first_free: int,
 ) -> SameIdRenumber:
-    """Give every file but the kept one of each renumberable group a fresh number, then list
-    every reference to each old id without changing any.
+    """Give every file but the kept one of each renumberable group a fresh number. The outcome
+    names the ids it renumbered; :func:`references_left` lists what still cites them.
 
     The kept file is the one the previous index points at, else the first by name. A group with
     a file outside its own type folder, two files sharing a slug, or nothing but identical
     copies is left for the caller to refuse."""
     outcome = SameIdRenumber()
     next_free = first_free
-    renumbered: list[str] = []
     for key, files in sorted(groups.items()):
         prefix = prefix_from_id(key)
-        if not await _renumberable(files, prefix, scope):
+        if not await renumberable(files, prefix, scope):
             continue
         by_name = sorted(files, key=lambda p: _stem_key(squad_dir, p))
         indexed = scope.indexed_paths.get(key)
@@ -350,13 +359,5 @@ async def renumber_same_id_groups(
         ordered = [kept, *(md for md in by_name if md != kept)]
         moved, next_free = await _renumber_files(squad_dir, ordered, key, padding, next_free, scope)
         outcome.moved += moved
-        renumbered.append(key)
-    # References are listed after every rename, so a renumbered file's own text is scanned
-    # and an earlier group's renames are visible to a later group.
-    current = scope.list_files()
-    for key in renumbered:
-        outcome.references += [
-            LeftReference(key, rel, where, text)
-            for rel, where, text in await _references_to(squad_dir, current, key)
-        ]
+        outcome.ids.append(key)
     return outcome

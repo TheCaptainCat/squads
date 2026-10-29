@@ -66,6 +66,11 @@ def render_repair(report: RepairReport, console: Console) -> None:
     _print_renumbered(report.renumbered, report.references, console)
 
 
+def _snippet(text: str) -> str:
+    """A reference's text as a printed line shows it: quoted, cut at 70 characters."""
+    return f'"{text[:70]}{"..." if len(text) > 70 else ""}"'
+
+
 def _print_renumbered(
     moved: list[MovedFile], references: list[LeftReference], console: Console
 ) -> None:
@@ -77,7 +82,9 @@ def _print_renumbered(
     for old_id in dict.fromkeys(ref.id for ref in references):
         console.print(f"  references to {e(old_id)} left unchanged; check each by hand:")
         for ref in (r for r in references if r.id == old_id):
-            console.print(f"    {e(ref.file)}   {e(ref.where)}   {e(ref.text)}", soft_wrap=True)
+            console.print(
+                f"    {e(ref.file)}   {e(ref.where)}   {e(_snippet(ref.text))}", soft_wrap=True
+            )
 
 
 def render_renumber(report: RenumberReport, console: Console) -> None:

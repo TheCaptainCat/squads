@@ -161,7 +161,61 @@ async def test_renumber_json_lists_each_moved_file_and_each_reference_left(
                         "id": "TASK-3",
                         "file": TASK_FILE,
                         "where": "body:23",
-                        "text": '"See TASK-3."',
+                        "text": "See TASK-3.",
+                    }
+                ],
+            }
+        ),
+    )
+
+
+@pytest.mark.covers("repair", "--json")
+async def test_renumber_json_names_the_moved_file_that_holds_a_reference(
+    populated_project, invoke
+) -> None:
+    squad = populated_project.squad_dir
+    original = (squad / TASK_FILE).read_text(encoding="utf-8")
+    (squad / "tasks/TASK-000003-twin.md").write_text(
+        original.replace("title: Build the query parser", "title: Twin parser"), encoding="utf-8"
+    )
+    note = "See TASK-3 for context, and a long line " + "x" * 70
+    cross = (
+        original.replace("id: TASK-3", "id: TASK-2")
+        .replace("sequence_id: 3", "sequence_id: 2")
+        .replace("_TODO: describe this task._", note)
+    )
+    (squad / "tasks/TASK-000002-cross.md").write_text(cross, encoding="utf-8")
+    result = await invoke(["repair", "--renumber", "--json"])
+    assert (result.exit_code, result.output) == (
+        1,
+        json_text(
+            {
+                "indexed": 6,
+                "counter": 6,
+                "notice": None,
+                "missing": [],
+                "unreadable": [],
+                "renumbered": [
+                    {
+                        "old": "TASK-3",
+                        "new": "TASK-5",
+                        "file": "tasks/TASK-000003-twin.md",
+                        "target": "tasks/TASK-000005-twin.md",
+                    },
+                    {
+                        "old": "TASK-2",
+                        "new": "TASK-6",
+                        "file": "tasks/TASK-000002-cross.md",
+                        "target": "tasks/TASK-000006-cross.md",
+                    },
+                ],
+                "references_left": True,
+                "references": [
+                    {
+                        "id": "TASK-3",
+                        "file": "tasks/TASK-000006-cross.md",
+                        "where": "body:23",
+                        "text": note,
                     }
                 ],
             }
