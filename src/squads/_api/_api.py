@@ -15,7 +15,11 @@ class Mode(enum.StrEnum):
     """The composition mode the service for an operation is built in."""
 
     NORMAL = "normal"
+    #: The normal composition, else the squad's workflow spec without the index check, else the
+    #: bundled documents: for an operation that repairs what the index check refuses over.
     INDEX_CHECK_SKIPPED = "index-check-skipped"
+    #: The normal composition, else the squad's documents, each refused with a pointer back to
+    #: ``sq migrate up``.
     MIGRATE = "migrate"
     BUNDLED_FALLBACK = "bundled-fallback"
     #: The normal composition, else the one ``sq check`` falls back to for the refusal, which the

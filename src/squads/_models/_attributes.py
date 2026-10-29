@@ -60,8 +60,6 @@ class AttributeKey:
     TAGS = "tags"
     # reviews
     TARGET_REF = "target_ref"
-    # milestones
-    TARGET_DATE = "target_date"
 
 
 #: The two values of a role's or skill's ``origin``: shipped with the tool or generated from the

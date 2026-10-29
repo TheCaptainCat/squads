@@ -28,7 +28,7 @@ shrinks named sections and is stripped. The engine owns no floor, so these stay 
 ``lint_workflow_spec(squad_dir)`` runs all of this in collect-all mode for ``sq workflow lint``,
 returning ``(level, location, message, fix_hint)`` tuples and never raising.
 ``validate_against_index_fail_closed(spec, squad_dir, bundled=...)`` is the enforcement point
-``open_service`` calls: it reads the index synchronously and raises ``SquadsError`` listing every
+``compose_service`` calls: it reads the index synchronously and raises ``SquadsError`` listing every
 offending ID when the spec drops a type or status live items use or misaligns a type's
 prefix/folder; lint reports the same findings without aborting.
 """
@@ -313,12 +313,12 @@ def _without_selected_squad(raw_override: RawMapping) -> RawMapping:
 
 def spec_refusal(override_path: Path | str, cause: object) -> str:
     """The one refusal text every surface prints when the workflow override will not resolve,
-    composed where the file and the loader's cause are both in hand, so ``open_service``'s hard stop
-    and the CLI's per-invocation binding agree. It carries which file (an adopter may not know an
-    override exists, as it can be inherited with the repo), the loader's key-level cause, and what
-    to do, because a hard stop that does not say what to fix is worse than the quiet wrong answer it
-    replaces. It does not claim to be the one command that still runs: ``sq repair`` (documented
-    bypass) and ``sq check`` (bundled-spec fallback) run too.
+    composed where the file and the loader's cause are both in hand, so ``compose_service``'s hard
+    stop and the CLI's per-invocation binding agree. It carries which file (an adopter may not know
+    an override exists, as it can be inherited with the repo), the loader's key-level cause, and
+    what to do, because a hard stop that does not say what to fix is worse than the quiet wrong
+    answer it replaces. It does not claim to be the one command that still runs: ``sq repair``
+    (documented bypass) and ``sq check`` (bundled-spec fallback) run too.
     """
     return (
         f"this squad's workflow override could not be loaded, so no command can answer with "
@@ -352,7 +352,7 @@ def load_workflow_spec(
     added, ``[selected]`` drops one by name), the only floor being the roster type-key lock plus the
     spec's own validation and the live-index cross-check; with no override the bundled spec is
     returned unchanged. It raises ``SquadsError`` naming the offending key or item, pointing to ``sq
-    workflow lint`` where the caller (``open_service``) adds that.
+    workflow lint`` where the caller (``compose_service``) adds that.
     """
     loaded = load_override(_DOCUMENT, squad_dir, _bundled_raw, files)
     if loaded is None:
@@ -1360,7 +1360,7 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     loaded: WorkflowSpec | None = None,
 ) -> list[LintFinding]:
     """Run all workflow spec checks in collect-all mode and return ``(level, location, message,
-    fix_hint)`` tuples; it never raises, so a spec that would hard-stop ``open_service`` is still
+    fix_hint)`` tuples; it never raises, so a spec that would hard-stop ``compose_service`` is still
     fully diagnosed. *files* and *loaded* are what the caller already read and built (the override
     text and the merged spec if it loaded, not built twice). Phases: (1) the stamp obligation,
     always evaluated since a raw key-set intersection needs no valid merge; (2) retired view-grammar
@@ -1562,7 +1562,7 @@ def _load_index_sync(squad_dir: Path) -> Any:
 
 
 # ---------------------------------------------------------------------------
-# Fail-closed index cross-check for open_service
+# Fail-closed index cross-check for compose_service
 # ---------------------------------------------------------------------------
 
 
@@ -1573,7 +1573,7 @@ def validate_against_index_fail_closed(
     re-prefixes or re-folders a type against a non-empty corpus, or shrinks a badge collection a
     live value still names (see :func:`validate_against_index`); a dropped ref kind live refs still
     spell is not one, refusing at ``sq workflow lint`` and the write boundary instead.
-    ``open_service`` calls it after ``load_workflow_spec`` succeeds, reading the index
+    ``compose_service`` calls it after ``load_workflow_spec`` succeeds, reading the index
     synchronously, and the error lists every offending ID and points to ``sq workflow lint``. It is
     a no-op if the index is absent, empty or unreadable, and lint calls ``lint_workflow_spec``
     instead, which reports without aborting.

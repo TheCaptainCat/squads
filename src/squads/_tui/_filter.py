@@ -16,7 +16,7 @@ from textual.widgets import Button, Input, Label, Select, Switch
 from textual.widgets.select import NoSelection
 
 from squads._api._dto._workflow import FieldEntry
-from squads._tui._session import Catalogs, status_options, type_options
+from squads._tui._session import Catalogs, categories, status_options, type_options
 
 if TYPE_CHECKING:
     from squads._tui._browse import BrowseState
@@ -24,9 +24,6 @@ if TYPE_CHECKING:
 _BADGE_CODE = "filter-badge-code"
 _BADGE_VALUE = "filter-badge-value"
 _SORT_SEQUENCE = "sequence"
-
-#: The type categories a filter offers, in the order it offers them.
-_CATEGORIES: tuple[str, ...] = ("roster", "work", "records")
 
 
 def _all_badge_fields(catalogs: Catalogs) -> list[FieldEntry]:
@@ -106,7 +103,7 @@ class FilterScreen(ModalScreen["BrowseState | None"]):
             value=state.filter.status or Select.NULL,
         )
         self._category_select: Select[str] = Select(
-            [(c.capitalize(), c) for c in _CATEGORIES],
+            [(c.capitalize(), c) for c in categories(catalogs.types)],
             id="filter-category",
             value=state.filter.category or Select.NULL,
         )

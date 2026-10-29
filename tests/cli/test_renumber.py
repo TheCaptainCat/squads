@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from tests.cli._output import json_text
 from tests.cli._squadwide import listed
 
 pytestmark = pytest.mark.anyio
@@ -77,6 +78,28 @@ async def test_onto_moves_the_items_from_the_lowest_just_past_the_other_counter(
         ("TASK-21", "Build the query parser"),
         ("REV-22", "Review the query parser"),
     ]
+
+
+@pytest.mark.covers("renumber", "--json")
+async def test_renumber_json_prints_the_items_moved_and_the_counter(
+    populated_project, invoke
+) -> None:
+    result = await invoke(["renumber", "--from", "2", "--by", "10", "--json"])
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text(
+            {
+                "moved": [
+                    {"old": "FEAT-2", "new": "FEAT-12"},
+                    {"old": "REV-4", "new": "REV-14"},
+                    {"old": "TASK-3", "new": "TASK-13"},
+                ],
+                "counter": 14,
+                "warning": UNCERTIFIED.removeprefix("warning: ").removesuffix("\n"),
+                "notice": None,
+            }
+        ),
+    )
 
 
 @pytest.mark.covers("renumber", "--onto")

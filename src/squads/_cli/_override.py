@@ -20,14 +20,7 @@ from squads._api._dto._overrides import (
     OverrideUpdateRequest,
 )
 from squads._cli import _calls as calls
-from squads._cli._common import (
-    Ground,
-    console,
-    err_console,
-    gate_group_command,
-    handle_errors,
-    past_the_gate,
-)
+from squads._cli._common import console, err_console, handle_errors
 from squads._cli._render._overrides import (
     print_errors,
     render_diffs,
@@ -41,12 +34,6 @@ override_app = typer.Typer(
     no_args_is_help=True,
     help="Manage project-level template and role overrides.",
 )
-
-
-@override_app.callback()
-def override_gate(ctx: typer.Context) -> None:
-    """Gate each ``sq override`` command by the grant it declares."""
-    gate_group_command(ctx, override_app)
 
 
 def _address(
@@ -136,7 +123,6 @@ def scaffold(
 
 
 @override_app.command(name="list")
-@past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def list_overrides(
     json_out: bool = typer.Option(
@@ -163,7 +149,6 @@ def list_overrides(
 
 
 @override_app.command("diff")
-@past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def diff(
     name: str | None = typer.Argument(
@@ -213,7 +198,6 @@ def diff(
 
 
 @override_app.command("update")
-@past_the_gate(Ground.NO_SQUAD_STATE, behind=True)
 @handle_errors
 def update(
     name: str | None = typer.Argument(

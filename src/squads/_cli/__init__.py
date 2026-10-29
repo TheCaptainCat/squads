@@ -262,8 +262,6 @@ def main_callback(
         )
     )
     common.mark_root_callback_ran(ctx)
-    common.require_current_schema(ctx.invoked_subcommand)
-    common.working_language_notice()
 
 
 # Register commands (imported after `app` is defined; they decorate it). `_main` is a side-effect

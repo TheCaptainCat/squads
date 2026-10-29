@@ -63,19 +63,23 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             f"{shown} is {item.id} ({item.type}), not {article(address.type)} {address.type}"
         )
 
+    async def _duplicate_warnings(self, item: Item) -> list[str]:
+        """The duplicate-id warning a read of *item* carries, when another file has its id."""
+        duplicate = await self.duplicate_id_error(item)
+        return [] if duplicate is None else [f"{duplicate} -- {_DUPLICATE_READ_NOTE}"]
+
     async def show_item(
         self, req: ItemShowRequest, *, keep_view: str | None = None
     ) -> Response[ItemShow]:
-        """The item in full, with a warning when more than one file carries its id; the tag of
-        the view *keep_view* names stays unexpanded in the displayed body."""
+        """The item in full, with a warning when more than one file carries its id or a view in
+        its body fails to render; the tag of the view *keep_view* names stays unexpanded in the
+        displayed body."""
         item = await self.addressed_item(req)
-        warnings: list[str] = []
-        duplicate = await self.duplicate_id_error(item)
-        if duplicate is not None:
-            warnings.append(f"{duplicate} -- {_DUPLICATE_READ_NOTE}")
+        warnings = await self._duplicate_warnings(item)
         names = participant_names(await self.store.load())
         kind = self.spec.item_subentity_kind(item.type)
         row = item.to_row()
+        expanded = await self.read_body(item.id, keep_view=keep_view)
         if kind is not None:
             row["subentities"] = [
                 subentity_dto(
@@ -90,12 +94,10 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
                 "views": await self.view_data(item.id),
                 "discussion": comment_dtos(await self.comments(item.id)),
                 "badges": resolve_badges(self.spec, item.type, item.badge_value),
-                "display": show_display(
-                    item, kind, await self.read_body(item.id, keep_view=keep_view), self.spec, names
-                ),
+                "display": show_display(item, kind, expanded.text, self.spec, names),
             }
         )
-        return Response(data=shown, warnings=warnings)
+        return Response(data=shown, warnings=[*warnings, *expanded.warnings])
 
     async def list_item_rows(self, req: ItemListRequest) -> Response[ItemList]:
         """The items matching every filter, closed ones hidden unless asked for or filtered on

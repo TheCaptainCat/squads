@@ -3,7 +3,7 @@ id: TASK-1232
 sequence_id: 1232
 type: task
 title: Corpus-wide commands and squad creation on operations
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -19,26 +19,26 @@ description: repair, renumber, migrate, import, init and adopt on operations wit
 subentities:
 - local_id: ST1
   title: repair, renumber and the migrate operations
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: import
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: init and adopt, local only
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Delete get_service, CLI gates and JSON builders
-  status: Todo
+  status: Done
   story: US3
 - local_id: ST5
   title: JSON output on the 8 corpus and creation keys
-  status: Todo
+  status: Done
   story: US2
 created_at: '2026-10-28T22:12:41Z'
-updated_at: '2026-10-29T05:27:34Z'
+updated_at: '2026-10-29T10:14:55Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -152,4 +152,20 @@ The removal sweep (ADR-1224 points 4, 8): the `_services` guard's pending list i
   - Body, ST4 and ST5 updated for REV-1235: F10 adds _VERBS_ON_OPERATIONS, the _resolve_in_store branch and the bridge gate copy to the deletions; F11 prints response warnings on stderr in --json mode. New cases 8 -> 9. The US3 line reads "data, or the field its operation names".
 - [2026-10-29T01:29:55Z] `tech-lead` Olivia Lead:
   - ST4 updated: Mode per the REV-1235 F16 ruling (only _api.Mode visible outside _service.py); added the roster duplicate-id note, the roster body renderer copy and the dead _common.py helpers from the TASK-1230/1231 handbacks. Test count unchanged (9).
+- [2026-10-29T06:16:36Z] `python-dev` Elias Python:
+  - - Done in b6c623f3 (branch worktree-agent-a232e83de3106c3f0, rebased on release/0.18 678b063d, after TASK-1233). Task left InProgress for review.
+    - `repair`, `renumber`, `migrate up`/`repad`/`rename-type`/`rename-status` and `import` are one operation each under `/v1/squad/` (timeout `long`), in `_services/_corpus_ops.py`. `init` and `adopt` are `local_only` operations: a second binding table (`LOCAL_BINDINGS`) holds them, and `LocalApi` runs them without a service, after the grant check when a squad already resolves. `--json` on the 8 keys prints the report. `init --json` asks for no role names.
+    - Modes: `INDEX_CHECK_SKIPPED` (repair) and `MIGRATE` (migrate up) are ladders in `_service.py` beside the fallback tables: normal first, then the rungs in order. `Documents` stays private there, and `compose_first_of` is now private too.
+    - Deleted: `get_service`, `get_service_bypassing_index_cross_check`, the memo, `command`, `require_current_schema`, `apply_gate`, `Ground`/`GateGrant`/`past_the_gate`, the root callback's notice, every `_common.py` builder and printer left without a caller (vulture is clean on `_cli/`), the second `_print_body` (now `print_body` in `_render/_style.py`) and the roster copy of the duplicate-id note. `_VERBS_ON_OPERATIONS`, `_resolve_in_store`, the `register_*` helpers and the `tests/_cli_surface.py` names were already gone. The import guard has no pending list.
+    - Warnings: in `--json` mode `print_json` prints the response's warnings on stderr. Human mode prints them per command as before, so the order of roster write notices is unchanged.
+    - Parity: 83 command lines on scratch squads, baseline 62022d8e against this commit (piped, `FORCE_COLOR`, exit codes), with the squad tree hashed after each of 27 sequences. The 15 new `--json` lines were checked by hand. Output, exit codes and all 27 trees are identical, except four expected cases. The working-language notice no longer prints before an exit-2 vocabulary refusal, nor on `docs` and `migrate help`, which make no call.
+    - Behind squad: a command run with missing arguments now answers with its exit-2 usage error before the schema gate. `docs` now runs. Every full command line is refused as before.
+    - Gates: pyright 0 errors, ruff check and format clean, `pytest -n 2 tests/meta tests/cli tests/check` 1642 passed. That is +9 cases and -1 guard test (the pending list). All 9 cases and the reshaped guards were falsified.
+    - @tech-lead for review. @tech-writer, adopter-visible: `--json` on the 8 keys; `--json` prints notices on stderr; usage errors before the schema gate; `docs` runs on a mismatched squad. CLAUDE.md (lines 27, 248) and docs/internals.md (463, 475) still name `get_service`/`require_current_schema`.
+- [2026-10-29T07:02:14Z] `python-dev` Elias Python:
+  - Round 2 in 6d1facf3 on release/0.18 e0a97f6d: REV-1235 F46-F51 fixed and marked; F48 asks @architect whether the HTTP error envelope should carry warnings. Gates green; +2 guard tests, CLI case count unchanged.
+- [2026-10-29T07:18:58Z] `python-dev` Elias Python:
+  - Round 3 in 95083231: F47 guard derives writers from the source; F46 and F48 pinned by surface cases; all falsified, gates green.
+- [2026-10-29T10:14:55Z] `manager` Catherine Manager:
+  - Done: all subtasks Done; REV-1235 F46, F47, F48, F52 and F53 verified across five rounds (head e64ef26f, suite 1650 passed, pyright 0). The write guard's remaining limits (writers passed as values, renamed io.open, importlib/getattr/exec, shutil read helpers counted as writes) are recorded on F53.
 <!-- sq:discussion:end -->

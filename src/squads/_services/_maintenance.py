@@ -1441,8 +1441,8 @@ class MaintenanceMixin(ServiceCore):
         """Rebuild the index from the markdown frontmatter, sweeping the corpus while walking it
         (:meth:`_rebuild_index_from_disk`). A strip must never run ahead of a surface regeneration
         that reads what it removes, nor regenerate anything itself. That holds here by construction:
-        ``require_current_schema`` limits ``sq repair`` to a current-schema corpus, and the one
-        behind-schema call is the tail of :meth:`run_pending_migrations`, after every runner.
+        the schema gate limits ``sq repair`` to a current-schema corpus, and the one behind-schema
+        call is the tail of :meth:`run_pending_migrations`, after every runner.
         """
         # Snapshot the previous index (if any) before rebuilding, to preserve the counter high-water
         # mark and padding floor and to report indexed items whose files have gone missing.

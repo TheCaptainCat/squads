@@ -121,6 +121,30 @@ async def test_an_item_template_override_without_the_required_regions_is_an_erro
     )
 
 
+@pytest.mark.breaches("override_loads")
+async def test_a_template_override_that_does_not_compile_is_an_error(
+    project, invoke, check_json
+) -> None:
+    # no command writes an override template: write the file
+    write_override(project, "templates/views/notes.md.j2", "{% if true %}notes{% endif %}\n")
+    assert await check_json() == ([], 0)
+
+    write_override(project, "templates/views/notes.md.j2", "notes\n{% if %}\n")
+
+    assert await check_json() == (
+        [
+            issue(
+                "override_loads",
+                "error",
+                ".overrides/templates/views/notes.md.j2",
+                "override template does not compile: line 2: Expected an expression, got "
+                "'end of statement block'",
+            )
+        ],
+        3,
+    )
+
+
 @pytest.mark.breaches("workflow_loads")
 async def test_a_workflow_override_the_loader_refuses_is_an_error(
     project, invoke, check_json

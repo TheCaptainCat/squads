@@ -8,7 +8,7 @@ workflow spec, the role catalog, backend classes, compiled template environments
 module-level and be cached process-wide.
 
 It is one task-local value, seeded or rebound only at the CLI edge and read only through the
-accessors below; nothing below ``open_service`` reads the ``ContextVar`` directly. New ambient
+accessors below; nothing below ``compose_service`` reads the ``ContextVar`` directly. New ambient
 fields are added with a default, so existing call sites and fields are untouched.
 """
 

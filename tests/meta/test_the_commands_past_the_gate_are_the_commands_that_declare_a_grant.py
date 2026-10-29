@@ -1,116 +1,75 @@
-"""The set of commands that get past the schema gate on a mismatched squad is, for each direction,
-exactly the set whose declared grant covers that direction. Every top-level command and group of
-the app and every verb of ``sq migrate`` and ``sq override`` is invoked on a squad stamped behind
-and on one stamped ahead, and the ones the gate does not refuse are collected."""
+"""The set of operations that get past the schema gate on a mismatched squad is, for each
+direction, exactly the set whose declared grant covers that direction. Every operation of the
+table is called through the local API on a squad stamped behind and on one stamped ahead, and the
+ones the gate does not refuse are collected. A command that makes no call reads only the
+package's own data, so the gate has nothing to refuse there."""
 
+import asyncio
 import shutil
-import sys
 from pathlib import Path
 
 import pytest
-import typer
-from typer.testing import CliRunner
 
 from squads._api._ops import OPERATIONS
-from squads._cli import app
-from squads._cli._common import GATED_GROUPS, grants_by_command
+from squads._context import RequestContext, bind_context
+from squads._errors import SchemaGateError
+from squads._services._local_api import LocalApi
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
-_GATE_MESSAGES = ("Run sq migrate up to upgrade it", "Upgrade the squads package")
 
-_PAST_WHEN_BEHIND = {
-    "migrate up",
-    "migrate help",
-    "migrate chlog",
-    "override list",
-    "override diff",
-    "override update",
-}
-_PAST_WHEN_AHEAD = {"migrate help", "migrate chlog"}
+_PAST_WHEN_BEHIND = {"squad.migrate", "overrides.list", "overrides.diff", "overrides.update"}
+_PAST_WHEN_AHEAD: set[str] = set()
 
 
-_GATED_APPS: dict[str, typer.Typer] = {
-    str(g.name): g.typer_instance
-    for g in app.registered_groups
-    if g.name in GATED_GROUPS and g.typer_instance is not None
-}
-
-
-def _name(info_name: str | None, callback_name: str | None) -> str:
-    return info_name or (callback_name or "").replace("_", "-")
-
-
-def _every_command() -> list[tuple[str, ...]]:
-    top = [
-        (_name(info.name, getattr(info.callback, "__name__", None)),)
-        for info in app.registered_commands
-    ]
-    groups = [(str(g.name),) for g in app.registered_groups if g.name not in GATED_GROUPS]
-    verbs = [
-        (group, _name(info.name, getattr(info.callback, "__name__", None)))
-        for group, group_app in _GATED_APPS.items()
-        for info in group_app.registered_commands
-    ]
-    return [*top, *groups, *verbs]
-
-
-#: The command each operation that declares a grant serves, by operation name; an operation
-#: that declares one and has no row here fails the walk with its name.
-_COMMAND_OF_OPERATION: dict[str, str] = {
-    "overrides.diff": "override diff",
-    "overrides.list": "override list",
-    "overrides.update": "override update",
-}
+def _stamped(tmp_path: Path, direction: str, index: int) -> Path:
+    root = shutil.copytree(_CORPUS_DIR / "v0_14", tmp_path / f"squad{index}")
+    if direction == "ahead":
+        toml = (root / ".squads.toml").read_text(encoding="utf-8")
+        (root / ".squads.toml").write_text(
+            toml.replace('schema_version = "0.14"', 'schema_version = "0.99"'), encoding="utf-8"
+        )
+    return root
 
 
 def _declared(direction: str) -> set[str]:
-    on_commands = {
-        f"{group} {name}"
-        for group, group_app in _GATED_APPS.items()
-        for name, grant in grants_by_command(group_app).items()
-        if grant.covers(behind=direction == "behind")
-    }
-    on_operations = {
-        _COMMAND_OF_OPERATION[op.name]
+    return {
+        op.name
         for op in OPERATIONS
         if op.grant is not None and op.grant.covers(behind=direction == "behind")
     }
-    return on_commands | on_operations
 
 
-def _observed(direction: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> set[str]:
+def _observed(direction: str, tmp_path: Path) -> set[str]:
+    """The operations the gate lets through. A refused call touches nothing, so the squad is
+    copied again only after one that got through."""
     past: set[str] = set()
-    for index, path in enumerate(_every_command()):
-        root = tmp_path / f"squad{index}"
-        shutil.copytree(_CORPUS_DIR / "v0_14", root)
-        if direction == "ahead":
-            toml = (root / ".squads.toml").read_text(encoding="utf-8")
-            (root / ".squads.toml").write_text(
-                toml.replace('schema_version = "0.14"', 'schema_version = "0.99"'),
-                encoding="utf-8",
-            )
-        monkeypatch.chdir(root)
-        monkeypatch.setattr(sys, "argv", ["sq", *path])
-        output = CliRunner().invoke(app, list(path)).output
-        if not any(message in output for message in _GATE_MESSAGES):
-            past.add(" ".join(path))
+    root = _stamped(tmp_path, direction, 0)
+    for index, op in enumerate(OPERATIONS, start=1):
+        bind_context(RequestContext(client_cwd=root))
+        try:
+            asyncio.run(LocalApi().call(op, op.request.model_construct()))
+        except SchemaGateError:
+            continue
+        except Exception:  # past the gate, a request built without its fields may fail
+            pass
+        past.add(op.name)
+        root = _stamped(tmp_path, direction, index)
     return past
 
 
-def test_the_walk_sees_the_whole_command_tree() -> None:
-    assert set(_GATED_APPS) == GATED_GROUPS
-    names = {" ".join(p) for p in _every_command()}
-    assert {"list", "repair", "check", "migrate up", "migrate repad", "role"} <= names
-    assert len(names) > 20
+def test_the_walk_sees_the_whole_operation_table() -> None:
+    names = {op.name for op in OPERATIONS}
+    assert {"items.list", "squad.repair", "check", "squad.migrate", "squad.init"} <= names
+    assert len(names) > 100
 
 
 @pytest.mark.parametrize(
     ("direction", "literal"), [("behind", _PAST_WHEN_BEHIND), ("ahead", _PAST_WHEN_AHEAD)]
 )
-def test_the_commands_past_the_gate_are_the_ones_that_declare_it(
-    direction: str, literal: set[str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_the_operations_past_the_gate_are_the_ones_that_declare_it(
+    direction: str, literal: set[str], tmp_path: Path
 ) -> None:
-    observed = _observed(direction, tmp_path, monkeypatch)
+    observed = _observed(direction, tmp_path)
 
     assert observed == _declared(direction)
     assert observed == literal

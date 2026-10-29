@@ -30,6 +30,12 @@ class Catalogs:
     collections: CollectionCatalog
 
 
+def categories(types: TypeCatalog) -> list[str]:
+    """Every category a declared type names, ordered by the first type of each in the type
+    catalog's `order`."""
+    return list(dict.fromkeys(row.category for row in types.items))
+
+
 def type_options(catalogs: Catalogs) -> list[tuple[str, str]]:
     """Every non-roster type, by name, as a (singular label, type) choice."""
     rows = sorted((r for r in catalogs.types.items if not r.reserved), key=lambda r: r.type)

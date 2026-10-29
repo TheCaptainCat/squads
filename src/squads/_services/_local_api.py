@@ -1,6 +1,6 @@
 """``LocalApi``: operations run in this process, against the squad the request resolves."""
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -10,11 +10,11 @@ from squads._api._api import Grant, Mode, Operation
 from squads._api._response import Response
 from squads._context import get_context
 from squads._errors import SchemaGateError, SquadsError
-from squads._index._store import enter_read_scope, exit_read_scope
+from squads._index._store import read_scope
 from squads._language import resolve_working_language
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._paths import SquadPaths, resolve
-from squads._services._bindings import handler_for
+from squads._services._bindings import handler_for, local_handler_for
 from squads._services._service import Service, compose_service
 from squads._spec_documents import SpecSources, spec_sources
 
@@ -69,24 +69,37 @@ class LocalApi:
         return svc
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
-        """Run *op* on *req*; the squad's working-language notice joins the warnings."""
+        """Run *op* on *req*. The squad's working-language notice joins the warnings, or the
+        refusal's when the call is refused past the schema gate. A local-only operation creates
+        the squad, so it runs whether one resolves or not, and gets no service."""
         paths: SquadPaths | None = None
         unresolved: SquadsError | None = None
         try:
             paths = resolve(client_cwd=get_context().client_cwd)
         except SquadsError as exc:
-            if op.mode is not Mode.VOCABULARY:
+            if op.mode is not Mode.VOCABULARY and not op.local_only:
                 raise
             unresolved = exc
+        notice: str | None = None
         if paths is not None:
             check_grant(paths, op.grant)
-        svc = self._service(op.mode, paths, unresolved)
-        token = enter_read_scope()
+            notice = resolve_working_language(paths.config.working_language)[1]
         try:
-            response = await handler_for(op)(svc, req)
-        finally:
-            exit_read_scope(token)
-        _, notice = resolve_working_language(svc.paths.config.working_language)
+            if op.local_only:
+                response = await self._scoped(local_handler_for(op)(self._sources, req))
+            else:
+                svc = self._service(op.mode, paths, unresolved)
+                response = await self._scoped(handler_for(op)(svc, req))
+        except SquadsError as exc:
+            if notice is not None:
+                exc.warnings = (*exc.warnings, notice)
+            raise
         if notice is None:
             return response
         return response.model_copy(update={"warnings": [*response.warnings, notice]})
+
+    @staticmethod
+    async def _scoped[Res](call: Awaitable[Response[Res]]) -> Response[Res]:
+        """Await *call* inside a read scope."""
+        with read_scope():
+            return await call

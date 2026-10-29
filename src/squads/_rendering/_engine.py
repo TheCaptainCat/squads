@@ -265,6 +265,20 @@ def template_source(template_name: str, *, from_squad: Path | None) -> str:
     return source
 
 
+def template_compile_error(template_name: str, *, from_squad: Path | None) -> str | None:
+    """Why *template_name* does not compile as *from_squad* resolves it, or ``None`` when it
+    does: a syntax error or an unknown filter, never a failure that only rendering finds."""
+    from jinja2 import TemplateError, TemplateSyntaxError
+
+    try:
+        _env(from_squad).get_template(template_name)
+    except TemplateSyntaxError as exc:
+        return f"line {exc.lineno}: {exc.message}"
+    except TemplateError as exc:
+        return str(exc)
+    return None
+
+
 class _FlatItem:
     """An item as a template sees it: its fields, and each stored attribute as a field of the
     same name (``item.target_ref``), so a template never reaches into a nested container."""

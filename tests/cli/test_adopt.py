@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.cli._output import json_text
 from tests.cli._squadwide import agent_files, flat, listed, region
 
 pytestmark = pytest.mark.anyio
@@ -76,6 +77,30 @@ async def test_roles_refuses_a_name_that_is_neither_a_bundle_nor_a_role(adoptabl
         1,
         "error: no bundle or role 'bogus' (bundles: all, core, minimal; roles: manager, "
         "architect, tech-lead, reviewer, qa, devops, product-owner, tech-writer)\n",
+    )
+
+
+@pytest.mark.covers("adopt", "--json")
+async def test_json_prints_the_squad_adopted_and_what_it_held(adoptable, invoke) -> None:
+    (adoptable / "squads/tasks/TASK-000009-broken.md").write_text(
+        "---\n: : bad\n", encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "architect,qa", "--backend", "none", "--json"])
+    assert (result.exit_code, result.output) == (
+        1,
+        json_text(
+            {
+                "squad": str(adoptable / "squads"),
+                "imported": 4,
+                "roles": ["architect", "qa"],
+                "notice": None,
+                "unreadable": [
+                    "TASK-000009-broken.md: file has no `id` in frontmatter — its previous index "
+                    "entry, if any, was carried forward as-is; fix the file and repair again"
+                ],
+                "warnings": [],
+            }
+        ),
     )
 
 

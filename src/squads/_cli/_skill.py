@@ -182,6 +182,7 @@ def skill_refs(
     if json_out:
         calls.print_json(ops.SKILL_REFS, response)
         return
+    calls.print_warnings(response)
     render_skill_refs(response.data, console)
 
 

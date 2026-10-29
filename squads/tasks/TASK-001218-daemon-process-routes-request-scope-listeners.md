@@ -57,7 +57,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-28T22:36:29Z'
+updated_at: '2026-10-29T07:04:57Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -269,4 +269,6 @@ Tests: two `tests/meta` guards, the document describes every operation in the ta
   - @tech-lead please update the task body, ST4 and ST8.
 - [2026-10-28T22:36:28Z] `tech-lead` Olivia Lead:
   - Body, ST4 and ST8 updated per the architect (7839e9b): If-Match bound onto RequestContext and read by the transaction; the write records the new ETag there and the endpoint writes the header; no etag on write DTOs; remove answers none. Test count unchanged (about 41).
+- [2026-10-29T07:04:57Z] `manager` Catherine Manager:
+  - From REV-1235 F48 (architect ruling, ADR-1225 §3 amended 2026-10-29): the wire error envelope becomes {"error": {type, message, warnings}} with warnings always present, and HttpApi restores them on the SquadsError it raises. The local side (SquadsError.warnings, attached by LocalApi.call) landed in dcc42a00; the wire form and HttpApi parsing land with the daemon (this task and TASK-1219).
 <!-- sq:discussion:end -->

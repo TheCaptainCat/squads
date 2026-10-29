@@ -5,6 +5,7 @@ Each resource group has its own section, matching the operation table's.
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 from pydantic import BaseModel
@@ -12,9 +13,14 @@ from pydantic import BaseModel
 from squads._api import _ops as ops
 from squads._api._api import Operation
 from squads._api._response import Response
+from squads._services._creation_ops import adopt_squad, init_squad
 from squads._services._service import Service
+from squads._spec_documents import SpecSources
 
 type Handler[Req, Res] = Callable[[Service, Req], Awaitable[Response[Res]]]
+type LocalHandler[Req, Res] = Callable[
+    [Callable[[Path], SpecSources], Req], Awaitable[Response[Res]]
+]
 
 
 @dataclass(frozen=True)
@@ -23,6 +29,22 @@ class Binding[Req: BaseModel, Res]:
 
     op: Operation[Req, Res]
     handler: Handler[Req, Res]
+
+
+@dataclass(frozen=True)
+class LocalBinding[Req: BaseModel, Res]:
+    """A local-only operation and the function that handles it."""
+
+    op: Operation[Req, Res]
+    handler: LocalHandler[Req, Res]
+
+
+def bind_local[Req: BaseModel, Res](
+    op: Operation[Req, Res], handler: LocalHandler[Req, Res]
+) -> LocalBinding[Req, Res]:
+    """Pair the local-only *op* with *handler*, whose request and response types must be the
+    operation's."""
+    return LocalBinding(op, handler)
 
 
 def bind[Req: BaseModel, Res](
@@ -156,6 +178,20 @@ BINDINGS = (
     bind(ops.CHECK, Service.check_squad),
     bind(ops.SYNC, Service.sync_squad),
     # --- corpus-wide
+    bind(ops.REPAIR, Service.repair_squad),
+    bind(ops.RENUMBER, Service.renumber_squad),
+    bind(ops.MIGRATE, Service.migrate_squad),
+    bind(ops.REPAD, Service.repad_squad),
+    bind(ops.RENAME_TYPE, Service.rename_type_items),
+    bind(ops.RENAME_STATUS, Service.rename_status_items),
+    bind(ops.IMPORT, Service.import_squad_events),
+)
+
+#: The operations that create the squad a service is composed on: each handler takes the
+#: documents the invocation reads for a squad directory, not a service.
+LOCAL_BINDINGS = (
+    bind_local(ops.INIT, init_squad),
+    bind_local(ops.ADOPT, adopt_squad),
 )
 
 
@@ -164,4 +200,12 @@ def handler_for[Req: BaseModel, Res](op: Operation[Req, Res]) -> Handler[Req, Re
     for binding in BINDINGS:
         if binding.op is op:
             return cast(Handler[Req, Res], binding.handler)
+    raise LookupError(f"no handler is bound to the operation {op.name!r}")
+
+
+def local_handler_for[Req: BaseModel, Res](op: Operation[Req, Res]) -> LocalHandler[Req, Res]:
+    """The function bound to the local-only *op*."""
+    for binding in LOCAL_BINDINGS:
+        if binding.op is op:
+            return cast(LocalHandler[Req, Res], binding.handler)
     raise LookupError(f"no handler is bound to the operation {op.name!r}")

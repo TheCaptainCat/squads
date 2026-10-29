@@ -197,26 +197,26 @@ subentities:
 - local_id: F39
   title: TreeNode.slug is null on items and skills where list and show rows give the
     item's slug
-  status: Open
+  status: Verified
   severity: medium
 - local_id: F40
   title: The three new TreeNode keys sit mid-object and are missing from the stability
     doc's tree table
-  status: Open
+  status: Verified
   severity: low
 - local_id: F41
   title: TreeRequest.label has no sq tree flag, and dropping it passes the suite
-  status: Open
+  status: Verified
   severity: low
 - local_id: F42
   title: The renderer guard lets _tui import _discussion, _badges, _spec_documents
     or any _cli module
-  status: Open
+  status: Verified
   severity: low
 - local_id: F43
   title: The skill pronoun fix on tree --json is confirmed, and reverting it passes
     the suite
-  status: Open
+  status: Verified
   severity: info
 - local_id: F44
   title: 'TUI parity: an @-prefixed assignee now matches, and a stale undeclared badge
@@ -225,10 +225,46 @@ subentities:
   severity: info
 - local_id: F45
   title: _tui/_filter.py copies the engine's closed category set
-  status: Open
+  status: Verified
   severity: info
+- local_id: F46
+  title: Repair-corridor guard no longer reaches the producers; adopt and migrate
+    can drop unreadable
+  status: Verified
+  severity: medium
+- local_id: F47
+  title: Grant guard checks operations only; a CLI leaf with no call passes unseen
+  status: Verified
+  severity: low
+- local_id: F48
+  title: Working-language notice is lost on every refused call, not only the three
+    listed
+  status: Verified
+  severity: low
+- local_id: F49
+  title: init prompts for role names on a mismatched squad before the gate refuses
+  status: Verified
+  severity: low
+- local_id: F50
+  title: 'Sweep leftovers: open_service and TARGET_DATE dead, docstrings name the
+    deleted bridge'
+  status: Verified
+  severity: low
+- local_id: F51
+  title: New --json cases cover only empty reports; migration rows asserted by no
+    case
+  status: Verified
+  severity: low
+- local_id: F52
+  title: Ladder modes share names with document choices of a different meaning
+  status: Verified
+  severity: info
+- local_id: F53
+  title: Write guard misses stdlib writers imported by name (from os import unlink)
+  status: Verified
+  severity: low
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T06:07:50Z'
+updated_at: '2026-10-29T10:14:21Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -1367,6 +1403,12 @@ Option 1 is the smaller change: one key renamed, and the two `tests/cli` expecta
 #### Discussion
 
 <!-- sq:finding:F39:discussion -->
+- [2026-10-29T06:09:14Z] `architect` Robert Architect:
+  - @python-dev Ruling: option 1 (ADR-1224 point 3, amended 2026-10-29). Rename `TreeNode.slug` to `notebook`: the slug of the memory notebook the node opens, set on roles and operators and `null` elsewhere. Update the TUI's reads, the two `tests/cli` expectations and the subtree view source. Falsify once by filling it on a skill.
+- [2026-10-29T06:18:03Z] `python-dev` Elias Python:
+  - - Fixed in 33fc48de. `TreeNode.slug` is renamed `notebook`: the role's or operator's notebook slug, `null` on every other node. The rename covers the DTO, the builder, the TUI reads and the tree and workflow expectations. Falsified: filling `notebook` on every node (`notebook = it.slug or None`) turns the new skill-sharing-slug `tree --json` case red.
+- [2026-10-29T10:08:57Z] `reviewer` Paul Reviewer:
+  - Verified on 06b8982c (e0a97f6d). On my scratch squad, `tree -a --json` puts `notebook` = `manager` on ROLE-1 and `op-ann` on OP-17, and `null` on FEAT-20, TASK-41, INC-36, SKILL-42 and SKILL-43. No node carries `slug` any more. `list -a --json` still gives each item's own slug (`refunds`, `zeta-closed-task-x`, `manager`), so the name now has one meaning. Mutation `notebook = it.slug or None`: 3 cases go red (two in tree, one in workflow view).
 <!-- sq:finding:F39:discussion:end -->
 <!-- sq:finding:F39:end -->
 
@@ -1391,6 +1433,13 @@ Answers to the review brief:
 #### Discussion
 
 <!-- sq:finding:F40:discussion -->
+- [2026-10-29T06:09:16Z] `architect` Robert Architect:
+  - @python-dev Ruling (ADR-1224 point 3, amended 2026-10-29): an added key goes after the last key its object already emits. Move `notebook` (F39), `closed` and `updated_at` after `display`, in that order, on the tree node and the subtree view source, so the node order is `id, type, title, status, priority, assignee, blocked, badges, anchor, children, display, notebook, closed, updated_at`. Assert the whole `tree --json` document as text so that the order is held.
+  - @tech-writer: the stability doc's tree table gains `notebook` (an id-like slug or `null`), `closed` (boolean: the status's role is hidden) and `updated_at` (ISO timestamp, the same as the list row's), listed after `display`. Add the general rule that new keys are appended at the end of their object. Changelog: the three keys on `tree --json` and on the subtree view source.
+- [2026-10-29T06:18:04Z] `python-dev` Elias Python:
+  - - Fixed in 33fc48de. `notebook`, `closed` and `updated_at` now come after `display`, in that order, on the tree node and on the subtree view source. The `tree --json` cases and the `workflow view --json` case compare the whole document as text, so the order is pinned.
+- [2026-10-29T10:08:59Z] `reviewer` Paul Reviewer:
+  - Verified on 06b8982c for the code. Every node of `tree -a --json` on my scratch squad has the keys `id, type, title, status, priority, assignee, blocked, badges, anchor, children, display, notebook, closed, updated_at`, a single shape. The first eleven are the 658ed963 order unchanged, and the three new keys come last, as ruled. The tree and workflow view cases compare the whole document as text. The doc part of the ruling is not in this commit: `docs/stability.md` has no `notebook` row and no append rule, and TASK-1234's body does not name them. That is carried as a comment on TASK-1234.
 <!-- sq:finding:F40:discussion:end -->
 <!-- sq:finding:F40:end -->
 
@@ -1414,6 +1463,12 @@ The alternative is to keep the field API-only, and then point 7's wording should
 #### Discussion
 
 <!-- sq:finding:F41:discussion -->
+- [2026-10-29T06:09:17Z] `architect` Robert Architect:
+  - @python-dev Ruling: add `sq tree --label` (help "Show only items carrying this label.", as on `sq list`), mapped to `TreeRequest.label`, with one `covers("tree", "--label")` case asserting the whole output. Falsify once with `label=None` in the operation, the reviewer's mutation. ADR-1224 point 7 already says the tree request takes `sq tree`'s filter fields, so it needs no amendment. @tech-writer: changelog line for the new flag.
+- [2026-10-29T06:18:05Z] `python-dev` Elias Python:
+  - - Fixed in 33fc48de. `sq tree --label` is added ("Show only items carrying this label."), mapped to `TreeRequest.label`, with one `covers("tree", "--label")` case that asserts the whole output. Falsified with your mutation (`label=None` in the operation): the case goes red.
+- [2026-10-29T10:09:01Z] `reviewer` Paul Reviewer:
+  - Verified on 06b8982c. `sq tree --label nope` draws TASK-22 and TASK-30, and `--json` gives the same ids. `sq list --label nope --json` gives the same ids. An unused label prints `no items` (exit 0). Mutation `label=None` in the operation: `test_label_keeps_the_items_carrying_it` goes red. The changelog line for the flag is still owed (TASK-1234).
 <!-- sq:finding:F41:discussion:end -->
 <!-- sq:finding:F41:end -->
 
@@ -1439,6 +1494,19 @@ Suggested fix (@python-dev): for `_tui`, forbid `squads._cli` whole. Then either
 #### Discussion
 
 <!-- sq:finding:F42:discussion -->
+- [2026-10-29T06:18:06Z] `python-dev` Elias Python:
+  - - Fixed in 33fc48de. A second guard test follows each `_tui` module's import closure and forbids the renderer set plus `squads._cli` as a whole.
+    - The closure takes in every import outside `TYPE_CHECKING` blocks, function-level ones included, plus each package `__init__`. `tests/_import_scan.py` gained `typing=False` to skip those blocks.
+    - Check: the static closure of `_tui/_app.py` equals what importing it puts in `sys.modules` at runtime (43 modules).
+    - Your probe, one import at a time in `_tui/_board.py`: `_badges`, `_discussion`, `_spec_documents`, `_cli._render._roster`, `_cli._common`, `_cli._calls`, `_services._service`, `_board._store` and `_memory._store` each turn it red. The control, `_clock`, stays green.
+- [2026-10-29T10:09:03Z] `reviewer` Paul Reviewer:
+  - Verified on 06b8982c. The control (tree, workflow and 3 meta modules) gives 106 passed. In a copy, `test_the_terminal_ui_loads_neither_the_vocabulary_nor_the_cli` goes red for each of these:
+    - one import appended to `_tui/_board.py`: `_badges`, `_discussion`, `_spec_documents`, `_cli._render._roster` or `_board._store`;
+    - a function-level `_discussion` import;
+    - a `_workflow` import added to `_api/_dto/_tree.py`, which the TUI loads, so the closure is truly transitive;
+    - a literal `importlib.import_module("squads._services._service")` in `_api/_dto/_memory.py`.
+    
+    An `_clock` import stays green. A `TYPE_CHECKING`-only `_services` import in `_tui` is skipped by the closure and caught by the direct test.
 <!-- sq:finding:F42:discussion:end -->
 <!-- sq:finding:F42:end -->
 
@@ -1458,6 +1526,10 @@ ADR-1172 sends a verified bug to `tests/regressions/`, which is later work. So t
 #### Discussion
 
 <!-- sq:finding:F43:discussion -->
+- [2026-10-29T06:18:07Z] `python-dev` Elias Python:
+  - - Fixed in 33fc48de. The bundled squad can express it (`sq skill add Manager` gives the slug `manager`), so a `tree --json` case on the bundled spec pins it. With `manager` at she/her, the skill node carries `notebook: null` and `pronouns: null`, and the case compares the whole document as text. Falsified: restoring the old `pronouns.get(it.slug)` lookup turns it red.
+- [2026-10-29T10:09:05Z] `reviewer` Paul Reviewer:
+  - Verified on 06b8982c. On my scratch squad, SKILL-43 (slug `manager`, with `manager` at she/her) has `pronouns` = `null` and `notebook` = `null`, while ROLE-1 keeps she/her and OP-17 keeps they/them. Putting back `pronouns.get(it.slug)` turns `test_json_gives_a_skill_sharing_a_roles_slug_neither_its_notebook_nor_its_pronouns` red. The case is a surface case under `covers("tree", "--json")`, not a regression-set test. That is acceptable, since it asserts the whole document. The changelog line for the fix is still owed (TASK-1234).
 <!-- sq:finding:F43:discussion:end -->
 <!-- sq:finding:F43:end -->
 
@@ -1494,8 +1566,324 @@ Adopters cannot add a category, so this is engine drift, not adopter risk. The t
 #### Discussion
 
 <!-- sq:finding:F45:discussion -->
+- [2026-10-29T06:18:08Z] `python-dev` Elias Python:
+  - - Fixed in 33fc48de. The filter's category choices and the tree's groups now both come from the type catalog's `category`, in the order the catalog first names each. Both copies (`_CATEGORIES`, and `_GROUP_LABELS`/`_GROUP_ORDER`) are gone, and so is their entry in the mutable-state allowlist.
+    - One visible change: the filter's category select now reads Work, Records, Roster (it was Roster, Work, Records), the same order as the tree's groups. The tree itself is unchanged in a headless before/after capture.
+- [2026-10-29T10:09:07Z] `reviewer` Paul Reviewer:
+  - Reopened. The copies are gone, but the fix changes which order the tree groups come in. `categories()` takes the order in which the type catalog first names each category, and the type catalog is sorted by each type's `order`. So an adopter's type order now rearranges the top level of `sq ui`.
+    
+    Repro: on my scratch squad, add `[items.guide]` with `order = 5` to `.overrides/workflow.toml`, then capture headless with the real `sq ui`.
+    - At 658ed963 and 611c505e: groups Work, Records, Roster.
+    - At 06b8982c: groups Records, Work, Roster, and the filter's category select reads Records, Work, Roster.
+    - With the bundled order, 06b8982c gives Work, Records, Roster, and my full parity capture matches 611c505e except for the filter select's order, which the dev reported.
+    
+    Two more consequences:
+    - A category that no type names now loses its group, where the old docstring promised each group "present even when empty".
+    - The dev's "tree unchanged" holds only for the bundled order.
+    
+    This is not a crash, and it is arguably defensible. But it is unasked behaviour, it reaches an adopter, and the changelog does not say it. @architect, rule which one holds:
+    - (a) the group order follows the type catalog, as now, plus a changelog line and an eye-check item;
+    - (b) a fixed presentation order in `_tui` (Work, Records, Roster), with any category it does not know appended after them. That is a client presentation constant, like `_ROLE_STYLES`, not a vocabulary copy.
+- [2026-10-29T10:10:32Z] `architect` Robert Architect:
+  - @python-dev Ruling: (a). The groups follow the type catalog, the order the adopter already controls through `order`. A fixed order in `_tui` would bring back the copy of the category set that this finding removed. A category no type names has nothing to show, so it gets no group. Steps: correct `populate_tree`'s docstring to say so, if any wording still promises a group "even when empty", and make no code change. @tech-writer, changelog line: "`sq ui` orders its top-level groups, and the filter's category choices, by the first type of each category in the type catalog's `order`; a category with no type has no group".
+- [2026-10-29T10:13:42Z] `python-dev` Elias Python:
+  - - Fixed in ef76e3f8 per ruling (a), with no code change. The docstrings of `populate_tree`, `categories()` and `NodeData` now say the groups follow the first type of each category in the type catalog's `order`, and that a category no type names has no group. The `_tui/_filter.py` docstring promised no order, so it is unchanged.
+- [2026-10-29T10:14:21Z] `manager` Catherine Manager:
+  - Verified on a363231c: docstring-only change in _tui/_tree.py and _tui/_session.py now states the catalog-order rule and drops the empty-group promise; pyright and ruff clean.
 <!-- sq:finding:F45:discussion:end -->
 <!-- sq:finding:F45:end -->
+
+<!-- sq:finding:F46 -->
+### F46 — Repair-corridor guard no longer reaches the producers; adopt and migrate can drop unreadable
+
+<!-- sq:finding:F46:body -->
+The repair-corridor guard (`tests/meta/test_repair_corridor_consumer_sites_are_exhaustively_classified.py`) exists to find every site that consumes a repair, migration, sync or adopt result, so that none drops the unreadable or skipped channel. After this commit its discovery no longer reaches the producers.
+
+- The producer calls moved out of `_cli`: `self.repair()`, `self.run_pending_migrations()` and the bare-name `adopt(...)` now run in `_services/_corpus_ops.py` and `_services/_creation_ops.py`, where each result is mapped onto a DTO. The guard scans `src/squads/_cli` only.
+- The bare-name target the guard keeps for adopt is `svc_adopt`, which no longer exists anywhere under `src/`. The new call is `adopt(...)`, so that half of the discovery cannot match anything.
+- The sites it now classifies are the renderers and commands that read `report.unreadable` off the DTO. That proves a renderer reads the field. It does not prove the field was filled.
+
+Repro (copy of d40232df): in `_creation_ops.adopt_squad` and `_corpus_ops.migrate_squad`, replace `unreadable=unreadable_lines(...)` with `unreadable=[]`. Then run `pytest -n 2 tests/meta tests/cli/test_repair.py tests/cli/test_migrate.py tests/cli/test_adopt.py`: 714 passed, 7 failed, and the 7 are the git-history manifest tests that also fail on an unmutated archive. So `sq adopt` and `sq migrate up` can lose the unreadable files, and with them exit 1, and no test goes red. The same mutation in `repair_squad` is caught, by `test_renumber_leaves_an_id_two_files_carry_to_be_merged_by_hand`.
+
+Direction: extend the scan to the operation handlers under `_services` that call a corridor producer, and replace `svc_adopt` with `adopt` in the bare-name targets. Then falsify the discovery once with a new handler that drops the field. Alternatively, add one surface case each for `adopt` and `migrate up` on a corpus with an unreadable file. ADR-1172 rule 5 allows that arrangement for both commands.
+<!-- sq:finding:F46:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F46:discussion -->
+- [2026-10-29T07:01:54Z] `python-dev` Elias Python:
+  - - Fixed in 6d1facf3. The guard now scans `_cli` and the operation handler modules (`_services/*_ops.py`), the bare-name target is `adopt`, and each classified site lists the channels it must read; a new test checks every site reads them.
+    - Falsified: `unreadable=[]` in `adopt_squad`, `unreadable=[]` in `migrate_squad` and `skipped=[]` in `migrate_squad` each turn the guard red.
+- [2026-10-29T07:11:02Z] `reviewer` Paul Reviewer:
+  - Verified on a927563b. The repro from this finding is fixed. With `unreadable=[]` in `adopt_squad` (line 62) or in `migrate_squad` (line 147), `test_every_site_reads_the_channels_it_is_classified_for` goes red. Baseline: 7 failed, 727 passed, the 7 being the git-history manifest tests. Each mutant: 8 failed.
+    
+    One gap remains, recorded for the record and not reopened. The guard proves that a site reads the attribute, not that the value reaches the DTO. A decoy that reads the attribute and still drops the value (`unreadable_lines(result.repair.unreadable)[:0]`, in either handler) passes `tests/meta` and the repair, migrate, adopt and renumber surface files. No surface case runs `adopt` or `migrate up` on a corpus with an unreadable file, so a behavioural check is still missing. That is the place to close it if it matters.
+- [2026-10-29T07:18:53Z] `python-dev` Elias Python:
+  - - Gap closed in 95083231. The `adopt --json` case now runs on an adoptable folder that holds an unreadable file, and asserts the row and exit 1.
+    - `unreadable_lines(...)[:0]` in `adopt_squad` turns it red, and so does the same change in `repair_squad` for the repair `--json` case.
+    - `migrate_squad`'s row cannot be reached from the command line: `migrate up` refuses a legacy squad that holds an unreadable or duplicated file before any migration runs.
+- [2026-10-29T07:25:04Z] `reviewer` Paul Reviewer:
+  - Gap closed on 347cd0ad. `adopt --json` now asserts the unreadable row and exit 1. A `[:0]` decoy in `adopt_squad` turns `test_json_prints_the_squad_adopted_and_what_it_held` red, and one in `repair_squad` turns `test_repair_json_prints_what_the_rebuild_found` (and the renumber case) red. The claim about `migrate_squad` holds as far as input can reach. On the v0.14 fixture, the pre-run check refuses (exit 1, "no migration has run", schema unchanged) a file with no frontmatter id, malformed frontmatter, or a duplicate id. So the trailing rebuild's unreadable row can only come from a runner that itself leaves an unreadable file, which no CLI input arranges. The plain drop there is still caught by the corridor guard. The new case writes an item file only to arrange the corpus, which ADR-1172 rule 5 allows for adopt. It carries its `covers` marker and asserts the whole output.
+<!-- sq:finding:F46:discussion:end -->
+<!-- sq:finding:F46:end -->
+
+<!-- sq:finding:F47 -->
+### F47 — Grant guard checks operations only; a CLI leaf with no call passes unseen
+
+<!-- sq:finding:F47:body -->
+The grant guard used to run every top-level command and group, plus every `migrate`/`override` verb, through the CLI on a squad stamped behind and on one stamped ahead. It now calls each operation through `LocalApi` directly. Its docstring covers what remains with an assumption: "A command that makes no call reads only the package's own data, so the gate has nothing to refuse there."
+
+What held up on d40232df:
+
+- The operation half is sound. Making `check_grant` skip local-only operations turns both directions red. Every operation in the table gets a call, and the literal sets match the grants.
+- The CLI half holds today. No module under `_cli/` or `_tui/` writes a file (`grep` for `write_text`, `os.replace`, `unlink`, `shutil`, `open(...'w')`: zero hits). On behind and ahead squads, every command line in the 43-line parity set (review comment of this round) refuses with exit 1 and the gate text, except `docs`, `migrate help`, `migrate chlog` and the usage errors. Every squad tree is byte-identical. `sq ui` on a behind squad still prints the gate error and exits 1.
+
+What is no longer guarded: whether each CLI leaf reaches an operation at all. A command that makes no call, or one that writes through `_index`, `_sections` or `_migrations` (which the `_services` import guard does not cover), would get past the hard stop, and nothing would go red. The old CLI walk would have caught it.
+
+Direction: keep a thin CLI-side check next to the operation walk. Either every leaf on a behind squad exits 1 with the gate text, except a literal no-call set (`docs`, `migrate help`, `migrate chlog`, plus `--help` and completion as ADR-1225 lists them), or every leaf except that set makes exactly one call, observed through a recording `Api` bound in the context.
+<!-- sq:finding:F47:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F47:discussion -->
+- [2026-10-29T07:01:57Z] `python-dev` Elias Python:
+  - - Fixed in 6d1facf3: new guard `tests/meta/test_the_cli_and_the_terminal_ui_write_no_file_themselves.py`. No `_cli`/`_tui` module imports a writer (`_index` except `_reflog`, `_sections`, `_migrations` except `_registry`, `_aio`, `_itemfile`, `_overrides`, `shutil`, `tempfile`), calls a writing path method, `os.replace`, or opens a file for writing.
+    - Falsified: an `_sections` import in `_cli/_main.py`, an `_index._store` import in `_tui/_app.py`, a `write_text`, an `open(..., "w")` and an `os.replace` in a `_cli` module each turn it red.
+- [2026-10-29T07:11:15Z] `reviewer` Paul Reviewer:
+  - Reopened on a927563b. The guard is a denylist of eight module names plus a few call shapes. It is not the rule its docstring states ("no module under `_cli/` or `_tui/` writes a file itself"). I put a probe module under `src/squads/_cli/` and ran the guard alone. Each of these passes:
+    
+    - `from squads._board._store import post` (it writes the board through `_aio.atomic_write_text`)
+    - `from squads._memory._store import add` (writes the memory notebook)
+    - `from squads._backends._managed_region import inject` (writes CLAUDE.md and AGENTS.md)
+    - `from squads._index._reflog import append_line`, which the `READERS` exemption lets through although it appends to the reflog (`path.open("a")`, line 127)
+    - `with Path("x").open("w")`, because only a bare `open(...)` name is checked, not the `.open(mode)` method
+    - `io.open("x", "w")`
+    
+    `os.rename` is caught.
+    
+    Direction: derive the writer set instead of listing it. Run the same AST write-primitive scan over every module outside `_cli`/`_tui`, and treat any module containing a write (directly, or through `_aio`) as a writer, so a new store is covered without an edit here. Exempt a module only by its names that do not write, not by the whole module. Check `.open(<mode>)` method calls the same way as `open()`. Then falsify with a board or memory import and a `Path.open("w")`.
+- [2026-10-29T07:18:50Z] `python-dev` Elias Python:
+  - - Fixed in 95083231. The guard now derives its writers from the source. A top-level function or class writes when its body uses a write primitive, or calls a function that writes, computed to a fixed point. The primitives are:
+      - `write_text`, `unlink`, `mkdir` and the like;
+      - a one-argument `.replace` or `.rename`, and `os.replace`, `os.rename` or `os.remove`;
+      - any `shutil` or `tempfile` call;
+      - `open` in any form (builtin, `io.open` or a `.open` method) with a write mode or a non-literal one.
+    - `LocalApi` is the one exempt route. No `_cli` or `_tui` unit may write, call a writer, or import one by name.
+    - Falsified with a probe module under `_cli/`. Each of these turns it red: `_board._store.post`, `_memory._store.add`, `_backends._managed_region.inject`, `_index._reflog.append_line`, `Path('x').open('w')`, `io.open('x', 'w')`, `os.rename`, `_aio.atomic_write_text` and `Path.replace`.
+    - A second test checks that the scan finds the first four of those and `_aio.atomic_write_text` as writers.
+- [2026-10-29T07:25:01Z] `reviewer` Paul Reviewer:
+  - Verified on 347cd0ad. The guard now derives writers from the source, to a fixed point. I placed a probe module under `_cli` and ran the guard. Each of these goes red: the board, memory, managed-region and reflog writer imports, `Path("x").open("w")`, `io.open("x", "w")`, `_aio.atomic_write_text` (through `from squads import _aio`), `_aio.path_rename`, `os.open`, a module alias (`import squads._board._store as s; s.post(...)`) and a package import (`from squads._board import _store; _store.post(...)`). `test_the_scan_derives_the_known_writers` anchors the derivation on known positives.
+    
+    Three shapes still pass. I record them as known limits and do not reopen:
+    - A writer reached through an object a non-writing factory returns: `get_backend("claude_code").write_managed(sp)`. `get_backend` builds the backend without writing, and the method call on what it returns is not resolved. Closable cheaply by counting a function as a writer when its return annotation names a writer class (`-> AgentBackend`).
+    - `os.makedirs("x")`: `makedirs` is missing from the primitives (the `.mkdir` attribute is caught).
+    - `importlib.import_module("squads._board._store").post(...)`. This is dynamic, so out of reach for an AST scan.
+    
+    @python-dev, if you want the first two closed.
+- [2026-10-29T07:31:54Z] `python-dev` Elias Python:
+  - - Two of the known limits closed in 95ffe9eb:
+      - A function now counts as a writer when its return annotation names a writing class. A class whose subclass writes is a writer too. So `get_backend` and `AgentBackend` are writers, and the known-writers test pins both.
+      - The `os` primitives now include `makedirs`, `mkdir`, `rmdir`, `unlink`, `removedirs`, `renames`, `symlink`, `link`, `truncate` and `chmod`. `Path.mkdir` was already caught.
+    - The bypass self-check is now 12 probe shapes, all red. The three new ones are `get_backend('claude_code').write_managed(sp)`, `os.makedirs('x')` and `Path('x').mkdir(parents=True)`. Removing the return-type rule turns the known-writers test red.
+    - `importlib.import_module` stays a limit of the scan, and the guard's docstring says so.
+- [2026-10-29T07:37:19Z, edited 2026-10-29T07:38:20Z] `reviewer` Paul Reviewer:
+  - Checked on 931168f7. The two limits recorded last round are closed: `get_backend("claude_code").write_managed(sp)` and `os.makedirs("x")` both go red, and so does returning `ClaudeCodeBackend` from a `_cli` function. The return-type and subclass rules make no false positive on legitimate reads. With a probe module under `_cli` holding `calls.call(ops.REPAIR, RepairRequest())`, or `_paths.resolve()`, the guard stays green. The rule also fails loudly (red), never silently.
+    
+    One shape family still passes: a standard-library writer imported by name. The checks match the dotted spelling (`os.<name>`, `shutil.*`, or a `.method` attribute), and a bare name is never resolved through the module's imports. With a probe module under `_cli`:
+    - `from os import unlink` then `unlink("x")`: 2 passed
+    - `from os import makedirs` then `makedirs("x")`: 2 passed
+    - `from shutil import rmtree` then `rmtree("x")`: 2 passed
+    
+    Tracked as F53. Fix: resolve a call's name through `_aliases` before matching, so `unlink` reads as `os.unlink` and `rmtree` as `shutil.rmtree`; then falsify with the three probes above. `importlib` is still out of reach, as the docstring now says.
+<!-- sq:finding:F47:discussion:end -->
+<!-- sq:finding:F47:end -->
+
+<!-- sq:finding:F48 -->
+### F48 — Working-language notice is lost on every refused call, not only the three listed
+
+<!-- sq:finding:F48:body -->
+The working-language notice is now attached to a response only when the call succeeds. `LocalApi.call` appends it after the handler returns, so a call that raises carries no notice. The handback names three cases where the notice no longer prints: an exit-2 vocabulary refusal, `docs` and `migrate help`. In fact every refused call loses it, which covers every error exit 1 an operation raises.
+
+Repro: a squad with `working_language = "zz-not-a-lang"` in `.squads.toml`, NO_COLOR, piped.
+
+- `sq task 99 show`: at 658ed963 stderr reads `warning: working_language "zz-not-a-lang" in .squads.toml is not a language tag squads recognises; using English (en)`, then `error: no item with number 99 …`. At d40232df stderr holds only the error. Exit 1 on both.
+- The same happens on `sq task 19 status Bogus`, `renumber --by 1` (the unsafe offset), `migrate rename-type nosuch task`, `init --default-names` on an existing squad and `init --force --roles nosuch`. In the parity sweep these are the only differences on that squad, and stdout and the tree are identical.
+
+An adopter with a mistyped language tag gets the notice on successful commands, so the information is not lost completely. This is low severity: the notice drops on the error path, which is exactly where the operator is reading stderr. Either attach the notice to the error as well (the error envelope already reaches `handle_errors`), or record the narrower behaviour in ADR-1225's row "The working-language notice | the root callback | a `warnings` entry", and correct the handback's list.
+<!-- sq:finding:F48:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F48:discussion -->
+- [2026-10-29T07:01:59Z] `python-dev` Elias Python:
+  - - Fixed in 6d1facf3. `LocalApi.call` attaches the notice to a `SquadsError` raised past the schema gate (`SquadsError.warnings`, a new attribute), and `handle_errors` (and `workflow lint`) print it on stderr before the error, deduplicated with the response path. A gate refusal still carries none, as the root gate refused before the notice.
+    - Probe against the old tree, unrecognised language: `task 99 show` (with and without `--json`), `migrate rename-type nosuch task`, `init --default-names` on a squad, `init --force --roles nosuch` print warning then error, as before. Falsified: dropping the attachment loses the warning on `task 99 show`.
+    - Still without the notice: a refusal the CLI makes before any call (`task 1 status Bogus`, unknown `--type`), since the CLI no longer reads the configuration for it.
+    - @architect: the local path needs no wire change. For `HttpApi`, should the error envelope (ADR-1225 section 3) carry an optional `warnings` list so a daemon's refusal brings the notice too? Not added.
+- [2026-10-29T07:04:38Z] `architect` Robert Architect:
+  - @python-dev Rulings (ADR-1225, amended 2026-10-29).
+  - (1) Yes. The error envelope is `{"error": {type, message, warnings}}`, with `warnings` always present (`[]` when there is none). Add it to `ErrorBody` in `_api/_errors.py`, fill it from `SquadsError.warnings` on the daemon side when TASK-1218/1219 serve errors, and have `_http.py`'s parse put it back on the raised `SquadsError`. Add one wire-helper test for the round trip if `_http` already has its cases; otherwise it comes with the daemon's route suite.
+  - (2) The gap is accepted. A vocabulary exit 2 or an unknown `--type` is about the command line, the CLI does not read the configuration for it, and the next call that runs prints the notice. Correct the handback's list to name exactly that case. No code.
+- [2026-10-29T07:11:05Z] `reviewer` Paul Reviewer:
+  - Verified on a927563b. On the bad-language squad, NO_COLOR, I counted the notice on stderr, old tree against round 2. `task 99 show`, `task 99 show --json`, `migrate rename-type nosuch task`, `renumber --by 1`, `init --default-names`, `init --force --roles nosuch` and `role add architect` print it once, as at 658ed963. A successful `status` still prints it once. Only `task 19 status Bogus` still lacks it: the refusal comes before the call, which is the gap now with the architect.
+    
+    Note: no test holds this. With the `exc.warnings` attachment removed, `tests/cli` plus `tests/meta` gives 1530 passed, and the only 7 failures are the manifest tests. If it is to stay fixed, ADR-1172 puts a regression test in `tests/regressions/`.
+- [2026-10-29T07:18:55Z] `python-dev` Elias Python:
+  - - Pinned in 95083231: a new case runs `show 99` on a squad with `working_language = "klingon!!"`. It asserts that stderr is the warning then the error, stdout is empty, and the exit code is 1.
+    - Removing the attachment in `LocalApi.call`, or the print in `handle_errors`, turns it red.
+- [2026-10-29T07:25:05Z] `reviewer` Paul Reviewer:
+  - Gap closed on 347cd0ad. `test_a_refused_show_prints_the_notices_before_the_error` asserts the exit code, an empty stdout and the whole stderr (the warning, then the error). It carries its `covers` marker. With the `exc.warnings` attachment removed it goes red (1 failed, 9 passed in test_show.py). Editing `.squads.toml` to arrange an unrecognised language follows the earlier `--json` notice case: no CLI path writes one.
+<!-- sq:finding:F48:discussion:end -->
+<!-- sq:finding:F48:end -->
+
+<!-- sq:finding:F49 -->
+### F49 — init prompts for role names on a mismatched squad before the gate refuses
+
+<!-- sq:finding:F49:body -->
+Under a pseudo-terminal, `sq init --force --roles minimal` on a squad stamped behind (v0.16) now asks `Name for 'manager' (Enter to keep default 'Catherine Manager'):` and only then refuses with the gate text, exit 1. At 658ed963 the root gate refused before any prompt. Nothing is written, and the squad tree is identical to its template afterwards.
+
+This happens because the prompt sits before the call (ST3), while the gate now lives in the call. It is the same class as the usage-before-gate deviation, but here the operator types answers that are then thrown away, once per role (`--roles all` asks for 8).
+
+Options: accept it as WontFix and record why, or skip the prompt when a squad resolves whose schema differs. That check reads only `.squads.toml`, which init already reads for `init_names` a few lines earlier.
+<!-- sq:finding:F49:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F49:discussion -->
+- [2026-10-29T07:02:02Z] `python-dev` Elias Python:
+  - - Fixed in 6d1facf3: `init` skips the role-name prompt when the directory resolves to a squad at another schema, so the call refuses with the gate text and nothing is asked.
+    - Probe under a pseudo-terminal on v0_14 with `init --force --roles minimal`: no prompt, gate error, exit 1. Falsified: without the check the prompt comes back before the refusal.
+- [2026-10-29T07:11:07Z] `reviewer` Paul Reviewer:
+  - Verified on a927563b, under a pseudo-terminal. On behind (v0.16) and ahead (v9.9) squads, `init --force --roles minimal` asks for nothing, prints the gate text and exits 1, and both trees are byte-identical to their templates. On a current squad the prompt is still asked and init completes (exit 0).
+<!-- sq:finding:F49:discussion:end -->
+<!-- sq:finding:F49:end -->
+
+<!-- sq:finding:F50 -->
+### F50 — Sweep leftovers: open_service and TARGET_DATE dead, docstrings name the deleted bridge
+
+<!-- sq:finding:F50:body -->
+Dead code and stale prose the removal sweep left behind. Vulture at d40232df against 658ed963 shows three new entries outside the TUI line shifts:
+
+- `open_service` (`_services/_service.py:497`) has no caller left in `src/` or `tests/`. Seven docstrings still name it as the composition entry point (`_context.py:11`, `_errors.py:82`, `_workflow/_loader.py:31, 316, 355, 1363, 1576`, `_cli/_workflow_cmd.py:12, 15`), and so does CLAUDE.md's composition-root paragraph. Delete it and reword those mentions to `compose_service`, or keep it with a caller.
+- `AttributeKey.TARGET_DATE` (`_models/_attributes.py:64`): its two readers were the deleted `_common.py` builders, and nothing else reads `target_date`.
+- `Grant.ground` (`_api/_api.py`) is read by nothing, and the old `GateGrant.ground` never was either. It records why an operation has a grant, so keeping it is fine. If it stays, add it to vulture's `ignore_names` with that reason.
+
+Stale prose that describes deleted code:
+
+- `_index/_store.py:633`, the `enter_read_scope` docstring: "``_cli/_common.py``'s ``command`` bridge uses it … opens the scope on the first and closes it via ``ctx.call_on_close``". The bridge is gone. Its only caller is now `LocalApi._scoped`.
+- `_cli/_common.py:816`, the `_click_root_context` docstring: "``command``-wrapped functions are only ever invoked *by* Click". The decorator is gone, and the function now also runs through `invocation_sources` as `LocalApi`'s sources callable.
+- `_services/_corpus_ops.migrate_squad` keeps the ahead refusal ("newer than this squads (v…); upgrade the squads package"). The MIGRATE grant refuses an ahead squad first, with the gate text, so this branch cannot be reached through `LocalApi`. It could not be reached through the old group gate either, so this is not a regression. Delete it, or say what reaches it.
+- CLAUDE.md lines 27 and 248 and docs/internals.md lines 463 and 475 still name `get_service` and `require_current_schema`. The handback already flagged these for @tech-writer.
+
+Two items the brief asked about, which are not defects of this commit:
+
+- The duplicate `e()` (`_cli/_common.py:647` and `_cli/_render/_style.py:34`) already existed at 658ed963. Renderers may not import `_common` (renderer guard), but `_common` may import from `_render._style`, so the copy in `_common` could become a re-export of the one in `_style`.
+- The three `_resolve_addr` group callbacks (`_role.py:270`, `_skill.py:138`, `_operator.py:123`) differ only in their help text, and each one parses without resolving. They came from the earlier roster tasks and are unchanged here. One shared registrar would match ADR-1172 rule 2. The name now overstates what the callback does.
+<!-- sq:finding:F50:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F50:discussion -->
+- [2026-10-29T07:02:05Z] `python-dev` Elias Python:
+  - - Fixed in 6d1facf3: `open_service` deleted and its mentions reworded to `compose_service` (`_context.py`, `_errors.py`, `_workflow/_loader.py`, `_cli/_workflow_cmd.py`, `_cli/_common.py`, `_overrides/_service.py`, `_services/_service.py`). `AttributeKey.TARGET_DATE` deleted. `enter_read_scope`, `read_scope` and `_click_root_context` docstrings rewritten, and `LocalApi` now uses `read_scope`. The unreachable ahead branch in `migrate_squad` is removed. `ground` is in vulture's `ignore_names` with its reason.
+    - CLAUDE.md and docs/internals.md left for @tech-writer. `e()` and `_resolve_addr` untouched.
+- [2026-10-29T07:11:10Z] `reviewer` Paul Reviewer:
+  - Verified on a927563b for the code. `open_service`, `TARGET_DATE` and the unreachable ahead branch are gone. The `enter_read_scope`/`read_scope` and `_click_root_context` docstrings describe current code. `ground` sits in vulture's `ignore_names` with its reason, and vulture adds nothing new over 658ed963 (`TARGET_REF` was already listed there). The CLAUDE.md and docs/internals.md lines are still with @tech-writer.
+<!-- sq:finding:F50:discussion:end -->
+<!-- sq:finding:F50:end -->
+
+<!-- sq:finding:F51 -->
+### F51 — New --json cases cover only empty reports; migration rows asserted by no case
+
+<!-- sq:finding:F51:body -->
+The 8 new `--json` cases are whole-document, carry their `covers` markers, and each one I falsified went red (`init --json` with the prompt left on, and `print_json` without the stderr warnings). They only cover the empty or trivial shape of each report, though:
+
+- `migrate up --json` runs on a current squad (`applied: []`, `reconciled: null`, `manual_span: null`). The keys and order of `AppliedMigration` and `Reconciled`, which are the whole point of the document on a squad that is actually behind, are asserted by no case. `grep '"from_schema"' tests/cli` only hits the `migrate help` documents.
+- `repair --json` asserts `renumbered: []` and `unreadable: []`. `renumber --json` asserts `warning: null` and `notice: null`.
+
+This is the same class as F17. ADR-1172 asks for one case per parameter, not one per shape, so adding cases is not the remedy. Each existing case could instead run on the arranged corpus its command's neighbouring cases already use: `migrate up --json` on the v0.14 fixture, which rule 5 allows, and `repair --renumber --json` on the twin-numbered corpus that `test_renumber_gives_a_shared_number_a_new_one` builds. Then the nested rows are asserted at no extra case count.
+<!-- sq:finding:F51:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F51:discussion -->
+- [2026-10-29T07:02:07Z] `python-dev` Elias Python:
+  - - Fixed in 6d1facf3, case count unchanged. `migrate up --json` runs on the v0_14 fixture and asserts the three applied migrations, the reconcile row, the dropped config key, the notice and `manual_span`. `repair --json` runs with `--renumber` on the duplicate-id corpus (unreadable row, exit 1). `renumber --json` runs with `--by 10` (warning set).
+- [2026-10-29T07:11:13Z] `reviewer` Paul Reviewer:
+  - Verified on a927563b. The three `--json` cases now assert populated reports: three applied migrations with their reports, the reconcile row, the dropped config key, the notice and `manual_span` on the v0.14 fixture; the duplicate-id unreadable row with exit 1; and the `--by` warning. Mutation: swapping two keys in `AppliedMigration` and in `Reconciled` turns `test_up_json_reports_each_migration_run_on_an_older_squad` red. Restored, all 42 pass. The `missing` row is no longer exercised by the repair case, but it is a flat list of strings, so this is fine.
+<!-- sq:finding:F51:discussion:end -->
+<!-- sq:finding:F51:end -->
+
+<!-- sq:finding:F52 -->
+### F52 — Ladder modes share names with document choices of a different meaning
+
+<!-- sq:finding:F52:body -->
+The composition matches ADR-1128 and the F16 ruling. `_compose_first_of` is private, `compose_service` is still the one construction path, and `LocalApi` only maps `op.mode`. No module outside `_service.py` names `Documents`, `ServiceMode` or a fallback table (grep over `src/` and `tests/`). `refusal` is now carried on the ladder services. Its only readers are `render_cheatsheet` and `check_squad`, which no corpus operation reaches, so the output is unchanged. The parity sweep below confirms this on the corrupt-index and broken-override squads.
+
+Two points for whoever next touches `_service.py`:
+
+- `_api.Mode.INDEX_CHECK_SKIPPED` and `_api.Mode.MIGRATE` now mean "normal, then the ladder". The `Documents` members with the same names mean the documents themselves. Every other mode with no table is mapped by value (`Documents(mode.value)`), so if a mode were dropped from `_ladder`, it would silently switch to the direct document choice and skip the normal attempt. A different name on one side, or an exhaustive `match`, would remove that trap.
+- There are now two fallback shapes: `_fallbacks` (the first row matching the error class) and `_ladder` (the first rung that builds). ADR-1224 point 4 describes "a table … beside `CHECK_FALLBACKS`". Both shapes satisfy that wording, but the ADR names only the first.
+<!-- sq:finding:F52:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F52:discussion -->
+- [2026-10-29T07:31:55Z] `python-dev` Elias Python:
+  - - Done in 95ffe9eb. `compose_service` maps a mode with neither a fallback table nor a ladder through `_direct_documents`, an explicit `match` over every `_api.Mode`. The four modes that have one raise `ValueError` there, so dropping a mode from `_ladder` can no longer fall back to the direct document choice.
+    - Behaviour is unchanged: `pytest -n 2 tests/meta tests/cli` gives 1539 passed. Falsified: removing `MIGRATE` from `_ladder` turns 3 `migrate` cases red.
+- [2026-10-29T07:37:17Z] `reviewer` Paul Reviewer:
+  - Verified on 931168f7. `_direct_documents` maps NORMAL and BUNDLED_FALLBACK to their documents, which is what `Documents(mode.value)` gave for the only two modes with no table, and it refuses the four table and ladder modes. Behaviour is unchanged:
+    - `repair`, `check`, `workflow types`, `show`, `list`, `migrate up` and `override list` on the current, corrupt-index, broken-override and behind squads are byte-identical between 347cd0ad and 931168f7 (28 runs, output and exit code).
+    - `tests/meta` plus the repair, migrate, check and show surface files pass, apart from the 7 git-history manifest tests that fail on any archive.
+    
+    The trap is removed. With `Mode.INDEX_CHECK_SKIPPED` dropped from `_ladder`, `sq repair` on the corrupt-index squad now stops with `ValueError: mode index-check-skipped composes through its fallback table or ladder` instead of silently composing the skipped-check documents.
+<!-- sq:finding:F52:discussion:end -->
+<!-- sq:finding:F52:end -->
+
+<!-- sq:finding:F53 -->
+### F53 — Write guard misses stdlib writers imported by name (from os import unlink)
+
+<!-- sq:finding:F53:body -->
+The write guard under `tests/meta/` (`..._and_the_terminal_ui_write_no_file_themselves.py`) matches a standard-library writer only by its dotted spelling (`os.<name>`, `shutil.*`) or as a `.method` attribute. A call to a bare name is never resolved through the module's imports, so a writer imported by name passes. On 931168f7, with a probe module under `src/squads/_cli/`:
+
+- `from os import unlink` then `unlink("x")`: 2 passed
+- `from os import makedirs` then `makedirs("x")`: 2 passed
+- `from shutil import rmtree` then `rmtree("x")`: 2 passed
+
+The same module written with `import os` and `os.makedirs("x")` goes red, so the gap is in how the name is spelled, not in the rule.
+
+Fix: resolve a call's name through the module's import aliases (`_aliases` already maps `unlink` to `os.unlink` and `rmtree` to `shutil.rmtree`) before matching it against `OS_WRITERS` and `WRITING_MODULES`. Then falsify with the three probes above.
+<!-- sq:finding:F53:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F53:discussion -->
+- [2026-10-29T10:10:15Z] `python-dev` Elias Python:
+  - - Fixed in d80a00ab. The guard now reads each called name through the module's imports before matching it, so `unlink` imported from `os` is matched as `os.unlink` and `sh.rmtree` as `shutil.rmtree`.
+    - The bypass self-check is now 17 shapes, all red. The five new ones are `from os import unlink`, `from os import makedirs`, `from shutil import rmtree`, `import shutil as sh` and `from os import replace as r`, each followed by a call.
+    - Falsified: without the resolution, four of the five go green: `unlink`, `makedirs`, `rmtree` and the aliased `r`. `sh.rmtree` stays red even then, because the `.rmtree` attribute rule already catches it.
+    - Gates: pyright 0 errors, ruff check and format clean on `src tests`, `pytest -n 2 tests/meta tests/cli` 1539 passed.
+- [2026-10-29T10:14:10Z] `reviewer` Paul Reviewer:
+  - Verified on 72a3f24e. With a probe module under `src/squads/_cli/`, every writer imported by name now fails the guard:
+    - `from os import unlink` / `makedirs`
+    - `from shutil import rmtree`
+    - `from os import remove as rm`
+    - `import shutil as sh` with `sh.copy`
+    - `import os as o` with `o.makedirs`
+    - `from tempfile import mkstemp`
+    - `builtins.open("x", "a")`
+    - `Path(...).write_text`
+    
+    There are no false positives on reads: `path.exists`, `getcwd`, `environ.get`, `Path.read_text`, `open(...)` with no mode or `"rb"`, two-argument `str.replace`, `os.path.join` and `os.listdir` stay green. The unprobed tree is green too.
+    
+    Known limits, recorded rather than filed:
+    - **Writer passed as a value, not called by its name.** `md = os.makedirs; md("x")`, `functools.partial(os.makedirs, "x")()` and `asyncio.to_thread(os.makedirs, "x")` pass. A one-line closing exists if `to_thread` use in `_tui` ever makes this real: treat any loaded reference to an `os`/`shutil` writer as a write, not only a call.
+    - **Renamed `open`.** `from io import open as iopen; iopen("x", "w")` passes, because `_is_open` matches the name `open` only.
+    - **Dynamic references.** `importlib`, `getattr` on a string and `exec` stay out of reach, as the docstring says.
+    - **Read-only `shutil` calls are flagged (fails safe).** `shutil.get_terminal_size()` and `shutil.which()` turn the guard red, because every call into `shutil` counts as a write. No CLI or TUI code calls them today. The fix is to list `shutil`'s writing functions instead of the whole module.
+<!-- sq:finding:F53:discussion:end -->
+<!-- sq:finding:F53:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1660,4 +2048,38 @@ Adopters cannot add a category, so this is engine drift, not adopter risk. The t
         - 0 tests: accepted under ADR-1172. F41 asks for one surface case if `--label` is added.
       - **Questions to route.** @architect: F39 (the key's name), F40 (where an added key goes) and F41 (`sq tree --label`). @python-dev: F42 and F45. @tech-writer: changelog and stability doc lines for F40, F43 and F44.
       - ST2 stays InProgress for the operator's eye-check. The review stays ChangesRequested.
+- [2026-10-29T06:49:43Z] `reviewer` Paul Reviewer:
+  - TASK-1232 (d40232df) reviewed. Findings F46 to F52. Recommended verdict: changes requested for F46. The others are low or info.
+    
+    Parity, 658ed963 against d40232df, both extracted and run from one scratch path with `--at` frozen and FORCE_COLOR on. For each squad: 43 command lines (repair, repair --renumber, renumber with --by, --onto and the refusals, migrate up/repad/rename-type/rename-status/help/chlog, import dry-run, applied, refused, error-finding, missing-file and stdin, init with --force, --roles and bundles, adopt, plus check, sync, docs, show, list, a status move, a create, override list/scaffold and the bare groups). Ten squads: current, behind (v0.16), ahead (v9.9), corrupt index, broken workflow override, unreadable item file, duplicate id, number collision, unrecognised working language, and the v0.14 fixture. After every line I compared stdout, stderr, the exit code and a hash of the whole tree, reflog and index included. A further 27-line `--json` set ran on seven of those squads.
+    
+    - Every tree is identical on all 457 runs. Writes are identical, and every refused write wrote nothing.
+    - Output is identical except: `renumber --from` without --onto/--by and `import <missing file>`, which now give the usage or file error before the gate; `docs`, which runs on a mismatched squad; and the working-language notice lost on refused calls (F48).
+    - `migrate up` on the v0.14 fixture is byte-identical, tree included. `repair --renumber` on a collision and both commands on the corrupt-index and broken-override squads are identical too.
+    - `--json`: every new document parses as one JSON object on stdout. On behind and ahead squads every `--json` form refuses with the gate text on stderr and an empty stdout. With a duplicate id, `show --json` now prints the same duplicate warning on stderr that human mode prints, and stdout is unchanged.
+    
+    Verdicts on the deviations:
+    
+    - Usage errors before the gate: not a hole. Nothing reaches a write before the call, and no module under `_cli` or `_tui` writes a file.
+    - Bare `migrate`/`override` exit 2 with usage: identical to 658ed963 on every squad.
+    - `docs` on a mismatched squad: matches ADR-1225 ("a command that makes no call: docs, migrate help, migrate chlog"). It reads only package data. Fine.
+    - `import <missing file>` named before the gate: it is the client's file read (ADR-1225 section 2) and writes nothing. Fine.
+    - `--json` warnings on stderr: correct. Stdout stays one document, and the duplicate-id and language notices are what a scripted caller should be told.
+    - The notice deviation is broader than the handback says: see F48.
+    - init/adopt through `LOCAL_BINDINGS` build no service. `init --force` on a behind or ahead squad is still refused with the gate text, but only after the role-name prompts (F49).
+    
+    What held up: the grant guard goes red when local-only operations skip the gate. The `init --json` and `--json` warnings cases go red when their fix is reverted. `sq ui` on a behind squad still exits 1 with the gate text. Composition matches ADR-1128 and the F16 ruling (F52). `vulture` on `_cli` adds nothing new.
+    
+    @tech-lead for routing F46-F52. @tech-writer: F50 lists the stale CLAUDE.md, docs/internals.md and docstring mentions.
+- [2026-10-29T07:11:23Z] `reviewer` Paul Reviewer:
+  - Round 2 of TASK-1232 (dcc42a00) checked: F46, F48, F49, F50 and F51 are Verified. F47 is reopened: its guard is a denylist, and board, memory, backend and reflog writers, as well as Path.open("w"), all pass it. @python-dev for F47. F48 has no test holding it; the evidence is on the finding.
+- [2026-10-29T07:37:22Z, edited 2026-10-29T07:38:23Z] `reviewer` Paul Reviewer:
+  - Round 4 of TASK-1232 (ec833f5a) checked: F52 is Verified, behaviour unchanged. F47 stays Verified (Verified is final in the finding lifecycle), and its remaining gap is now F53, low: a standard-library writer imported by name (from os import unlink, from shutil import rmtree) passes the write guard. @python-dev for F53.
+- [2026-10-29T10:09:20Z] `reviewer` Paul Reviewer:
+  - - I rechecked the TASK-1233 fixes on 06b8982c (e0a97f6d), on a scratch copy, with targeted tests at `-n 2` (control: 106 passed).
+      - F39, F40, F41, F42 and F43 are Verified. Each was shown by a CLI probe and by a mutation that turns its case red. F42's closure guard also goes red on an indirect import through a DTO module and on a literal `importlib` call.
+      - F45 is reopened: the TUI's top-level group order now follows the adopter's type `order`. With guide at `order = 5`, the groups read Records, Work, Roster. @architect, please rule (a) or (b) on F45.
+      - Headless parity at 06b8982c against 611c505e, with the bundled spec: identical apart from the filter's category order, which the dev reported.
+      - The stability doc and changelog lines are not in this commit. They are listed on TASK-1234 for @tech-writer.
+      - F25 and F44 stay Open. ST2 still waits for the operator's eye-check. The review stays ChangesRequested.
 <!-- sq:discussion:end -->

@@ -9,10 +9,10 @@ Sub-commands:
   one row per declared entry in a documented order, every key present on every row, and
   cross-references carried by name so a client joins catalogs instead of receiving copies.
 
-``lint`` runs the checks ``open_service`` runs fail-closed (pure-spec validation plus the
+``lint`` runs the checks ``compose_service`` runs fail-closed (pure-spec validation plus the
 live-index cross-check) but prints every error and warning with its config key and a fix hint.
 Exit 0 on a clean spec, 1 when any error is present. Its operation reads the override file
-itself: a spec that makes ``open_service`` hard-stop is exactly what an author runs it to
+itself: a spec that makes ``compose_service`` hard-stop is exactly what an author runs it to
 diagnose.
 
 Each command makes one call; the catalogs and the cheatsheet also answer outside a squad, from
@@ -260,6 +260,7 @@ def workflow_lint(
     except SquadsError as exc:
         if json_out:
             raise
+        common.print_notices(exc.warnings)
         console.print(f"[red]error[/red]: {e(common.error_text(exc))}", soft_wrap=True)
         raise typer.Exit(1) from exc
     if json_out:

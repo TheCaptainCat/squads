@@ -7,7 +7,7 @@ listed in the same section of :data:`OPERATIONS`.
 
 from typing import Any
 
-from squads._api._api import Grant, Ground, Mode, Operation
+from squads._api._api import Grant, Ground, Mode, Operation, Timeout
 from squads._api._dto._board import (
     BoardClearRequest,
     BoardListRequest,
@@ -147,6 +147,26 @@ from squads._api._dto._skills import (
     SkillUpdateRequest,
     SkillViewChange,
     SkillWrite,
+)
+from squads._api._dto._squad import (
+    AdoptReport,
+    AdoptRequest,
+    ImportReport,
+    ImportRequest,
+    InitReport,
+    InitRequest,
+    MigrateRequest,
+    MigrationReport,
+    RenameStatusReport,
+    RenameStatusRequest,
+    RenameTypeReport,
+    RenameTypeRequest,
+    RenumberReport,
+    RenumberRequest,
+    RepadReport,
+    RepadRequest,
+    RepairReport,
+    RepairRequest,
 )
 from squads._api._dto._subentities import (
     SubentitiesRequest,
@@ -750,6 +770,63 @@ SYNC = Operation("sync", "POST", "/v1/squad/sync", SyncRequest, SyncReport)
 
 # --- corpus-wide --------------------------------------------------------------------------------
 
+#: What the migration may do on a squad whose schema is behind the package's.
+_MIGRATION_GRANT = Grant(Ground.MIGRATION, behind=True, ahead=False)
+
+REPAIR = Operation(
+    "squad.repair",
+    "POST",
+    "/v1/squad/repair",
+    RepairRequest,
+    RepairReport,
+    mode=Mode.INDEX_CHECK_SKIPPED,
+    timeout=Timeout.LONG,
+)
+RENUMBER = Operation(
+    "squad.renumber",
+    "POST",
+    "/v1/squad/renumber",
+    RenumberRequest,
+    RenumberReport,
+    timeout=Timeout.LONG,
+)
+MIGRATE = Operation(
+    "squad.migrate",
+    "POST",
+    "/v1/squad/migrate",
+    MigrateRequest,
+    MigrationReport,
+    mode=Mode.MIGRATE,
+    grant=_MIGRATION_GRANT,
+    timeout=Timeout.LONG,
+)
+REPAD = Operation(
+    "squad.repad", "POST", "/v1/squad/repad", RepadRequest, RepadReport, timeout=Timeout.LONG
+)
+RENAME_TYPE = Operation(
+    "squad.rename-type",
+    "POST",
+    "/v1/squad/rename-type",
+    RenameTypeRequest,
+    RenameTypeReport,
+    timeout=Timeout.LONG,
+)
+RENAME_STATUS = Operation(
+    "squad.rename-status",
+    "POST",
+    "/v1/squad/rename-status",
+    RenameStatusRequest,
+    RenameStatusReport,
+    timeout=Timeout.LONG,
+)
+IMPORT = Operation(
+    "squad.import", "POST", "/v1/squad/import", ImportRequest, ImportReport, timeout=Timeout.LONG
+)
+INIT = Operation("squad.init", "POST", "/v1/squad/init", InitRequest, InitReport, local_only=True)
+ADOPT = Operation(
+    "squad.adopt", "POST", "/v1/squad/adopt", AdoptRequest, AdoptReport, local_only=True
+)
+
 
 OPERATIONS: tuple[Operation[Any, Any], ...] = (
     # --- items
@@ -874,4 +951,13 @@ OPERATIONS: tuple[Operation[Any, Any], ...] = (
     CHECK,
     SYNC,
     # --- corpus-wide
+    REPAIR,
+    RENUMBER,
+    MIGRATE,
+    REPAD,
+    RENAME_TYPE,
+    RENAME_STATUS,
+    IMPORT,
+    INIT,
+    ADOPT,
 )

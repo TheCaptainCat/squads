@@ -110,9 +110,6 @@ from squads._services._views import ViewsMixin
 from squads._views import ROLE_DEFINITION_VIEW_NAME, empty_body_hint_state
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
 
-#: The note the duplicate-id warning carries on a read.
-_DUPLICATE_READ_NOTE = "showing the indexed file; run `sq check`"
-
 #: The roster kinds whose entries the managed files list, so a removal regenerates them.
 _LISTED_KINDS = frozenset({ROSTER_ROLE, ROSTER_OPERATOR})
 
@@ -158,10 +155,6 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         )
         await self.adopt_declared_actor()
         return item
-
-    async def _duplicate_warnings(self, item: Item) -> list[str]:
-        duplicate = await self.duplicate_id_error(item)
-        return [] if duplicate is None else [f"{duplicate} -- {_DUPLICATE_READ_NOTE}"]
 
     def _shows_pronouns(self) -> bool:
         return self.paths.config.display.pronouns
@@ -288,7 +281,9 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             disabled = await self.view_tag_state(it.id, ROLE_DEFINITION_VIEW_NAME) is True
             state = empty_body_hint_state(ROLE_DEFINITION_VIEW_NAME, self.spec, disabled=disabled)
             empty_hint = role_empty_body_hint(state, slug)
-            body = await self.read_body(it.id, keep_view=keep_view)
+            expanded = await self.read_body(it.id, keep_view=keep_view)
+            body = expanded.text
+            warnings += expanded.warnings
             discussion = comment_dtos(await self.comments(it.id))
         shown = name_display(role.full_name, pronouns, enabled=self._shows_pronouns())
         data = RoleShow(
@@ -435,13 +430,15 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         view_name = skill_view_name(it.slug, self.spec)
         disabled = view_name is not None and await self.view_tag_state(it.id, view_name) is True
         row = skill_row(it, self.spec)
+        expanded = await self.read_body(it.id)
+        warnings += expanded.warnings
         data = SkillShow.model_validate(
             {
                 **row.model_dump(),
                 "body": await self.read_stored_body(it.id),
                 "views": await self.view_data(it.id),
                 "display": SkillShowDisplay(
-                    body=await self.read_body(it.id),
+                    body=expanded.text,
                     empty_hint=skill_empty_body_hint(
                         it.slug, self.spec, self.playbook, view_disabled=disabled
                     ),
@@ -578,6 +575,8 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         warnings = await self._duplicate_warnings(it)
         own = _pronouns.pronouns(it)
         shown = name_display(it.title, own, enabled=self._shows_pronouns())
+        expanded = await self.read_body(it.id)
+        warnings += expanded.warnings
         data = OperatorShow(
             id=it.id,
             slug=it.slug,
@@ -587,7 +586,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             path=it.path,
             display=OperatorShowDisplay(
                 **dict(shown),
-                body=await self.read_body(it.id),
+                body=expanded.text,
                 discussion=comment_dtos(await self.comments(it.id)),
             ),
         )

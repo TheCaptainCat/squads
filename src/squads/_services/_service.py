@@ -1,5 +1,5 @@
 """The ``Service`` facade — all concern mixins composed over ``ServiceCore`` — plus the
-``init`` / ``adopt`` / ``open_service`` entry points.
+``init`` / ``adopt`` / ``compose_service`` entry points.
 
 ``Service`` keeps a flat API (``svc.create()``, ``svc.comment()``, …); each method lives in the
 concern mixin under ``_services/``.
@@ -17,11 +17,12 @@ from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsE
 from squads._index._store import IndexStore
 from squads._language import DEFAULT_WORKING_LANGUAGE
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
-from squads._paths import SquadPaths, load_config, process_dir, resolve
+from squads._paths import SquadPaths, load_config, process_dir
 from squads._roles._catalog import resolve_roles
 from squads._services._board import BoardMixin
 from squads._services._check import CheckMixin
 from squads._services._collab import CollabMixin
+from squads._services._corpus_ops import CorpusOpsMixin
 from squads._services._import import ImportMixin
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
@@ -56,6 +57,7 @@ class Service(
     RetypeOpsMixin,
     ItemOpsMixin,
     SquadStateOpsMixin,
+    CorpusOpsMixin,
     ImportMixin,
     ItemsMixin,
     CollabMixin,
@@ -91,7 +93,7 @@ class Documents(StrEnum):
     BUNDLED_FALLBACK = "bundled-fallback"
 
 
-#: What a command that must still run beside a refusal tries after :attr:`Documents.NORMAL`
+#: What an operation that must still run beside a refusal tries after :attr:`Documents.NORMAL`
 #: fails: the first rung that builds wins, and a refusal on the last one is the caller's.
 BYPASS_FALLBACKS: tuple[Documents, ...] = (
     Documents.INDEX_CHECK_SKIPPED,
@@ -122,6 +124,30 @@ def _fallbacks(mode: Mode) -> tuple[tuple[type[SquadsError], Documents], ...]:
             return CHECK_FALLBACKS
         case Mode.VOCABULARY:
             return VOCABULARY_FALLBACKS
+        case _:
+            return ()
+
+
+def _direct_documents(mode: Mode) -> Documents:
+    """The documents a mode with neither a fallback table nor a ladder composes over; a mode that
+    has one is refused, so dropping it from its table cannot skip the normal attempt."""
+    match mode:
+        case Mode.NORMAL:
+            return Documents.NORMAL
+        case Mode.BUNDLED_FALLBACK:
+            return Documents.BUNDLED_FALLBACK
+        case Mode.INDEX_CHECK_SKIPPED | Mode.MIGRATE | Mode.CHECK | Mode.VOCABULARY:
+            raise ValueError(f"mode {mode} composes through its fallback table or ladder")
+
+
+def _ladder(mode: Mode) -> tuple[Documents, ...]:
+    """The rungs *mode* tries in order after :attr:`Documents.NORMAL` refuses; empty when it has
+    none."""
+    match mode:
+        case Mode.INDEX_CHECK_SKIPPED:
+            return BYPASS_FALLBACKS
+        case Mode.MIGRATE:
+            return MIGRATE_FALLBACKS
         case _:
             return ()
 
@@ -270,7 +296,8 @@ def compose_service(
     base: Path | None = None,
 ) -> Service:
     """The service for the squad at *paths* in *mode*: the documents it names, or, for a mode with
-    a fallback table, the first row that matches the refusal, which the service then carries.
+    a fallback table, the first row that matches the refusal, or for a mode with a ladder, the
+    first rung that builds; the service then carries the refusal.
 
     *resolved_spec*, *sources* and *spec_error* are what the caller already resolved, read or was
     refused, so none of it is loaded again. *paths* is ``None`` when no squad resolves from
@@ -281,39 +308,42 @@ def compose_service(
         if mode is not Mode.VOCABULARY:
             raise refusal
         return _compose_squadless(base, refusal)
-    fallbacks = _fallbacks(mode)
+    fallbacks, ladder = _fallbacks(mode), _ladder(mode)
     if mode in (Mode.NORMAL, Mode.VOCABULARY) and spec_error is not None:
         raise SquadsError(spec_error)
-    if not fallbacks:
-        return _compose(paths, Documents(mode.value), resolved_spec, sources)
+    if not fallbacks and not ladder:
+        return _compose(paths, _direct_documents(mode), resolved_spec, sources)
     try:
         return _compose_normal(paths, resolved_spec, sources, spec_error)
     except SquadsError as exc:
+        if ladder:
+            return _compose_first_of(paths, ladder, resolved_spec, sources, exc)
         fallback = next(documents for kind, documents in fallbacks if isinstance(exc, kind))
         return _compose(paths, fallback, resolved_spec, sources, refusal=exc)
 
 
-def compose_first_of(
+def _compose_first_of(
     paths: SquadPaths,
-    modes: Sequence[Documents],
-    *,
-    resolved_spec: WorkflowSpec | None = None,
-    sources: SpecSources | None = None,
+    rungs: Sequence[Documents],
+    resolved_spec: WorkflowSpec | None,
+    sources: SpecSources | None,
+    refusal: SquadsError,
 ) -> Service:
-    """The service of the first of *modes* that builds; the last one's refusal is raised."""
+    """The service of the first of *rungs* that builds, carrying *refusal*; the last rung's own
+    refusal is raised."""
     sources = sources if sources is not None else spec_sources(paths.squad_dir)
-    for documents in modes[:-1]:
+    for documents in rungs[:-1]:
         try:
-            return _compose(paths, documents, resolved_spec, sources)
+            return _compose(paths, documents, resolved_spec, sources, refusal=refusal)
         except SquadsError:
             continue
-    return _compose(paths, modes[-1], resolved_spec, sources)
+    return _compose(paths, rungs[-1], resolved_spec, sources, refusal=refusal)
 
 
 def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
     """The spec ``init``/``adopt`` scaffold against: the squad's, from *sources*. A pre-placed
-    override is validated here, before anything is written, as ``open_service`` will load it (fail-
-    closed, pointing at ``sq workflow lint``).
+    override is validated here, before anything is written, as ``compose_service`` will load it
+    (fail-closed, pointing at ``sq workflow lint``).
     """
     try:
         return sources.workflow()
@@ -474,20 +504,3 @@ async def adopt(
         warnings += await svc.candidate_orphans()
 
     return AdoptResult(paths=sp, repair=repair_result, roles=created, warnings=warnings)
-
-
-def open_service(
-    *,
-    client_cwd: Path | None = None,
-    resolved_spec: WorkflowSpec | None = None,
-    sources: SpecSources | None = None,
-) -> Service:
-    """Resolve the active squad and compose its service in :attr:`Documents.NORMAL`. A workflow
-    spec that fails to load or conflicts with the index raises ``SquadsError`` pointing to ``sq
-    workflow lint``; a playbook that fails raises :class:`~squads._errors.PlaybookConfigError`.
-    ``client_cwd`` is the requesting client's directory (``None`` is the process cwd);
-    ``resolved_spec`` and ``sources`` are what the caller already resolved and read.
-    """
-    return compose_service(
-        resolve(client_cwd=client_cwd), resolved_spec=resolved_spec, sources=sources
-    )

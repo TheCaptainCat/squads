@@ -63,21 +63,36 @@ def _named(node: ast.AST, package: str) -> list[str]:
     return []
 
 
-def imports_of(path: Path) -> list[Imported]:
-    """Every module *path* imports, by statement or by a literal import call, at any position."""
+def _is_type_checking(node: ast.AST) -> bool:
+    if not isinstance(node, ast.If):
+        return False
+    test = node.test
+    name = test.attr if isinstance(test, ast.Attribute) else getattr(test, "id", None)
+    return name == "TYPE_CHECKING"
+
+
+def imports_of(path: Path, *, typing: bool = True) -> list[Imported]:
+    """Every module *path* imports, by statement or by a literal import call, at any position;
+    with *typing* false, the body of an ``if TYPE_CHECKING:`` block is left out."""
     package = _package(path)
     found: list[Imported] = []
 
+    def visit(child: ast.AST, function: str | None) -> None:
+        if not typing and isinstance(child, ast.If) and _is_type_checking(child):
+            for other in child.orelse:
+                visit(other, function)
+            return
+        found.extend(
+            Imported(name, getattr(child, "lineno", 0), function) for name in _named(child, package)
+        )
+        inner = function
+        if function is None and isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
+            inner = child.name
+        walk(child, inner)
+
     def walk(node: ast.AST, function: str | None) -> None:
         for child in ast.iter_child_nodes(node):
-            found.extend(
-                Imported(name, getattr(child, "lineno", 0), function)
-                for name in _named(child, package)
-            )
-            inner = function
-            if function is None and isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
-                inner = child.name
-            walk(child, inner)
+            visit(child, function)
 
     walk(ast.parse(path.read_text(encoding="utf-8")), None)
     return found

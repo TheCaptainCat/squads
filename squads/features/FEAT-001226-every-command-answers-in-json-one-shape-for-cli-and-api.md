@@ -30,8 +30,11 @@ subentities:
 - local_id: US5
   title: The terminal UI reads through the same API
   status: InProgress
+- local_id: US6
+  title: Local commands are no slower than in 0.17.0
+  status: Todo
 created_at: '2026-10-28T22:00:08Z'
-updated_at: '2026-10-29T05:27:38Z'
+updated_at: '2026-10-29T07:12:29Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -179,6 +182,24 @@ Done when:
 <!-- sq:story:US5:discussion -->
 <!-- sq:story:US5:discussion:end -->
 <!-- sq:story:US5:end -->
+
+<!-- sq:story:US6 -->
+### US6 — Local commands are no slower than in 0.17.0
+
+<!-- sq:story:US6:body -->
+As an adopter in local mode, the commands I run most are no slower after this release than in 0.17.0.
+
+Done when:
+- `sq <type> <n> show`, `sq list` and `sq tree`, each as the median of 31 runs interleaved with the released 0.17.0 against the same squad on the reference host, take no longer than they do in 0.17.0.
+- The measurement is a script under `scripts/` that anyone can rerun, and its numbers are recorded with the release.
+- The remote client budget is FEAT-1140's, not this story's.
+<!-- sq:story:US6:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US6:discussion -->
+<!-- sq:story:US6:discussion:end -->
+<!-- sq:story:US6:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
@@ -208,4 +229,10 @@ Done when:
   - Dispatch 2026-10-29: TASK-1228, 1230 and 1231 in parallel to three python-devs, each in its own git worktree, following TASK-1227's collision conventions. The daemon (TASK-1218) waits for the refactor, per op-pierre's order on MILE-1152.
 - [2026-10-29T01:04:41Z] `manager` Catherine Manager:
   - 2026-10-29: TASK-1228, 1230 and 1231 integrated on release/0.18 (42ac2937, 9733ec0c, 98b14245; full suite 1607 passed). TASK-1229 dispatched (depends on 1228). Reviews of 1230 and 1231 start now; REV-1235 F13/F15 go back to the 1228 dev, F14 to the architect.
+- [2026-10-29T06:57:37Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: tolerant view rendering. When a view tag in a body fails to render (e.g. a broken override template), the command still succeeds: the tag stays as written in display.body and a warning names the view and the error. sq check keeps reporting the broken template. Applies to show, role show and every surface that expands view tags, --json and the API included.
+- [2026-10-29T07:10:53Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: the refactor does not close slower than 0.17.0 in local mode. Measured today: show/list/tree 20-30 % slower (e.g. task show 1088 -> 1304 ms median). Add a local-mode performance pass to this feature, with the criterion: 0.18 local is not slower than 0.17.0 on show, list and tree (median of 31 runs). The remote client budget stays with TASK-1219.
+- [2026-10-29T07:12:29Z] `product-owner` Nina Product:
+  - Added US6, local commands no slower than 0.17.0 (show, list, tree; median of 31 interleaved runs on the reference host; script under scripts/), per op-pierre 2026-10-29.
 <!-- sq:discussion:end -->

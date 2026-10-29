@@ -177,3 +177,78 @@ async def test_json_prints_the_item_as_one_object(readable, invoke) -> None:
         },
     }
     assert result.output == json.dumps(expected, indent=2) + "\n"
+
+
+@pytest.mark.covers("show", "--json")
+async def test_json_prints_the_notices_on_stderr_and_only_the_object_on_stdout(
+    project, invoke
+) -> None:
+    created = await invoke(["--at", "2026-06-01", "create", "task", "Parse", "--author", "manager"])
+    assert created.exit_code == 0, created.output
+    # No command writes an unrecognised working language, so the configuration is edited.
+    config = project.root / ".squads.toml"
+    text = config.read_text(encoding="utf-8")
+    config.write_text(
+        text.replace('working_language = "en"', 'working_language = "klingon!!"'), encoding="utf-8"
+    )
+    result = await invoke(["show", "TASK-2", "--json"])
+    body = "## Description\n\n_TODO: describe this task._"
+    expected = {
+        "sequence_id": 2,
+        "type": "task",
+        "title": "Parse",
+        "slug": "parse",
+        "status": "Draft",
+        "description": "",
+        "parent": None,
+        "author": "manager",
+        "assignee": None,
+        "priority": None,
+        "severity": None,
+        "labels": [],
+        "refs": [],
+        "subentities": [],
+        "path": "tasks/TASK-000002-parse.md",
+        "created_at": "2026-06-01T00:00:00Z",
+        "updated_at": "2026-06-01T00:00:00Z",
+        "created_session": None,
+        "modified_session": None,
+        "id": "TASK-2",
+        "body": body,
+        "views": {},
+        "discussion": [],
+        "badges": {},
+        "display": {
+            "type": "Task",
+            "status": {"badge": "⚪ Draft", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "body": body,
+            "summary": None,
+            "attributes": [],
+        },
+    }
+    assert (result.exit_code, result.stdout, result.stderr) == (
+        0,
+        json.dumps(expected, indent=2) + "\n",
+        'warning: working_language "klingon!!" in .squads.toml is not a language tag squads '
+        "recognises; using English (en)\n",
+    )
+
+
+@pytest.mark.covers("show", "ID")
+async def test_a_refused_show_prints_the_notices_before_the_error(project, invoke) -> None:
+    # No command writes an unrecognised working language, so the configuration is edited.
+    config = project.root / ".squads.toml"
+    text = config.read_text(encoding="utf-8")
+    config.write_text(
+        text.replace('working_language = "en"', 'working_language = "klingon!!"'), encoding="utf-8"
+    )
+    result = await invoke(["show", "99"])
+    assert (result.exit_code, result.stdout, result.stderr) == (
+        1,
+        "",
+        'warning: working_language "klingon!!" in .squads.toml is not a language tag squads '
+        "recognises; using English (en)\n"
+        "error: no item with number 99 (use a full ID like TYPE-99 or bare 99)\n",
+    )

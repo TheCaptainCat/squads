@@ -692,18 +692,21 @@ class ItemsMixin(ServiceCore):
         item, _changed = await self._locked_section_edit(item_id, mutate)
         return item
 
-    async def read_body(self, item_id: str, *, keep_view: str | None = None) -> str:
+    async def read_body(
+        self, item_id: str, *, keep_view: str | None = None
+    ) -> view_tags.ExpandedBody:
         """The item's top-level ``:body`` content with any ``sq:view:<name>`` tag expanded but
-        *keep_view*'s, which stays as written: the one
-        body-read boundary for rendered text (:func:`~squads._view_tags.expand_view_tags`), while
-        ``show --json`` reads :meth:`read_stored_body` unexpanded. No writer may source its text
-        from here, or expanded view output would be persisted over the tag. A body with no tag
-        returns without an index load, as ``sq ui`` opts out of the read scope.
+        *keep_view*'s, which stays as written, and a warning for each view that failed to render:
+        the one body-read boundary for rendered text
+        (:func:`~squads._view_tags.expand_view_tags`), while ``show --json`` reads
+        :meth:`read_stored_body` unexpanded. No writer may source its text from here, or expanded
+        view output would be persisted over the tag. A body with no tag returns without an index
+        load, as ``sq ui`` opts out of the read scope.
         """
         item = await self.get(item_id)
         body = await self._stored_body(item)
         if not views.has_view_tag(body):
-            return body
+            return view_tags.ExpandedBody(body)
         db = await self.store.load()
         roster = cache(lambda: self.roster_from_db(db))
         return view_tags.expand_view_tags(

@@ -36,17 +36,13 @@ def call[Req: BaseModel, Res](op: Operation[Req, Res], req: Req) -> Response[Res
 
 def print_warnings(response: Response[Any]) -> None:
     """Each warning of *response* on stderr, once per invocation."""
-    printed = common.printed_notices()
-    for warning in response.warnings:
-        if warning not in printed:
-            printed.add(warning)
-            common.err_console.print(
-                f"[yellow]warning:[/yellow] {common.e(warning)}", soft_wrap=True
-            )
+    common.print_notices(response.warnings)
 
 
 def print_json(op: Operation[Any, Any], response: Response[Any]) -> None:
-    """The one JSON document ``--json`` prints: ``data``, or the field of it *op* names."""
+    """The one JSON document ``--json`` prints: ``data``, or the field of it *op* names. The
+    response's warnings go to stderr first, so stdout holds the document alone."""
+    print_warnings(response)
     data: BaseModel = response.data
     dumped = data.model_dump(mode="json")
     common.print_json_clean(json.dumps(dumped if op.json_field is None else dumped[op.json_field]))

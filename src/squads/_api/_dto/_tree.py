@@ -36,24 +36,24 @@ class TreeNodeDisplay(Display):
 
 
 class TreeNode(DTO):
-    """One item of the hierarchy, with the items below it. ``slug`` is a role's or operator's
-    slug, which names its memory notebook, and ``None`` on every other item; ``closed`` says the
-    default view hides the item."""
+    """One item of the hierarchy, with the items below it. ``notebook`` is the slug of the
+    memory notebook the node opens, set on a role or an operator and ``None`` elsewhere;
+    ``closed`` says the default view hides the item."""
 
     id: str
     type: str
     title: str
-    slug: str | None
     status: str
     priority: str | None
     assignee: str | None
     blocked: bool
-    closed: bool
     badges: dict[str, str]
     anchor: bool
-    updated_at: str
     children: list[TreeNode]
     display: TreeNodeDisplay
+    notebook: str | None
+    closed: bool
+    updated_at: str
 
 
 class TreeView(DTO):

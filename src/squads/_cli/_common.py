@@ -2,30 +2,27 @@
 
 import contextlib
 import copy
-import enum
 import functools
 import io
 import json
 import os
 import sys
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePath
 from typing import Any, cast
 
-import anyio
 import typer
 import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer._click.globals as _click_globals  # ditto — upstream's, not ours
 import typer.core
 import typer.main
 from pydantic import BaseModel
-from rich.console import Console, Group, RenderableType
+from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
 
-from squads import __version__, _pronouns
 from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
@@ -49,46 +46,19 @@ from squads._cli._markup import escape_markup
 from squads._cli._render import _comments as comment_render
 from squads._cli._render import _writes as write_render
 from squads._cli._render._style import intent_style
-from squads._context import get_context, rebind
+from squads._context import get_context
 from squads._errors import (
     NotInitializedError,
-    RoleNotFoundError,
     SquadsError,
 )
-from squads._index._store import enter_read_scope, exit_read_scope
-from squads._interactions._role_guidance import allowed_create_types
-from squads._interactions._skills import role_origin
-from squads._language import resolve_working_language
-from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
 from squads._models._item import (
     DISPLAY_ID_PADDING,
-    Item,
     format_item_id,
     parse_item_token,
-    split_ref,
 )
 from squads._models._omission import Omission
 from squads._models._participants import refuse_system_actor
-from squads._models._schema import SCHEMA_VERSION, schema_tuple
-from squads._models._subentity import SubEntity
-from squads._paths import SquadPaths, process_dir, resolve
-from squads._roles._catalog import RoleDef
-from squads._roles._models import CatalogSource
-from squads._roles._resolver import (
-    materialised_base,
-    resolve_pronouns,
-    resolve_role_with_base,
-    stored_values,
-)
-from squads._services._results import SelfRemedied, SubentityDetail
-from squads._services._service import (
-    BYPASS_FALLBACKS,
-    MIGRATE_FALLBACKS,
-    Service,
-    compose_first_of,
-    open_service,
-)
+from squads._paths import process_dir, resolve
 from squads._spec_documents import SpecSources, spec_sources
 from squads._specload import override_present
 from squads._util import article
@@ -264,19 +234,15 @@ def error_text(exc: SquadsError) -> str:
     return str(exc)
 
 
-def set_active_spec(spec: WorkflowSpec | None) -> None:
-    rebind(active_spec=spec)
-
-
 def get_active_spec() -> WorkflowSpec:
     """Return the per-invocation spec, or the bundled spec if none has been bound yet.
 
     Raises ``SquadsError`` when the squad has a workflow override that failed to resolve
     (``RequestContext.spec_error``): the bundled spec would describe vocabulary the project did not
     declare, indistinguishably from a correct answer. Every read surface refuses with the text
-    ``open_service`` raises (``_workflow._loader.spec_refusal``). ``sq workflow lint`` never calls
-    this, so the diagnostic stays reachable; ``sq check`` and ``sq repair`` take the refusal from
-    ``open_service`` and report it as a finding.
+    ``compose_service`` raises (``_workflow._loader.spec_refusal``). ``sq workflow lint`` never
+    calls this, so the diagnostic stays reachable; ``sq check`` and ``sq repair`` take the refusal
+    from ``compose_service`` and report it as a finding.
     """
     ctx = get_context()
     if ctx.spec_error is not None:
@@ -318,7 +284,7 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
 
     Never raises, even under a broken override: this only shapes help text and the command table,
     and a completion that raised is worse than one listing the built-in set. The refusal belongs
-    to the answering surfaces, :func:`get_active_spec` and ``open_service``.
+    to the answering surfaces, :func:`get_active_spec` and ``compose_service``.
     """
     try:
         if ctx is None or _root_callback_ran(ctx):
@@ -440,7 +406,8 @@ def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
 
 
 def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str | None]:
-    """Resolve the spec for this invocation, merging the squad's override as ``open_service`` does.
+    """Resolve the spec for this invocation, merging the squad's override as ``compose_service``
+    does.
 
     Returns ``(spec, spec_error)`` without binding it; the caller binds it in the per-invocation
     ``RequestContext``.
@@ -453,7 +420,6 @@ def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str 
 
     ``client_cwd`` goes straight to ``resolve()``, so every resolution path shares one base.
     """
-    from squads._paths import resolve
     from squads._workflow import bundled_spec
     from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, spec_refusal
 
@@ -530,17 +496,6 @@ def spec_error_command(cmd_name: str, ctx: Any = None) -> _click.Command | None:
     leaf: _click.Command = typer.main.get_command(refusal_app)  # type: ignore[assignment]
     leaf.name = cmd_name
     return leaf
-
-
-def unreadable_report(msg: str) -> str:
-    """One ``repair``/``adopt``/``migrate`` line for an unreadable file. A line that carries its
-    own remedy is printed as is; every other file gets the generic carried-forward note."""
-    if isinstance(msg, SelfRemedied):
-        return f"[red]error[/red]: {e(msg)}"
-    return (
-        f"[red]error[/red]: {e(msg)} — its previous index entry, if any, was carried "
-        "forward as-is; fix the file and repair again"
-    )
 
 
 # Shared options: each flag that more than one command takes is declared here, with one
@@ -761,383 +716,6 @@ def print_comments(comments: list[discussion.Comment]) -> None:
         _render_comments_plain(comments)
 
 
-def _milestone_target_date_row(it: Item) -> str | None:
-    """The panel row for a milestone's ``target_date``, or ``None`` when unset.
-
-    A one-off: declared attributes carry no label or formatting in the spec, so a generic renderer
-    would need vocabulary the codebase does not have.
-    """
-    if it.type != "milestone":
-        return None
-    target_date = it.attribute(AttributeKey.TARGET_DATE)
-    return f"[bold]target date:[/bold] {e(str(target_date))}" if target_date else None
-
-
-def _build_item_panel_rows(it: Item) -> list[str]:
-    """Build the metadata rows for the item's info panel."""
-    rows = [
-        f"[bold]{it.id}[/bold]  ({it.type})",
-        f"[bold]title:[/bold] {e(it.title)}",
-        f"[bold]status:[/bold] {it.status}",
-    ]
-    # Badge rows: one per field this type declares (priority, severity, or a project's own
-    # custom axis) — generic over fields_for(), not a hand-written priority/severity pair.
-    spec = get_active_spec()
-    for field in spec.fields_for(it.type):
-        val = it.badge_value(field.code)
-        if val:
-            rendered = badges.badge_render(field.collection, val, spec)
-            rows.append(f"[bold]{field.code}:[/bold] {e(rendered)}")
-    milestone_row = _milestone_target_date_row(it)
-    if milestone_row:
-        rows.append(milestone_row)
-    if it.description:
-        rows.append(f"[bold]summary:[/bold] {e(it.description)}")
-    if it.parent:
-        rows.append(f"[bold]parent:[/bold] {it.parent}")
-    if it.author:
-        if it.created_session:
-            rows.append(
-                f"[bold]author:[/bold] {e(it.author)}"
-                f" [dim]@ {e(it.created_session)}[/dim]"
-                " [dim](best-effort session, untrusted)[/dim]"
-            )
-        else:
-            rows.append(f"[bold]author:[/bold] {e(it.author)}")
-    if it.modified_session:
-        rows.append(
-            f"[bold]last-modified session:[/bold] [dim]{e(it.modified_session)}[/dim]"
-            " [dim](best-effort, untrusted)[/dim]"
-        )
-    if it.assignee:
-        rows.append(f"[bold]assignee:[/bold] {e(it.assignee)}")
-    if it.labels:
-        rows.append(f"[bold]labels:[/bold] {e(', '.join(it.labels))}")
-    if it.refs:
-        rendered = ", ".join(
-            rid if not kind else f"{rid} ({kind})" for rid, kind in (split_ref(r) for r in it.refs)
-        )
-        rows.append(f"[bold]refs:[/bold] {e(rendered)}")
-    rows.append(f"[bold]file:[/bold] {it.path}")
-    return rows
-
-
-def _subentity_badge_line(sub: SubEntity, kind: str, carrier_title: str | None = None) -> str:
-    """The badges for a sub-entity, joined for a single display line: status, then one per
-    declared field with a stored value, then the assignee, then the mapped story iff the kind
-    declares ``maps_parent_story``, then the item that carries its deferred work.
-
-    Generic over the kind's declared fields (spec-driven, not a ``kind == "finding"``/
-    ``"subtask"`` literal). Shared by the styled pane title and the ``--raw`` markdown section.
-    """
-    spec = get_active_spec()
-    parts = [badges.status_badge(sub.status, spec)]
-    for field in spec.fields_for(kind):
-        value = sub.badge_value(field.code)
-        if value:
-            coll = badges.resolve_collection(kind, field.code, spec)
-            parts.append(badges.badge_render(coll, value, spec, as_label=True))
-    if sub.assignee:
-        parts.append(sub.assignee)
-    ks = spec.subentity_kinds.get(kind)
-    if ks is not None and ks.maps_parent_story and sub.story:
-        parts.append(sub.story)
-    if sub.deferred_to:
-        parts.append(
-            f"Deferred to {sub.deferred_to} — {carrier_title}"
-            if carrier_title
-            else f"Deferred to {sub.deferred_to}"
-        )
-    return "  ".join(parts)
-
-
-def _subentity_pane_title_raw(sub: SubEntity, kind: str, carrier_title: str | None = None) -> str:
-    """Build the raw (un-escaped) pane title for a sub-entity.
-
-    Returns plain text with no Rich markup escaping applied.  Callers that need to pass the title
-    into a Rich Panel (styled path) must apply e() themselves; callers printing with markup=False
-    (plain path) use this value directly so no backslashes leak.
-    """
-    return f"{sub.local_id} — {sub.title}  {_subentity_badge_line(sub, kind, carrier_title)}"
-
-
-async def _print_full_panes(svc: Service, it: Item, *, styled: bool, comments: bool) -> None:
-    """Render one pane per sub-entity with its body (and optionally its comments).
-
-    Called when --full is set; comment embedding per sub is gated on --comments.
-    Sub-entity panes are printed after the summary table.  When comments is True,
-    the main discussion is NOT printed here — the caller (_print_item_content)
-    prints it last, after all sub panes.
-    """
-    kind = get_active_spec().item_subentity_kind(it.type)
-    if not kind or not it.subentities:
-        return
-
-    for sub in it.subentities:
-        detail = await svc.get_block(it.id, kind, sub.local_id)
-        # Build the raw (un-escaped) title once; apply e() only at the styled Panel boundary.
-        raw_title = _subentity_pane_title_raw(sub, kind, detail.carrier_title)
-        body_text = detail.body or ""
-
-        if styled:
-            inner_renderables: list[RenderableType] = []
-            if body_text:
-                inner_renderables.append(Markdown(body_text))
-            if comments:
-                sub_cmts = detail.comments
-                if sub_cmts:
-                    for cmt, short in zip(sub_cmts, discussion.short_hashes(sub_cmts), strict=True):
-                        cmt_title = (
-                            f"{e(short)}  {e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
-                            f"{e(discussion.edited_suffix(cmt))}"
-                        )
-                        inner_renderables.append(
-                            Panel(Markdown(cmt.body), title=cmt_title, expand=False)
-                        )
-
-            # If we have renderables, put them inside a Group so Panel gets one renderable.
-            body_renderable: RenderableType
-            if inner_renderables:
-                body_renderable = Group(*inner_renderables)
-            else:
-                body_renderable = Markdown("_(empty)_")
-            # e() applied here — only the styled Panel title needs Rich-escaped text.
-            console.print(Panel(body_renderable, title=e(raw_title), expand=False))
-        else:
-            # Plain degradation: use raw_title directly — markup=False, no escaping needed.
-            console.print(f"=== {raw_title} ===", markup=False, highlight=False)
-            if body_text:
-                console.print(body_text, markup=False, highlight=False)
-            if comments:
-                sub_cmts = detail.comments
-                _render_comments_plain(sub_cmts)
-            console.print()
-
-
-def _render_body(body_text: str, *, styled: bool, empty_hint: str | None = None) -> None:
-    """Low-level body renderer: styled Markdown or plain, preceded by a blank line.
-
-    Callers must pre-compute ``styled`` (``_is_styled() and not raw``).
-    Pass ``empty_hint`` to override the default "set it with `body`" hint, e.g. for
-    role/skill/operator groups where there is no ``body`` verb.
-    """
-    console.print()
-    if body_text:
-        if styled:
-            console.print(Markdown(body_text))
-        else:
-            console.print(body_text, markup=False, highlight=False)
-    else:
-        hint = empty_hint if empty_hint is not None else "(empty — set it with `body`)"
-        console.print(f"[dim]{e(hint)}[/dim]")
-
-
-def render_body_text(body_text: str, *, raw: bool = False, empty_hint: str | None = None) -> None:
-    """Render a body to the console: styled Markdown on a TTY, plain otherwise.
-
-    Always starts with a blank line. For role/skill/operator ``show``; item output passes a
-    precomputed ``styled`` flag to :func:`_render_body`. ``empty_hint`` overrides the empty-body
-    hint, e.g. ``sq sync`` for groups whose bodies are template-managed and have no ``body`` verb.
-    """
-    _render_body(body_text, styled=_is_styled() and not raw, empty_hint=empty_hint)
-
-
-async def _print_item_content(
-    svc: Service, it: Item, *, styled: bool, comments: bool, full: bool = False
-) -> None:
-    """Render the body, sub-entity summary, and optional comments for a non-role/skill item."""
-    body = await svc.read_body(it.id)
-    _render_body(body, styled=styled)
-
-    # Sub-entity summary table — always shown (not gated on --full); driven from the stored
-    # sub-entities, not a re-parse of the markdown table.
-    if it.subentities:
-        _print_subentity_summary(it)
-
-    # --full: one pane per sub-entity (body + optional per-sub comments)
-    if full:
-        await _print_full_panes(svc, it, styled=styled, comments=comments)
-
-    # --comments: render the main discussion last (after sub panes when --full is set)
-    if comments:
-        await _print_discussion(svc, it, styled=styled)
-
-
-async def _print_discussion(svc: Service, it: Item, *, styled: bool) -> None:
-    """Render the main discussion as per-comment panes or plain blocks."""
-    cmt_list = discussion.split_discussion(
-        await svc.read_discussion(it.id), sequence_id=it.sequence_id
-    )
-    if cmt_list:
-        console.print()
-        if styled:
-            _render_comments_styled(cmt_list)
-        else:
-            _render_comments_plain(cmt_list)
-    else:
-        console.print("[dim](no discussion)[/dim]")
-
-
-def _raw_metadata_lines(it: Item) -> list[str]:
-    """The ``- **key:** value`` bullets for the ``--raw`` markdown metadata block.
-
-    Order: status, per-type badge fields (priority/severity/... — spec-driven, not hard-coded),
-    assignee, parent, author, refs, labels — absent fields omitted. Plain text: the raw path
-    bypasses Rich markup entirely, so nothing here is escaped with :func:`e`.
-    """
-    spec = get_active_spec()
-    lines = [f"- **status:** {it.status}"]
-    for field in spec.fields_for(it.type):
-        val = it.badge_value(field.code)
-        if val:
-            rendered = badges.badge_render(field.collection, val, spec)
-            lines.append(f"- **{field.code}:** {rendered}")
-    if it.type == "milestone":  # one-off; see _build_item_panel_rows' comment on why
-        target_date = it.attribute(AttributeKey.TARGET_DATE)
-        if target_date:
-            lines.append(f"- **target date:** {target_date}")
-    if it.assignee:
-        lines.append(f"- **assignee:** {it.assignee}")
-    if it.parent:
-        lines.append(f"- **parent:** {it.parent}")
-    if it.author:
-        lines.append(f"- **author:** {it.author}")
-    if it.refs:
-        rendered_refs = ", ".join(
-            rid if not kind else f"{rid} ({kind})" for rid, kind in (split_ref(r) for r in it.refs)
-        )
-        lines.append(f"- **refs:** {rendered_refs}")
-    if it.labels:
-        lines.append(f"- **labels:** {', '.join(it.labels)}")
-    return lines
-
-
-async def _raw_subentity_sections(svc: Service, it: Item) -> list[str]:
-    """One ``## <Kind> <local_id> — <title>`` section per sub-entity, for ``--raw --full``."""
-    kind = get_active_spec().item_subentity_kind(it.type)
-    if not kind or not it.subentities:
-        return []
-    lines: list[str] = []
-    for sub in it.subentities:
-        detail = await svc.get_block(it.id, kind, sub.local_id)
-        lines += [
-            "",
-            f"## {kind.title()} {sub.local_id} — {sub.title}",
-            "",
-            _subentity_badge_line(sub, kind, detail.carrier_title),
-            "",
-            detail.body or "",
-        ]
-    return lines
-
-
-async def _print_item_raw(svc: Service, it: Item, *, comments: bool, full: bool) -> None:
-    """The ``--raw`` dossier: a markdown document with no Rich chrome.
-
-    ``# TYPE-N — <title>``, a metadata bullet block, then the body verbatim; ``--full`` appends one
-    section per sub-entity and ``--comments`` a Discussion section. Printed once with
-    ``markup=False, soft_wrap=True`` so nothing is escaped or reflowed.
-    """
-    lines = [
-        f"# {it.id} — {it.title}",
-        "",
-        *_raw_metadata_lines(it),
-        "",
-        await svc.read_body(it.id),
-    ]
-    if full:
-        lines.extend(await _raw_subentity_sections(svc, it))
-    if comments:
-        cmts = discussion.split_discussion(
-            await svc.read_discussion(it.id), sequence_id=it.sequence_id
-        )
-        lines += ["", "## Discussion"]
-        if cmts:
-            for cmt, short in zip(cmts, discussion.short_hashes(cmts), strict=True):
-                head = f"### {short} {discussion.author_label(cmt)} — {cmt.timestamp}"
-                lines += ["", head + discussion.edited_suffix(cmt), "", cmt.body]
-        else:
-            lines += ["", "_(no discussion)_"]
-    console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)
-
-
-async def print_item(
-    svc: Service,
-    it: Item,
-    *,
-    raw: bool = False,
-    comments: bool = False,
-    full: bool = False,
-) -> None:
-    """Render an item's metadata and body for ``sq <type> <num> show``.
-
-    ``--raw`` prints the clean-markdown dossier (:func:`_print_item_raw`); otherwise a Rich panel
-    and summary table, with the body as styled Markdown on a color TTY and plain text when piped
-    or under ``NO_COLOR``. ``--comments`` appends the discussion as per-comment panes; ``--full``
-    adds one pane per sub-entity, which embeds its own comments when combined with ``--comments``.
-    """
-    if raw:
-        await _print_item_raw(svc, it, comments=comments, full=full)
-        return
-    console.print(Panel("\n".join(_build_item_panel_rows(it)), expand=False))
-    styled = _is_styled()
-    await _print_item_content(svc, it, styled=styled, comments=comments, full=full)
-
-
-def _print_subentity_summary(it: Item) -> None:
-    """Print the sub-entity summary table from the item's frontmatter sub-entities.
-
-    Columns and cells come from the shared field-driven derivation in ``_discussion.py``
-    (:func:`discussion.summary_columns`/:func:`discussion.summary_row`) — the same one the
-    body's ``:summary`` region renders from, so the two never drift.
-    """
-    from rich.table import Table as RichTable
-
-    spec = get_active_spec()
-    kind = spec.item_subentity_kind(it.type)
-    if kind is None:
-        return
-
-    table = RichTable(box=None, pad_edge=False)
-    for col in discussion.summary_columns(kind, spec):
-        table.add_column(col)
-    for sub in it.subentities:
-        cells = discussion.summary_row(kind, sub, spec)
-        table.add_row(*(e(c) for c in cells))
-
-    console.print()
-    console.print(table)
-
-
-def print_subentity(detail: SubentityDetail, kind: str) -> None:
-    """Render a sub-entity's meta + body + discussion for `sq <kind> show`."""
-    info = detail.info
-    console.print(f"[bold]{info.local_id}[/bold] — {e(info.title)}  [dim]({kind})[/dim]")
-    meta = [f"status: {e(info.status)}"]
-    if info.assignee:
-        meta.append(f"assignee: {e(info.assignee)}")
-    # Every declared field for this kind, so a custom badge field shows up too.
-    for field in get_active_spec().fields_for(kind):
-        value = info.badge_value(field.code)
-        if value:
-            meta.append(f"{field.label.lower()}: {e(value)}")
-    if info.story:
-        meta.append(f"story: {e(info.story)}")
-    if info.deferred_to:
-        meta.append(
-            f"deferred to: {e(info.deferred_to)}"
-            + (f" — {e(detail.carrier_title)}" if detail.carrier_title else "")
-        )
-    console.print("  " + "   ".join(meta))
-    console.print()
-    console.print(e(detail.body) if detail.body else "[dim](no body yet)[/dim]")
-    console.print("\n[bold]Discussion[/bold]")
-    if detail.comments:
-        (_render_comments_styled if _is_styled() else _render_comments_plain)(detail.comments)
-    else:
-        console.print(e(detail.discussion) if detail.discussion else "[dim](none)[/dim]")
-
-
 def client_path(file: str) -> Path:
     """*file* as a path: a relative one is taken against the client's working directory."""
     base = get_context().client_cwd
@@ -1214,200 +792,6 @@ def resolve_comment_messages(messages: list[str] | None, file: str | None) -> li
     raise SquadsError("provide the comment via -m (repeatable) or --file PATH ('-' for stdin)")
 
 
-@dataclass(frozen=True)
-class ItemRowFields:
-    """The per-record inputs :func:`build_item_row_json` needs — taken generically off
-    whatever carries them (an ``Item``, or a view source's own resolved record) rather than a
-    literal ``Item`` type, so ``sq tree``'s own node builder and a ``ref``/``subtree`` view's
-    ``--json`` dispatch (``squads._cli._workflow_cmd``) can build one from either without
-    either needing the other's concrete type."""
-
-    id: str
-    type: str
-    title: str
-    status: str
-    priority: str | None
-    assignee: str | None
-    badge_value: Callable[[str], str | None]
-
-
-def build_item_row_json(
-    fields: ItemRowFields,
-    *,
-    spec: WorkflowSpec,
-    blocked_ids: set[str],
-    anchor: bool = False,
-    children: list[dict[str, Any]] | None = None,
-) -> dict[str, Any]:
-    """One node of ``sq tree --json``, built by both ``sq tree`` and the ``--json`` of a view.
-
-    A ``ref``/``subtree`` view shares the field list so the two cannot drift. ``anchor`` and
-    ``children`` default to the flat-record answer (no forced root, no nesting).
-    """
-    return {
-        "id": fields.id,
-        "type": fields.type,
-        "title": fields.title,
-        "status": fields.status,
-        "priority": fields.priority,
-        "assignee": fields.assignee,
-        "blocked": fields.id in blocked_ids,
-        "badges": badges.resolve_badges(spec, fields.type, fields.badge_value),
-        "anchor": anchor,
-        "children": children if children is not None else [],
-    }
-
-
-def build_subentity_row_json(
-    *,
-    local_id: str,
-    title: str,
-    status: str,
-    assignee: str | None,
-    severity: str | None,
-    story: str | None,
-    deferred_to: str | None,
-) -> dict[str, Any]:
-    """One row of the per-kind ``sq <type> <n> <kind>s --json`` shape: ``local_id``/``title``/
-    ``status``/``assignee``/``severity``/``story``/``deferred_to``. Shared by that list command
-    (``squads._cli._items``) and a ``subentity`` view's ``--json`` dispatch
-    (``squads._cli._workflow_cmd``), the same way :func:`build_item_row_json` is shared for the
-    tree shape."""
-    return {
-        "local_id": local_id,
-        "title": title,
-        "status": status,
-        "assignee": assignee,
-        "severity": severity,
-        "story": story,
-        "deferred_to": deferred_to,
-    }
-
-
-def build_subentity_json(spec: WorkflowSpec, kind: str, detail: SubentityDetail) -> dict[str, Any]:
-    """The sub-entity JSON object, shared by ``build_item_json`` and a sub-entity ``show --json``.
-
-    Frontmatter fields (``local_id``/``title``/``status``/``assignee``/``severity``/``story``/
-    ``extra``), ``body``, the per-field ``badges`` map and a ``discussion`` array shaped like the
-    item-level one.
-    """
-    data: dict[str, Any] = json.loads(detail.info.model_dump_json())
-    data["body"] = detail.body
-    data["badges"] = badges.resolve_badges(spec, kind, detail.info.badge_value)
-    data["discussion"] = discussion.comments_json(detail.comments)
-    return data
-
-
-async def build_item_json(svc: Service, it: Item) -> str:
-    """The ``show --json`` payload: frontmatter fields plus additive keys.
-
-    Adds ``body`` (stored markdown, view tags left as tags), ``views`` (the transform output of
-    each placed, enabled view that declares one), ``discussion`` (``{author, author_slug, ts,
-    edited_ts, hash, short_hash, body}`` list), ``badges`` (keyed by field code), and per
-    ``subentities`` entry the shape from :func:`build_subentity_json`. Always present, not gated
-    by ``--comments``/``--full``, so the payload is identical across ``--raw``/``--comments``/
-    ``--full``.
-    """
-    spec = get_active_spec()
-    payload: dict[str, Any] = it.to_row()
-    payload["body"] = await svc.read_stored_body(it.id)
-    payload["views"] = await svc.view_data(it.id)
-    payload["discussion"] = discussion.comments_json(await svc.comments(it.id))
-    payload["badges"] = badges.resolve_badges(spec, it.type, it.badge_value)
-    kind = spec.item_subentity_kind(it.type)
-    if kind:
-        subentities: list[dict[str, Any]] = []
-        for sub_data in payload["subentities"]:
-            detail = await svc.get_block(it.id, kind, sub_data["local_id"])
-            subentities.append(build_subentity_json(spec, kind, detail))
-        payload["subentities"] = subentities
-    return json.dumps(payload)
-
-
-def role_base_for_show(slug: str, it: Item | None, catalog: CatalogSource) -> RoleDef | None:
-    """The merge base for a role card: the base the item in hand stores (``materialised_base``).
-
-    A slug with no item has no base and resolves through the catalog. Shared by ``sq role <slug>
-    show`` and a ``role`` source's ``--json`` dispatch so both build from the same base.
-    """
-    if it is not None:
-        return materialised_base(it, catalog)
-    return None
-
-
-def origin_json(value: str | None) -> dict[str, str]:
-    """The ``origin`` key of a ``--json`` payload, absent when the item stores no valid one."""
-    return {} if value is None else {"origin": value}
-
-
-def named_markup(svc: Service, name: str, pronouns: str | None, *, style: str = "") -> str:
-    """:func:`~squads._pronouns.named` under the squad's display setting, as Rich markup for a
-    line that is assembled from strings."""
-    return _pronouns.named(
-        name, pronouns, enabled=svc.paths.config.display.pronouns, style=style
-    ).markup
-
-
-async def build_role_json_payload(
-    svc: Service,
-    slug: str,
-    item_id: str | None,
-    it: Item | None,
-    base_role: RoleDef | None,
-    addr: str,
-) -> dict[str, object]:
-    """The ``--json`` payload for a resolved role, shared by ``sq role <slug> show`` and a view.
-
-    ``skills`` is resolved once, ahead of the branch, because it is a projection over the index
-    (:meth:`Service.resolved_skills_for_role`), never a field of the ``RoleDef`` or the stored
-    item. It is live-only: an activated role resolves its full preload set, a bundled-only or
-    retired slug the system-only fallback.
-    """
-    data: dict[str, object] = {"slug": slug, "id": item_id, "activated": item_id is not None}
-    data.update(origin_json(role_origin(slug) if it is None else attrs.origin(it)))
-    skills = await svc.resolved_skills_for_role(slug)
-    pronouns = resolve_pronouns(_pronouns.pronouns(it) if it is not None else None, svc.catalog)
-    try:
-        r = resolve_role_with_base(
-            slug,
-            svc.paths.squad_dir,
-            base=base_role,
-            catalog=svc.catalog,
-            stored=stored_values(it),
-        )
-    except RoleNotFoundError:
-        raise SquadsError(f"no role with slug, ID, or number {addr!r}") from None
-    data.update(
-        {
-            "full_name": r.full_name,
-            "pronouns": pronouns,
-            "title": r.title,
-            "mission": r.mission,
-            "model": r.model,
-            "is_default": r.is_default,
-            "can_spawn": r.can_spawn,
-            "capabilities": list(r.capabilities),
-            "create_lane": sorted(allowed_create_types(r, svc.spec, svc.playbook)),
-            "responsibilities": list(r.responsibilities),
-            "skills": skills,
-        }
-    )
-    return data
-
-
-#: ``click.Context.meta`` key marking that an earlier ``command``-wrapped call in this
-#: invocation opened the read scope and it is still open, so a later call must not open another.
-_READ_SCOPE_META_KEY = "squads.read_scope_token"
-
-#: ``click.Context.meta`` key for the ``Service`` memo of :func:`get_service`, filled only by the
-#: cross-checked ``open_service`` path so a plain caller is never handed a bypass-built instance.
-_SERVICE_META_KEY = "squads.service_memo"
-
-#: ``click.Context.meta`` key for the bypass-built ``Service`` memo, filled only once the plain
-#: path has raised (see :func:`get_service_bypassing_index_cross_check`).
-_BYPASS_SERVICE_META_KEY = "squads.service_memo_bypass"
-
-
 #: ``click.Context.meta`` key for the documents this invocation has read, by squad directory (see
 #: :func:`invocation_sources`).
 _SPEC_SOURCES_META_KEY = "squads.spec_sources"
@@ -1428,88 +812,10 @@ def invocation_sources(squad_dir: Path) -> SpecSources:
 
 
 def _click_root_context() -> _click.core.Context | None:
-    """The current Click invocation's root context, or ``None`` outside of one.
-
-    ``command``-wrapped functions are only ever invoked *by* Click, so this only returns
-    ``None`` in the one case that matters: a stray direct call with no Click dispatch at all
-    (defensive; never observed in practice).
-    """
+    """The current Click invocation's root context, or ``None`` outside of one, as when the
+    local API's sources are read by a caller that is not a command."""
     ctx = _click_globals.get_current_context(silent=True)
     return ctx.find_root() if ctx is not None else None
-
-
-def get_service() -> Service:
-    """Build (or reuse) the invocation's ``Service``.
-
-    ``sq <type> <n> <verb>`` crosses the sync/async bridge twice (the group's id-resolving callback,
-    then the leaf verb; see :func:`command`) and both must share one ``Service`` and ``IndexStore``,
-    so the read scope's per-store cache holds and one invocation observes one index state. The memo
-    lives on the Click root context's ``meta`` and is gated on :data:`_READ_SCOPE_META_KEY`, the
-    marker that opens the scope; ``sq ui`` never passes through :func:`command`, so it gets neither.
-    """
-    root = _click_root_context()
-    if root is not None and _READ_SCOPE_META_KEY in root.meta:
-        cached: Service | None = root.meta.get(_SERVICE_META_KEY)
-        if cached is not None:
-            return cached
-        svc = _build_plain_service()
-        root.meta[_SERVICE_META_KEY] = svc
-        return svc
-    return _build_plain_service()
-
-
-def _build_plain_service() -> Service:
-    """Compose the invocation's ``Service`` in the normal mode, from the spec the root callback's
-    :func:`bind_active_spec` already resolved and checked for this invocation.
-
-    ``RequestContext.spec_error`` is the refusal that earlier resolution cached: it is raised
-    as it is, rather than composing again just to reproduce the identical error. Outside a squad
-    both fields are ``None`` and ``open_service`` raises its own "not a squad" error.
-    """
-    ctx = get_context()
-    if ctx.spec_error is not None:
-        raise SquadsError(ctx.spec_error)
-    sources = invocation_sources(resolve(client_cwd=ctx.client_cwd).squad_dir)
-    return open_service(client_cwd=ctx.client_cwd, resolved_spec=ctx.active_spec, sources=sources)
-
-
-def get_service_bypassing_index_cross_check(*, bundled_fallback: bool = True) -> Service:
-    """Like :func:`get_service`, for a command that must not be blocked by the index cross-check.
-
-    A maintenance command exists to fix what ``open_service``'s cross-check refuses over (a
-    corpus/spec conflict, or an index stale against the frontmatter). On a ``SquadsError`` it
-    falls back through :data:`BYPASS_FALLBACKS`: the merged spec without the index check, then
-    the bundled spec. With ``bundled_fallback=False`` (``sq migrate up``, which must run under
-    the declared vocabulary or not at all) the only fallback is :data:`MIGRATE_FALLBACKS`, which
-    refuses with the file and cause. The fallback instance is memoized under
-    :data:`_BYPASS_SERVICE_META_KEY`, so a plain caller never sees a cross-check-skipping one.
-    """
-    root = _click_root_context()
-    if root is not None and _READ_SCOPE_META_KEY in root.meta:
-        cached: Service | None = root.meta.get(_BYPASS_SERVICE_META_KEY)
-        if cached is not None:
-            return cached
-        try:
-            return get_service()
-        except SquadsError:
-            svc = _build_bypass_fallback_service(bundled_fallback=bundled_fallback)
-            root.meta[_BYPASS_SERVICE_META_KEY] = svc
-            return svc
-    try:
-        return get_service()
-    except SquadsError:
-        return _build_bypass_fallback_service(bundled_fallback=bundled_fallback)
-
-
-def _build_bypass_fallback_service(*, bundled_fallback: bool = True) -> Service:
-    ctx = get_context()
-    paths = resolve(client_cwd=ctx.client_cwd)
-    return compose_first_of(
-        paths,
-        BYPASS_FALLBACKS if bundled_fallback else MIGRATE_FALLBACKS,
-        resolved_spec=ctx.active_spec,
-        sources=invocation_sources(paths.squad_dir),
-    )
 
 
 def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
@@ -1518,52 +824,21 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
         try:
             return fn(*args, **kwargs)
         except SquadsError as exc:
+            print_notices(exc.warnings)
             err_console.print(f"[red]error:[/red] {e(error_text(exc))}", soft_wrap=True)
             raise typer.Exit(1) from exc
 
     return wrapper
 
 
-def command[**P](fn: Callable[P, Awaitable[None]]) -> Callable[P, None]:
-    """The single sync-to-async bridge for CLI commands.
-
-    Wraps an ``async def`` Typer command so Typer sees a sync callable with one ``anyio.run`` per
-    call, and a ``SquadsError`` becomes a clean message and ``typer.Exit(1)``.
-
-    It also opens the invocation's request-scoped index read (``enter_read_scope`` and
-    ``exit_read_scope``) and makes the :func:`get_service` memo live, both keyed on one marker on
-    the Click root context's ``meta`` (:data:`_READ_SCOPE_META_KEY`). ``sq <type> <n> <verb>``
-    crosses this bridge twice, in two sequential ``anyio.run`` calls (the group's
-    ``@item.callback()``, then the leaf verb) that share one root ``Context``: the first call
-    opens the scope and records the marker, later calls reuse the scope and the ``Service``, so
-    the addressed form reads the index once. The root context's ``call_on_close``, fired once
-    after every nested command, closes the scope.
-    """
-
-    @functools.wraps(fn)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
-        root = _click_root_context()
-        if root is not None and _READ_SCOPE_META_KEY not in root.meta:
-            root.meta[_READ_SCOPE_META_KEY] = enter_read_scope()
-            root.call_on_close(functools.partial(_close_read_scope, root))
-        try:
-            anyio.run(functools.partial(fn, *args, **kwargs))
-        except SquadsError as exc:
-            err_console.print(f"[red]error:[/red] {e(error_text(exc))}", soft_wrap=True)
-            raise typer.Exit(1) from exc
-
-    return wrapper
-
-
-def _close_read_scope(root: _click.core.Context) -> None:
-    """``call_on_close`` callback: undo the one scope opened for this invocation, if any, and
-    drop the ``Service`` memo(s) that hung off the same marker — nothing outlives the
-    invocation that built it."""
-    token = root.meta.pop(_READ_SCOPE_META_KEY, None)
-    if token is not None:
-        exit_read_scope(token)
-    root.meta.pop(_SERVICE_META_KEY, None)
-    root.meta.pop(_BYPASS_SERVICE_META_KEY, None)
+def print_notices(warnings: Sequence[str]) -> None:
+    """Each notice on stderr, once per invocation: a response's, or those a refused call carries
+    before its error."""
+    printed = printed_notices()
+    for warning in warnings:
+        if warning not in printed:
+            printed.add(warning)
+            err_console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
 
 
 #: ``click.Context.meta`` key for the notices this invocation has printed (see
@@ -1579,63 +854,6 @@ def printed_notices() -> set[str]:
         return set()
     printed: set[str] = root.meta.setdefault(_PRINTED_NOTICES_META_KEY, set())
     return printed
-
-
-def working_language_notice() -> None:
-    """Warn on stderr when ``working_language`` is not a language tag; English applies."""
-    try:
-        sp = resolve(client_cwd=get_context().client_cwd)
-    except SquadsError:
-        return  # not in a squad, or an unreadable config
-    _, problem = resolve_working_language(sp.config.working_language)
-    if problem is not None:
-        printed_notices().add(problem)
-        err_console.print(f"[yellow]warning:[/yellow] {e(problem)}", soft_wrap=True)
-
-
-class Ground(enum.StrEnum):
-    """Why a command may run on a squad whose schema differs from the package's."""
-
-    #: It is the migration: it advances the corpus, so it runs only on a squad that is behind.
-    MIGRATION = "is the migration"
-    #: It reads the package's own registry and touches no squad state.
-    NO_SQUAD_STATE = "touches no squad state"
-    #: It holds the reconcile licence. The reconcile is a routine, not a command.
-    LICENCE = "holds the reconcile licence"
-
-
-@dataclass(frozen=True)
-class GateGrant:
-    """A command's declaration: the ground it gets past the gate on, and the directions."""
-
-    ground: Ground
-    behind: bool
-    ahead: bool
-
-    def covers(self, *, behind: bool) -> bool:
-        return self.behind if behind else self.ahead
-
-
-_GRANT_ATTR = "__sq_gate_grant__"
-
-
-def past_the_gate[F: Callable[..., Any]](
-    ground: Ground, *, behind: bool = False, ahead: bool = False
-) -> Callable[[F], F]:
-    """Declare that a command runs on a squad whose schema differs from the package's, on
-    *ground*, for the directions given. A command without the declaration is refused there."""
-
-    def _mark(fn: F) -> F:
-        setattr(fn, _GRANT_ATTR, GateGrant(ground, behind, ahead))
-        return fn
-
-    return _mark
-
-
-def gate_grant(fn: Callable[..., Any]) -> GateGrant | None:
-    """The declaration on *fn*, or ``None``."""
-    grant = getattr(fn, _GRANT_ATTR, None)
-    return grant if isinstance(grant, GateGrant) else None
 
 
 def _value_options_of(root: _click.Command) -> frozenset[str]:
@@ -1683,75 +901,6 @@ def help_requested(argv: list[str], root: _click.Command | None = None) -> bool:
         else:
             consumed = token in values
     return False
-
-
-def apply_gate(grant: GateGrant | None) -> None:
-    """Hard-stop when the squad's on-disk schema mismatches this build, unless *grant* covers the
-    direction. Behind: tell the user to run ``sq migrate up``; ahead: tell them to upgrade."""
-    root = _click_root_context()
-    if help_requested(sys.argv[1:], root.command if root is not None else None):
-        return
-    try:
-        sp = resolve(client_cwd=get_context().client_cwd)
-    except SquadsError:
-        return  # not initialized yet — nothing to gate
-    disk = sp.config.schema_version
-    if disk == SCHEMA_VERSION:
-        return
-    behind = schema_tuple(disk) < schema_tuple(SCHEMA_VERSION)
-    if grant is not None and grant.covers(behind=behind):
-        return
-    if behind:
-        err_console.print(
-            f"[red]error:[/red] this squad is at schema v{disk}; squads {__version__} "
-            f"expects v{SCHEMA_VERSION}. Run [bold]sq migrate up[/bold] to upgrade it "
-            "(see `sq migrate help`).",
-            soft_wrap=True,
-        )
-    else:
-        err_console.print(
-            f"[red]error:[/red] this squad is at schema v{disk}, newer than squads "
-            f"{__version__} (v{SCHEMA_VERSION}). Upgrade the squads package.",
-            soft_wrap=True,
-        )
-    raise typer.Exit(1)
-
-
-#: The command groups that decide the gate for each of their own commands, by the grants those
-#: commands declare. Every other command is refused by the root gate.
-GATED_GROUPS: frozenset[str] = frozenset({"migrate", "override"})
-
-
-def grants_by_command(group: typer.Typer) -> dict[str, GateGrant]:
-    """The grant each command of *group* declares, by command name."""
-    found: dict[str, GateGrant] = {}
-    for info in group.registered_commands:
-        grant = gate_grant(info.callback) if info.callback is not None else None
-        if info.name is not None and grant is not None:
-            found[info.name] = grant
-    return found
-
-
-def gate_group_command(ctx: typer.Context, group: typer.Typer) -> None:
-    """Gate the invoked command of *group* by the grant it declares; one without a grant is
-    refused on a squad whose schema differs from the package's."""
-    if ctx.invoked_subcommand is not None:
-        apply_gate(grants_by_command(group).get(ctx.invoked_subcommand))
-
-
-def require_current_schema(subcommand: str | None) -> None:
-    """The root gate: every command outside the :data:`GATED_GROUPS` is refused on a squad whose
-    schema differs from this build. Those groups decide for their own commands, by the grants
-    they declare (see their group callbacks)."""
-    if subcommand is None or subcommand in GATED_GROUPS:
-        return
-    apply_gate(None)
-
-
-def get_squad_paths() -> SquadPaths:
-    """The active squad's paths, resolved without opening its corpus, for a command that reads
-    only files beside the index."""
-    return resolve(client_cwd=get_context().client_cwd)
 
 
 def item_prefix(item_type: str) -> str:

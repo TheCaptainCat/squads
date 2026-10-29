@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.cli._output import json_text
 from tests.cli._squadwide import agent_files, flat, listed, region
 
 pytestmark = pytest.mark.anyio
@@ -217,6 +218,30 @@ async def test_default_names_skips_the_prompt_on_a_terminal(invoke, monkeypatch)
     assert result.exit_code == 0, result.output
     assert flat(result.output) == _created(root, "squads", "manager", "claude_code")
     assert (await listed(invoke))[0] == ("ROLE-1", "Catherine Manager")
+
+
+@pytest.mark.covers("init", "--json")
+async def test_json_prints_the_squad_created_and_asks_for_no_name_on_a_terminal(
+    invoke, monkeypatch
+) -> None:
+    monkeypatch.setattr("squads._cli._main._is_tty", lambda: True)
+    root = Path.cwd()
+    result = await invoke(
+        ["init", "--roles", "manager,qa", "--no-seed-skills", "--json"], input="Zed One\n\n"
+    )
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text(
+            {
+                "squad": str(root / "squads"),
+                "index": str(root / "squads" / ".squads.json"),
+                "roles": ["manager", "qa"],
+                "backends": ["claude_code"],
+                "warnings": [],
+            }
+        ),
+    )
+    assert await listed(invoke) == [("ROLE-1", "Catherine Manager"), ("ROLE-2", "Mara Tester")]
 
 
 @pytest.mark.covers("init", "--roles")

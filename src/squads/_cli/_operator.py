@@ -105,6 +105,7 @@ def operator_list(
     if json_out:
         calls.print_json(ops.OPERATORS_LIST, response)
         return
+    calls.print_warnings(response)
     render_operator_list(response.data, console)
 
 

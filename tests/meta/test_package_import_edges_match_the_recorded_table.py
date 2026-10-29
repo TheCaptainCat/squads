@@ -241,8 +241,6 @@ _cli -> _discussion top
 _cli -> _docfiles local
 _cli -> _errors top
 _cli -> _index top
-_cli -> _interactions top
-_cli -> _language top
 _cli -> _migrations top
 _cli -> _models local
 _cli -> _models top
@@ -251,7 +249,6 @@ _cli -> _paths top
 _cli -> _pronouns top
 _cli -> _roles top
 _cli -> _services local
-_cli -> _services top
 _cli -> _spec_documents top
 _cli -> _specload top
 _cli -> _tui local

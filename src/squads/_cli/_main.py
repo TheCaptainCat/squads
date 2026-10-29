@@ -9,9 +9,9 @@ registered as a Typer sub-app in ``_cli/__init__.py``.
 
 import sys
 from collections.abc import Callable
+from pathlib import Path
 
 import typer
-from rich.panel import Panel
 
 import squads._cli._common as common
 from squads._api import _ops as ops
@@ -22,14 +22,18 @@ from squads._api._dto._package import DocIndex
 from squads._api._dto._queues import BlockedRequest, InboxRequest, MineRequest, WorkloadRequest
 from squads._api._dto._reflog import ReflogRequest
 from squads._api._dto._search import SearchRequest
+from squads._api._dto._squad import (
+    AdoptRequest,
+    InitRequest,
+    RenumberRequest,
+    RepairRequest,
+)
 from squads._api._dto._tree import TreeRequest
 from squads._cli import _calls as calls
 from squads._cli import app
 from squads._cli._common import (
     console,
-    e,
     err_console,
-    get_service,
     handle_errors,
     parse_category,
     parse_filter_badge_code,
@@ -44,15 +48,15 @@ from squads._cli._render._package import render_doc, render_doc_index
 from squads._cli._render._queues import render_blocked, render_inbox, render_mine, render_workload
 from squads._cli._render._reflog import render_reflog, render_reflog_tree
 from squads._cli._render._search import render_search
+from squads._cli._render._squad import render_adopt, render_init, render_renumber, render_repair
 from squads._cli._render._tree import render_tree
 from squads._context import get_context
 from squads._errors import SquadsError
 from squads._index._reflog import REFLOG_OPS
 from squads._models._config import CONFIG_FILENAME
-from squads._paths import load_config, process_dir
+from squads._models._schema import SCHEMA_VERSION
+from squads._paths import load_config, process_dir, resolve
 from squads._roles._catalog import resolve_roles
-from squads._services._service import adopt as svc_adopt
-from squads._services._service import init as svc_init
 
 # ---------------------------------------------------------------------------
 # Generic badge helpers — one path for priority/severity/any project-declared axis.
@@ -145,17 +149,9 @@ def _parse_backend_option(raw: list[str]) -> list[str]:
     return [] if has_none else raw
 
 
-def _print_scaffold_warnings(warnings: list[str]) -> None:
-    """Print `init`/`adopt`'s WARN-only backend notices (a candidate orphan pointer/skill
-    file, or a pre-existing hand-written CLAUDE.md/AGENTS.md) — advisory only, never gates
-    the run."""
-    for warning in warnings:
-        console.print(f"[yellow]warning:[/yellow] {e(warning)}", soft_wrap=True)
-
-
 @app.command()
-@common.command
-async def init(
+@handle_errors
+def init(  # noqa: PLR0913 — one parameter per init option
     squad_dir: str = typer.Option(
         "squads", "--squad-dir", help="Folder name for the squad's content."
     ),
@@ -193,6 +189,11 @@ async def init(
         "--default-names",
         help="Skip interactive prompting; use bundled/pool names for every role.",
     ),
+    json_out: bool = typer.Option(
+        False,
+        "--json",
+        help="Print one JSON object: the squad created; no role name is asked for.",
+    ),
 ):
     """Initialize squads in the current directory."""
     # Parse --backend flags (repeatable; "none" sentinel → sq-only squad).
@@ -211,76 +212,74 @@ async def init(
             existing_cfg = load_config(config_path)
             names_from_config = existing_cfg.init_names
         except SquadsError:
-            pass  # Malformed config — svc_init will raise AlreadyInitializedError or SquadsError.
+            pass  # Malformed config — the init call raises AlreadyInitializedError or SquadsError.
 
-    # Determine whether to prompt interactively.
-    # Rule: prompt if (TTY and not --default-names), else skip.
-    interactive = _is_tty() and not default_names
+    # Prompt on a terminal unless --default-names or --json says not to.
+    # A squad at another schema refuses the call, so it is not asked for names it would discard.
+    interactive = _is_tty() and not default_names and not json_out and not _schema_differs()
 
     # Build the combined names map: config < flags (flags win).
     # A slug already covered by either source is not asked interactively.
     combined_names: dict[str, str] = {**names_from_config, **names_from_flags}
 
-    sources = common.invocation_sources((root or process_dir()) / squad_dir)
     if interactive:
-        role_defs = resolve_roles(roles, sources.catalog()) if roles else []
-        for rdef in role_defs:
-            slug = rdef.slug
-            if slug in combined_names:
-                # Already supplied via flag — skip prompt.
-                continue
-            # Prompt: show the default name, allow blank to keep it.
-            default_name = rdef.full_name
-            try:
-                typed = typer.prompt(
-                    f"Name for {slug!r} (Enter to keep default '{default_name}')",
-                    default="",
-                    show_default=False,
-                ).strip()
-            # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
-            # ruff's py314-target formatter would otherwise strip the parens back off.
-            except (typer.Abort, EOFError):  # fmt: skip
-                # On Windows, isatty() can report a console on a closed stdin pipe, so the first
-                # prompt raises: fall back to bundled defaults rather than aborting the init.
-                break
-            if typed:
-                combined_names[slug] = typed
+        _prompt_names(roles, (root or process_dir()) / squad_dir, combined_names)
 
-    result = await svc_init(
-        root=root,
+    request = InitRequest(
         squad_dir=squad_dir,
-        backend=active_backends,
-        roles_spec=roles,
+        backends=active_backends,
+        roles=roles,
         no_claude=no_claude,
         force=force,
-        names=combined_names if combined_names else None,
-        sources=sources,
-        _skip_skill_seed=no_seed_skills,
+        names=combined_names,
+        seed_skills=not no_seed_skills,
     )
-    sp = result.paths
-    roles_line = ", ".join(r.slug for r in result.roles) or "—"
-    lines = [
-        f"[bold]squad:[/bold] {sp.squad_dir}",
-        f"[bold]index:[/bold] {sp.index_path}",
-        f"[bold]roles:[/bold] {roles_line}",
-    ]
-    if sp.config.active_backends:
-        backends_str = ", ".join(sp.config.active_backends)
-        lines.append(f"[bold]agent backends:[/bold] {backends_str}")
-    else:
-        lines.append("[bold]agent backends:[/bold] (none)")
-    console.print(Panel("\n".join(lines), title="squads initialized", expand=False))
-    _print_scaffold_warnings(result.warnings)
-    console.print(
-        "Next: [cyan]sq create --help[/cyan] to see your item types · [cyan]sq list[/cyan]"
-        " · [cyan]sq role catalog[/cyan]",
-        soft_wrap=True,
-    )
+    response = calls.call(ops.INIT, request)
+    if json_out:
+        calls.print_json(ops.INIT, response)
+        return
+    calls.print_warnings(response)
+    render_init(response.data, console)
+
+
+def _schema_differs() -> bool:
+    """Whether the squad this directory resolves to is at a schema other than the package's."""
+    try:
+        paths = resolve(client_cwd=get_context().client_cwd)
+    except SquadsError:
+        return False
+    return paths.config.schema_version != SCHEMA_VERSION
+
+
+def _prompt_names(roles: str, squad_dir: Path, names: dict[str, str]) -> None:
+    """Ask for the name of each role *roles* activates that *names* does not hold yet, and add
+    every name typed; Enter keeps the bundled one."""
+    sources = common.invocation_sources(squad_dir)
+    role_defs = resolve_roles(roles, sources.catalog()) if roles else []
+    for rdef in role_defs:
+        slug = rdef.slug
+        if slug in names:
+            continue
+        default_name = rdef.full_name
+        try:
+            typed = typer.prompt(
+                f"Name for {slug!r} (Enter to keep default '{default_name}')",
+                default="",
+                show_default=False,
+            ).strip()
+        # Parenthesized (not PEP 758 bare-tuple) so `vulture` can still parse this file;
+        # ruff's py314-target formatter would otherwise strip the parens back off.
+        except (typer.Abort, EOFError):  # fmt: skip
+            # On Windows, isatty() can report a console on a closed stdin pipe, so the first
+            # prompt raises: fall back to bundled defaults rather than aborting the init.
+            break
+        if typed:
+            names[slug] = typed
 
 
 @app.command()
-@common.command
-async def adopt(
+@handle_errors
+def adopt(
     squad_dir: str = typer.Option(
         "squads", "--squad-dir", help="Folder to adopt when no `.squads.toml` names one."
     ),
@@ -301,46 +300,28 @@ async def adopt(
         ),
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the squad adopted and what it held."
+    ),
 ):
     """Adopt an existing squad folder and index the items already in it."""
-    active_backends = _parse_backend_option(backend)
-    result = await svc_adopt(
-        root=get_context().client_cwd,
+    request = AdoptRequest(
         squad_dir=squad_dir,
-        backend=active_backends,
-        roles_spec=roles,
+        backends=_parse_backend_option(backend),
+        roles=roles,
         no_claude=no_claude,
     )
-    sp = result.paths
-    new_roles = ", ".join(r.slug for r in result.roles) or "—"
-    lines = [
-        f"[bold]squad:[/bold] {sp.squad_dir}",
-        f"[bold]imported:[/bold] {result.imported} existing item(s)",
-        f"[bold]roles activated:[/bold] {new_roles}",
-    ]
-    console.print(Panel("\n".join(lines), title="squads adopted", expand=False))
-    # The import sweep is also the corpus sweep and the only route a folder of native
-    # markdown takes, so announce the content diff as `sq repair` does; the panel above
-    # counts imports, not rewrites.
-    notice = result.repair.strip_notice()
-    if notice:
-        console.print(notice, soft_wrap=True)
-    _print_scaffold_warnings(result.warnings)
-    # An unreadable file whose previous index entry was carried forward unrefreshed, as
-    # `sq repair` reports it. `sq check` has no model for it and this sweep is the only pass
-    # an adopted folder gets, so report it here.
-    for msg in result.repair.unreadable:
-        console.print(common.unreadable_report(msg), soft_wrap=True)
-    if result.repair.unreadable:
-        # The partial-completion condition `sq repair` exits 1 for, so a caller gating on
-        # `$?` gets the same answer either way. The generic hint below is skipped: the loop
-        # above names `sq repair`, and `sq check` cannot see this state.
+    response = calls.call(ops.ADOPT, request)
+    report = response.data
+    if json_out:
+        calls.print_json(ops.ADOPT, response)
+    else:
+        calls.print_warnings(response)
+        render_adopt(report, console)
+    # An unreadable file is the partial-completion condition `sq repair` exits 1 for, so a
+    # caller gating on `$?` gets the same answer either way.
+    if report.unreadable:
         raise typer.Exit(1)
-    console.print(
-        "Migrate legacy docs with [cyan]sq --at <date> create …[/cyan] to preserve history; "
-        "then [cyan]sq check[/cyan].",
-        soft_wrap=True,
-    )
 
 
 @app.command(name="list")
@@ -430,6 +411,7 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
+    label: str | None = typer.Option(None, "--label", help="Show only items carrying this label."),
     priority: str | None = typer.Option(
         None,
         "--priority",
@@ -483,6 +465,7 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
         status=parse_status(status) if status else None,
         assignee=assignee,
         category=parse_category(category) if category else None,
+        label=label,
         badge=[f"{code}={value}" for code, value in badges.items()],
         min_badge=[f"{code}={value}" for code, value in badge_min.items()],
         sort=sort,
@@ -499,8 +482,8 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
 
 
 @app.command()
-@common.command
-async def repair(
+@handle_errors
+def repair(
     renumber: bool = typer.Option(
         False,
         "--renumber",
@@ -508,6 +491,9 @@ async def repair(
             "First renumber items that share a number after a merge; refs to an ID "
             "that two files carry are listed for checking by hand, not rewritten."
         ),
+    ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: what the rebuild found and did."
     ),
 ):
     """Rebuild the index from the markdown frontmatter.
@@ -517,31 +503,20 @@ async def repair(
 
     Exit codes: 1 a file was unreadable or refs need checking. See sq docs faq.
     """
-    # Repair reconciles the index against the frontmatter, so it must run in every state the
-    # live-index cross-check refuses over, including one it did not cause.
-    svc = common.get_service_bypassing_index_cross_check()
-    result = await svc.repair(renumber=renumber)
-    console.print(f"rebuilt index: {len(result.db.items)} items, counter={result.db.counter}")
-    notice = result.strip_notice()
-    if notice:
-        # Repair's advertised job is the index but the sweep also rewrites content, so say so.
-        # The sentence comes from the result so `sq migrate up` prints the same one.
-        console.print(notice, soft_wrap=True)
-    for mid in result.missing_ids:
-        console.print(
-            f"[yellow]warn[/yellow] [dim]{mid}[/dim]: indexed but no markdown file found (deleted?)"
-        )
-    for msg in result.unreadable:
-        console.print(common.unreadable_report(msg), soft_wrap=True)
-    for line in result.renumber_report:
-        console.print(e(line), soft_wrap=True)
-    if result.unreadable or result.references_left:
+    response = calls.call(ops.REPAIR, RepairRequest(renumber=renumber))
+    report = response.data
+    if json_out:
+        calls.print_json(ops.REPAIR, response)
+    else:
+        calls.print_warnings(response)
+        render_repair(report, console)
+    if report.unreadable or report.references_left:
         raise typer.Exit(1)
 
 
 @app.command()
-@common.command
-async def renumber(
+@handle_errors
+def renumber(
     from_seq: int = typer.Option(
         ..., "--from", help="Lowest item number on this branch to move; it moves too."
     ),
@@ -555,6 +530,9 @@ async def renumber(
         "--by",
         help="Add this many to each moved number; refused if a collision would remain.",
     ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: the items moved and the counter."
+    ),
 ):
     """Move this branch's item numbers past another branch's before a merge.
 
@@ -567,22 +545,12 @@ async def renumber(
     """
     if (onto is None) == (by is None):
         raise typer.BadParameter("provide exactly one of --onto or --by")
-    svc = get_service()
-    result = await svc.renumber(from_seq=from_seq, onto=onto, by=by)
-    if result.warning:
-        console.print(f"[yellow]warning:[/yellow] {e(result.warning)}", soft_wrap=True)
-    if not result.remap:
-        console.print("[dim]nothing to renumber — no local item at or above --from[/dim]")
+    response = calls.call(ops.RENUMBER, RenumberRequest(from_seq=from_seq, onto=onto, by=by))
+    if json_out:
+        calls.print_json(ops.RENUMBER, response)
         return
-    console.print(f"renumbered {len(result.remap)} item(s); counter={result.db.counter}")
-    # The shift borrows `repair`'s index rebuild, which is also the corpus sweep — so this
-    # verb rewrites content while its advertised job is identity. Announced here, before the
-    # remap listing, in the same sentence `sq repair` prints.
-    notice = result.strip_notice()
-    if notice:
-        console.print(notice, soft_wrap=True)
-    for old, new in sorted(result.remap.items(), key=lambda kv: kv[1]):
-        console.print(f"  {e(old)} -> {e(new)}")
+    calls.print_warnings(response)
+    render_renumber(response.data, console)
 
 
 @app.command()

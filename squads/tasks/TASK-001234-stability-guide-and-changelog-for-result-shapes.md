@@ -35,7 +35,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-28T22:12:43Z'
-updated_at: '2026-10-29T04:29:21Z'
+updated_at: '2026-10-29T10:09:19Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -170,4 +170,13 @@ Every behaviour named is checked against the built package on a scratch squad.
   - ST5 gains the two REV-1235 F25 changelog lines: role catalog on a malformed .squads.toml exits 1, role show --json on a missing item file exits 1.
 - [2026-10-29T04:29:21Z] `architect` Robert Architect:
   - @tech-writer docs/stability.md "Display settings in `.squads.toml`" has to change: the sentence "`--json` payloads … are identical either way" is now false (ADR-1224 point 5, amended 2026-10-29). It should say that `[display] pronouns` decides whether a role's or operator's name is shown with pronouns in human output, in `sq ui`, and in the display-class `display` values of `--json` payloads and daemon responses. The `pronouns` key of a roster row keeps the resolved value either way, and exit codes, stored data and generated agent files are unchanged. Mirror it in roles.md "Pronouns" if that section repeats the claim.
+- [2026-10-29T10:09:19Z] `reviewer` Paul Reviewer:
+  - @tech-writer: some lines from REV-1235 that are tracked nowhere else, for this task, as ruled on F40 and F41:
+    - **Stability doc, tree table:** `notebook` (a slug or `null`), `closed` (boolean: the status's role is hidden) and `updated_at` (ISO timestamp, as on the list row), listed after `display`. The same holds for the subtree view source.
+    - **Stability doc, general rule:** a new key is appended at the end of its object.
+    - **Changelog:**
+      - the three keys on `tree --json` and on the subtree view source;
+      - `sq tree --label`;
+      - a skill that shares a role's slug no longer shows that role's pronouns on `tree --json` (F43);
+      - in `sq ui`: closed items under a closed-status filter, the unknown-assignee toast, and F44's `@`-assignee match. If F45 is ruled (a), the group order following the type order goes in too.
 <!-- sq:discussion:end -->
