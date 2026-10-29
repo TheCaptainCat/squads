@@ -7,9 +7,9 @@ status: Draft
 author: product-owner
 refs:
 - EPIC-29
-- MILE-1152:depends-on
+- MILE-1241:depends-on
 created_at: '2026-09-02T08:03:39Z'
-updated_at: '2026-10-28T22:07:55Z'
+updated_at: '2026-10-29T12:59:55Z'
 ---
 <!-- sq:body -->
 A squad readable in a browser: the squad's state stops being visible only to whoever is sitting at the terminal. This milestone holds the work that brings the browser surface to a first usable state. The linked epic carries the outcome and the framing. The surface is built on the daemon milestone's API, which it depends on.
@@ -53,4 +53,6 @@ The front calls the daemon's resource routes under `/v1`, the same routes the CL
   - 2026-10-28: pagination of list and search DTOs is for later, with the web front.
 - [2026-10-28T22:07:55Z] `product-owner` Nina Product:
   - Body aligned 2026-10-28 per the manager (FEAT-1140, 027ea69) with ADR-1224/ADR-1225: the front calls the /v1 routes and generates types from OpenAPI; its framework (and any server rendering) is this milestone's open decision; writes carry item versions and a declared actor; pagination (op-pierre ce4c83c) and freezing the provisional shapes now belong here.
+- [2026-10-29T12:59:55Z] `product-owner` Nina Product:
+  - Now depends on MILE-1241 (squads 0.18.1, the daemon) instead of MILE-1152, since the daemon moved there (op-pierre e9859e1, 2026-10-29).
 <!-- sq:discussion:end -->

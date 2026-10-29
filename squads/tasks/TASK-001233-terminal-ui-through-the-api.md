@@ -3,7 +3,7 @@ id: TASK-1233
 sequence_id: 1233
 type: task
 title: Terminal UI through the Api
-status: InProgress
+status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
@@ -22,14 +22,14 @@ subentities:
   story: US5
 - local_id: ST2
   title: Screens onto operations
-  status: InProgress
+  status: Done
   story: US5
 - local_id: ST3
   title: _tui under the renderer guard
   status: Done
   story: US4
 created_at: '2026-10-28T22:12:42Z'
-updated_at: '2026-10-29T06:54:55Z'
+updated_at: '2026-10-29T13:05:43Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -133,4 +133,6 @@ Every screen onto operations (ADR-1224 point 7 table): browse tree on `tree` wit
     - For the operator's eye-check, against the released build: the browse tree (groups, dimming, pronouns, memory counts), the reader tabs, a memory entry, `f` with each sort, `/` search with a hit opened, `b` board, and `q`.
 - [2026-10-29T06:54:55Z] `op-pierre` Pierre Chat:
   - 2026-10-29: no TUI test suite in 0.18. The TUI is held by the import guard, the surface tests of the operations it calls, and the operator's eye-check (list on REV-1235). A TUI suite is decided later, with its own rule in ADR-1172.
+- [2026-10-29T13:05:41Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: TUI eye-check OK — sq ui on this board in 0.18.0 matches 0.17.0 apart from the changelogged differences.
 <!-- sq:discussion:end -->
