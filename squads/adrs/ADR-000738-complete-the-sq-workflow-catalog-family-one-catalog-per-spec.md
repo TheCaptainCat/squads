@@ -18,7 +18,7 @@ description: 'Closes the sq workflow --json catalog family at one command per de
   WorkflowSpec map: adds subentity-kinds and lifecycles under a single row grammar,
   plus two reference keys on ADR-459''s type row.'
 created_at: '2026-08-03T15:34:51Z'
-updated_at: '2026-10-29T19:50:49Z'
+updated_at: '2026-10-29T19:52:14Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -116,14 +116,14 @@ One row per entry of `spec.subentity_kinds`, ascending kind name:
 - **`local_prefix`** is the local-id prefix (`US`/`ST`/`F`). A client that renders or parses a local
   id needs it rather than hardcoding the grammar.
 - **`container_heading`** is the resolved `## <heading>` above the kind's container block
-  (`subentity_container_heading`): a bundled special-case table — "User Stories", which
-  `"stories".title()` does not produce — falling back to title-cased `plural`. Published because a
+  (`subentity_container_heading`): the kind's declared `heading` key, else the title-cased
+  `plural` (ADR-1250 §3); no code table holds a heading. Published because a
   client that title-cases `plural` itself renders a heading that disagrees with the markdown sq
   writes into the file.
 - **`completion`** is the done-target status inside this kind's own lifecycle — what a "mark done"
   action targets instead of hardcoding `Done`/`Fixed`. ADR-348 rules it declared, not derivable.
 - **`maps_to_parent`** completes the column derivation. ADR-348 derives a kind's roll-up columns
-  as a fixed base, plus one column per declared field, plus a story column iff this flag. A client
+  as a fixed base, plus one column per declared field, plus a column headed by the target kind's label iff this flag. A client
   handed `fields` but not the flag can build every column but the last, and would hardcode that one.
 - **`placeholder` is not published.** Scaffold prose is content the engine writes into a file, not
   vocabulary a client resolves.
@@ -290,4 +290,6 @@ permitted under rule 6, and the adopter-facing docs say plainly that it has no c
   - Removed the test-suite clauses (op-pierre ruling 2026-10-27, FEAT-1096); the decision is unchanged.
 - [2026-10-29T19:50:49Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. The catalog key `maps_parent_story` becomes `maps_to_parent` in the example row and its bullet (ADR-1250 §1, §7); no other change.
+- [2026-10-29T19:52:14Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §3 (accepted), board rule 6. Status unchanged. The `container_heading` bullet now resolves the heading from the kind's declared `heading` key, else the title-cased `plural`, with no bundled table. The `maps_to_parent` bullet now heads the mapping column with the target kind's label instead of naming a story column.
 <!-- sq:discussion:end -->
