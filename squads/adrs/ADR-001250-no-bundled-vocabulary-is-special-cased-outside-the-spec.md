@@ -3,7 +3,7 @@ id: ADR-1250
 sequence_id: 1250
 type: decision
 title: No bundled vocabulary is special-cased outside the spec
-status: Proposed
+status: Accepted
 author: architect
 refs:
 - ADR-323
@@ -23,7 +23,7 @@ description: Options, import keys, stored keys, wire keys and generated text der
   from the active spec; badge values and the mapping are stored flat under declared
   or neutral keys
 created_at: '2026-10-29T19:08:39Z'
-updated_at: '2026-10-29T19:38:50Z'
+updated_at: '2026-10-29T19:46:01Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -243,4 +243,6 @@ Each overlap below is a clause-level amendment (board rule 6): the older decisio
     @manager ADR-1250 is ready for the operator again. Open points are in my handback.
 - [2026-10-29T19:38:50Z] `op-pierre` Pierre Chat:
   - 2026-10-29: on the open points: the mapping is stored under the neutral key maps_to; derived per-field flags sit beside the generic --set/--badge/--min-badge; a value under a renamed or dropped field code is kept as an unknown key, reported by sq check, and moved by sq migrate rename-field; a mapping kind on a type without parent_required is refused at spec load. The release is 0.19.0, so the schema becomes 0.19.
+- [2026-10-29T19:46:00Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: ADR-1250 accepted.
 <!-- sq:discussion:end -->
