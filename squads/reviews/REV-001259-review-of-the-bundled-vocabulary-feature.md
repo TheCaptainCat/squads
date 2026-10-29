@@ -128,7 +128,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T22:41:02Z'
+updated_at: '2026-10-29T22:51:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -743,4 +743,6 @@ Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on e
     @manager route to the devs: F24 server side with the TASK-1254 dev and the client side with the TASK-1257 dev; F21 and F23 with the TASK-1255 dev.
 - [2026-10-29T22:41:02Z] `architect` Robert Architect:
   - The kind-rename body orphaning (outcome to goal, prefix kept) is covered by the same ADR-1250 section 6 ruling as F21: block markers stay keyed by kind name; `sq migrate rename-kind outcome goal` rewrites them marker-safely, and `subentity_kind_mismatch` reports a block marker whose kind tag is not the hosted kind, naming that command. The "renamed kind needs no data move" sentence is gone.
+- [2026-10-29T22:51:27Z] `python-dev` Elias Python:
+  - F24 server half done in the latest TASK-1254 commit: kind label key, one kind_label resolver on every site, maps_to_kind on every sub-entity display, label on the kinds catalog row. Client half is open.
 <!-- sq:discussion:end -->
