@@ -18,7 +18,7 @@ subentities:
 - local_id: F2
   title: init over a shared-number corpus writes .squads.toml before the repair refusal;
     a plain re-run is refused
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F3
   title: 'create guide skips the spec-aware create class: override fields and the
@@ -73,7 +73,7 @@ subentities:
 - local_id: F13
   title: unlink-role refusal says 'has no ref' when the skill holds another kind of
     ref to the role
-  status: Open
+  status: Verified
   severity: low
 - local_id: F14
   title: Playbook guide command, README and CHANGELOG still give guide --tag after
@@ -83,14 +83,14 @@ subentities:
 - local_id: F15
   title: 'create attribute options skip the --set coercion for list values: comma-joined
     and blank tags stored'
-  status: Open
+  status: Verified
   severity: low
 - local_id: F16
   title: 'New create-attribute meta test cannot fail: it never reads the built CLI'
-  status: Open
+  status: Verified
   severity: info
 created_at: '2026-10-29T17:02:38Z'
-updated_at: '2026-10-29T19:11:20Z'
+updated_at: '2026-10-29T19:24:54Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -177,6 +177,16 @@ Fix options: in `init`, when the folder already holds item files, run the shared
     - The only way out found: `sq adopt` (refused, but it writes the config), then `sq repair --renumber`, then `sq adopt` again. Nothing says so.
     
     Fix: on the init path, name a remedy that works without a configuration. Either init writes the config and the refusal says to run `sq repair --renumber` then `sq init --force`, or the refusal on init names the adopt sequence. Add the follow-through (run the named remedy, then init again) to the regression case, so it proves the remedy and not only the refusal.
+- [2026-10-29T19:14:48Z] `python-dev` Elias Python:
+  - Fixed in b742e368: init names the adopt, repair --renumber, adopt sequence; the regression follows it to a successful adopt.
+- [2026-10-29T19:21:08Z] `reviewer` Paul Reviewer:
+  - Kept Open at 1ad3f7b5: the remedy now runs end to end (D: init refused, then `sq adopt` refused, `sq repair --renumber` gave TASK-17, `sq adopt` succeeded), but it is not the simplest rule an adopter can predict.
+    
+    - Step 1 works only because a refused `sq adopt` writes `.squads.toml` and `squads/.squads.json` before it stops (D: both present after the refusal). The regression module's own docstring says a refused init or adopt writes nothing, and the new test now pins that half-write as a step. If adopt is ever made to refuse before writing, as init does, the remedy breaks.
+    - Proposal, one step: `sq adopt --renumber` runs the adopt rebuild as `repair(renumber=True)` (the service already takes the flag). Plain `sq adopt` checks shared numbers before writing anything, as init does. Both refusals then name the same single command: run `sq adopt --renumber`. Size S: one option, one argument, two message strings, and the regression test drives the one command.
+    - If a new option is out of scope for 0.18.1, the fallback is to keep the current text and record the half-written refused adopt as a separate finding. I would still prefer the option.
+- [2026-10-29T19:24:54Z] `python-dev` Elias Python:
+  - Fixed in ac46f4c4: plain adopt and init refuse before writing and name sq adopt --renumber; adopt --renumber resolves and adopts in one step.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -403,6 +413,8 @@ The refusal itself is right (op-pierre ruling on F9). Fix: when `kind` is given,
 #### Discussion
 
 <!-- sq:finding:F13:discussion -->
+- [2026-10-29T19:21:09Z] `reviewer` Paul Reviewer:
+  - Verified at 1ad3f7b5. D: with only a related ref, unlink-role prints "SKILL-3 has no scopes ref to ROLE-1" and exits 1. The new tests/cli case fails against the earlier refs code and the related ref survives. With kind=None the message keeps the old wording.
 <!-- sq:finding:F13:discussion:end -->
 <!-- sq:finding:F13:end -->
 
@@ -422,6 +434,8 @@ The op-pierre ruling renamed guide's `--tag` to `--tags`, but three texts still 
 #### Discussion
 
 <!-- sq:finding:F14:discussion -->
+- [2026-10-29T19:21:15Z] `reviewer` Paul Reviewer:
+  - Still Open, as planned: it ships with the version bump. The dev updates the playbook guide command and @tech-writer updates the README and CHANGELOG lines that still give guide --tag.
 <!-- sq:finding:F14:discussion:end -->
 <!-- sq:finding:F14:end -->
 
@@ -441,6 +455,8 @@ Blank list values predate this batch (the old `--tag` stored them too), but the 
 #### Discussion
 
 <!-- sq:finding:F15:discussion -->
+- [2026-10-29T19:21:11Z] `reviewer` Paul Reviewer:
+  - Verified at 1ad3f7b5. Create now coerces through coerce_attribute, the same function update --set uses. D: `--tags 'x, y' --tags ' ' --tags z` stores [x, y, z]; a blank-only `--tags` stores [], as `update --set 'tags= '` does; `--target-date soon` is refused. A list given for a single-valued attribute is refused. The new test fails against the old coercion.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -456,6 +472,8 @@ What it does pin is that the bundled spec keeps those three attributes settable,
 #### Discussion
 
 <!-- sq:finding:F16:discussion -->
+- [2026-10-29T19:21:13Z] `reviewer` Paul Reviewer:
+  - Verified at 1ad3f7b5. The guard now reads the real `create guide --help` under an override, so it can fail. Falsified in a git-archive extract: dropping the settable check, and dropping str from CREATE_ATTRIBUTE_KINDS, each turn it red; the restored code turns it green.
 <!-- sq:finding:F16:discussion:end -->
 <!-- sq:finding:F16:end -->
 <!-- sq:findings:end -->
@@ -509,4 +527,8 @@ What it does pin is that the bundled spec keeps those three attributes settable,
   - Verification at cc772bc0, read-only. Verified: F1, F3, F4, F5, F6, F7, F8, F9, F10, F11 (BUG-1248), F12. Reopened: F2 (the init refusal names `sq repair --renumber`, which cannot run without the config init no longer writes). New: F13, F14, F15 (low), F16 (info). Review stays ChangesRequested.
     
     Method: diffs of 1df93668, e07a89b8, e3bb9356, 14c77354, 6be4facd; 451 targeted tests pass (regressions, check sub-entity rules and the touched tests/cli modules); ruff clean; each fix driven from the dev tree on scratch squads. Falsified in a scratch worktree at HEAD: emptying `_subentity_title_present` and short-circuiting `_rehint` each turn their surface and regression cases red, and they go green again once restored. `_story_kind` (14c77354, outside the findings) driven: `--story US1`/`1` map, `US9` refused. @manager: F2 and F13/F15/F16 for the TASK-1244/1246 devs, F14 needs the dev for the playbook line and @tech-writer for README and the CHANGELOG lines.
+- [2026-10-29T19:21:24Z] `reviewer` Paul Reviewer:
+  - - Round 3 at 1ad3f7b5, read-only. Verified: F13, F15, F16. Kept Open: F2 (simplicity, see its comment) and F14 (ships with the version bump and @tech-writer). Review stays ChangesRequested.
+    - Method: diffs of d95c404e and 1ad3f7b5; 117 targeted tests pass; ruff clean; each fix driven from the dev tree on scratch squads. The new tests were falsified in a git-archive extract: pre-fix code for F13 and F15, and two mutations of the create option derivation for F16.
+    - @manager F2: the three-step remedy works, but step 1 depends on a refused adopt leaving a config and an index behind. Proposed one-step rule: `sq adopt --renumber`, with plain adopt refusing before it writes. S.
 <!-- sq:discussion:end -->

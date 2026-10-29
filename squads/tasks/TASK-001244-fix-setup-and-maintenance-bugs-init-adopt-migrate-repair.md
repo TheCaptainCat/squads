@@ -36,7 +36,7 @@ subentities:
   title: Renumber refreshes the scaffold hint that names the item number
   status: Done
 created_at: '2026-10-29T16:27:28Z'
-updated_at: '2026-10-29T17:17:53Z'
+updated_at: '2026-10-29T19:19:28Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -60,7 +60,7 @@ CLI surface tests per ADR-1172, one per behaviour, declared with `@pytest.mark.c
 
 ## Changelog
 
-Every bug here changes adopter-visible behaviour (a refusal where there was a write or a clean exit). Report each change and why in the handoff so the tech writer adds a line under the 0.18.1 section of `CHANGELOG.md`; do not edit `CHANGELOG.md` yourself.
+Every bug here changes adopter-visible behaviour (a refusal where there was a write or a clean exit). Report each change and why in the handoff so the tech writer adds a line under the 0.19.0 section of `CHANGELOG.md`; do not edit `CHANGELOG.md` yourself.
 
 ## Gates
 

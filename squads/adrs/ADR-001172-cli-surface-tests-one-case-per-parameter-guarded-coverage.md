@@ -9,10 +9,12 @@ refs:
 - FEAT-1096
 - ADR-1025
 - ADR-1225
-description: 'CLI tests in-process on the bundled spec: one case per parameter, shared
-  registrations tested once, a marker-based coverage guard'
+- ADR-1250
+description: 'CLI tests in-process on the bundled squad and a full-override squad:
+  one case per parameter, shared registrations tested once, a marker-based coverage
+  guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-29T19:04:38Z'
+updated_at: '2026-10-29T19:25:55Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -25,7 +27,7 @@ The first tests to rebuild are CLI tests: every command, every parameter, run ag
 - The nine work-item groups come from one builder, `build_item_app`. Each has 11 verbs, plus 3 more on a type that hosts a sub-entity kind (`add-<kind>`, `<kind>`, the plural listing). `retype` and `remove` exist only on non-roster types.
 - The comment verbs come from one registrar, `register_comment_verbs`, and are mounted on every item group, every sub-entity group and the `role`, `skill` and `operator` groups.
 - `sq create <type>` takes the shared options on every type, plus one option per badge field and per create-time attribute the type declares. A create-time attribute is a settable `str`, `list` or `date` attribute in `[items.<type>.attributes]`; its option is `--<key>` with underscores as dashes, and a `bool` attribute gets none. In the bundled spec, `guide` declares `tags` and `tech` (`--tags`, `--tech`), `milestone` declares `target_date` (`--target-date`) and `review` declares `target_ref` (`--target-ref`).
-- Sub-entity verbs take the same options on all three bundled kinds, except `subtask update --story/--no-story` and `finding update --severity/--deferred-to`.
+- Sub-entity verbs take the same options on all three bundled kinds, except the options derived from a kind's declarations: the mapping option on a kind that maps to its parent (`subtask update --story/--no-story`), a field option per declared field (`finding update --severity`), and `--deferred-to` on a kind with a deferred status.
 - Once item types, sub-entity kinds and comment hosts are each folded onto one key, 1,079 pairs become about 374, on about 111 leaf commands.
 
 The expensive axis is therefore repetition of one registration across hosts, not the number of parameters.
@@ -50,7 +52,7 @@ Two filters that narrow the same listing independently do not interact: each is 
 
 A verb set that one builder or registrar mounts on several hosts is tested on one host. The other hosts are held by a `tests/meta` guard, not by repeated tests.
 
-- **Work-item verbs** are tested on the bundled `task` type. It is non-roster, so it has `retype` and `remove`. It hosts a sub-entity kind (`subtask`) whose `--story` option resolves against another item (its parent feature's stories). It also carries a parent rule that `sq check` enforces. No other bundled type exercises more of the builder.
+- **Work-item verbs** are tested on the reference type, `task` in the bundled squad (see Scope). It is non-roster, so it has `retype` and `remove`. It hosts a sub-entity kind (`subtask`) whose `--story` option resolves against another item (its parent feature's stories). It also carries a parent rule that `sq check` enforces. No other bundled type exercises more of the builder.
 - **Sub-entity verbs** are tested on `task subtask`. A parameter that only some kinds carry is tested on a host that carries it: `--severity` and `--deferred-to` on `review finding`.
 - **Comment verbs** are tested on the `task` item host. Addressing through the other host kinds is tested once each: sub-entity, role, skill and operator. Each of those cases covers the address, not the verb's parameters again.
 - **`sq create <type>`** is tested on `task`. A parameter derived from a type's own declarations is tested on a type that declares it: `--tags` and `--tech` on `guide`, `--target-date` on `milestone`, `--target-ref` on `review`. No type is special-cased: every create command is built from the spec, and no test or guard names a type to exempt it.
@@ -76,7 +78,7 @@ def test_update_refuses_parent_with_no_parent(...): ...
 ```
 
 - **Command key.** The command's path under `sq`, as `_help_tree` yields it. A work-item type name is written `<type>`, a sub-entity kind `<kind>` (`add-<kind>`, `<kinds>` for the plural listing), and the segments up to a mounted comment group `<host>` (`<host> comment edit`). The hidden `_addr` dispatcher segment that `_help_tree` yields is dropped (`task comment _addr edit` is `<host> comment edit`, `role _addr update` is `role update`), and the dispatcher's argument (`HASH`, `<slug|id|n>`) belongs to the parent key. The root callback is the empty key `""`. A group callback's own parameters belong to the group's key: `<type>` for `N`, `<host> comment` for `-m`, `--file` and `--as`.
-- **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named as the usage line prints it (`N`, `TITLE`), which is Click's `human_readable_name`.
+- **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named as the usage line prints it (`N`, `TITLE`), which is Click's `human_readable_name`. A parameter derived from a spec declaration is named by its derivation, so one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute of that kind. The `invoke` fixture records a derived flag under its derivation name.
 - **Every leaf command is declared**, not only every (command, parameter) pair. A leaf with no parameters (`ui`) is declared with its command key alone: `@pytest.mark.covers("ui")`.
 - **The key alone declares the bare call:** the command run with none of its own parameters. It is valid on any leaf and required only on a leaf with no parameters, so a leaf that gains a parameter keeps it: the case that runs plain `sq sync` stays `covers("sync")`, and the case that runs `sq sync --json` is `covers("sync", "--json")`. It goes stale only when the key goes.
 - **Every CLI test declares.** Each test function in `tests/cli/` carries at least one `covers` marker. A test that runs no command of its own has no place in `tests/cli/`: a test of the suite's own fixtures belongs in `tests/meta/`.
@@ -85,7 +87,7 @@ def test_update_refuses_parent_with_no_parent(...): ...
 
 The **coverage guard** is a new `tests/meta` module:
 
-- It enumerates the tree with `_help_tree.command_nodes()` in an empty directory (bundled vocabulary), hidden parameters included, folding each node onto its key as above.
+- It enumerates the tree with `_help_tree.command_nodes()` for each test squad (see Scope), hidden parameters included, folding each node onto its key as above.
 - It reads every `covers` marker from the CLI test modules with `ast`, without importing them.
 - It fails, listing them, when a pair or a leaf command of the tree is declared by no test.
 - It also fails when a marker names a pair or a key the tree no longer has (stale).
@@ -125,9 +127,11 @@ A top-level group with a single leaf may share a module with its nearest neighbo
 
 The two guards above are added beside the existing ones and share `_help_tree.py`. The existing guards stay as they are, including the help-rule guard and its custom-vocabulary tree, which is a guard over the code, not a surface test. `test_shared_flags_are_declared_once` keeps holding the single declaration of `--json`, `--as` and the other shared flags. `test_squad_copies_are_isolated_in_any_order` keeps holding the copied-squad isolation that rule 4 relies on. `tests/meta/_roots.py` keeps scanning `tests/`, so `tests/cli/` is covered by the naming guards with no change.
 
-### Scope: bundled spec only
+### Scope: two squads
 
-This suite runs against the engine with the bundled workflow spec, playbook and role catalog, and no project override. Behaviour under a custom-vocabulary override is outside its scope. The keys are type-agnostic (`<type>`, `<kind>`, `<host>`) so that a later override-backed run can be added as a second squad build and declare against the same keys, without renaming anything.
+The suite runs on two squads, each built once per module and copied per test (rule 4): the **bundled squad**, with the bundled workflow spec, playbook and role catalog and no project override, and the **override squad**, whose workflow override drops every bundled work-item type, sub-entity kind and badge field and declares its own (ADR-1250 §10). One run uses one squad, selected for the whole run. CI runs the suite once per squad, each in its own job, under the time bound.
+
+A case reaches its host through the squad's **profile**, never through a literal name: the reference type with its kind and target kind, a badge field, a kind with a field and a deferred status, a create-time attribute of each kind, and an alias. In the bundled squad the reference type is `task`, its kind `subtask` and its target kind `story`. A `tests/meta` guard resolves every profile entry against its squad's spec and fails on one that does not resolve, so no case skips for want of a host. The keys are type-agnostic (`<type>`, `<kind>`, `<host>`) and derived parameters are named by their derivation (rule 3), so one marker declares the same pair on both squads.
 
 ### Regression tests
 
@@ -149,7 +153,7 @@ When the CLI answers the same commands in a second mode, currently the daemon's 
 
 ### Time bound
 
-Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The remote-mode run and the cross-process set are CI test jobs under the same targets; the remote-mode run on Windows runs the full suite, so its bound is 15 minutes. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
+Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The override-squad run, the remote-mode run and the cross-process set are CI test jobs under the same targets; the remote-mode run on Windows runs the full suite, so its bound is 15 minutes. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
 
 ## Why
 
@@ -164,14 +168,14 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
 - Two new `tests/meta` guards: verb-set parity across hosts, and (command, parameter) coverage. The `invoke` fixture gains the marker cross-check, and `covers` is registered as a pytest marker.
 - Adding an option to any command fails the coverage guard until a test declares it. Adding a verb to the builder or a registrar fails nothing per type: one test on the reference host covers it, and the parity guard holds the rest.
 - A new bundled type needs no new surface tests unless it brings a parameter of a kind the suite does not test yet.
-- Override-backed surface runs and the regression set are later work. Their keys and location are fixed here.
+- The override squad doubles the surface run, as its own CI job; it adds no case. The regression set is later work; its location is fixed here.
 - The daemon adds two CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
 - The guards prove that a case exists, not that it is strong: a vacuous case is still caught by the falsification step and by review.
 
 ## Options considered and rejected
 
 - **A per-type parametrised table for the generic verbs.** It reproduces the cross product this decision removes, and is weaker than the parity guard for types nobody added to the table.
-- **The custom-vocabulary type from `_help_tree.py` as the reference host.** It would catch bundled-name literals in verb code, but those are already held by the `no_bundled_*_literal` guards. The suite's scope is the shipped spec.
+- **The custom-vocabulary type from `_help_tree.py` as the reference host.** One custom type inside the bundled spec does not exercise a squad whose vocabulary is entirely its own, and the literal guards cannot see what a surface run sees. The override squad (Scope) is a whole squad instead.
 - **A central registry module listing every covered pair.** It is a second copy of the information the tests already carry, and it drifts from them. The marker sits on the test that does the covering.
 - **Coverage inferred at session end from recorded invocations.** It is undecidable under partial or distributed runs. Recording is kept, but only as the per-test truth check of the marker.
 - **Subprocess execution for realism.** It is the most expensive option on Windows. Its only extra reach is process start, which is outside this suite.
@@ -241,4 +245,9 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - 2026-10-29: rule 5 exception: a test may read the scaffolded add/track hint from an item file, since no sq output carries it (BUG-1248 tests).
 - [2026-10-29T19:04:38Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 per op-pierre b819805 (board rule 6). Status unchanged. Rule 5: a test never opens `.squads.json`; it may open an item file only to read the add and track hint an item template scaffolds above the sub-entity region, since no sq output carries it. Any other item state still goes through the CLI.
+- [2026-10-29T19:25:55Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per op-pierre ca59f6b on FEAT-1249 (the audit override squad becomes a permanent test squad and the CLI surface suite also runs on it), board rule 6, linked related to ADR-1250. Status unchanged.
+    - "Scope: bundled spec only" becomes "Scope: two squads": the bundled squad and an override squad that drops every bundled work-item type, kind and field. One squad per run, one CI job each. Cases reach their host through a per-squad profile, held by a new `tests/meta` guard.
+    - Rule 3: a derived parameter is named by its derivation (`--<field>`, `--no-<field>`, `--min-<field>`, `--<target-kind>`, `--no-<target-kind>`, `--<attribute:KIND>`), so one marker holds on both squads; the coverage guard enumerates each squad's tree.
+    - Context, rule 2, the time bound, Consequences and the rejected custom-type option follow.
 <!-- sq:discussion:end -->

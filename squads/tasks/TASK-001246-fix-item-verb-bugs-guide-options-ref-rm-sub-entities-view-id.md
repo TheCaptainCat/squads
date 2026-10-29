@@ -32,7 +32,7 @@ subentities:
   title: Refuse a wrong ID prefix in workflow view
   status: Done
 created_at: '2026-10-29T16:27:30Z'
-updated_at: '2026-10-29T17:25:44Z'
+updated_at: '2026-10-29T19:19:33Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -54,7 +54,7 @@ CLI surface tests per ADR-1172, one per behaviour, declared with `@pytest.mark.c
 
 ## Changelog
 
-Every bug here changes adopter-visible behaviour (new options, a refusal where there was a success line, a corrected message). Report each change and why in the handoff so the tech writer adds a line under the 0.18.1 section of `CHANGELOG.md`; do not edit `CHANGELOG.md` yourself.
+Every bug here changes adopter-visible behaviour (new options, a refusal where there was a success line, a corrected message). Report each change and why in the handoff so the tech writer adds a line under the 0.19.0 section of `CHANGELOG.md`; do not edit `CHANGELOG.md` yourself.
 
 ## Gates
 

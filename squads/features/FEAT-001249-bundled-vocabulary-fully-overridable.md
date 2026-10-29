@@ -32,7 +32,7 @@ subentities:
   title: Generated text and messages from the spec
   status: Todo
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T19:05:10Z'
+updated_at: '2026-10-29T19:16:52Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -189,4 +189,6 @@ Done when:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T19:16:52Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: in scope as well: (1) the vocabulary guards derive what they check from the spec and lose their exception lists, covering badge codes, aliases and generated text; (2) the audit override squad (initiative/outcome, job/action, urgency, impact) becomes a permanent test squad and the CLI surface suite also runs on it in CI. Storage goes generic with a schema migration (see ADR-1250).
 <!-- sq:discussion:end -->

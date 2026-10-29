@@ -2,26 +2,29 @@
 id: MILE-1241
 sequence_id: 1241
 type: milestone
-title: squads 0.18.1 - the daemon
+title: squads 0.19 - the daemon and the overridable vocabulary
 status: InProgress
 author: product-owner
 refs:
 - MILE-1152:depends-on
 - EPIC-29
 description: The daemon serving the command layer's operations as resource routes,
-  with dependencies upgraded and tested
+  the bundled vocabulary fully overridable on generic storage, a bug batch, and dependencies
+  upgraded and tested
 created_at: '2026-10-29T12:59:12Z'
-updated_at: '2026-10-29T19:02:52Z'
+updated_at: '2026-10-29T19:20:19Z'
 ---
 <!-- sq:body -->
-The daemon release: a local process that serves the squad as resource routes on the adopter's own machine, and a CLI and terminal UI that call those routes or read the squad directly, with the same output either way. It builds on the command layer of 0.18.0, whose operations the routes serve. It makes that line usable on one machine, for one person; the browser frontend (MILE-868) builds on the same routes.
+The 0.19 release: the daemon that serves the command layer's operations as resource routes on the adopter's own machine, a CLI and terminal UI that call those routes or read the squad directly with the same output either way, the bundled vocabulary made fully overridable on generic storage, and the fixes and dependency upgrades that ride with them. It builds on the command layer of 0.18.0, whose operations the routes serve. It makes that line usable on one machine, for one person; the browser frontend (MILE-868) builds on the same routes. The generic-storage schema migration is what makes this 0.19.0 rather than a patch release.
 
-Scope is carried by two features:
+Scope is carried by these items:
 
 - **FEAT-1140**, the daemon: the resource routes and their errors, the OpenAPI document, the CLI's remote and local modes, item versions on writes, the schema and vocabulary checks, the terminal UI as a daemon client, the client budget, the daemon's lifecycle and settings, and native Windows. Decided in ADR-1052 and ADR-1225.
+- **FEAT-1249**, the bundled vocabulary fully overridable: no bundled type, status, priority surface, alias or generated text is special-cased outside the spec, stored generically, with a schema migration for existing squads. Decided in ADR-1250.
 - **FEAT-1242**, dependencies current and tested: the versions an adopter installs are the versions the suite runs, with the daemon's new server dependencies among them.
+- **The bug batch** (BUG-1183 to BUG-1200, BUG-1240, BUG-1248), delivered through TASK-1244, TASK-1245 and TASK-1246 and reviewed in REV-1247.
 
-The release is ready when the terminal UI works through the API in both modes, the client budget (at most 275 ms of client overhead in human mode and 235 ms with `--json` for `sq <type> <n> show` on the reference host) is met and recorded, the CLI's tests pass in both modes on Linux, macOS and native Windows, and the declared lower bounds of every dependency are the versions the suite ran.
+The release is ready when the terminal UI works through the API in both modes, the client budget (at most 275 ms of client overhead in human mode and 235 ms with `--json` for `sq <type> <n> show` on the reference host) is met and recorded, the CLI's tests pass in both modes on Linux, macOS and native Windows, and the declared lower bounds of every dependency are the versions the suite ran. It also needs the bundled vocabulary to resolve only through the spec, with `sq migrate up` carrying an existing squad to the new storage and `sq repair` rebuilding the index from the item files, and every bug in the batch Fixed or settled with a reason.
 
 Authentication, a squad hosted on another machine (FEAT-33), pagination and the frontend itself are out of scope.
 
@@ -44,4 +47,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
   - Open points: BUG-1185 needs a product ruling (sub-entity titles are optional by documented design); BUG-1192 is fixed by typer 0.27.3, which TASK-1243 brings, so TASK-1245 ST1 lands after it. CHANGELOG.md is the one shared file; devs report, @tech-writer writes the 0.18.1 lines. @manager
 - [2026-10-29T19:02:52Z] `op-pierre` Pierre Chat:
   - 2026-10-29: the 12 gaps of the bundled-vocabulary audit (architect comment on REV-1247) are fixed in this milestone, before feature work, after the bug batch: ADRs first (ADR-323 section 5, ADR-348 section 7, ADR-622), then tasks, at most 3 developers in parallel. The frozen keys stay; their labels come from the spec.
+- [2026-10-29T19:18:38Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: the schema migration makes this release 0.19.0, not 0.18.1. The following milestones shift: more backends (MILE-1061) becomes 0.20, the web frontend (MILE-868) becomes 0.21.
 <!-- sq:discussion:end -->

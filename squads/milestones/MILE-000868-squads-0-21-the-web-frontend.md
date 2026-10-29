@@ -2,14 +2,14 @@
 id: MILE-868
 sequence_id: 868
 type: milestone
-title: squads 0.20 - the web frontend
+title: squads 0.21 - the web frontend
 status: Draft
 author: product-owner
 refs:
 - EPIC-29
 - MILE-1241:depends-on
 created_at: '2026-09-02T08:03:39Z'
-updated_at: '2026-10-29T12:59:55Z'
+updated_at: '2026-10-29T19:20:22Z'
 ---
 <!-- sq:body -->
 A squad readable in a browser: the squad's state stops being visible only to whoever is sitting at the terminal. This milestone holds the work that brings the browser surface to a first usable state. The linked epic carries the outcome and the framing. The surface is built on the daemon milestone's API, which it depends on.
