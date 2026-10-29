@@ -3,12 +3,12 @@ id: MILE-1152
 sequence_id: 1152
 type: milestone
 title: squads 0.18 - one API for every client
-status: InProgress
+status: Done
 author: product-owner
 description: 'The command layer: every command calls one operation and renders its
   result, with JSON output on every command'
 created_at: '2026-10-25T21:16:14Z'
-updated_at: '2026-10-29T13:12:52Z'
+updated_at: '2026-10-29T13:58:48Z'
 ---
 <!-- sq:body -->
 The command-layer release: every command calls one operation and renders the result it gets back, so the JSON a command prints is the same shape an API answers with, and every command that prints a result can print it as JSON. Output adopters rely on today does not change, and local commands are no slower than in 0.17.0. The daemon that serves these operations over HTTP follows in 0.18.1 (MILE-1241).
@@ -57,4 +57,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
     tree    new         724      695      764
     tree    new/old median = 0.688
     ```
+- [2026-10-29T13:58:48Z] `manager` Catherine Manager:
+  - Released 2026-10-29 as v0.18.0 (https://github.com/TheCaptainCat/squads/releases/tag/v0.18.0): PyPI publish and VSIX asset succeeded.
 <!-- sq:discussion:end -->
