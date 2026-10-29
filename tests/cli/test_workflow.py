@@ -492,6 +492,55 @@ async def test_lint_refuses_a_field_whose_import_key_equals_a_fixed_key_of_its_o
 
 
 @pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_two_fields_that_give_one_flag(project, invoke) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[items.task]\nfields = [{ code = "x", label = "X", collection = "priority" },'
+        ' { code = "no_x", label = "N", collection = "priority" }]\n',
+    )
+    assert messages == [
+        "task update: field 'no_x' and field 'x' both give --no-x — rename one in the workflow "
+        "override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_a_target_kind_equal_to_an_option_of_the_command_it_derives_onto(
+    project, invoke
+) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[items.feature]\nsubentity_kind = "status"\n'
+        '[subentity_kinds.status]\nlifecycle = "subentity"\ncompletion = "Done"\n'
+        'plural = "statuses"\nlocal_prefix = "SS"\nplaceholder = "_text_"\n',
+    )
+    assert messages == [
+        "add-subtask: target kind 'status' gives --status, which add-subtask already takes — "
+        "rename it in the workflow override",
+        "subtask update: target kind 'status' gives --status, which subtask update already takes "
+        "— rename it in the workflow override",
+        "import op add-subtask: target kind 'status' gives status, which import op add-subtask "
+        "already takes — rename it in the workflow override",
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+async def test_lint_refuses_a_kind_named_like_a_key_of_the_comment_op(project, invoke) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.target]\nlifecycle = "subentity"\ncompletion = "Done"\n'
+        'plural = "targets"\nlocal_prefix = "TG"\nplaceholder = "_text_"\n',
+    )
+    assert messages == [
+        "import op comment: kind 'target' gives target, which import op comment already takes "
+        "— rename it in the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
 async def test_lint_refuses_a_kind_named_like_the_generic_selector(project, invoke) -> None:
     messages = await _lint_messages(
         project,

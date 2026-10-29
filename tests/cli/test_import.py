@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 
-from squads._itemfile import read_frontmatter
 from tests._squadwide import listed
 
 pytestmark = pytest.mark.anyio
@@ -315,12 +314,6 @@ async def _import_ok(invoke, *events: dict[str, Any]) -> str:
     return result.output
 
 
-def _stored_action(project, local_id: str) -> dict[str, Any]:
-    """The sub-entity *local_id* of the job as its file stores it."""
-    (path,) = (project.squad_dir / "jobs").glob("JOB-000009-*.md")
-    return next(s for s in read_frontmatter(path)["subentities"] if s["local_id"] == local_id)
-
-
 async def _shown(invoke, *address: str) -> dict[str, Any]:
     result = await invoke([*address, "show", "--json"])
     assert result.exit_code == 0, result.output
@@ -345,10 +338,15 @@ async def test_add_kind_takes_each_field_and_the_target_kind_as_keys_and_a_comme
         {"op": "comment", "target": "INI-8", "outcome": "OC3", "message": "agreed"},
         {"op": "comment", "target": "JOB-9", "action": "a3", "message": "shipped"},
     )
-    assert "add-outcome: 1" in output
-    assert "add-action: 1" in output
-    action = _stored_action(override_project, "AC3")
-    assert (action["impact"], action["maps_to"]) == ("small", "OC1")
+    assert output == (
+        "  add-outcome: 1\n  add-action: 1\n  comment: 2\n"
+        "handles:\n  o3 -> INI-8 OC3\n  a3 -> JOB-9 AC3\n"
+        "warning: INI-8: OC3 body is unwritten (still the placeholder stub)\n"
+        "warning: JOB-9: AC3 body is unwritten (still the placeholder stub)\n"
+        "imported 4 event(s)\n"
+    )
+    action = await _shown(invoke, "job", "9", "action", "3")
+    assert (action["badges"], action["story"]) == ({"impact": "small"}, "OC1")
     outcome = await _shown(invoke, "initiative", "8", "outcome", "3")
     assert [c["body"] for c in outcome["discussion"]] == ["- agreed"]
 
@@ -366,7 +364,8 @@ async def test_an_op_or_a_selector_for_a_kind_the_squad_does_not_declare_is_unkn
     assert result.output.splitlines() == [
         "line 1: unknown op 'add-story'; valid ops: create, status, body, comment, ref, "
         "add-sub, add-outcome, add-action, sub-status, sub-body, assign, update",
-        "line 2: comment.story: Extra inputs are not permitted",
+        "line 2: comment.story: not a key of comment; the sub-entity selectors are outcome, "
+        "action, sub",
         "2 issue(s) found — nothing written.",
     ]
 
@@ -387,12 +386,15 @@ async def test_add_sub_takes_the_mapping_as_maps_to_and_the_fields_in_fields(
             **AS,
         },
     )
-    action = _stored_action(override_project, "AC3")
-    assert (action["impact"], action["maps_to"]) == ("large", "OC2")
-    old = {"op": "add-sub", "target": "JOB-9", "kind": "action", "title": "T", "story": "OC1"}
-    refused = await invoke(["import", _events(old | AS)])
-    assert refused.exit_code == 1
-    assert "story: Extra inputs are not permitted" in refused.output
+    action = await _shown(invoke, "job", "9", "action", "3")
+    assert (action["badges"], action["story"]) == ({"impact": "large"}, "OC2")
+    named = {"op": "add-sub", "target": "JOB-9", "kind": "action", "title": "T", "outcome": "OC1"}
+    refused = await invoke(["import", _events(named | AS)])
+    assert (refused.exit_code, refused.output) == (
+        1,
+        "line 1: add-sub.outcome: not a key of add-sub; use 'maps_to' for the mapping\n"
+        "1 issue(s) found — nothing written.\n",
+    )
 
 
 @pytest.mark.covers("import", "FILE")
@@ -411,5 +413,44 @@ async def test_create_and_update_take_badge_fields_by_code_in_fields_and_unset_f
     assert (await _shown(invoke, "job", "12"))["badges"] == {}
     keyed = {"op": "create", "type": "initiative", "title": "Keyed", "urgency": "now"}
     refused = await invoke(["import", _events(keyed | AS)])
-    assert refused.exit_code == 1
-    assert "urgency: Extra inputs are not permitted" in refused.output
+    assert (refused.exit_code, refused.output) == (
+        1,
+        "line 1: create.urgency: Extra inputs are not permitted\n"
+        "1 issue(s) found — nothing written.\n",
+    )
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_a_stray_key_on_add_kind_is_reported_under_the_op_the_file_wrote(
+    override_project, invoke
+) -> None:
+    stray = {"op": "add-action", "target": "JOB-9", "title": "T", "severity": "high"}
+    refused = await invoke(["import", _events(stray | AS)])
+    assert (refused.exit_code, refused.output) == (
+        1,
+        "line 1: add-action.severity: Extra inputs are not permitted\n"
+        "1 issue(s) found — nothing written.\n",
+    )
+
+
+@pytest.mark.covers("import", "FILE")
+async def test_the_old_story_key_on_add_sub_points_to_maps_to_and_an_empty_field_is_unset(
+    project, invoke
+) -> None:
+    host = {"op": "create", "type": "review", "title": "R", "handle": "r", **AS}
+    findings = [
+        {"op": "add-finding", "target": "r", "title": f"F {n}", "severity": value}
+        for n, value in enumerate((None, ""))
+    ]
+    await _import_ok(invoke, host, *findings)
+    assert [(await _shown(invoke, "review", "2", "finding", str(n)))["badges"] for n in (1, 2)] == [
+        {},
+        {},
+    ]
+    old = {"op": "add-sub", "target": "r", "kind": "subtask", "title": "T", "story": "US1"}
+    refused = await invoke(["import", _events(old | AS)])
+    assert (refused.exit_code, refused.output) == (
+        1,
+        "line 1: add-sub.story: not a key of add-sub; use 'maps_to' for the mapping\n"
+        "1 issue(s) found — nothing written.\n",
+    )

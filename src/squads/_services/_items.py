@@ -320,7 +320,7 @@ class ItemsMixin(ServiceCore):
             delta["parent"] = parent
             item.parent = parent
         self._apply_labels(item, add_labels, rm_labels)
-        self._apply_attributes(item, set_attributes, unset_attributes)
+        self._apply_attributes(item, set_attributes, unset_attributes, delta)
         self._apply_own_choices(item, delta, pronouns, operator_invocable)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
@@ -412,14 +412,23 @@ class ItemsMixin(ServiceCore):
         )
 
     def _apply_attributes(
-        self, item: Item, set_attributes: dict[str, str] | None, unset: list[str] | None
+        self,
+        item: Item,
+        set_attributes: dict[str, str] | None,
+        unset: list[str] | None,
+        delta: dict[str, object],
     ) -> None:
+        """Set and unset the given badge fields and attributes, recording each change in *delta*
+        (the value set, or ``None`` for a key removed)."""
         for key, raw in (set_attributes or {}).items():
             field = self._badge_field(item.type, key)
             if field is not None:
-                item.set_badge_value(field.code, self._parse_badge_code(field, raw))
+                checked = self._parse_badge_code(field, raw)
+                item.set_badge_value(field.code, checked)
+                delta[key] = checked
             else:
                 self._require_settable(item.type, key)
+                delta[key] = raw
                 value = coerce_attribute(item.type, key, raw, self.spec.item_attributes(item.type))
                 if item.type == ROSTER_ROLE and key == AttributeKey.MODEL:
                     problem = model_problem(value)
@@ -433,6 +442,7 @@ class ItemsMixin(ServiceCore):
             else:
                 self._require_settable(item.type, key)
                 item.attributes.pop(key, None)
+            delta[key] = None
 
     def _apply_own_choices(
         self, item: Item, delta: dict[str, object], pronouns: str | None, invocable: str | None

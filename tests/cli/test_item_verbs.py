@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 
 from tests._populated import FEATURE, REVIEW, TASK
+from tests.cli._output import unknown_option
 
 pytestmark = pytest.mark.anyio
 
@@ -252,8 +253,15 @@ async def test_update_sets_and_clears_a_field_only_some_types_declare(
     await _ok(invoke, ["bug", "5", "update", "--no-severity"])
     assert "severity" not in (await _show(invoke, 5, "bug"))["badges"]
     refused = await _ran(invoke, ["task", str(TASK), "update", "--severity", "high"])
-    assert refused[0] == 2
-    assert "No such option: --severity" in refused[1]
+    assert refused == (
+        2,
+        unknown_option(
+            "task N update [OPTIONS]",
+            "task N update",
+            "--severity",
+            " ('(Possible options: --priority, --set)',)",
+        ),
+    )
 
 
 @pytest.mark.covers("<type> update", "--json")
@@ -268,10 +276,40 @@ async def test_update_takes_a_flag_per_declared_field_and_a_negation_per_optiona
     assert json.loads(cleared)["entry"]["badges"] == {}
     both = await _ran(invoke, ["job", "9", "update", "--work-size", "s", "--no-work-size"])
     assert both == (1, "error: use either --work-size or --no-work-size, not both\n")
-    for flag in ("--priority", "--no-priority"):
+    for flag, hint in (
+        ("--priority", ""),
+        ("--no-priority", " ('(Possible options: --no-parent)',)"),
+    ):
         refused = await _ran(invoke, ["initiative", "8", "update", flag])
-        assert refused[0] == 2
-        assert f"No such option: {flag}" in refused[1]
+        assert refused == (
+            2,
+            unknown_option("initiative N update [OPTIONS]", "initiative N update", flag, hint),
+        )
+
+
+@pytest.mark.covers("<type> update", "--priority")
+async def test_update_refuses_an_empty_priority_even_beside_another_change(
+    populated_project, invoke
+) -> None:
+    assert await _ran(
+        invoke, ["task", str(TASK), "update", "--priority", "", "--title", "Renamed"]
+    ) == (1, "error: invalid priority '' (one of: urgent, high, medium, low)\n")
+
+
+@pytest.mark.covers("<type> update", "--priority", "--no-priority")
+@pytest.mark.covers("<type> update", "--set")
+async def test_update_logs_each_badge_change_in_the_reflog_delta(populated_project, invoke) -> None:
+    await _ok(invoke, ["task", str(TASK), "update", "--priority", "high"])
+    await _ok(invoke, ["task", str(TASK), "update", "--set", "priority=low"])
+    await _ok(invoke, ["task", str(TASK), "update", "--no-priority"])
+    entries = json.loads(
+        await _ok(invoke, ["reflog", "--item", f"TASK-{TASK}", "--op", "update", "--json"])
+    )
+    assert [e["delta"] for e in entries] == [
+        {"priority": "high"},
+        {"priority": "low"},
+        {"priority": None},
+    ]
 
 
 @pytest.mark.covers("<type> update", "--priority", "--no-priority")

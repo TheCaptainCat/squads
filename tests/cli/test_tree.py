@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from tests._readable import init_readable, lines
-from tests.cli._output import json_text
+from tests.cli._output import json_text, unknown_option
 
 pytestmark = pytest.mark.anyio
 
@@ -475,8 +475,12 @@ async def test_a_derived_filter_means_exactly_its_generic_form(override_project,
         assert ids == await _roots(invoke, *generic)
         assert ids == (["INI-11"] if "later" in derived else ["INI-8"])
     refused = await invoke(["tree", "--json", "--priority", "high"])
-    assert refused.exit_code == 2
-    assert "No such option: --priority" in refused.output
+    assert (refused.exit_code, refused.output) == (
+        2,
+        unknown_option(
+            "tree [OPTIONS] [ROOT_ID]", "tree", "--priority", " ('(Possible options: --sort)',)"
+        ),
+    )
 
 
 @pytest.mark.covers("tree", "--json")

@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._output import json_text, printed
+from tests.cli._output import json_text, printed, unknown_option
 
 pytestmark = pytest.mark.anyio
 
@@ -211,8 +211,19 @@ async def test_a_declared_field_flag_sets_the_value_the_squad_names(
     refused = await invoke(
         ["create", "initiative", "Open more", "--author", "manager", "--priority", "high"]
     )
-    assert refused.exit_code == 2
-    assert "No such option: --priority" in refused.output
+    assert (refused.exit_code, refused.output) == (
+        2,
+        unknown_option("create initiative [OPTIONS] TITLE", "create initiative", "--priority"),
+    )
+
+
+@pytest.mark.covers("create <type>", "--priority")
+async def test_priority_refuses_an_empty_value(project, invoke) -> None:
+    result = await invoke(["create", "task", "Index", "--author", "manager", "--priority", ""])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: invalid priority '' (one of: urgent, high, medium, low)\n",
+    )
 
 
 @pytest.mark.covers("create <type>", "--message")

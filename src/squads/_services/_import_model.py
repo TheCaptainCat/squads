@@ -258,13 +258,25 @@ def _valid_ops(spec: WorkflowSpec) -> str:
     return ", ".join(ops)
 
 
-def _validation_message(error: ErrorDetails, spec: WorkflowSpec) -> str:
-    """One validation error as an issue message: squads' own words for an unknown ``op``."""
+def _validation_message(error: ErrorDetails, spec: WorkflowSpec, op_name: object) -> str:
+    """One validation error as an issue message: squads' own words for an unknown ``op``, a key a
+    comment cannot take, and a mapping key an ``add-sub`` was given under the target kind's name.
+    A location starts with the op the file wrote."""
     if error["type"] == "union_tag_invalid":
         return f"unknown op {error.get('ctx', {}).get('tag')!r}; valid ops: {_valid_ops(spec)}"
     if error["type"] == "union_tag_not_found":
         return f"missing op; valid ops: {_valid_ops(spec)}"
-    loc = ".".join(str(p) for p in error["loc"])
+    parts = [str(p) for p in error["loc"]]
+    if parts and isinstance(op_name, str):
+        parts[0] = op_name
+    loc = ".".join(parts)
+    if error["type"] == "extra_forbidden" and len(parts) == 2:
+        if error["loc"][0] == "comment":
+            selectors = ", ".join([*spec.subentity_kinds, "sub"])
+            return f"{loc}: not a key of comment; the sub-entity selectors are {selectors}"
+        targets = {spec.mapping_target_kind(kind) for kind in spec.subentity_kinds}
+        if error["loc"][0] == ADD_SUB_OP and parts[1] in targets:
+            return f"{loc}: not a key of add-sub; use 'maps_to' for the mapping"
     return f"{loc}: {error['msg']}" if loc else str(error["msg"])
 
 
@@ -286,7 +298,9 @@ def _add_kind_data(data: dict[str, Any], kind: str, spec: WorkflowSpec) -> dict[
         if field.code in out:
             if field.code in fields:
                 raise _EventRefusal(f"{data['op']}: {field.code!r} is given twice")
-            fields[field.code] = out.pop(field.code)
+            given = out.pop(field.code)
+            if given not in (None, ""):
+                fields[field.code] = given
     if fields:
         out["fields"] = fields
     target = spec.mapping_target_kind(kind)
@@ -358,7 +372,11 @@ def parse_events(
             continue
         except ValidationError as exc:
             first = exc.errors()[0]
-            issues.append(ImportIssue(line=line_no, message=_validation_message(first, spec)))
+            issues.append(
+                ImportIssue(
+                    line=line_no, message=_validation_message(first, spec, written.get("op"))
+                )
+            )
             continue
 
         event = parsed

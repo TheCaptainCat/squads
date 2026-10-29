@@ -42,7 +42,7 @@ def field_help(field: Field, codes: list[str]) -> str:
 
 def _filer(key: str, prefix: str = "") -> Any:
     def callback(ctx: _click.Context, param: _click.Parameter, value: Any) -> None:
-        if value and param.name is not None:
+        if value is not None and value is not False and param.name is not None:
             ctx.meta.setdefault(key, {})[param.name.removeprefix(prefix)] = value
 
     return callback
@@ -87,9 +87,12 @@ def _flags(params: list[Any]) -> set[str]:
 
 
 def _extended(params: list[Any], extra: list[Any]) -> list[Any]:
-    """*params* plus the options of *extra* whose flags no existing option already holds."""
+    """*params* plus the options of *extra* whose flags no existing option already holds, placed
+    before Click's help option."""
     taken = _flags(params)
-    return [*params, *(o for o in extra if _flags([o]).isdisjoint(taken))]
+    added = [o for o in extra if _flags([o]).isdisjoint(taken)]
+    at = next((i for i, p in enumerate(params) if p.name == "help"), len(params))
+    return [*params[:at], *added, *params[at:]]
 
 
 def update_command_cls(item_type: str) -> type[typer.core.TyperCommand]:

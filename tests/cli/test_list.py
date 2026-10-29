@@ -7,6 +7,7 @@ import re
 import pytest
 
 from tests._readable import init_readable, lines
+from tests.cli._output import unknown_option
 
 pytestmark = pytest.mark.anyio
 
@@ -412,8 +413,10 @@ async def test_a_derived_filter_means_exactly_its_generic_form(override_project,
         assert derived_ids == ["INI-8"]
     assert await _ids(invoke, "--urgency", "later") == ["INI-11"]
     refused = await invoke(["list", "--json", "--priority", "high"])
-    assert refused.exit_code == 2
-    assert "No such option: --priority" in refused.output
+    assert (refused.exit_code, refused.output) == (
+        2,
+        unknown_option("list [OPTIONS]", "list", "--priority", " ('(Possible options: --sort)',)"),
+    )
 
 
 @pytest.mark.covers("list", "--json")
