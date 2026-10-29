@@ -77,7 +77,7 @@ subentities:
   severity: low
 - local_id: F15
   title: Derived options are listed after --help
-  status: Open
+  status: Fixed
   severity: info
 - local_id: F16
   title: New tests read the job file internally, assert substrings, unit-test set_head;
@@ -102,7 +102,7 @@ subentities:
 - local_id: F20
   title: Kind-rename test renames the source kind and cannot fail on the local_prefix
     claim
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F21
   title: A changed local_prefix leaves entries unreachable and sq check silent
@@ -111,7 +111,7 @@ subentities:
 - local_id: F22
   title: 'rename-field: itself-refusal and reflog untested; empty kind name in two
     messages'
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F23
   title: 'rename-field has no scope: a key held on items and entries moves all or
@@ -128,7 +128,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T22:33:56Z'
+updated_at: '2026-10-29T22:41:02Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -731,4 +731,16 @@ Regenerate from the dev tree, after the TASK-1254 wire fixes (F19: `badges` on e
     - **TASK-1257: changes requested.** npm test 768 passed and test:canary 90 passed against the dev tree in a throwaway copy. Client source carries no bundled vocabulary in the diff. F24 (medium): the mapping label is made in code ("Step_kind" vs the server's "Step_Kind"), and the show rows the preview reads carry no label to use, so the architect must name a source. F25: the fixtures to regenerate after the TASK-1254 wire fixes.
     - Notes, not findings (pre-existing): `src/domain/displayNode.ts` maps bundled type names to icons; `sq create <custom-type> --help` shows `--install-completion`/`--show-completion` (the temporary Typer in `_build_create_cmd`, since b2f4c1cb).
     - @manager route F15 to the TASK-1253 dev, F20 and F22 to the TASK-1255 dev, F21, F23 and F24 to @architect (F24's client change follows that ruling and the F19 code), and F25 to the TASK-1257 dev once TASK-1254 lands. Approval stays with you.
+- [2026-10-29T22:39:32Z] `python-dev` Elias Python:
+  - F15, F20 and F22 fixed in eefd60e7 (create routes its derived options through the same insertion as update; target-kind rename test; itself-refusal, reflog plus system comment, and no-kind wording cases). Observed, not fixed: after renaming the target kind outcome to goal, show on a goal prints "(no body yet)" for entries that had a body, since block markers are named by kind. @architect for F21/F23 context.
+- [2026-10-29T22:40:44Z] `architect` Robert Architect:
+  - F21, F23 and F24 ruled; ADR-1250 amended in place 2026-10-29 (sections 3, 6, 7, 11 and options; see its latest architect comment).
+    
+    - F24: a kind's label is the declared `label`, else its title-cased name, from one spec resolver. Every sub-entity `display` carries `maps_to_kind` (a `KindDisplay`, null when the kind does not map), so the preview reads `display.maps_to_kind.label` from the `show` row it renders. The catalog rows gain `label`. The client drops `buildMappingKinds` and `mappingLabel` and shows the mapping line only when `maps_to_kind` is set, with no fallback text. The CLI renderers stop lowercasing and title-casing labels.
+    - F21: a kind's name, plural and local prefix are stored spellings (block markers, container marker, local ids and `maps_to`). New verb `sq migrate rename-kind <old> <new>` moves them; new check rule `subentity_kind_mismatch` reports a stale one and names the verb. Section 6's "a renamed kind needs no data move" was wrong and is replaced.
+    - F23: `rename-field` gains `--type` and `--kind` scopes, repeatable; unscoped behaviour is unchanged. The `frontmatter_key_undeclared` finding names the scoped command.
+    
+    @manager route to the devs: F24 server side with the TASK-1254 dev and the client side with the TASK-1257 dev; F21 and F23 with the TASK-1255 dev.
+- [2026-10-29T22:41:02Z] `architect` Robert Architect:
+  - The kind-rename body orphaning (outcome to goal, prefix kept) is covered by the same ADR-1250 section 6 ruling as F21: block markers stay keyed by kind name; `sq migrate rename-kind outcome goal` rewrites them marker-safely, and `subentity_kind_mismatch` reports a block marker whose kind tag is not the hosted kind, naming that command. The "renamed kind needs no data move" sentence is gone.
 <!-- sq:discussion:end -->
