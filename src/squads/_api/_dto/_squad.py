@@ -255,6 +255,6 @@ class AdoptReport(DTO):
     roles: list[str]
     notice: str | None
     unreadable: list[str]
+    warnings: list[str]
     renumbered: list[MovedFile]
     references: list[LeftReference]
-    warnings: list[str]

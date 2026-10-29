@@ -124,9 +124,9 @@ async def test_json_prints_the_squad_adopted_and_what_it_held(adoptable, invoke)
                     "TASK-000009-broken.md: file has no `id` in frontmatter — its previous index "
                     "entry, if any, was carried forward as-is; fix the file and repair again"
                 ],
+                "warnings": [],
                 "renumbered": [],
                 "references": [],
-                "warnings": [],
             }
         ),
     )
@@ -203,6 +203,7 @@ async def test_renumber_json_lists_the_items_that_moved(adoptable, invoke) -> No
                 "roles": ["architect", "tech-lead", "reviewer"],
                 "notice": None,
                 "unreadable": [],
+                "warnings": [],
                 "renumbered": [
                     {
                         "old": "TASK-3",
@@ -212,7 +213,6 @@ async def test_renumber_json_lists_the_items_that_moved(adoptable, invoke) -> No
                     }
                 ],
                 "references": [],
-                "warnings": [],
             }
         ),
     )
