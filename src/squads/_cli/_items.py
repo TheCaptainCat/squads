@@ -188,14 +188,16 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
 
 #: One entry per aspect of a sub-entity kind that shapes the generated command surface.
 type _FieldSignature = tuple[str, str, str, bool, str | None]
-type KindSignature = tuple[str, str, str | None, str, tuple[_FieldSignature, ...]] | None
+type KindSignature = (
+    tuple[str, str, str | None, tuple[str, str], tuple[_FieldSignature, ...]] | None
+)
 
 
 def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
     """What ``_register_subentity`` bakes into the generated commands for *item_type*'s kind.
 
     The kind name, its plural (the list verb), the kind its mapping targets (the ``--<target-kind>``
-    option) with that kind's local prefix, and every declared field's code, label, bound
+    option) with that kind's local prefix and label, and every declared field's code, label, bound
     collection, requiredness and default (the
     ``--<field-code>`` options, their help and the omitted-flag fallback). Equal signatures
     produce identical command trees, so comparing them tests whether the static tree still
@@ -210,8 +212,10 @@ def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
         (f.code, f.label, f.collection, f.required, f.default) for f in spec.fields_for(kind)
     )
     target = spec.mapping_target_kind(kind)
-    prefix = spec.subentity_kinds[target].local_prefix if target else ""
-    return (kind, ks.plural, target, prefix, fields)
+    named = (
+        (spec.subentity_kinds[target].local_prefix, spec.kind_label(target)) if target else ("", "")
+    )
+    return (kind, ks.plural, target, named, fields)
 
 
 def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:

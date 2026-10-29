@@ -86,7 +86,7 @@ def _attribute_option(
         param_decls=[f"--{flag}", f"attribute_{name}"],
         default=None,
         multiple=many,
-        help=f"Attribute {label} of the {item_type}{' (repeatable)' if many else ''}.",
+        help=f"{item_type} attribute: {label}{' (repeatable)' if many else ''}.",
         expose_value=False,
         callback=_remember,
     )

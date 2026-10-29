@@ -4,11 +4,10 @@ A sub-entity's machine state (status, assignee, field values, mapping) lives in 
 item's frontmatter, see :class:`squads._models._subentity.SubEntity`. This module owns its
 prose and presentation, scaffolded as marker-scoped regions in the parent's body:
   - a heading line (``### US<n> — title``), rendered from the stored title,
-  - an sq-owned ``…:head`` region, a human-readable badge mirror of the state,
   - a ``…:body`` region the agent writes freely, and
   - a ``…:discussion`` region ``sq`` appends comments to.
-The parent's sq-managed ``:summary`` table rolls up its children's state. Only the migrations
-touch the legacy body-stored ``:meta`` regions, via ``_migrations._meta_compat``.
+Only the migrations write the ``…:head`` badge mirror and the parent's ``:summary`` table, or touch
+the legacy body-stored ``:meta`` regions (via ``_migrations._meta_compat``).
 """
 
 import hashlib
@@ -418,12 +417,10 @@ def build_block(
     spec: WorkflowSpec,
     from_squad: Path | None,
 ) -> str:
-    """A sub-entity block: heading + empty ``:head`` + ``:body`` + ``:discussion``.
+    """A sub-entity block: heading + ``:body`` + ``:discussion``, with no ``:head`` region.
 
     State (status, assignee, field values, mapping) lives in the parent's frontmatter, not here.
-    The skeleton
-    lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``); the ``:head`` is
-    filled by :func:`set_head` right after.
+    The skeleton lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``).
     """
     heading = f"### {local_id} — {title}".rstrip()
     return render(
@@ -468,14 +465,12 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
     spec: WorkflowSpec,
     from_squad: Path | None,
 ) -> str:
-    """(Re)render the human-readable ``:head`` region under a block's heading.
+    """Render the ``:head`` region under a block's heading; only the migrations call this.
 
-    A presentation mirror of the frontmatter state: status and each field with a value as coloured
-    badges, the mapped sub-entity, the assignee's full name. The layout is
-    ``templates/subentities/head.md.j2``, which receives ``status``, ``assignee``, ``fields`` (a
-    list of ``code``, ``label`` and ``badge``, in declared order) and ``mapping`` (``label`` and
-    ``value``, or ``None``). New blocks ship the region empty (from ``block.md.j2``); a legacy
-    block that lacks it gets it created just before the block's ``:body`` marker.
+    The layout is ``templates/subentities/head.md.j2``, which receives ``status``, ``assignee``,
+    ``fields`` (a list of ``code``, ``label`` and ``badge``, in declared order) and ``mapping``
+    (``label`` and ``value``, or ``None``). A block without the region gets it just before its
+    ``:body`` marker.
     """
     head_tag = _head_tag(kind, local_id)
     held = field_values or {}
@@ -561,7 +556,8 @@ def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
 def render_summary(
     kind: str, subentities: list[SubEntity], spec: WorkflowSpec, *, from_squad: Path | None
 ) -> str:
-    """The sq-managed roll-up table for a parent's sub-entities (empty until there are any).
+    """The roll-up table for a parent's sub-entities (empty until there are any); only the
+    migrations write it into a file.
 
     The table layout lives in ``templates/subentities/summary.md.j2``.
     """

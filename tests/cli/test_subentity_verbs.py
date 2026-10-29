@@ -1225,7 +1225,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         in update_item_help
     )
     assert (
-        "│    --owner-team                  TEXT  Attribute owner team of the job.      │"
+        "│    --owner-team                  TEXT  job attribute: owner team.            │"
         in create_help
     )
     assert (
@@ -1335,3 +1335,23 @@ async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
     ]
     assert listed[0]["badges"] == {"impact": "large"}
     assert listed[1]["badges"] == {}
+
+
+@pytest.mark.bundled_only("declares a label on the bundled story kind")
+@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+async def test_a_declared_label_on_a_bundled_kind_reaches_the_mapping_option_help(
+    populated_project, invoke
+) -> None:
+    overrides = populated_project.squad_dir / ".overrides"
+    overrides.mkdir()
+    (overrides / "workflow.toml").write_text(
+        '# squads:override-base:0.19.0\n[subentity_kinds.story]\nlabel = "Need"\n',
+        encoding="utf-8",
+    )
+    await _ok(invoke, ["task", str(TASK), "subtask", "1", "show"])
+    add_help = (await _ok(invoke, ["task", str(TASK), "add-subtask", "--help"])).splitlines()
+    update_help = (
+        await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--help"])
+    ).splitlines()
+    assert any("Need it maps to, as `US<n>` or `<n>`." in line for line in add_help)
+    assert any("Clear the Need mapping." in line for line in update_help)
