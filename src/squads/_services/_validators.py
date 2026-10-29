@@ -415,7 +415,7 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _subentity_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
-    """A subtask maps to one of its parent's declared stories."""
+    """Each sub-entity of a mapping kind maps to a sub-entity of its parent's target kind."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     ks = ctx.spec.subentity_kinds.get(kind) if kind is not None else None
@@ -427,14 +427,15 @@ def _subentity_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
     parent = ctx.index.get(item.parent) if (ctx.index is not None and item.parent) else None
     required_parent = ctx.spec.item_parent_required(item.type)
     host = required_parent or "parent"
-    story_kind = ctx.spec.item_subentity_kind(host) or "story"
+    target_kind = ctx.spec.mapping_target_kind(kind) if kind else None
+    target_kind = target_kind or host
     level = _resolved_level(ctx, "subentity_mapping")
     if parent is None or (required_parent is not None and parent.type != required_parent):
         return [
             CheckIssue(
                 level,
                 item.id,
-                f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
+                f"{kind} maps to {target_kind} sub-entities but {item.id} has no {host} parent",
                 rule="subentity_mapping",
             )
         ]
@@ -443,7 +444,7 @@ def _subentity_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             item.id,
-            f"{kind} {stn} → {us} missing from {parent.id}",
+            f"{kind} {stn} maps to {target_kind} {us}, missing from {parent.id}",
             rule="subentity_mapping",
         )
         for stn, us in refs
@@ -865,7 +866,10 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
     ``"supersedes"`` spelling."""
     item = ctx.item
     supersession_kinds = ctx.spec.supersession_ref_kinds()
-    if not any(rr.kind in supersession_kinds for rr in ctx.spec.item_ref_rules(item.type)):
+    declared = sorted(
+        {rr.kind for rr in ctx.spec.item_ref_rules(item.type) if rr.kind in supersession_kinds}
+    )
+    if not declared:
         return []
     if (
         ctx.spec.status_role(item.status) == "superseded"
@@ -876,7 +880,7 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
             CheckIssue(
                 level,
                 item.id,
-                f"status is {item.status} but no incoming supersedes edge found",
+                f"status is {item.status} but no incoming {'/'.join(declared)} edge found",
                 rule="supersedes_incoming",
             )
         ]

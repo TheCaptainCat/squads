@@ -53,7 +53,7 @@ async def _review(invoke, title: str) -> str:
 
 
 def _unmapped(squad: Squad, level: str) -> dict[str, str]:
-    message = f"subtask ST2 → US9 missing from {squad.feature}"
+    message = f"subtask ST2 maps to story US9, missing from {squad.feature}"
     return issue("subentity_mapping", level, squad.task, message)
 
 

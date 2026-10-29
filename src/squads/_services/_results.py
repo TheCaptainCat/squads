@@ -51,8 +51,6 @@ class GraphNode:
     id: str
     type: str
     status: str  # spec-defined status name
-    priority: str | None  # the priority badge code, or None; ``badges`` below is the generic
-    #: map, since a type on a different or renamed badge axis leaves ``priority`` null.
     assignee: str | None
     edge_kind: str | None  # None for root; the stored kind's spelling for all other nodes
     # (declared or not — an undeclared kind still traverses, see edge_semantic below)
@@ -60,9 +58,7 @@ class GraphNode:
     direction: str | None  # "out" | "in" | None (None for root)
     seen: bool
     badges: dict[str, str] = field(default_factory=lambda: dict[str, str]())
-    """Every spec-declared badge field this node's type carries, keyed by field code (e.g.
-    ``{"priority": "high"}``, or ``{"impact": "high", "urgency": "low"}`` for a custom axis) —
-    generic over the type's actual vocabulary, unlike the fixed ``priority`` attribute above."""
+    """Every spec-declared badge field this node's type carries, keyed by field code."""
     children: list[GraphNode] = field(default_factory=lambda: list[GraphNode]())
 
 

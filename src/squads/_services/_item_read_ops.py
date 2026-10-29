@@ -204,6 +204,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         display = SubentityShowDisplay(
             **dict(full.display),
             kind=kind_display(kind, self.spec),
+            maps_to_kind=self.spec.mapping_target_kind(kind),
             discussion=unparsed,
         )
         return Response(data=SubentityShow.model_validate({**dict(full), "display": display}))

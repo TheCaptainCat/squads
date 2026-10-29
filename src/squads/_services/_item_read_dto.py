@@ -81,7 +81,6 @@ def tree_node(
         type=it.type,
         title=it.title,
         status=it.status,
-        priority=it.badge_value("priority"),
         assignee=it.assignee,
         blocked=it.id in blocked_ids,
         badges=badges.resolve_badges(spec, it.type, it.badge_value),
@@ -136,7 +135,6 @@ def graph_node(node: results.GraphNode, spec: WorkflowSpec, names: Mapping[str, 
         id=node.id,
         type=node.type,
         status=node.status,
-        priority=node.priority,
         badges=node.badges,
         assignee=node.assignee,
         edge_kind=node.edge_kind,
@@ -263,13 +261,9 @@ def subentity_entry(
     names: Mapping[str, str],
 ) -> SubentityEntry:
     """A sub-entity as a listing row."""
-    return SubentityEntry(
-        local_id=sub.local_id,
-        title=sub.title,
-        status=sub.status,
-        assignee=sub.assignee,
-        severity=sub.badge_value("severity"),
-        story=sub.maps_to,
-        deferred_to=sub.deferred_to,
-        display=subentity_display(kind, sub, carrier_title, spec, names),
+    return SubentityEntry.model_validate(
+        {
+            **sub.model_dump(mode="json"),
+            "display": subentity_display(kind, sub, carrier_title, spec, names),
+        }
     )

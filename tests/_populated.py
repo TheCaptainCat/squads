@@ -20,7 +20,7 @@ async def _populate(root: Path) -> None:
     await svc.add_block(feature.item.id, "story", "Query the index")
     await svc.add_block(feature.item.id, "story", "Rank the results")
     task = await create_item(svc, "task", "Build the query parser", parent=feature.item.id)
-    await svc.add_block(task.item.id, "subtask", "Tokenise the input", story="US1")
+    await svc.add_block(task.item.id, "subtask", "Tokenise the input", maps_to="US1")
     await svc.add_block(task.item.id, "subtask", "Parse the operators")
     review = await create_item(svc, "review", "Review the query parser")
     await svc.add_block(

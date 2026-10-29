@@ -138,16 +138,14 @@ def _subentity_comments(kind: str) -> common.CommentHost:
     )
 
 
-def _story_kind(spec: WorkflowSpec, kind: str) -> str:
-    """The sub-entity kind a *kind* that maps to a parent story points at: the kind hosted by the
-    parent type of the type that hosts *kind*."""
-    for item_type, type_spec in spec.items.items():
-        if type_spec.subentity_kind == kind:
-            parent = spec.item_parent_required(item_type)
-            hosted = spec.item_subentity_kind(parent) if parent else None
-            if hosted is not None:
-                return hosted
-    return kind
+def _target_kind(spec: WorkflowSpec, kind: str) -> str:
+    """The sub-entity kind that *kind*'s mapping points at, *kind* itself when it maps nowhere."""
+    return spec.mapping_target_kind(kind) or kind
+
+
+def _flag(code: str) -> str:
+    """The option spelling of a declared code: underscores become dashes."""
+    return code.replace("_", "-")
 
 
 def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
@@ -190,14 +188,15 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
 
 #: One entry per aspect of a sub-entity kind that shapes the generated command surface.
 type _FieldSignature = tuple[str, str, str, bool, str | None]
-type KindSignature = tuple[str, str, bool, tuple[_FieldSignature, ...]] | None
+type KindSignature = tuple[str, str, str | None, str, tuple[_FieldSignature, ...]] | None
 
 
 def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
     """What ``_register_subentity`` bakes into the generated commands for *item_type*'s kind.
 
-    The kind name, its plural (the list verb), whether it maps a parent story (``--story``), and
-    every declared field's code, label, bound collection, requiredness and default (the
+    The kind name, its plural (the list verb), the kind its mapping targets (the ``--<target-kind>``
+    option) with that kind's local prefix, and every declared field's code, label, bound
+    collection, requiredness and default (the
     ``--<field-code>`` options, their help and the omitted-flag fallback). Equal signatures
     produce identical command trees, so comparing them tests whether the static tree still
     describes a spec; a name-only comparison would miss a field swap. ``None`` when the type
@@ -210,7 +209,9 @@ def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
     fields = tuple(
         (f.code, f.label, f.collection, f.required, f.default) for f in spec.fields_for(kind)
     )
-    return (kind, ks.plural, ks.maps_to_parent, fields)
+    target = spec.mapping_target_kind(kind)
+    prefix = spec.subentity_kinds[target].local_prefix if target else ""
+    return (kind, ks.plural, target, prefix, fields)
 
 
 def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
@@ -697,15 +698,42 @@ def _edit_as_param() -> inspect.Parameter:
     )
 
 
-def _field_param(field: Field) -> inspect.Parameter:
+def _field_help(field: Field, spec: WorkflowSpec) -> str:
+    """The help of a field option: its label and the codes of the collection it binds."""
+    coll = spec.collections.get(field.collection)
+    if coll and coll.badges:
+        return f"{field.label}: {'|'.join(b.code for b in coll.badges)}."
+    return f"{field.label} badge code."
+
+
+def _field_param(field: Field, spec: WorkflowSpec) -> inspect.Parameter:
     """One dynamic ``--<field-code>`` CLI option for a declared field — used to build both
     ``add-<kind>``'s and ``update``'s parameter list at spec-resolution time."""
     return inspect.Parameter(
         field.code,
         inspect.Parameter.KEYWORD_ONLY,
-        default=typer.Option(None, f"--{field.code}", help=f"{field.label} badge code."),
+        default=typer.Option(None, f"--{_flag(field.code)}", help=_field_help(field, spec)),
         annotation=str | None,
     )
+
+
+def _clear_field_param(field: Field) -> inspect.Parameter:
+    """The ``--no-<field-code>`` flag of an optional field, which removes its value."""
+    return inspect.Parameter(
+        f"no_{field.code}",
+        inspect.Parameter.KEYWORD_ONLY,
+        default=typer.Option(
+            False, f"--no-{_flag(field.code)}", help=f"Clear the {field.label} value."
+        ),
+        annotation=bool,
+    )
+
+
+def _mapping_help(spec: WorkflowSpec, kind: str, verb: str) -> str:
+    """The help of the mapping option: the target kind and the local id it takes."""
+    target = _target_kind(spec, kind)
+    prefix = spec.subentity_kinds[target].local_prefix
+    return f"{target.title()} {verb}, as `{prefix}<n>` or `<n>`."
 
 
 def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
@@ -743,7 +771,7 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
 
     sub = typer.Typer(
         no_args_is_help=True,
-        help=f"Operate on {common.article(kind)} {kind} by number or local ID.",
+        help=f"Operate on one {kind} sub-entity by number or local ID.",
     )
 
     @sub.callback()
@@ -794,7 +822,8 @@ def _deferred_to_params(kind: str, spec: WorkflowSpec) -> list[inspect.Parameter
 
 def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """Register ``add-<kind>``: base flags + one ``--<field-code>`` option per declared field
-    + ``--story`` iff the kind maps to a parent story + ``--status`` to seed a non-initial
+    + ``--<target-kind>`` iff the kind maps to a parent's sub-entity + ``--status`` to seed a
+    non-initial
     status at creation — built dynamically from the resolved ``SubentityKindSpec``. Replaces
     the three hand-written per-kind ``_register_add`` closures."""
     ks = spec.subentity_kinds[kind]
@@ -808,15 +837,17 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             default=typer.Argument(..., help="Short title; put the detail in the body."),
             annotation=str,
         ),
-        *(_field_param(field) for field in fields),
+        *(_field_param(field, spec) for field in fields),
     ]
     if ks.maps_to_parent:
         params.append(
             inspect.Parameter(
-                "story",
+                "maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
                 default=typer.Option(
-                    None, "--story", help="Story it implements, as `US<n>` or `<n>`."
+                    None,
+                    f"--{_flag(_target_kind(spec, kind))}",
+                    help=_mapping_help(spec, kind, "it maps to"),
                 ),
                 annotation=str | None,
             )
@@ -860,14 +891,14 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
 
     def _add(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
-        story = _kw_str(kwargs, "story")
+        maps_to = _kw_str(kwargs, "maps_to")
         status = _kw_str(kwargs, "status")
         message = _kw_list(kwargs, "message")
         request = SubentityAddRequest(
             **_address(ctx),
             kind=kind,
             title=cast(str, kwargs["title"]),
-            story=resolve_local_id(story, _story_kind(spec, kind)) if story else None,
+            maps_to=resolve_local_id(maps_to, _target_kind(spec, kind)) if maps_to else None,
             fields=_given_fields(kind, spec, kwargs),
             assignee=_kw_str(kwargs, "assignee"),
             status=parse_status(status) if status else None,
@@ -877,14 +908,15 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         common.declare_actor(_kw_str(kwargs, "as_"))
         _finish(ops.SUBENTITY_ADD, request, _kw_bool(kwargs, "json_out"), render_subentity_added)
 
-    _add.__doc__ = f"Scaffold {common.article(kind)} {kind} on this item."
+    _add.__doc__ = f"Scaffold a new {kind} sub-entity on this item."
     _add.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
     item.command(f"add-{kind}")(handle_errors(_add))
 
 
 def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """The sub-entity metadata entry point — one ``--<field-code>`` option per declared field
-    (identically to ``add-<kind>``) + ``--story``/``--no-story`` iff maps_to_parent."""
+    (identically to ``add-<kind>``) + ``--no-<field-code>`` per optional field +
+    ``--<target-kind>``/``--no-<target-kind>`` iff maps_to_parent."""
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
 
@@ -896,22 +928,26 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             default=typer.Option(None, "--title", help="New title."),
             annotation=str | None,
         ),
-        *(_field_param(field) for field in fields),
+        *(_field_param(field, spec) for field in fields),
     ]
+    params += [_clear_field_param(field) for field in fields if not field.required]
     if ks.maps_to_parent:
+        target = _target_kind(spec, kind)
         params += [
             inspect.Parameter(
-                "story",
+                "maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
                 default=typer.Option(
-                    None, "--story", help="Story to map it to, as `US<n>` or `<n>`."
+                    None, f"--{_flag(target)}", help=_mapping_help(spec, kind, "to map it to")
                 ),
                 annotation=str | None,
             ),
             inspect.Parameter(
-                "no_story",
+                "no_maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
-                default=typer.Option(False, "--no-story", help="Clear the story mapping."),
+                default=typer.Option(
+                    False, f"--no-{_flag(target)}", help=f"Clear the {target} mapping."
+                ),
                 annotation=bool,
             ),
         ]
@@ -955,21 +991,27 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     def _update(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
         title = _kw_str(kwargs, "title")
-        story = _kw_str(kwargs, "story")
-        no_story = _kw_bool(kwargs, "no_story")
+        maps_to = _kw_str(kwargs, "maps_to")
+        no_maps_to = _kw_bool(kwargs, "no_maps_to")
         assignee = _kw_str(kwargs, "assignee")
         clear_assignee = _kw_bool(kwargs, "clear_assignee")
         status = _kw_str(kwargs, "status")
         field_values = _given_fields(kind, spec, kwargs)
-        if story and no_story:
-            raise SquadsError("use --story or --no-story, not both")
+        unset_fields = [f.code for f in fields if _kw_bool(kwargs, f"no_{f.code}")]
+        for code in unset_fields:
+            if code in field_values:
+                raise SquadsError(f"use --{_flag(code)} or --no-{_flag(code)}, not both")
+        if maps_to and no_maps_to:
+            flag = _flag(_target_kind(spec, kind))
+            raise SquadsError(f"use --{flag} or --no-{flag}, not both")
         _guard_update(
             has_any=any(
                 (
                     title is not None,
                     field_values,
-                    story,
-                    no_story,
+                    unset_fields,
+                    maps_to,
+                    no_maps_to,
                     assignee,
                     clear_assignee,
                     status,
@@ -986,8 +1028,9 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             local=ctx.obj["local"],
             title=title,
             fields=field_values,
-            story=resolve_local_id(story, _story_kind(spec, kind)) if story else None,
-            clear_story=no_story,
+            unset_fields=unset_fields,
+            maps_to=resolve_local_id(maps_to, _target_kind(spec, kind)) if maps_to else None,
+            clear_maps_to=no_maps_to,
             assignee=assignee,
             clear_assignee=clear_assignee,
             status=parse_status(status) if status else None,
@@ -1023,8 +1066,8 @@ def _remove_help(kind: str, spec: WorkflowSpec) -> str:
     note = "Its local id is never reused."
     if mapping:
         note += (
-            f" {common.article(kind).capitalize()} {kind} that {common.article(mapping[0])} "
-            f"{mapping[0]} still maps to is refused; remap or remove the {mapping[0]} first."
+            f" Removal is refused while any {spec.subentity_plural(mapping[0])} still map to it;"
+            f" remap or remove them first."
         )
     summary = f"Delete this {kind} for good, with its body and discussion."
     return f"{summary}\n\n{textwrap.fill(note, 78)}"

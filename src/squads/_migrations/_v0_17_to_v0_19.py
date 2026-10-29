@@ -31,10 +31,11 @@ MANUAL = (
     "`milestone_rollup` is refused at load, so `sq migrate up` stops before any step and changes "
     "nothing until you rename them to `maps_to_parent`, `subentity_mapping` and `status_rollup`. "
     "(2) An override template that reads a name this release removes fails to render: the "
-    "sub-entity head no longer receives `severity`, `severity_label` or `story` but the declared "
-    "fields (a list of code, label and badge) and the mapping (a label and a value); an item's "
-    "`.priority` and `.severity` are read like any other stored value, by field code; a "
-    "sub-entity's `.story` is `.maps_to` and its `.extra` is `.attributes`. "
+    "sub-entity head no longer receives `severity`, `severity_label` or `story` but `fields` (a "
+    "list of `code`, `label` and `badge`) and `mapping` (a `label` and a `value`, or none); an "
+    "item's `.priority` and `.severity` are read like any other stored value, with "
+    "`item.badge_value('<code>')`; a sub-entity's `.story` is `.maps_to` and its `.extra` is "
+    "`.attributes`. "
     "(3) Reflog entries keep the keys they recorded: they are history and are not rewritten."
 )
 

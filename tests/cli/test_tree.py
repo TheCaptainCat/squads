@@ -282,7 +282,6 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
             "type": "feature",
             "title": "Search",
             "status": "Draft",
-            "priority": "high",
             "assignee": "manager",
             "blocked": False,
             "badges": {"priority": "high"},
@@ -293,7 +292,6 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                     "type": "task",
                     "title": "Parse queries",
                     "status": "InProgress",
-                    "priority": "urgent",
                     "assignee": "manager",
                     "blocked": False,
                     "badges": {"priority": "urgent"},
@@ -323,7 +321,6 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                     "type": "task",
                     "title": "Rank results",
                     "status": "Draft",
-                    "priority": "low",
                     "assignee": None,
                     "blocked": True,
                     "badges": {"priority": "low"},
@@ -404,7 +401,6 @@ async def test_json_gives_a_skill_sharing_a_roles_slug_neither_its_notebook_nor_
     skill = {"id": "SKILL-8", "type": "skill", "title": "Manager", "status": "Active"}
     skill_node = {
         **skill,
-        "priority": None,
         "assignee": None,
         "blocked": False,
         "badges": {},
@@ -433,7 +429,6 @@ def _role_node(pronouns: str | None) -> dict[str, Any]:
         "type": "role",
         "title": "Catherine Manager",
         "status": "Active",
-        "priority": None,
         "assignee": None,
         "blocked": False,
         "badges": {},
@@ -534,3 +529,25 @@ async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
+
+
+@pytest.mark.covers("tree", "--json")
+async def test_a_tree_node_carries_its_fields_in_badges_and_no_priority_key(
+    override_project, invoke
+) -> None:
+    roots = json.loads((await invoke(["tree", "--json"])).output)
+    initiative = next(node for node in roots if node["id"] == "INI-8")
+    assert list(initiative)[:9] == [
+        "id",
+        "type",
+        "title",
+        "status",
+        "assignee",
+        "blocked",
+        "badges",
+        "anchor",
+        "children",
+    ]
+    assert initiative["badges"] == {"urgency": "now"}
+    assert initiative["children"][0]["badges"] == {"work_size": "m"}
+    assert "priority" not in initiative

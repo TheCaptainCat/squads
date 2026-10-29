@@ -35,7 +35,7 @@ async def test_the_populated_squad_holds_a_task_under_the_feature(
 ) -> None:
     task = await _show(invoke, "task", TASK)
     assert task["parent"] == f"FEAT-{FEATURE}"
-    assert [(s["local_id"], s["story"]) for s in task["subentities"]] == [
+    assert [(s["local_id"], s["maps_to"]) for s in task["subentities"]] == [
         ("ST1", "US1"),
         ("ST2", None),
     ]

@@ -162,7 +162,7 @@ async def test_update_refuses_a_parent_that_lacks_the_story_a_subtask_maps_to(
     other = await _create_feature(invoke)
     assert await _ran(invoke, ["task", str(TASK), "update", "--parent", str(other)]) == (
         1,
-        f"error: subtask ST1 → US1 missing from FEAT-{other}\n",
+        f"error: subtask ST1 maps to story US1, missing from FEAT-{other}\n",
     )
 
 
@@ -188,7 +188,7 @@ async def test_update_refuses_to_clear_the_parent_a_mapped_subtask_needs(
 ) -> None:
     assert await _ran(invoke, ["task", str(TASK), "update", "--no-parent"]) == (
         1,
-        "error: subtask maps to a story but the task has no feature parent\n",
+        "error: subtask maps to story sub-entities but TASK-3 has no feature parent\n",
     )
 
 
@@ -238,7 +238,7 @@ async def test_update_clears_the_priority(populated_project, invoke) -> None:
     await _ok(invoke, ["task", str(TASK), "update", "--priority", "high"])
     out = await _ran(invoke, ["task", str(TASK), "update", "--no-priority"])
     assert out == (0, f"updated TASK-3  {TASK_PATH}\n")
-    assert (await _show(invoke))["priority"] is None
+    assert "priority" not in await _show(invoke)
 
 
 @pytest.mark.covers("<type> update", "--severity")
@@ -358,7 +358,7 @@ async def test_update_unsets_a_declared_attribute(populated_project, invoke) -> 
     await _ok(invoke, ["task", str(TASK), "update", "--priority", "high"])
     out = await _ran(invoke, ["task", str(TASK), "update", "--unset", "priority"])
     assert out == (0, f"updated TASK-3  {TASK_PATH}\n")
-    assert (await _show(invoke))["priority"] is None
+    assert "priority" not in await _show(invoke)
 
 
 @pytest.mark.covers("<type> update", "--unset")
@@ -436,7 +436,7 @@ async def test_update_unsets_an_attribute_that_is_set_and_unset_in_one_call(
         ["task", str(TASK), "update", "--set", "priority=low", "--unset", "priority"],
     )
     assert out == (0, f"updated TASK-3  {TASK_PATH}\n")
-    assert (await _show(invoke))["priority"] is None
+    assert "priority" not in await _show(invoke)
 
 
 # --- show -----------------------------------------------------------------------------------
@@ -469,10 +469,8 @@ def _subtask_json(local_id: str, title: str, story: str | None) -> dict[str, Any
         "title": title,
         "status": "Todo",
         "assignee": None,
-        "severity": None,
-        "story": story,
+        "maps_to": story,
         "deferred_to": None,
-        "extra": {},
         "body": PLACEHOLDER,
         "badges": {},
         "discussion": [],
@@ -481,7 +479,7 @@ def _subtask_json(local_id: str, title: str, story: str | None) -> dict[str, Any
             "status": status,
             "badges": {},
             "assignee": None,
-            "story": story,
+            "maps_to": story,
             "carrier_title": None,
         },
     }
@@ -500,8 +498,6 @@ async def test_show_json_prints_the_item_as_one_object(populated_project, invoke
         "parent": "FEAT-2",
         "author": "manager",
         "assignee": None,
-        "priority": None,
-        "severity": None,
         "labels": [],
         "refs": [],
         "subentities": [
@@ -619,8 +615,6 @@ async def test_show_json_lists_a_declared_attribute_with_its_label(
         "parent": None,
         "author": "manager",
         "assignee": None,
-        "priority": None,
-        "severity": None,
         "labels": [],
         "refs": [],
         "subentities": [],
@@ -781,8 +775,6 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
                     "parent": "FEAT-2",
                     "author": "manager",
                     "assignee": None,
-                    "priority": None,
-                    "severity": None,
                     "labels": [],
                     "refs": [],
                     "subentities": [
@@ -791,20 +783,16 @@ async def test_status_json_prints_the_moved_items_row(populated_project, invoke)
                             "title": "Tokenise the input",
                             "status": "Todo",
                             "assignee": None,
-                            "severity": None,
-                            "story": "US1",
+                            "maps_to": "US1",
                             "deferred_to": None,
-                            "extra": {},
                         },
                         {
                             "local_id": "ST2",
                             "title": "Parse the operators",
                             "status": "Todo",
                             "assignee": None,
-                            "severity": None,
-                            "story": None,
+                            "maps_to": None,
                             "deferred_to": None,
-                            "extra": {},
                         },
                     ],
                     "path": TASK_PATH,
@@ -1310,7 +1298,17 @@ async def test_view_disable_refuses_an_actor_no_roster_entry_has(populated_proje
 
 def _task_row(*, labels: list[str] | None = None, refs: list[str] | None = None) -> dict[str, Any]:
     """The populated task's row before its display, with *labels* and *refs*."""
-    subtask = {"status": "Todo", "assignee": None, "severity": None}
+
+    def subtask(local_id: str, title: str, maps_to: str | None) -> dict[str, Any]:
+        return {
+            "local_id": local_id,
+            "title": title,
+            "status": "Todo",
+            "assignee": None,
+            "maps_to": maps_to,
+            "deferred_to": None,
+        }
+
     return {
         "sequence_id": 3,
         "type": "task",
@@ -1321,13 +1319,11 @@ def _task_row(*, labels: list[str] | None = None, refs: list[str] | None = None)
         "parent": "FEAT-2",
         "author": "manager",
         "assignee": None,
-        "priority": None,
-        "severity": None,
         "labels": labels or [],
         "refs": refs or [],
         "subentities": [
-            {"local_id": "ST1", "title": "Tokenise the input", **subtask, "story": "US1"},
-            {"local_id": "ST2", "title": "Parse the operators", **subtask, "story": None},
+            subtask("ST1", "Tokenise the input", "US1"),
+            subtask("ST2", "Parse the operators", None),
         ],
         "path": TASK_PATH,
         "created_at": FROZEN_STAMP,
@@ -1342,8 +1338,6 @@ def _task_row(*, labels: list[str] | None = None, refs: list[str] | None = None)
 def _written(row: dict[str, Any], **outcome: Any) -> str:
     """*row* as the written entry with the task's display, and the write's *outcome* beside it, as
     `--json` prints it: compared as text, so the key order is held as well as the content."""
-    for sub in row["subentities"]:
-        sub.update(deferred_to=None, extra={})
     shown = {
         "type": "Task",
         "status": {"badge": "⚪ Draft", "intent": "neutral"},
@@ -1382,8 +1376,6 @@ async def test_retype_json_prints_the_items_row_under_its_new_type(
         "parent": None,
         "author": "manager",
         "assignee": None,
-        "priority": None,
-        "severity": None,
         "labels": [],
         "refs": [],
         "subentities": [],

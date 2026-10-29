@@ -262,8 +262,6 @@ async def test_json_prints_the_created_item(project, invoke) -> None:
             "parent": None,
             "author": "manager",
             "assignee": None,
-            "priority": None,
-            "severity": None,
             "labels": [],
             "refs": [],
             "subentities": [],

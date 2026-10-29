@@ -6,6 +6,7 @@ hidden `_addr` dispatcher dropped; the root callback is the empty key. A paramet
 first long flag, or by the usage name of an argument.
 """
 
+import functools
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -15,8 +16,9 @@ import typer.main
 from typer._click.core import Context, iter_params_for_processing
 
 from squads._cli import app
+from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
-from tests._help_tree import Node
+from tests._help_tree import Node, command_nodes
 
 type Pair = tuple[str, str | None]
 
@@ -170,13 +172,18 @@ def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
     return Surface(frozenset(pairs), frozenset(leaves))
 
 
-def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = None) -> set[Pair]:
+def reached_pairs(
+    args: list[str],
+    spec: WorkflowSpec,
+    refusal: str | None = None,
+    known: frozenset[Pair] | None = None,
+) -> set[Pair]:
     """The (key, parameter) pairs the argument list *args* names on the live tree.
 
     Each level is parsed with Click's parser, an unknown token routed to the address subgroup. A
-    parameter counts when the call gives it a value, when Click's missing-parameter error at the
-    leaf names it, or when one of its flags appears in the *refusal* a failed call printed; a leaf
-    given none adds ``(key, None)``. A level that does not parse, or asks for ``--help``, ends it.
+    parameter counts when the call gives it a value, when Click's missing-parameter error names it,
+    or when a flag appears in the *refusal* of a failed call; a leaf given none adds `(key, None)`.
+    A parameter outside *known* (the bundled tree's pairs) counts for nothing.
     """
     root = typer.main.get_command(app)
     ctx = Context(root, info_name="sq")
@@ -196,7 +203,9 @@ def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = Non
         level = {
             (key, param_name(p))
             for p in params
-            if given.get(p.name) not in (None, ()) and (key, param_name(p)) not in EXCLUDED_PARAMS
+            if given.get(p.name) not in (None, ())
+            and (key, param_name(p)) not in EXCLUDED_PARAMS
+            and (known is None or (key, param_name(p)) in known)
         }
         reached |= level
         if not hasattr(command, "list_commands") or not rest:
@@ -247,3 +256,10 @@ def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:
     """The pairs one marker declares: its key with each parameter, or the key alone."""
     key, *params = arguments
     return {(key, p) for p in params} or {(key, None)}
+
+
+@functools.cache
+def bundled_known() -> frozenset[Pair]:
+    """Every pair a marker may name: the pairs of the bundled tree and the bare call of its
+    leaves."""
+    return surface_of(command_nodes(include_hidden=True), bundled_spec()).known

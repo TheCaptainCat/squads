@@ -178,7 +178,6 @@ def _build_graph_node(
             id=item_id,
             type="",
             status="",
-            priority=None,
             assignee=None,
             edge_kind=edge_kind,
             edge_semantic=_edge_semantic(ctx.spec, edge_kind),
@@ -191,12 +190,10 @@ def _build_graph_node(
     already_seen = item.id in ctx.seen
     ctx.seen.add(item.id)
 
-    priority_val = item.badge_value("priority")
     node = GraphNode(
         id=item.id,
         type=item.type,
         status=item.status,
-        priority=priority_val,
         assignee=item.assignee,
         edge_kind=edge_kind,
         edge_semantic=_edge_semantic(ctx.spec, edge_kind),
@@ -224,7 +221,6 @@ def _build_graph_node(
         id=node.id,
         type=node.type,
         status=node.status,
-        priority=node.priority,
         assignee=node.assignee,
         edge_kind=node.edge_kind,
         edge_semantic=node.edge_semantic,
@@ -437,7 +433,6 @@ class RefsMixin(ServiceCore):
                 id=root_item.id,
                 type=root_item.type,
                 status=root_item.status,
-                priority=root_item.badge_value("priority"),
                 assignee=root_item.assignee,
                 edge_kind=None,
                 edge_semantic=None,

@@ -46,7 +46,7 @@ async def test_by_rewrites_the_references_to_a_moved_item(populated_project, inv
     assert result.exit_code == 0, result.output
     shown = await invoke(["task", "13", "show", "--json"])
     task = json.loads(shown.output)
-    assert (task["parent"], task["subentities"][0]["story"]) == ("FEAT-12", "US1")
+    assert (task["parent"], task["subentities"][0]["maps_to"]) == ("FEAT-12", "US1")
 
 
 @pytest.mark.covers("renumber", "--by")

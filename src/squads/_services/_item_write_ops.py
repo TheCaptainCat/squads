@@ -514,7 +514,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             item.id,
             req.kind,
             req.title,
-            story=req.story,
+            maps_to=req.maps_to,
             fields=fields or None,
             assignee=assignee,
             status=req.status,
@@ -543,7 +543,8 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
         nothing = False
         if clear_assignee and current.assignee is None:
             others = (
-                req.title, req.fields, req.story, req.clear_story, req.status, req.deferred_to,
+                req.title, req.fields, req.unset_fields, req.maps_to, req.clear_maps_to,
+                req.status, req.deferred_to,
             )  # fmt: skip
             nothing = not _asked(*others)
             clear_assignee = False
@@ -556,8 +557,9 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
                 req.local,
                 title=req.title,
                 fields=dict(req.fields) or None,
-                story=req.story,
-                clear_story=req.clear_story,
+                unset_fields=req.unset_fields or None,
+                maps_to=req.maps_to,
+                clear_maps_to=req.clear_maps_to,
                 assignee=assignee,
                 clear_assignee=clear_assignee,
                 status=req.status,

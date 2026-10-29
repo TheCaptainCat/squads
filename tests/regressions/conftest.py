@@ -3,6 +3,7 @@
 import pytest
 
 from squads._paths import SquadPaths
+from tests._override_populated import init_override_populated
 from tests._populated import init_populated
 from tests._readable import init_readable
 
@@ -23,3 +24,10 @@ def populated(populated_project: SquadPaths) -> SquadPaths:
 def readable(copy_squad) -> SquadPaths:
     """A copy of the readable squad as the working directory."""
     return copy_squad("readable", init_readable)
+
+
+@pytest.fixture
+def override_project(copy_squad) -> SquadPaths:
+    """A copy of the override test squad, populated with its own vocabulary, as the working
+    directory."""
+    return copy_squad("override-populated", init_override_populated)

@@ -189,9 +189,9 @@ async def test_up_flattens_entries_and_puts_item_keys_in_the_writers_order(
         assert after[untouched] == before[untouched], untouched
 
     subtask = json.loads((await invoke(["task", "3", "subtask", "1", "show", "--json"])).output)
-    assert subtask["story"] == "US1"
+    assert subtask["maps_to"] == "US1"
     finding = json.loads((await invoke(["review", "4", "finding", "3", "show", "--json"])).output)
-    assert (finding["severity"], finding["extra"]) == ("medium", {"urgency": "low"})
+    assert (finding["severity"], finding["urgency"]) == ("medium", "low")
 
 
 @pytest.mark.covers("migrate up")
@@ -255,7 +255,7 @@ async def test_up_flattens_the_mapping_of_a_squad_with_its_own_vocabulary(
     job = next((override_project.squad_dir / "jobs").glob("*.md"))
     number = re.search(r"^sequence_id: (\d+)$", _text(job), re.MULTILINE)
     assert number is not None
-    mapped_now = await invoke(["job", number[1], "action", "1", "update", "--story", "1"])
+    mapped_now = await invoke(["job", number[1], "action", "1", "update", "--outcome", "1"])
     assert mapped_now.exit_code == 0, mapped_now.output
     flat = _text(job)
     assert "  maps_to: " in flat

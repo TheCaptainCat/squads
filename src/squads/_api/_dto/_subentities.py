@@ -1,10 +1,13 @@
 """The sub-entity read DTOs: an item's sub-entities as a listing, and one sub-entity shown."""
 
+from typing import ClassVar
+
 from squads._api._dto._base import DTO
 from squads._api._dto._items import (
     ItemAddress,
     Subentity,
     SubentityDisplay,
+    SubentityRow,
     SubentitySummary,
 )
 
@@ -32,16 +35,11 @@ class KindDisplay(DTO):
     heading: str
 
 
-class SubentityEntry(DTO):
-    """A sub-entity as a listing row."""
+class SubentityEntry(SubentityRow):
+    """A sub-entity as a listing row: its stored state and its display."""
 
-    local_id: str
-    title: str
-    status: str
-    assignee: str | None
-    severity: str | None
-    story: str | None
-    deferred_to: str | None
+    TRAILING: ClassVar[tuple[str, ...]] = ("display",)
+
     display: SubentityDisplay
 
 
@@ -54,10 +52,12 @@ class SubentityList(DTO):
 
 
 class SubentityShowDisplay(SubentityDisplay):
-    """How a shown sub-entity is displayed: its display plus its kind, and its stored discussion
-    text when that holds no comment the discussion list can carry."""
+    """How a shown sub-entity is displayed: its display plus its kind, the kind its mapping
+    targets, and its stored discussion text when that holds no comment the discussion list can
+    carry."""
 
     kind: KindDisplay
+    maps_to_kind: str | None
     discussion: str | None
 
 

@@ -1,6 +1,6 @@
 """Build collaboration content: comments, and the presentation of sub-entity blocks.
 
-A sub-entity's machine state (status, assignee, severity, mapped story) lives in the parent
+A sub-entity's machine state (status, assignee, field values, mapping) lives in the parent
 item's frontmatter, see :class:`squads._models._subentity.SubEntity`. This module owns its
 prose and presentation, scaffolded as marker-scoped regions in the parent's body:
   - a heading line (``### US<n> — title``), rendered from the stored title,
@@ -13,7 +13,7 @@ touch the legacy body-stored ``:meta`` regions, via ``_migrations._meta_compat``
 
 import hashlib
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
@@ -420,7 +420,8 @@ def build_block(
 ) -> str:
     """A sub-entity block: heading + empty ``:head`` + ``:body`` + ``:discussion``.
 
-    State (status/assignee/severity/story) lives in the parent's frontmatter, not here. The skeleton
+    State (status, assignee, field values, mapping) lives in the parent's frontmatter, not here.
+    The skeleton
     lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``); the ``:head`` is
     filled by :func:`set_head` right after.
     """
@@ -461,35 +462,43 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
     local_id: str,
     *,
     status: str | None = None,
-    severity: str | None = None,
-    story: str | None = None,
+    field_values: Mapping[str, str] | None = None,
+    mapping: str | None = None,
     assignee_name: str | None = None,
     spec: WorkflowSpec,
     from_squad: Path | None,
 ) -> str:
     """(Re)render the human-readable ``:head`` region under a block's heading.
 
-    A presentation mirror of the frontmatter state: status and severity as coloured badges, the
-    implemented story as ``USn — title``, the assignee's full name. The layout is
-    ``templates/subentities/head.md.j2``; add an attribute by passing a value here and a line
-    there. New blocks ship the region empty (from ``block.md.j2``); a legacy block that lacks it
-    gets it created just before the block's ``:body`` marker. ``spec`` resolves the status badge and
-    the severity axis's label (:func:`squads._badges.status_badge`, :func:`field_label`).
+    A presentation mirror of the frontmatter state: status and each field with a value as coloured
+    badges, the mapped sub-entity, the assignee's full name. The layout is
+    ``templates/subentities/head.md.j2``, which receives ``status``, ``assignee``, ``fields`` (a
+    list of ``code``, ``label`` and ``badge``, in declared order) and ``mapping`` (``label`` and
+    ``value``, or ``None``). New blocks ship the region empty (from ``block.md.j2``); a legacy
+    block that lacks it gets it created just before the block's ``:body`` marker.
     """
     head_tag = _head_tag(kind, local_id)
+    held = field_values or {}
+    target = spec.mapping_target_kind(kind)
     inner = render(
         "subentities/head.md.j2",
         from_squad=from_squad,
         status=badges.status_badge(status, spec) if status else None,
-        severity=(
-            badges.badge_render(
-                badges.resolve_collection(kind, "severity", spec), severity, spec, as_label=True
-            )
-            if severity
-            else None
-        ),
-        severity_label=badges.field_label(kind, "severity", spec) if severity else None,
-        story=story,
+        fields=[
+            {
+                "code": f.code,
+                "label": f.label,
+                "badge": badges.badge_render(
+                    badges.resolve_collection(kind, f.code, spec),
+                    held[f.code],
+                    spec,
+                    as_label=True,
+                ),
+            }
+            for f in spec.fields_for(kind)
+            if held.get(f.code)
+        ],
+        mapping={"label": target.title(), "value": mapping} if mapping and target else None,
         assignee=assignee_name,
     )
     if get_section(text, head_tag) is None:
@@ -509,14 +518,15 @@ def summary_columns(kind: str, spec: WorkflowSpec) -> list[str]:
 
     A fixed base (local-id column headed by the kind name, then Status/Assignee/Title), one column
     per declared ``Field`` headed by its ``label`` and inserted right after the local-id column, and
-    a trailing Story column iff the kind declares ``maps_to_parent``. The body summary table and
+    a trailing column headed by the target kind iff the kind declares ``maps_to_parent``. The body
+    summary table and
     the CLI list/show tables share this derivation.
     """
     field_labels = [f.label for f in spec.fields_for(kind)]
     cols = [kind.title(), *field_labels, "Status", "Assignee", "Title"]
-    ks = spec.subentity_kinds.get(kind)
-    if ks is not None and ks.maps_to_parent:
-        cols.append("Story")
+    target = spec.mapping_target_kind(kind)
+    if target is not None:
+        cols.append(target.title())
     return cols
 
 
@@ -526,7 +536,7 @@ def _field_value(sub: SubEntity, code: str) -> str | None:
 
 
 def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
-    """One row aligned to :func:`summary_columns`: local id, field badges, base, then story.
+    """One row aligned to :func:`summary_columns`: local id, field badges, base, then the mapping.
 
     A field cell renders through :func:`~squads._badges.badge_render`'s default
     (``as_label=False``), emoji plus raw code (``"🔴 critical"``). A project's own view over the

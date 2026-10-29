@@ -16,7 +16,8 @@ from typer.testing import CliRunner
 from squads import _aio
 from squads._cli import app
 from squads._context import RequestContext, bind_context, get_context
-from squads._paths import SquadPaths
+from squads._errors import SquadsError
+from squads._paths import SquadPaths, resolve
 from squads._rendering._engine import _env_cache
 from squads._workflow import bundled_spec
 from squads._workflow._loader import load_workflow_spec
@@ -192,7 +193,8 @@ def _reached(
     prior = get_context()
     bind_context(replace(prior, active_spec=spec))
     try:
-        return cli_surface.reached_pairs(args, spec, refusal)
+        known = None if spec is bundled_spec() else cli_surface.bundled_known()
+        return cli_surface.reached_pairs(args, spec, refusal, known=known)
     finally:
         bind_context(prior)
 

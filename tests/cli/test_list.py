@@ -287,8 +287,6 @@ async def test_json_prints_one_object_per_item(readable, invoke) -> None:
                     "parent": None,
                     "author": "manager",
                     "assignee": None,
-                    "priority": None,
-                    "severity": None,
                     "labels": [],
                     "refs": [],
                     "subentities": [],
@@ -325,8 +323,6 @@ def _crash_row(assignee_name: str) -> dict[str, object]:
         "parent": None,
         "author": "manager",
         "assignee": "manager",
-        "priority": "medium",
-        "severity": "medium",
         "labels": [],
         "refs": [],
         "subentities": [],
@@ -336,6 +332,8 @@ def _crash_row(assignee_name: str) -> dict[str, object]:
         "created_session": None,
         "modified_session": None,
         "id": "BUG-6",
+        "priority": "medium",
+        "severity": "medium",
         "badges": {"priority": "medium", "severity": "medium"},
         "display": {
             "type": "Bug",
@@ -524,3 +522,19 @@ async def test_min_badge_refuses_an_unknown_value(readable, invoke) -> None:
         1,
         ["error: unknown priority 'ghost' (one of: urgent, high, medium, low)"],
     )
+
+
+@pytest.mark.covers("list", "--json")
+@pytest.mark.covers("list", "--all")
+async def test_the_item_row_carries_a_stored_field_by_its_code_and_no_other(
+    override_project, invoke
+) -> None:
+    rows = {
+        row["id"]: row for row in json.loads((await invoke(["list", "--json", "--all"])).output)
+    }
+    assert rows["INI-8"]["urgency"] == "now"
+    assert rows["INI-8"]["badges"] == {"urgency": "now"}
+    assert rows["JOB-9"]["work_size"] == "m"
+    assert "urgency" not in rows["JOB-9"]
+    assert not {"priority", "severity"} & set(rows["INI-8"])
+    assert not {"priority", "severity"} & set(rows["REC-10"])

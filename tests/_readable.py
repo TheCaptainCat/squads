@@ -35,7 +35,7 @@ async def _populate(root: Path) -> None:
         assignee="manager",
     )
     await svc.set_status(parser.item.id, "InProgress", force=True)
-    await svc.add_block(parser.item.id, "subtask", "Tokenise the input", story="US1")
+    await svc.add_block(parser.item.id, "subtask", "Tokenise the input", maps_to="US1")
     await svc.add_block(parser.item.id, "subtask", "Parse the operators")
     await svc.update_block(parser.item.id, "subtask", "ST2", status="Done", force=True)
     ranking = await create_item(

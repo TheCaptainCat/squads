@@ -113,8 +113,7 @@ async def test_the_plural_listing_prints_every_subtask_as_json(populated_project
             "title": "Tokenise the input",
             "status": "Todo",
             "assignee": None,
-            "severity": None,
-            "story": "US1",
+            "maps_to": "US1",
             "deferred_to": None,
             "display": _todo_display("US1"),
         },
@@ -123,8 +122,7 @@ async def test_the_plural_listing_prints_every_subtask_as_json(populated_project
             "title": "Parse the operators",
             "status": "Todo",
             "assignee": None,
-            "severity": None,
-            "story": None,
+            "maps_to": None,
             "deferred_to": None,
             "display": _todo_display(None),
         },
@@ -140,7 +138,7 @@ def _todo_display(story: str | None) -> dict[str, Any]:
         "status": {"badge": "⚪ Todo", "intent": "neutral"},
         "badges": {},
         "assignee": None,
-        "story": story,
+        "maps_to": story,
         "carrier_title": None,
     }
 
@@ -167,14 +165,17 @@ async def test_show_json_prints_the_subtask_as_one_object(populated_project, inv
         "title": "Tokenise the input",
         "status": "Todo",
         "assignee": None,
-        "severity": None,
-        "story": "US1",
+        "maps_to": "US1",
         "deferred_to": None,
-        "extra": {},
         "body": NO_BODY,
         "badges": {},
         "discussion": [],
-        "display": {**_todo_display("US1"), "kind": kind, "discussion": None},
+        "display": {
+            **_todo_display("US1"),
+            "kind": kind,
+            "maps_to_kind": "story",
+            "discussion": None,
+        },
     }
     # Compared as text, so the key order is held as well as the content.
     assert output == json.dumps(expected, indent=2) + "\n"
@@ -201,7 +202,7 @@ async def test_add_scaffolds_a_todo_subtask_with_the_given_title(populated_proje
         "added ST3 to TASK-3\n" + ADDED_HINT.format(n=3),
     )
     added = await _subtask(invoke, 3)
-    assert (added["title"], added["status"], added["story"], added["body"]) == (
+    assert (added["title"], added["status"], added["maps_to"], added["body"]) == (
         "Index the tokens",
         "Todo",
         None,
@@ -308,7 +309,7 @@ async def test_add_story_maps_the_subtask_to_a_story_of_the_parent_feature(
 ) -> None:
     await _ok(invoke, ["task", str(TASK), "add-subtask", "Index", "--story", "US2"])
     await _ok(invoke, ["task", str(TASK), "add-subtask", "Rank", "--story", "1"])
-    assert [(await _subtask(invoke, n))["story"] for n in (3, 4)] == ["US2", "US1"]
+    assert [(await _subtask(invoke, n))["maps_to"] for n in (3, 4)] == ["US2", "US1"]
 
 
 @pytest.mark.covers("<type> add-<kind>", "--story")
@@ -317,7 +318,7 @@ async def test_add_story_refuses_a_story_the_parent_feature_lacks(
 ) -> None:
     assert await _ran(invoke, ["task", str(TASK), "add-subtask", "Index", "--story", "US9"]) == (
         1,
-        f"error: user story US9 not found in FEAT-{FEATURE}\n",
+        f"error: story US9 not found in FEAT-{FEATURE}\n",
     )
 
 
@@ -331,7 +332,7 @@ async def test_add_story_is_resolved_against_the_parent_of_the_task_it_is_added_
     loose = await _create_task(invoke, "--parent", str(other))
     assert await _ran(invoke, ["task", str(loose), "add-subtask", "Index", "--story", "US2"]) == (
         1,
-        f"error: user story US2 not found in FEAT-{other}\n",
+        f"error: story US2 not found in FEAT-{other}\n",
     )
 
 
@@ -340,7 +341,7 @@ async def test_add_story_refuses_a_task_with_no_feature_parent(populated_project
     loose = await _create_task(invoke)
     assert await _ran(invoke, ["task", str(loose), "add-subtask", "Index", "--story", "US1"]) == (
         1,
-        f"error: TASK-{loose} has no feature parent; set one before mapping a subtask to US1\n",
+        f"error: TASK-{loose} has no feature parent; set one before mapping subtask to US1\n",
     )
 
 
@@ -427,8 +428,8 @@ async def test_add_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     out = await _ran(invoke, ["review", str(REVIEW), "add-finding", "Later", "--deferred-to", "3"])
     assert out == (
         1,
-        "error: a carrier (--deferred-to / deferred_to) applies to a finding in a deferred status "
-        "(Deferred); F3 is Open\n",
+        "error: a carrier (--deferred-to / deferred_to) applies to finding sub-entities in a "
+        "deferred status (Deferred); F3 is Open\n",
     )
 
 
@@ -554,7 +555,7 @@ async def test_update_story_maps_the_subtask_to_a_story_of_the_parent_feature(
 ) -> None:
     await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--story", "US2"])
     await _ok(invoke, ["task", str(TASK), "subtask", "2", "update", "--story", "1"])
-    assert [(await _subtask(invoke, n))["story"] for n in (1, 2)] == ["US2", "US1"]
+    assert [(await _subtask(invoke, n))["maps_to"] for n in (1, 2)] == ["US2", "US1"]
 
 
 @pytest.mark.covers("<type> <kind> update", "--story")
@@ -562,7 +563,7 @@ async def test_update_story_refuses_a_story_the_parent_feature_lacks(
     populated_project, invoke
 ) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--story", "US9"])
-    assert out == (1, f"error: user story US9 not found in FEAT-{FEATURE}\n")
+    assert out == (1, f"error: story US9 not found in FEAT-{FEATURE}\n")
 
 
 @pytest.mark.covers("<type> <kind> update", "--story")
@@ -576,10 +577,10 @@ async def test_update_story_is_resolved_against_the_parent_of_the_task_it_belong
     await _ok(invoke, ["task", str(loose), "add-subtask", "Index"])
     assert await _ran(invoke, ["task", str(loose), "subtask", "1", "update", "--story", "US2"]) == (
         1,
-        f"error: user story US2 not found in FEAT-{other}\n",
+        f"error: story US2 not found in FEAT-{other}\n",
     )
     await _ok(invoke, ["task", str(loose), "subtask", "1", "update", "--story", "US1"])
-    assert (await _subtask(invoke, 1, loose))["story"] == "US1"
+    assert (await _subtask(invoke, 1, loose))["maps_to"] == "US1"
 
 
 @pytest.mark.covers("<type> <kind> update", "--story")
@@ -590,7 +591,7 @@ async def test_update_story_refuses_a_task_with_no_feature_parent(
     await _ok(invoke, ["task", str(loose), "add-subtask", "Index"])
     assert await _ran(invoke, ["task", str(loose), "subtask", "1", "update", "--story", "US1"]) == (
         1,
-        f"error: TASK-{loose} has no feature parent; set one before mapping a subtask to US1\n",
+        f"error: TASK-{loose} has no feature parent; set one before mapping subtask to US1\n",
     )
 
 
@@ -598,7 +599,7 @@ async def test_update_story_refuses_a_task_with_no_feature_parent(
 async def test_update_no_story_clears_the_story_mapping(populated_project, invoke) -> None:
     out = await _ran(invoke, ["task", str(TASK), "subtask", "1", "update", "--no-story"])
     assert out == (0, "updated TASK-3 ST1\n")
-    assert (await _subtask(invoke, 1))["story"] is None
+    assert (await _subtask(invoke, 1))["maps_to"] is None
 
 
 @pytest.mark.covers("<type> <kind> update", "--story", "--no-story")
@@ -683,8 +684,8 @@ async def test_update_refuses_deferred_to_on_a_finding_that_is_not_deferred(
     )
     assert out == (
         1,
-        "error: a carrier (--deferred-to / deferred_to) applies to a finding in a deferred status "
-        "(Deferred); F2 is Open\n",
+        "error: a carrier (--deferred-to / deferred_to) applies to finding sub-entities in a "
+        "deferred status (Deferred); F2 is Open\n",
     )
 
 
@@ -907,10 +908,8 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
         "title": title,
         "status": "Todo",
         "assignee": None,
-        "severity": None,
-        "story": None,
+        "maps_to": None,
         "deferred_to": None,
-        "extra": {},
         "body": body,
         "badges": {},
         "discussion": [],
@@ -919,7 +918,7 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
             "status": {"badge": "⚪ Todo", "intent": "neutral"},
             "badges": {},
             "assignee": None,
-            "story": None,
+            "maps_to": None,
             "carrier_title": None,
             "kind": {
                 "name": "subtask",
@@ -927,6 +926,7 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
                 "plural": "subtasks",
                 "heading": "Subtasks",
             },
+            "maps_to_kind": "story",
             "discussion": None,
         },
     }
@@ -976,4 +976,170 @@ async def test_an_unknown_key_on_an_entry_survives_an_update_and_a_repair(
     await _ok(invoke, ["repair"])
 
     second = await _subtask(invoke, 2)
-    assert (second["title"], second["extra"]) == ("Parse more", {"note": "", "kept": True})
+    assert (second["title"], second["note"], second["kept"]) == ("Parse more", "", True)
+
+
+# --- the vocabulary the spec declares: the override squad -----------------------------------
+
+
+def _job_entries(override_project) -> list[dict[str, Any]]:
+    job = next((override_project.squad_dir / "jobs").glob("JOB-*.md"))
+    return read_frontmatter(job)["subentities"]
+
+
+@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> <kind> update")
+async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
+    override_project, invoke
+) -> None:
+    await _ok(invoke, ["job", "9", "add-action", "Publish it", "--outcome", "2"])
+    assert _job_entries(override_project)[-1]["maps_to"] == "OC2"
+
+    await _ok(invoke, ["job", "9", "action", "1", "update", "--outcome", "OC1"])
+    assert _job_entries(override_project)[0]["maps_to"] == "OC1"
+
+    await _ok(invoke, ["job", "9", "action", "1", "update", "--no-outcome"])
+    assert "maps_to" not in _job_entries(override_project)[0]
+
+    refused = await _ran(invoke, ["job", "9", "action", "1", "update", "--story", "1"])
+    assert refused[0] == 2
+    assert "No such option: --story" in refused[1]
+
+
+@pytest.mark.covers("<type> <kind> update")
+async def test_the_mapping_flags_are_refused_together_under_the_target_kinds_name(
+    override_project, invoke
+) -> None:
+    assert await _ran(
+        invoke, ["job", "9", "action", "1", "update", "--outcome", "1", "--no-outcome"]
+    ) == (1, "error: use --outcome or --no-outcome, not both\n")
+
+
+@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> <kind> update")
+async def test_a_missing_mapping_target_is_named_by_its_kind_and_local_prefix(
+    override_project, invoke
+) -> None:
+    assert await _ran(invoke, ["job", "9", "add-action", "Publish it", "--outcome", "9"]) == (
+        1,
+        "error: outcome OC9 not found in INI-8\n",
+    )
+    assert await _ran(invoke, ["job", "9", "action", "1", "update", "--outcome", "OC9"]) == (
+        1,
+        "error: outcome OC9 not found in INI-8\n",
+    )
+
+
+@pytest.mark.covers("<type> <kinds>")
+@pytest.mark.covers("<type> <kind> show")
+async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
+    override_project, invoke
+) -> None:
+    await _ok(invoke, ["job", "9", "action", "1", "update", "--outcome", "1"])
+    add_help = " ".join((await _ok(invoke, ["job", "9", "add-action", "--help"])).split())
+    update_help = " ".join(
+        (await _ok(invoke, ["job", "9", "action", "1", "update", "--help"])).split()
+    )
+    listing = await _ok(invoke, ["job", "9", "actions"])
+    shown = await _ok(invoke, ["job", "9", "action", "1", "show"])
+
+    assert "Outcome it maps to, as `OC<n>` or `<n>`." in add_help
+    assert "Impact: large|small." in add_help
+    assert "Outcome to map it to, as `OC<n>` or `<n>`." in update_help
+    assert "Clear the outcome mapping." in update_help
+    assert listing.splitlines()[0].split() == [
+        "Action",
+        "Impact",
+        "Status",
+        "Assignee",
+        "Title",
+        "Outcome",
+    ]
+    assert "outcome: OC1" in shown
+    assert "story" not in (add_help + update_help + listing + shown).lower()
+
+
+@pytest.mark.covers("<type> <kind> update")
+async def test_a_clear_flag_removes_an_optional_field_and_is_refused_beside_its_value(
+    override_project, invoke
+) -> None:
+    assert _job_entries(override_project)[0]["impact"] == "large"
+    assert await _ran(
+        invoke, ["job", "9", "action", "1", "update", "--impact", "small", "--no-impact"]
+    ) == (1, "error: use --impact or --no-impact, not both\n")
+
+    await _ok(invoke, ["job", "9", "action", "1", "update", "--no-impact"])
+
+    assert "impact" not in _job_entries(override_project)[0]
+    shown = json.loads(await _ok(invoke, ["job", "9", "action", "1", "show", "--json"]))
+    assert shown["badges"] == {}
+
+
+@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+async def test_a_required_field_has_no_clear_flag(populated_project, invoke) -> None:
+    code, output = await _ran(
+        invoke, ["review", str(REVIEW), "finding", "1", "update", "--no-severity"]
+    )
+    assert code == 2
+    assert "No such option: --no-severity" in output
+
+
+@pytest.mark.covers("<type> <kind> update", "--deferred-to")
+async def test_a_refusal_names_the_declared_kind_with_no_article_chosen(
+    override_project, invoke
+) -> None:
+    assert await _ran(invoke, ["job", "9", "action", "1", "update", "--deferred-to", "10"]) == (
+        1,
+        "error: a carrier (--deferred-to / deferred_to) applies to action sub-entities in a "
+        "deferred status (Deferred); AC1 is Todo\n",
+    )
+
+
+@pytest.mark.covers("<type> <kind> show", "--json")
+@pytest.mark.covers("<type> <kinds>", "--json")
+async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
+    override_project, invoke
+) -> None:
+    shown = await _ok(invoke, ["job", "9", "action", "1", "show", "--json"])
+    kind = {"name": "action", "label": "Action", "plural": "actions", "heading": "Actions"}
+    large = {"label": "Impact", "badge": "🔴 large", "badge_label": "🔴 Large"}
+    expected = {
+        "local_id": "AC1",
+        "title": "Draft the outline",
+        "status": "Todo",
+        "assignee": None,
+        "maps_to": None,
+        "deferred_to": None,
+        "impact": "large",
+        "body": "Outline.",
+        "badges": {"impact": "large"},
+        "discussion": [],
+        "display": {
+            "type": "Action",
+            "status": {"badge": "⚪ Todo", "intent": "neutral"},
+            "badges": {"impact": large},
+            "assignee": None,
+            "maps_to": None,
+            "carrier_title": None,
+            "kind": kind,
+            "maps_to_kind": "outcome",
+            "discussion": None,
+        },
+    }
+    assert shown == json.dumps(expected, indent=2) + "\n"
+
+    await _ok(invoke, ["job", "9", "action", "1", "update", "--outcome", "2"])
+    mapped = json.loads(await _ok(invoke, ["job", "9", "action", "1", "show", "--json"]))
+    assert (mapped["maps_to"], mapped["display"]["maps_to"]) == ("OC2", "OC2")
+
+    listed = json.loads(await _ok(invoke, ["job", "9", "actions", "--json"]))
+    assert list(listed[0]) == [
+        "local_id",
+        "title",
+        "status",
+        "assignee",
+        "maps_to",
+        "deferred_to",
+        "impact",
+        "display",
+    ]

@@ -62,14 +62,14 @@ def _panel_rows(show: ItemShow) -> list[str]:
 
 
 def _badge_line(sub: Subentity) -> str:
-    """A sub-entity's badges on one line: status, each badge field, assignee, mapped story, and
+    """A sub-entity's badges on one line: status, each badge field, assignee, mapped sub-entity, and
     the item that carries its deferred work."""
     shown = sub.display
     parts = [shown.status.badge, *(b.badge_label for b in shown.badges.values())]
     if sub.assignee:
         parts.append(sub.assignee)
-    if shown.story:
-        parts.append(shown.story)
+    if shown.maps_to:
+        parts.append(shown.maps_to)
     if sub.deferred_to:
         carrier = f" — {shown.carrier_title}" if shown.carrier_title else ""
         parts.append(f"Deferred to {sub.deferred_to}{carrier}")
