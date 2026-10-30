@@ -618,7 +618,7 @@ def blocked(
 @app.command()
 @handle_errors
 def graph(
-    root_id: str = typer.Argument(..., metavar="ID", help="Item ID or number to start from."),
+    root_id: str = typer.Argument(..., metavar="id", help="Item ID or number to start from."),
     depth: int = common.depth_option(2, "-d"),
     kind: list[str] = typer.Option(
         [],
@@ -753,7 +753,7 @@ def reflog(
         None,
         "--item",
         help="Show only entries on this full item ID, such as `<PREFIX>-<n>`.",
-        metavar="ID",
+        metavar="id",
     ),
     actor: str | None = typer.Option(
         None,
@@ -769,7 +769,7 @@ def reflog(
         None,
         "--since",
         help="Show only entries at or after this ISO 8601 date or time.",
-        metavar="WHEN",
+        metavar="when",
     ),
     tail: int = typer.Option(
         50,
@@ -827,7 +827,7 @@ def reflog(
 @handle_errors
 def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="ID", help="Item ID, such as `<PREFIX>-<n>`, or its bare number."
+        ..., metavar="id", help="Item ID, such as `<PREFIX>-<n>`, or its bare number."
     ),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
     raw: bool = common.raw_option(),

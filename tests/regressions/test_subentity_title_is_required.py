@@ -22,8 +22,8 @@ async def test_a_subtask_cannot_be_added_without_a_title_or_with_a_blank_one(
     blank = await invoke(["task", str(TASK), "add-subtask", "   "])
     assert (missing.exit_code, missing.output) == (
         2,
-        "Usage: sq task {N} add-subtask [OPTIONS] {title}\n"
-        "Try 'sq task {N} add-subtask --help' for help.\n"
+        "Usage: sq task {n} add-subtask [OPTIONS] {title}\n"
+        "Try 'sq task {n} add-subtask --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ Missing argument 'title'.                                                    │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",

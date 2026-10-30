@@ -217,7 +217,7 @@ def workflow_views(
 @handle_errors
 def workflow_view(
     name: str = typer.Argument(..., help="Declared view name (see `sq workflow views`)."),
-    item_id: str = typer.Argument(..., metavar="ID", help="Item to resolve the view against."),
+    item_id: str = typer.Argument(..., metavar="id", help="Item to resolve the view against."),
     json_out: bool = typer.Option(
         False, "--json", help="Print the resolved source as JSON, in its source's own shape."
     ),

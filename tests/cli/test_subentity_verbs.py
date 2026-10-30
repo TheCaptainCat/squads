@@ -78,7 +78,7 @@ async def _actors(invoke, target: str) -> list[tuple[str, str]]:
 # --- the group: LOCAL-ID --------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
 )
@@ -96,7 +96,7 @@ async def test_the_group_addresses_a_subtask_by_number_or_local_id(
     assert by_number["local_id"] == f"{P.kind_prefix}1"
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_the_group_refuses_a_local_id_the_item_does_not_hold(
     populated_project, invoke
 ) -> None:
@@ -242,8 +242,8 @@ async def test_add_refuses_a_missing_or_blank_title(populated_project, invoke) -
     before = (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1]
     assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}"]) == (
         2,
-        f"Usage: sq {P.ref} {{N}} add-{P.kind} [OPTIONS] {{title}}\n"
-        f"Try 'sq {P.ref} {{N}} add-{P.kind} --help' for help.\n"
+        f"Usage: sq {P.ref} {{n}} add-{P.kind} [OPTIONS] {{title}}\n"
+        f"Try 'sq {P.ref} {{n}} add-{P.kind} --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ Missing argument 'title'.                                                    │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
@@ -983,7 +983,7 @@ async def _action(invoke, local: int = 1) -> dict[str, Any]:
 
 
 @pytest.mark.covers("<type> add-<kind>", "title")
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
 )
@@ -1001,8 +1001,8 @@ async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
 
     assert await _ran(invoke, ["job", "9", "action", "1", "update", f"--{P.target_kind}", "1"]) == (
         2,
-        "Usage: sq job {N} action {LOCAL-ID} update [OPTIONS]\n"
-        "Try 'sq job {N} action {LOCAL-ID} update --help' for help.\n"
+        "Usage: sq job {n} action {local-id} update [OPTIONS]\n"
+        "Try 'sq job {n} action {local-id} update --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         f"│ No such option: --{P.target_kind} (Possible options: --json)                          "
         f" │\n"
@@ -1010,7 +1010,7 @@ async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
     )
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_the_mapping_flags_are_refused_together_under_the_target_kinds_name(
     override_project, invoke
 ) -> None:
@@ -1020,7 +1020,7 @@ async def test_the_mapping_flags_are_refused_together_under_the_target_kinds_nam
 
 
 @pytest.mark.covers("<type> add-<kind>", "title")
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_a_missing_mapping_target_is_named_by_its_kind_and_local_prefix(
     override_project, invoke
 ) -> None:
@@ -1090,7 +1090,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
     )
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_a_clear_flag_removes_an_optional_field_and_is_refused_beside_its_value(
     override_project, invoke
 ) -> None:
@@ -1106,7 +1106,7 @@ async def test_a_clear_flag_removes_an_optional_field_and_is_refused_beside_its_
     assert cleared["badges"] == {}
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
 )
@@ -1115,8 +1115,8 @@ async def test_a_required_field_has_no_clear_flag(populated_project, invoke) -> 
         invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--no-severity"]
     ) == (
         2,
-        f"Usage: sq {P.third} {{N}} {P.third_kind} {{LOCAL-ID}} update [OPTIONS]\n"
-        f"Try 'sq {P.third} {{N}} {P.third_kind} {{LOCAL-ID}} update --help' for help.\n"
+        f"Usage: sq {P.third} {{n}} {P.third_kind} {{local-id}} update [OPTIONS]\n"
+        f"Try 'sq {P.third} {{n}} {P.third_kind} {{local-id}} update --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ No such option: --no-severity (Possible options: --severity)                 │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
@@ -1194,7 +1194,7 @@ async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
 
 
 @pytest.mark.bundled_only("declares a label on the bundled story kind")
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_a_declared_label_on_a_bundled_kind_reaches_the_mapping_option_help(
     populated_project, invoke
 ) -> None:

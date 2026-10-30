@@ -268,7 +268,7 @@ async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow view", "name")
-@pytest.mark.covers("workflow view", "ID")
+@pytest.mark.covers("workflow view", "id")
 async def test_view_resolves_a_declared_view_against_the_item(milestone_project, invoke) -> None:
     expected = (
         0,
@@ -299,7 +299,7 @@ async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -
     )
 
 
-@pytest.mark.covers("workflow view", "ID")
+@pytest.mark.covers("workflow view", "id")
 async def test_view_refuses_an_item_the_index_lacks(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "milestone_rollup", "99") == (
         1,
@@ -307,7 +307,7 @@ async def test_view_refuses_an_item_the_index_lacks(milestone_project, invoke) -
     )
 
 
-@pytest.mark.covers("workflow view", "ID")
+@pytest.mark.covers("workflow view", "id")
 @pytest.mark.parametrize("view", ["milestone_rollup", "memory_skill"])
 async def test_view_refuses_an_id_whose_prefix_is_not_its_owners(
     milestone_project, invoke, view: str

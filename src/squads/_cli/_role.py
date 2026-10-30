@@ -209,7 +209,7 @@ def _read_definition(file: str | None) -> str | None:
 def add_role(  # noqa: PLR0913 — a flag per definition field
     slug: str = typer.Argument(..., help="Slug to file the new role under."),
     name: str | None = typer.Option(None, "--name", help="Full name of the agent."),
-    file: str | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP, metavar="PATH"),
+    file: str | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP, metavar="path"),
     job_title: str | None = typer.Option(None, "--job-title", help="The role's job title."),
     desc: str | None = common.desc_option(None),
     mission: str | None = typer.Option(None, "--mission", help="What the role is there to do."),
@@ -371,7 +371,7 @@ def update_role(  # noqa: PLR0913 — a flag per role field
         "--can-spawn",
         help="`yes` or `no`: may the role spawn agents (a role that defines itself only).",
     ),
-    file: str | None = common.file_option(common.ROLE_DELTA_FILE_HELP, metavar="PATH"),
+    file: str | None = common.file_option(common.ROLE_DELTA_FILE_HELP, metavar="path"),
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the role after the update."),
 ) -> None:

@@ -322,7 +322,7 @@ def build_item_app(
     @handle_errors
     def _resolve(
         ctx: typer.Context,
-        num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
+        num: str = typer.Argument(..., metavar="n", help=f"Number or ID of the {item_type}."),
     ):
         ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
 
@@ -456,7 +456,7 @@ def _cmd_status(item: typer.Typer) -> None:
     @handle_errors
     def status(
         ctx: typer.Context,
-        new_status: str = typer.Argument(..., metavar="STATUS", help=common.MOVE_STATUS_HELP),
+        new_status: str = typer.Argument(..., metavar="status", help=common.MOVE_STATUS_HELP),
         force: bool = common.force_transition_option(),
         as_: str | None = common.edit_as_option(),
         json_out: bool = typer.Option(
@@ -513,7 +513,7 @@ def _cmd_retype(item: typer.Typer) -> None:
         ctx: typer.Context,
         new_type: str = typer.Argument(
             ...,
-            metavar="NEW-TYPE",
+            metavar="new-type",
             help=(
                 "Type to reclassify to, not a roster type (see `sq workflow types`). "
                 "The item number is kept; only the ID prefix changes."
@@ -781,7 +781,7 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
     def _resolve_sub(
         ctx: typer.Context,
         n: str = typer.Argument(
-            ..., metavar="LOCAL-ID", help=f"Number or local ID of the {kind}, such as 2."
+            ..., metavar="local-id", help=f"Number or local ID of the {kind}, such as 2."
         ),
     ):
         assert ctx.parent is not None  # the parent item group always runs first

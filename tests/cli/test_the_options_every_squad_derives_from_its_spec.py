@@ -192,7 +192,7 @@ async def _loose(invoke) -> int:
     return int(created.split("-", 1)[1].split()[0])
 
 
-@pytest.mark.covers("<type> retype", "--as", "NEW-TYPE")
+@pytest.mark.covers("<type> retype", "--as", "new-type")
 async def test_retype_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
     number = await _loose(invoke)
     await _ok(invoke, [P.retype_from, str(number), "retype", P.retype_to, "--as", "manager"])
@@ -243,7 +243,7 @@ async def test_update_accepts_the_value_in_any_case(populated_project, invoke) -
     assert stored.lower() == P.third_other_value.lower()
 
 
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.covers("<type> retype", "new-type")
 async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_project, invoke) -> None:
     number = await _loose(invoke)
     out = await _ran(invoke, [P.retype_from, str(number), "retype", P.retype_to])
@@ -260,7 +260,7 @@ async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_proje
     )
 
 
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.covers("<type> retype", "new-type")
 async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "retype", P.retype_to]) == (
         1,
@@ -269,7 +269,7 @@ async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project,
     )
 
 
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.covers("<type> retype", "new-type")
 async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
     number = await _loose(invoke)
     assert await _ran(invoke, [P.retype_from, str(number), "retype", "role"]) == (
@@ -278,7 +278,7 @@ async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.covers("<type> retype", "new-type")
 async def test_retype_refuses_a_type_the_spec_does_not_declare(populated_project, invoke) -> None:
     number = await _loose(invoke)
     assert await _ran(invoke, [P.retype_from, str(number), "retype", P.target_kind]) == (

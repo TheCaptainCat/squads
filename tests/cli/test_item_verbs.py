@@ -73,7 +73,7 @@ async def _actors(invoke, target: str, op: str) -> list[str]:
 # --- the group: N ---------------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type>", "N")
+@pytest.mark.covers("<type>", "n")
 async def test_the_item_group_addresses_the_item_by_its_number(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     by_number = await _show(invoke, loose)
@@ -84,7 +84,7 @@ async def test_the_item_group_addresses_the_item_by_its_number(populated_project
     )
 
 
-@pytest.mark.covers("<type>", "N")
+@pytest.mark.covers("<type>", "n")
 async def test_the_item_group_refuses_the_number_of_another_type(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(FEATURE), "show"]) == (
         1,
@@ -92,7 +92,7 @@ async def test_the_item_group_refuses_the_number_of_another_type(populated_proje
     )
 
 
-@pytest.mark.covers("<type>", "N")
+@pytest.mark.covers("<type>", "n")
 async def test_the_item_group_refuses_a_number_no_item_has(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, "99", "show"]) == (
         1,
@@ -279,8 +279,8 @@ async def test_update_sets_and_clears_a_field_only_some_types_declare(
     assert refused == (
         2,
         unknown_option(
-            f"{P.ref} {{N}} update [OPTIONS]",
-            f"{P.ref} {{N}} update",
+            f"{P.ref} {{n}} update [OPTIONS]",
+            f"{P.ref} {{n}} update",
             "--severity",
             f" (Possible options: {P.badge_flag}, --set)",
         ),
@@ -306,7 +306,7 @@ async def test_update_takes_a_flag_per_declared_field_and_a_negation_per_optiona
         refused = await _ran(invoke, ["initiative", "8", "update", flag])
         assert refused == (
             2,
-            unknown_option("initiative {N} update [OPTIONS]", "initiative {N} update", flag, hint),
+            unknown_option("initiative {n} update [OPTIONS]", "initiative {n} update", flag, hint),
         )
 
 
@@ -823,7 +823,7 @@ async def test_show_comments_appends_the_discussion(populated_project, invoke) -
 # --- status ---------------------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> status", "STATUS")
+@pytest.mark.covers("<type> status", "status")
 async def test_status_moves_the_item_along_an_allowed_transition(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "status", "Ready"]) == (
         0,
@@ -832,7 +832,7 @@ async def test_status_moves_the_item_along_an_allowed_transition(populated_proje
     assert (await _show(invoke))["status"] == "Ready"
 
 
-@pytest.mark.covers("<type> status", "STATUS")
+@pytest.mark.covers("<type> status", "status")
 async def test_status_refuses_a_transition_the_lifecycle_does_not_allow(
     populated_project, invoke
 ) -> None:
@@ -843,7 +843,7 @@ async def test_status_refuses_a_transition_the_lifecycle_does_not_allow(
     assert (await _show(invoke))["status"] == "Draft"
 
 
-@pytest.mark.covers("<type> status", "STATUS")
+@pytest.mark.covers("<type> status", "status")
 async def test_status_refuses_a_status_no_lifecycle_declares(populated_project, invoke) -> None:
     code, output = await _ran(invoke, [P.ref, str(TASK), "status", "Sleeping"])
     assert (code, output.split(" (one of:")[0]) == (1, "error: unknown status 'Sleeping'")
@@ -1041,7 +1041,7 @@ async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invo
 # --- retype ---------------------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
+@pytest.mark.covers("<type> retype", "new-type")
 async def test_retype_refuses_the_type_the_item_already_has(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, [P.ref, str(loose), "retype", P.ref]) == (

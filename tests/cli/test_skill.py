@@ -647,7 +647,7 @@ async def test_regen_refuses_a_skill_that_does_not_exist(project, invoke) -> Non
 # ----------------------------------------------------------------------------------- status
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_refuses_to_retire_a_skill_still_scoped_to_a_live_role(
     project, invoke
 ) -> None:

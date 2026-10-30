@@ -88,7 +88,7 @@ def migrate_help(
 def migrate_chlog(
     span: str = typer.Argument(
         ...,
-        metavar="vFROM..vTO",
+        metavar="vfrom..vto",
         help="Releases after vFROM up to and including vTO, such as `v0.1.1..v0.2.0`.",
     ),
     json_out: bool = typer.Option(
@@ -108,7 +108,7 @@ def migrate_chlog(
 def migrate_repad(
     new_width: int = typer.Argument(
         ...,
-        metavar="WIDTH",
+        metavar="width",
         help=f"Digits to pad item numbers to: above the current width, up to {MAX_ID_PADDING}.",
     ),
     json_out: bool = typer.Option(
@@ -131,8 +131,8 @@ def migrate_repad(
 @migrate_app.command("rename-type")
 @handle_errors
 def migrate_rename_type(
-    old_type: str = typer.Argument(..., metavar="OLD_TYPE", help="Declared type to rename from."),
-    new_type: str = typer.Argument(..., metavar="NEW_TYPE", help="Declared type to rename to."),
+    old_type: str = typer.Argument(..., metavar="old_type", help="Declared type to rename from."),
+    new_type: str = typer.Argument(..., metavar="new_type", help="Declared type to rename to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the items moved and their new ids."
     ),
@@ -155,12 +155,12 @@ def migrate_rename_type(
 @handle_errors
 def migrate_rename_status(
     item_type: str = typer.Argument(
-        ..., metavar="TYPE", help="Declared type whose items carry the status."
+        ..., metavar="type", help="Declared type whose items carry the status."
     ),
     old_status: str = typer.Argument(
-        ..., metavar="OLD_STATUS", help="Status value to rename from."
+        ..., metavar="old_status", help="Status value to rename from."
     ),
-    new_status: str = typer.Argument(..., metavar="NEW_STATUS", help="Status value to rename to."),
+    new_status: str = typer.Argument(..., metavar="new_status", help="Status value to rename to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: how many items were relabelled."
     ),
@@ -181,8 +181,8 @@ def migrate_rename_status(
 @migrate_app.command("rename-field")
 @handle_errors
 def migrate_rename_field(
-    old: str = typer.Argument(..., metavar="OLD", help="Stored key to move values from."),
-    new: str = typer.Argument(..., metavar="NEW", help="Declared key to move them to."),
+    old: str = typer.Argument(..., metavar="old", help="Stored key to move values from."),
+    new: str = typer.Argument(..., metavar="new", help="Declared key to move them to."),
     types: list[str] = typer.Option(
         [], "--type", help="Move only the item key of this type (repeatable)."
     ),
@@ -212,8 +212,8 @@ def migrate_rename_field(
 @migrate_app.command("rename-kind")
 @handle_errors
 def migrate_rename_kind(
-    old: str = typer.Argument(..., metavar="OLD", help="Kind name the block markers carry."),
-    new: str = typer.Argument(..., metavar="NEW", help="Declared kind to bring them to."),
+    old: str = typer.Argument(..., metavar="old", help="Kind name the block markers carry."),
+    new: str = typer.Argument(..., metavar="new", help="Declared kind to bring them to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: how many items were rewritten."
     ),

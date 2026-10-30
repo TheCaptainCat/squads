@@ -58,7 +58,7 @@ async def _show(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
-@pytest.mark.covers("show", "ID")
+@pytest.mark.covers("show", "id")
 @pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_show_addresses_the_item_by_number_or_full_id(readable, invoke) -> None:
     by_number = await _show(invoke, "3")
@@ -67,7 +67,7 @@ async def test_show_addresses_the_item_by_number_or_full_id(readable, invoke) ->
     assert by_id == by_number
 
 
-@pytest.mark.covers("show", "ID")
+@pytest.mark.covers("show", "id")
 async def test_show_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _show(invoke, "99") == (
         1,
@@ -75,7 +75,7 @@ async def test_show_refuses_a_number_no_item_has(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("show", "ID")
+@pytest.mark.covers("show", "id")
 @pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_show_refuses_a_full_id_whose_prefix_is_another_types(readable, invoke) -> None:
     assert await _show(invoke, f"{P.ref_prefix}-2") == (
@@ -84,7 +84,7 @@ async def test_show_refuses_a_full_id_whose_prefix_is_another_types(readable, in
     )
 
 
-@pytest.mark.covers("show", "ID")
+@pytest.mark.covers("show", "id")
 async def test_show_refuses_text_that_is_not_an_id(readable, invoke) -> None:
     assert await _show(invoke, "ghost") == (
         1,
@@ -254,7 +254,7 @@ async def test_json_prints_the_notices_on_stderr_and_only_the_object_on_stdout(
     )
 
 
-@pytest.mark.covers("show", "ID")
+@pytest.mark.covers("show", "id")
 async def test_a_refused_show_prints_the_notices_before_the_error(project, invoke) -> None:
     # No command writes an unrecognised working language, so the configuration is edited.
     config = project.root / ".squads.toml"

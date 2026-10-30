@@ -323,7 +323,7 @@ def main_callback(
         [],
         "-C",
         help="Run as if sq was started in PATH (repeatable; relative to the previous -C).",
-        metavar="PATH",
+        metavar="path",
         callback=common.check_change_dir,
         is_eager=True,
     ),
@@ -334,7 +334,7 @@ def main_callback(
         None,
         "--at",
         help="Record this ISO 8601 UTC time instead of now, to bring in past history.",
-        metavar="WHEN",
+        metavar="when",
     ),
     version: bool = typer.Option(
         False, "--version", callback=_version_cb, is_eager=True, help="Show version and exit."

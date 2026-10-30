@@ -958,7 +958,7 @@ async def test_set_default_as_refuses_a_slug_that_is_not_registered(project, inv
 # ----------------------------------------------------------------------------------- status
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_archives_a_role_and_brings_it_back(project, invoke) -> None:
     await _activate(invoke)
     archived = await invoke(["role", "architect", "status", "Archived"])
@@ -969,7 +969,7 @@ async def test_status_archives_a_role_and_brings_it_back(project, invoke) -> Non
     assert (await _roles(invoke))["architect"]["status"] == "Active"
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_refuses_a_status_the_workflow_does_not_declare(project, invoke) -> None:
     await _activate(invoke)
     result = await invoke(["role", "architect", "status", "Bogus"])
@@ -995,7 +995,7 @@ async def test_status_force_does_not_lift_a_status_the_role_lifecycle_lacks(
     )
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_refuses_to_archive_the_last_live_role(project, invoke) -> None:
     result = await invoke(["role", "manager", "status", "Archived"])
     assert (result.exit_code, result.output) == (
@@ -1007,15 +1007,15 @@ async def test_status_refuses_to_archive_the_last_live_role(project, invoke) -> 
     )
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_needs_a_status(project, invoke) -> None:
     result = await invoke(["role", "manager", "status"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq role <slug|id|n> status [OPTIONS] {STATUS}",
+            "Usage: sq role <slug|id|n> status [OPTIONS] {status}",
             "sq role <slug|id|n> status --help",
-            "Missing argument 'STATUS'.",
+            "Missing argument 'status'.",
         ),
     )
 

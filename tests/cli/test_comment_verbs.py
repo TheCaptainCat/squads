@@ -160,7 +160,7 @@ async def test_comment_refuses_an_empty_file(populated_project, invoke) -> None:
 # --- the group: HASH ------------------------------------------------------------------------
 
 
-@pytest.mark.covers("<host> comment", "HASH")
+@pytest.mark.covers("<host> comment", "hash")
 async def test_comment_addresses_a_comment_by_four_or_more_leading_hex_characters(
     populated_project, invoke
 ) -> None:
@@ -175,13 +175,13 @@ async def test_comment_addresses_a_comment_by_four_or_more_leading_hex_character
     assert by_short["body"] == "- Findable"
 
 
-@pytest.mark.covers("<host> comment", "HASH")
+@pytest.mark.covers("<host> comment", "hash")
 async def test_comment_refuses_a_token_that_is_not_a_hash(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "comment", "abc", "show"])
     assert out == (2, NOT_A_HASH.format(token="abc"))
 
 
-@pytest.mark.covers("<host> comment", "HASH")
+@pytest.mark.covers("<host> comment", "hash")
 async def test_comment_refuses_a_hash_with_no_verb(populated_project, invoke) -> None:
     short = await _post(invoke, "Findable")
     assert await _ran(invoke, [P.ref, str(TASK), "comment", short]) == (
@@ -190,7 +190,7 @@ async def test_comment_refuses_a_hash_with_no_verb(populated_project, invoke) ->
     )
 
 
-@pytest.mark.covers("<host> comment", "HASH")
+@pytest.mark.covers("<host> comment", "hash")
 async def test_comment_refuses_a_hash_no_comment_carries(populated_project, invoke) -> None:
     await _post(invoke, "Findable")
     assert await _ran(invoke, [P.ref, str(TASK), "comment", "dead", "show"]) == (
@@ -200,7 +200,7 @@ async def test_comment_refuses_a_hash_no_comment_carries(populated_project, invo
     )
 
 
-@pytest.mark.covers("<host> comment", "--as", "HASH")
+@pytest.mark.covers("<host> comment", "--as", "hash")
 async def test_comment_refuses_message_before_the_verb(populated_project, invoke) -> None:
     short = await _post(invoke, "Findable")
     out = await _ran(invoke, [P.ref, str(TASK), "comment", "--as", "manager", short, "show"])
@@ -519,7 +519,7 @@ async def test_remove_refuses_an_author_no_roster_entry_has(populated_project, i
 # --- the other hosts ------------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_a_subtask_addresses_its_own_discussion(populated_project, invoke) -> None:
     host = [P.ref, str(TASK), P.kind, "1"]
     await _ok(invoke, [*host, "comment", "-m", f"On the {P.kind}", "--as", "manager"])
@@ -531,7 +531,7 @@ async def test_a_subtask_addresses_its_own_discussion(populated_project, invoke)
     assert await _comments(invoke) == []
 
 
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_a_comment_on_a_subtask_the_item_lacks_names_the_subtask(
     populated_project, invoke
 ) -> None:

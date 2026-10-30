@@ -83,7 +83,7 @@ async def _check_issues(invoke) -> list[dict[str, str]]:
 
 @pytest.mark.covers("check", "--json")
 @pytest.mark.covers("repair")
-@pytest.mark.covers("<type> <kind>", "LOCAL-ID")
+@pytest.mark.covers("<type> <kind>", "local-id")
 async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
     override_project, invoke
 ) -> None:
@@ -104,7 +104,7 @@ async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
 
 
 @pytest.mark.covers("check", "--json")
-@pytest.mark.covers("<type> status", "STATUS")
+@pytest.mark.covers("<type> status", "status")
 async def test_a_superseded_record_names_the_declared_supersession_kind(
     override_project, invoke
 ) -> None:

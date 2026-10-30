@@ -1358,7 +1358,7 @@ def register_comment_group(app: typer.Typer, host: CommentHost) -> None:
     def _hash(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         hash_value: str = typer.Argument(
-            ..., metavar="HASH", help="4 or more leading hex characters."
+            ..., metavar="hash", help="4 or more leading hex characters."
         ),
     ) -> None:
         """Show, edit or remove one comment, addressed by its hash."""
