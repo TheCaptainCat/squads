@@ -33577,7 +33577,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-30T07:48:03Z",
+      "updated_at": "2026-10-30T08:05:32Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -63099,11 +63099,66 @@
           "attributes": {
             "severity": "info"
           }
+        },
+        {
+          "local_id": "F30",
+          "title": "One Ctrl-C does not end HttpApi's wait under asyncio.run",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "high"
+          }
+        },
+        {
+          "local_id": "F31",
+          "title": "Parity run misses a dropped Client-Dir or Session-Id header",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F32",
+          "title": "Hosted-squad retry and Client-Dir omission are not built",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F33",
+          "title": "Remote refusal tests cannot see a fall back; pin v0.19",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F34",
+          "title": "Vocabulary guard parses only --help; self-check tests CPython",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
         }
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T07:57:28Z",
+      "updated_at": "2026-10-30T08:05:30Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

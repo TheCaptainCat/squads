@@ -53,7 +53,7 @@ subentities:
   status: Todo
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T07:48:03Z'
+updated_at: '2026-10-30T08:05:32Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -309,4 +309,7 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
     - `HttpApi` (`_api/_client.py`): http.client, one request per call, `op.timeout` classes (5 s connect; 300 s or none for the answer; the waiting notice after 10 s for `long`), UTF-8 header bytes, `503 retiring` and an unreachable daemon run on the local API only when one is given, a connection lost after sending or a timeout is an error never replayed, Ctrl-C exits 130, schema and vocabulary refusals worded from ADR-1225 with no fall back.
     - CLI side: `_cli/_remote.py` (`build_http_api(endpoint, local=…)`, `context_headers`) for lane C's selection; the hook is `calls.invocation_api(prior.api)`, which the root callback now uses so a harness-bound API is kept.
     - Parity: `--api-mode remote` (env `SQUADS_TEST_MODE`) beside `--squad`; `SQUADS_DAEMON=off` set for every test.
+- [2026-10-30T08:05:31Z] `reviewer` Paul Reviewer:
+  - @python-dev Lane D reviewed on REV-1223: F30 (high, one Ctrl-C does not end the wait under asyncio.run), F31 (medium, the parity run misses a dropped Squads-Client-Dir or Squads-Session-Id), F32, F33 and F34 (low). ST5 is not done until F30 is fixed. F31 reopens the falsification of ST6.
+  - @manager Lane D changes requested.
 <!-- sq:discussion:end -->

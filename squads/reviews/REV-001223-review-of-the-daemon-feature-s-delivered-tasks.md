@@ -158,8 +158,33 @@ subentities:
   status: Fixed
   assignee: python-dev
   severity: info
+- local_id: F30
+  title: One Ctrl-C does not end HttpApi's wait under asyncio.run
+  status: Open
+  assignee: python-dev
+  severity: high
+- local_id: F31
+  title: Parity run misses a dropped Client-Dir or Session-Id header
+  status: Open
+  assignee: python-dev
+  severity: medium
+- local_id: F32
+  title: Hosted-squad retry and Client-Dir omission are not built
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F33
+  title: Remote refusal tests cannot see a fall back; pin v0.19
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F34
+  title: Vocabulary guard parses only --help; self-check tests CPython
+  status: Open
+  assignee: python-dev
+  severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T07:57:28Z'
+updated_at: '2026-10-30T08:05:30Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -869,6 +894,104 @@ Built and untested by design (ADR-1052 point 11, plan): idle exit (a mutation th
 <!-- sq:finding:F29:discussion -->
 <!-- sq:finding:F29:discussion:end -->
 <!-- sq:finding:F29:end -->
+
+<!-- sq:finding:F30 -->
+### F30 — One Ctrl-C does not end HttpApi's wait under asyncio.run
+
+<!-- sq:finding:F30:body -->
+`calls.call` drives `HttpApi.call` through `asyncio.run`. On the main thread, `asyncio.Runner` replaces the SIGINT handler: the first Ctrl-C only cancels the main task and returns, so the blocking `recv` in `http.client` is retried (PEP 475) and `HttpApi._exchange` never sees a `KeyboardInterrupt`. ADR-1052 point 10 and ADR-1225 section 5 require Ctrl-C to end the client's wait with the "may still complete" message and exit 130.
+
+Driven (probe outside the repo, `HttpApi` against a socket that accepts and never answers, `BLOCKED` operation, SIGINT after 1.5 s):
+
+- `asyncio.run(api.call(...))`, as `calls.call` does: still waiting 4 s after the first SIGINT. Only a second SIGINT gave `ClientInterruptedError`.
+- The same coroutine driven without `asyncio.run`: `ClientInterruptedError` 0.1 s after the first SIGINT.
+- With `asyncio.run` and a server that answers 200 after 3 s: the first SIGINT is held until the answer arrives, then the answer is thrown away and a bare `KeyboardInterrupt` comes out. It is not a `ClientInterruptedError`, so `handle_errors` does not turn it into exit 130 with the message. I inferred Click's `Aborted!` and exit 1 from reading the code; I did not run it through the CLI, because the CLI cannot select `HttpApi` yet.
+
+What the user sees: one Ctrl-C does nothing for up to 300 s on a `standard` operation, and for ever on a `long` one. The `ClientInterruptedError` and the exit 130 in `handle_errors` cannot be reached with a single Ctrl-C. Nothing tests this. Lane C's Ctrl-C cross-process member would catch it, but only if it sends exactly one SIGINT.
+
+Fix direction: keep `asyncio.run` from installing its SIGINT handler around the call (for example, run the call with `asyncio.Runner` while the default handler stays in place, or do the blocking exchange outside the event loop). Prove it with one SIGINT.
+<!-- sq:finding:F30:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F30:discussion -->
+<!-- sq:finding:F30:discussion:end -->
+<!-- sq:finding:F30:end -->
+
+<!-- sq:finding:F31 -->
+### F31 — Parity run misses a dropped Client-Dir or Session-Id header
+
+<!-- sq:finding:F31:body -->
+ST6 asks for the parity run to be falsified by dropping a header on the wire. I did that with a probe plugin (outside the repo) that removes one header from `_remote.context_headers`, which `tests/_parity.py` imports, and ran `--api-mode remote`, bundled squad, `-n 4`. Results:
+
+- No header dropped (control): 85 passed over test_comment_verbs, test_root_options, test_board and test_show.
+- `Squads-Actor` dropped: 31 failed. Caught.
+- `Squads-At` dropped: 16 failed. Caught.
+- `Squads-Client-Dir` dropped: the whole of tests/cli passed, 997 of 997.
+- `Squads-Session-Id` dropped: the whole of tests/cli passed, 997 of 997. `Squads-Parent-Session-Id` is in the same position: nothing in the suite sets a session.
+
+`Squads-Client-Dir`: the daemon falls back to the squad root (`_services/_service.py` `_context`), and every surface case starts at the root, so the two spellings give the same text. The headers are not masked by state the two sides share. Nothing exercises them. Nothing else proves the client sends them either: ST4 hands the daemon-side binding to TASK-1218 ST8, and those tests build headers by hand.
+
+So the parity run does not hold the claim, made in ST4 and in ADR-1225 section 2, that the client sends the start directory and the session lineage. A client regression that loses either goes green in both modes. Without the start directory, a remedy path printed from a subdirectory is spelled from the root. Without the session lineage, the reflog loses the session.
+
+ADR-1172 allows no new parity cases, so the fix is one of two. Either an existing surface case that runs below the root and prints a path, plus one that sets a session and reads it back (for example through the reflog), or the client half of the header binding asserted in the remote-refusal module. The falsification of the session and parent-session headers should go on the record together with that fix.
+<!-- sq:finding:F31:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F31:discussion -->
+<!-- sq:finding:F31:discussion:end -->
+<!-- sq:finding:F31:end -->
+
+<!-- sq:finding:F32 -->
+### F32 — Hosted-squad retry and Client-Dir omission are not built
+
+<!-- sq:finding:F32:body -->
+Read, not driven: nothing produces such an endpoint before FEAT-33. TASK-1219 says the hosted-squad branches are "built behind the `Endpoint` local-mode flag and not tested". Two of them are not built:
+
+- ADR-1225 section 5, "Squad hosted elsewhere": after a `503 retiring`, the client resolves the endpoint again and sends the call once more. `HttpApi._declined` raises the "is restarting" error straight away when `local` is `None`. There is no retry, and nothing re-resolves the endpoint: `HttpApi` holds a fixed `connect`.
+- ADR-1225 section 5, endpoint resolution: for a hosted squad "the client then leaves out `Squads-Client-Dir`". `_remote.context_headers` always sends it, and `build_http_api` does not look at `endpoint.local_mode` for headers.
+
+Either build both behind the flag, or change ST5's text to say they are left to FEAT-33. Then the task does not claim a seam that does not exist.
+<!-- sq:finding:F32:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F32:discussion -->
+<!-- sq:finding:F32:discussion:end -->
+<!-- sq:finding:F32:end -->
+
+<!-- sq:finding:F33 -->
+### F33 — Remote refusal tests cannot see a fall back; pin v0.19
+
+<!-- sq:finding:F33:body -->
+Read: `tests/daemon/test_remote_refusals.py`.
+
+- The module docstring and ST7 claim "no fall back to local mode", but `client_of` builds `HttpApi(local=None)`. With no local API there is nothing to fall back to, so a change that made `_refusal` fall back when `local` is set would stay green. To prove the claim, one case (the vocabulary case is the one ADR-1225 section 5 cares about) needs a `local` that fails the test if it is called.
+- The expected schema-mismatch messages spell the daemon's version as the literal `v0.19`. The next `SCHEMA_VERSION` bump turns two cases red with no behaviour change. Format them from `SCHEMA_VERSION`.
+<!-- sq:finding:F33:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F33:discussion -->
+<!-- sq:finding:F33:discussion:end -->
+<!-- sq:finding:F33:end -->
+
+<!-- sq:finding:F34 -->
+### F34 — Vocabulary guard parses only --help; self-check tests CPython
+
+<!-- sq:finding:F34:body -->
+`tests/meta/test_the_parser_reads_only_the_documents_the_vocabulary_hash_covers.py`:
+
+- The guard only invokes `--help`, `task --help` and `task 1 show --help`. A real command parse (option conversion, `-C`, the root callback with arguments) is not exercised, so a later read of, say, the playbook during a non-help parse would not trip it. I probed five real parses (`task 1 show`, `list`, `role list`, `task 1 status Done`, `comment …`) with a stub API in context, an audit hook and the five seeded documents: none was opened today. So this finding is about what the guard can see, not a present leak. Add at least one non-help invocation, against an API that refuses the call.
+- `test_the_scan_sees_a_document_that_is_opened` is parametrized five ways to show that `read_text` raises an `open` audit event. That tests CPython, not the guard, and it is test growth under ADR-1172. One case is enough to keep the guard falsifiable. Every case also adds an audit hook that cannot be removed to the worker process (harmless, but each one runs on every later open).
+<!-- sq:finding:F34:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F34:discussion -->
+<!-- sq:finding:F34:discussion:end -->
+<!-- sq:finding:F34:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -948,4 +1071,8 @@ Built and untested by design (ADR-1052 point 11, plan): idle exit (a mutation th
     - F29 (not runnable here): `SO_EXCLUSIVEADDRUSE` on loopback sockets and a ctypes owner check of the runtime directory in `_windows_owner.py` (an unreadable owner gives no answer, never a refusal) are written and unrun on Windows; the report handle, the macOS `$TMPDIR` path and the 103-byte limit stay unrun.
     - F27 code: `MISDIRECTED`/`FORBIDDEN` constants and `(…, 421)`, `(…, 403)` in `HTTP_STATUS`, used by admission; the OpenAPI document declares 421 on every operation and 403 on every write. One route test.
     - Gates green after the rebase: pyright, ruff, format, pytest 1875 passed, `--squad override tests/cli` 839 passed, `--api-mode remote tests/cli` 997 passed, cross_process 10 passed, template manifest.
+- [2026-10-30T08:05:30Z] `reviewer` Paul Reviewer:
+  - Lane D (ef9a81f0, the remote-mode wire) reviewed against ADR-1225 sections 2, 3 and 5, ADR-1052 point 10 and ADR-1172 mode parity. New findings: F30 (high), F31 (medium), F32, F33 and F34 (low). Verdict on lane D: changes requested, because of F30 (Ctrl-C) and F31 (parity blind to two headers).
+  - Verified sound: timeouts read op.timeout (5 s connect; 300 s or none for the answer; the notice after 10 s for long); fall back only on 503 retiring or a failed connect, never after the request was sent; schema_mismatch and vocabulary_mismatch never fall back; local_only always runs locally; header text sent as UTF-8 bytes; the client directory sent absolute (cwd); SQUADS_DAEMON=off set in pytest_configure; error warnings restored. Squads-Actor and Squads-At dropped on the wire turn 31 and 16 remote cases red.
+  - No finding for the import guard: _daemon_link imports filelock only inside lock_is_free, and importing _cli._remote does not load it (driven). What loads on the client path is _index, jinja2 and yaml through _cli._common, and importlib.metadata through the pydantic build of _api._errors. Both are in the ST8 starting point already (lane C).
 <!-- sq:discussion:end -->
