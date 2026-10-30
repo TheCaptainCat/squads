@@ -3,7 +3,7 @@ id: TASK-1266
 sequence_id: 1266
 type: task
 title: Docs and changelog for the shim-based remote mode
-status: Draft
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -17,14 +17,14 @@ description: docs/daemon.md, docs/api.md, stability, faq, contributing and CHANG
 subentities:
 - local_id: ST1
   title: Daemon page, FAQ, stability and contributing
-  status: Todo
+  status: Done
   maps_to: US9
 - local_id: ST2
   title: API page and CHANGELOG
-  status: Todo
+  status: Done
   maps_to: US9
 created_at: '2026-10-30T20:30:38Z'
-updated_at: '2026-10-30T20:32:22Z'
+updated_at: '2026-10-30T23:08:16Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -89,4 +89,18 @@ _Add with `sq task 1266 add-subtask "<title>"`; track with `sq task 1266 subtask
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-30T23:08:05Z] `tech-writer` Theo Writer:
+  - - Docs and CHANGELOG rewritten for the shim-based remote mode, commit 6c883c29 on release/0.19 (pushed). Files: `docs/daemon.md`, `docs/api.md`, `docs/stability.md`, `docs/faq.md`, `docs/README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`.
+      - `docs/daemon.md`: remote mode as the daemon parsing, running and rendering; the always-local list (bare `--version`, `init`, `adopt`, `daemon`, `ui`, `--install-completion`, `--show-completion`); `--help`, `docs`, `migrate help`/`chlog` and completion served; files a command names sent with it; two-phase prompts confirmed for the screen seen, local rerun when the daemon stops between phases; the sent environment list (`SQUADS_DAEMON` client-side only); the parse cache keyed by content; fallback before sending only; the unusable-setting stderr line; the version section narrowed to API clients (`sq ui` and others); the browser listener takes no command lines.
+      - `docs/api.md`: the CLI uses a private channel outside the API, not described; no wire format; nothing says the CLI calls the routes. `docs/stability.md`: the unusable setting is no longer silent; the private channel listed as not part of the contract. `docs/faq.md`: a new entry for the unusable-setting warning; the schema/vocabulary entry scoped to `sq ui`. `CONTRIBUTING.md`: the shim's import sets and the 100 ms client budget (release criterion, CI reports only).
+      - CHANGELOG 0.19.0: one daemon entry for the shipped behaviour; the `[daemon]` entry prints the problem; the HTTP API entry names the private channel; typer held to 0.27.x.
+    - Driven with the dev tree (`.venv/bin/sq`, `SQUADS_DAEMON=on`) on a copy of this squad under `~/.cache/sq-1266/proj`, daemon stopped at the end: bare `--version` starts none; `--help`, `docs`, bash completion start one; `migrate help`, `ui --help` run; `SQUADS_DAEMON=maybe` prints the warning line and runs locally; `--file`, `--file -` served; a missing `--file` gives local mode's error text (same in `off`); removal prompt answered `n` and `y`, output identical to `off`; daemon stopped between the prompt's phases: the command reran locally and asked again; a frontmatter edit by `sed` seen by the next served `check`; a local-mode write seen by the next served `show`; `.squads.toml` edit retired the daemon and the next command started a new one; `SQUADS_SPANS=1` printed the served spans plus the shim's; `repair` behind a held index lock printed `waiting for the daemon (repair)…` after 10 s; SIGINT while the daemon waited on the lock: exit 130 with the "may still complete" line, the comment applied after the lock was released; a 0755 runtime directory gave the fallback line; `-C nowhere` gave local mode's error in both modes; `python -X importtime` in local mode loads none of starlette, uvicorn, h11, click.
+    - Measured on the copy (1,227 item files), 15 interleaved runs, load 0.7-1.6: `task show` median 161 ms served against 732 ms local; `list --json` 159 against 620; `check` 1.7-2.0 s served once warm (3.2 s on the first run) against 6.7-7.1 s local. The CHANGELOG states these as one machine's figures.
+    - `uv run --all-extras pytest -n 4 tests/meta`: 718 passed. The documented-commands guard reads the new page (a dead `sq` verb appended to `docs/daemon.md` turned it red; restored, green).
+- [2026-10-30T23:08:06Z] `tech-writer` Theo Writer:
+  - - @python-dev process-narration and stale-claim sweep of the new code comments in `_shim.py`, `_endpoint.py`, `_daemon/_commands.py`, `_daemon/_proxies.py`, `_parse_cache.py`: no phase/round/review narration found. Not edited (code is yours):
+      - `src/squads/_shim.py`, the comment on `SENT_ENVIRONMENT`: "A variable outside this list does not exist for a served command; the daemon's diagnostic variables are never on it." Both halves are false against the code. `_proxies.Environment.__getitem__` reads every name outside the list from the daemon's own environment (the environment of the command that started it, minus `SQUADS_SPANS` and `SQUADS_DAEMON`), and `SQUADS_SPANS` is on the list. Suggested: "The variables whose client values a served command sees; it reads any other name from the daemon's own environment."
+      - ADR-1261 point 1 carries the same "does not exist" sentence, while point 2 states what the code does (every other name reads the daemon's own). @architect the point 1 sentence needs the same correction.
+- [2026-10-30T23:08:16Z] `tech-writer` Theo Writer:
+  - ST1 and ST2 Done, task InReview; REV-1223 F66 set Fixed. @manager @reviewer
 <!-- sq:discussion:end -->

@@ -361,7 +361,7 @@ subentities:
   severity: low
 - local_id: F66
   title: CHANGELOG and docs/daemon.md describe the pre-shim remote mode
-  status: Open
+  status: Fixed
   assignee: tech-writer
   severity: medium
 - local_id: F67
@@ -370,7 +370,7 @@ subentities:
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T23:05:29Z'
+updated_at: '2026-10-30T23:08:13Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1877,6 +1877,8 @@ The 0.19 release is not cut yet, so the entry and the guide can be rewritten as 
 #### Discussion
 
 <!-- sq:finding:F66:discussion -->
+- [2026-10-30T23:08:13Z] `tech-writer` Theo Writer:
+  - Fixed in 6c883c29 (TASK-1266): the CHANGELOG 0.19.0 daemon, [daemon] and HTTP API entries and docs/daemon.md now describe the daemon parsing and rendering, --help/completion/docs/migrate help served and starting a daemon, the command path in the waiting line, no vocabulary hash from the CLI, the warning line for an unusable setting, the always-local --install-completion/--show-completion, an unreadable file running locally, and the prompt-phase local rerun. @reviewer
 <!-- sq:finding:F66:discussion:end -->
 <!-- sq:finding:F66:end -->
 
