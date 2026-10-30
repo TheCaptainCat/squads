@@ -369,6 +369,10 @@ def _open(endpoint: Endpoint) -> tuple[socket.socket, str]:
     which an unrelated process may have reused, the answerer must be the daemon the record names
     before anything is sent to it."""
     host, address = _address(endpoint)
+    # asked on a connection of its own and before the one the command line travels on: a daemon
+    # that answers one connection at a time would otherwise wait on the idle one for ever
+    if endpoint.identity_check == "pid-and-path" and not _is_recorded_daemon(endpoint, host):
+        raise Unsent("the listener is not the recorded daemon")
     try:
         if endpoint.transport == "unix":
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -383,14 +387,12 @@ def _open(endpoint: Endpoint) -> tuple[socket.socket, str]:
             sock = socket.create_connection((name, int(port)), CONNECT_TIMEOUT)
     except (OSError, ValueError) as exc:
         raise Unsent(str(exc)) from exc
-    if endpoint.identity_check == "pid-and-path" and not _is_recorded_daemon(endpoint, host):
-        sock.close()
-        raise Unsent("the listener is not the recorded daemon")
     return sock, host
 
 
-def _is_recorded_daemon(endpoint: Endpoint, host: str) -> bool:  # pragma: no cover
-    """Whether the process answering on the recorded port is the daemon the record names."""
+def _is_recorded_daemon(endpoint: Endpoint, host: str) -> bool:
+    """Whether the process answering on the recorded port is the daemon the record names, asked
+    within :data:`CONNECT_TIMEOUT` seconds."""
     record = read_record(endpoint)
     name, _, port = host.rpartition(":")
     if record is None:
@@ -398,7 +400,7 @@ def _is_recorded_daemon(endpoint: Endpoint, host: str) -> bool:  # pragma: no co
     try:
         with socket.create_connection((name, int(port)), CONNECT_TIMEOUT) as probe:
             _send(probe, host, "GET", "/v1/daemon", None)
-            reply = _receive(probe, ANSWER_TIMEOUT, None)
+            reply = _receive(probe, CONNECT_TIMEOUT, None)
         identity = json.loads(reply.body)
     except OSError, ValueError, Unsent, Lost:
         return False

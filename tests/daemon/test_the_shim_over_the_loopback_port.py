@@ -12,6 +12,7 @@ from squads import _shim as shim
 from squads._endpoint import Endpoint, endpoint_for
 from squads._paths import SquadPaths
 from tests._daemon_harness import Served
+from tests.cross_process._fake_daemon import SilentDaemon
 
 
 def _port_endpoint(project: SquadPaths, served: Served, runtime: Path, *, pid: int) -> Endpoint:
@@ -66,3 +67,21 @@ def test_a_command_is_not_sent_to_a_process_that_is_not_the_recorded_daemon(
         shim.Session(endpoint, _list_request(project), None).run()
 
     assert capsys.readouterr().out == ""
+
+
+def test_a_connection_lost_after_the_request_was_sent_over_a_port_is_an_error(
+    project: SquadPaths, tmp_path: Path
+) -> None:
+    environ = {"LOCALAPPDATA": str(tmp_path / "local"), "SQUADS_DAEMON": "on"}
+    endpoint = endpoint_for(project.root, environ=environ, platform="win32", version="test")
+    assert endpoint is not None
+    endpoint.runtime_dir.mkdir(parents=True)
+    # answers one connection at a time, and closes the one that carries the command line
+    daemon = SilentDaemon(endpoint, hang_up=True)
+    try:
+        with pytest.raises(shim.SendFailed, match="was lost after the request was sent"):
+            shim.Session(endpoint, _list_request(project), None).run()
+    finally:
+        daemon.close()
+
+    assert daemon.requests == 1
