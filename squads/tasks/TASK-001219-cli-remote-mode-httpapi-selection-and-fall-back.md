@@ -30,19 +30,19 @@ subentities:
   maps_to: US6
 - local_id: ST4
   title: HttpApi requests, headers and errors
-  status: Todo
+  status: Done
   maps_to: US10
 - local_id: ST5
   title: Fall back, no replay, timeouts and Ctrl-C
-  status: Todo
+  status: InProgress
   maps_to: US3
 - local_id: ST6
   title: Mode parity run over HttpApi
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST7
   title: Schema and vocabulary headers, client side
-  status: Todo
+  status: Done
   maps_to: US11
 - local_id: ST8
   title: 'Client budget: levers, import guard, benchmark'
@@ -53,7 +53,7 @@ subentities:
   status: Todo
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T07:31:36Z'
+updated_at: '2026-10-30T07:48:03Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -304,4 +304,9 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
     - Deviation to confirm: stale cleanup is not an operation. A new operation would add a daemon route that deletes the daemon's own runtime files. I exempted `ensure`/`discard_stale` by name in the no-file-writes CLI guard, as for `run_daemon` (runtime files, not squad data). Say if you want an operation instead.
     - Waiting on lane D (needs `HttpApi(endpoint)` and the parity hook in `_calls.py`): ST1 selection in `select_api`, the fall back/no-replay/Ctrl-C cross-process members, ST8's import guard and benchmark. Baseline measured now: `import squads._cli` 361 ms and loads `squads._index`, `jinja2`, `yaml`, `importlib.metadata`; not `_services`, `anyio`, `filelock`, `starlette`, `uvicorn`, `click`, `rich.markdown`. No client-overhead numbers yet (nothing to call). ST9 (TUI selector) not started.
     - Gates green: pyright, ruff, format, pytest 1859 passed, override squad tests/cli 835 passed, cross_process 9 passed, template manifest. Windows spawn path (handle list, flags) written, not run here.
+- [2026-10-30T07:48:03Z] `python-dev` Elias Python:
+  - - @manager Lane D is done at 9b89b623 (branch worktree-agent-aeec7bd7715d7cb1d, on release/0.19 72546878). ST4, ST6 and ST7 are Done; ST5 stays InProgress until lane C's cross-process no-replay, fall back and Ctrl-C cases exercise it.
+    - `HttpApi` (`_api/_client.py`): http.client, one request per call, `op.timeout` classes (5 s connect; 300 s or none for the answer; the waiting notice after 10 s for `long`), UTF-8 header bytes, `503 retiring` and an unreachable daemon run on the local API only when one is given, a connection lost after sending or a timeout is an error never replayed, Ctrl-C exits 130, schema and vocabulary refusals worded from ADR-1225 with no fall back.
+    - CLI side: `_cli/_remote.py` (`build_http_api(endpoint, local=…)`, `context_headers`) for lane C's selection; the hook is `calls.invocation_api(prior.api)`, which the root callback now uses so a harness-bound API is kept.
+    - Parity: `--api-mode remote` (env `SQUADS_TEST_MODE`) beside `--squad`; `SQUADS_DAEMON=off` set for every test.
 <!-- sq:discussion:end -->
