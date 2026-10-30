@@ -63180,7 +63180,7 @@
         {
           "local_id": "F37",
           "title": "An unusable daemon setting falls back to local mode with nothing on stderr",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63191,7 +63191,7 @@
         {
           "local_id": "F38",
           "title": "An unreachable daemon runs the call locally with no restart or line; the TUI never reselects",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63202,7 +63202,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T08:46:34Z",
+      "updated_at": "2026-10-30T08:58:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

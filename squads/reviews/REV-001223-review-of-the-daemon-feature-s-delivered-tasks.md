@@ -195,17 +195,17 @@ subentities:
   severity: low
 - local_id: F37
   title: An unusable daemon setting falls back to local mode with nothing on stderr
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F38
   title: An unreachable daemon runs the call locally with no restart or line; the
     TUI never reselects
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T08:46:34Z'
+updated_at: '2026-10-30T08:58:58Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
