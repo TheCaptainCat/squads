@@ -3,7 +3,7 @@ id: TASK-1262
 sequence_id: 1262
 type: task
 title: 'Daemon command endpoint: CLI commands served in process'
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 assignee: python-dev
@@ -15,30 +15,30 @@ description: 'POST /v1/commands on the CLI listener: served execution on the dae
 subentities:
 - local_id: ST1
   title: Endpoint route, request and answer, admission
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST2
   title: Served execution on the daemon's own LocalApi
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST3
   title: Per-request consoles, stdio and environment proxies
-  status: Todo
+  status: Done
   maps_to: US10
 - local_id: ST4
   title: Attachments and stdin served from the request
-  status: Todo
+  status: Done
   maps_to: US1
 - local_id: ST5
   title: Two-phase prompts, nothing written before the answer
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST6
   title: Endpoint and route parity modes for tests/cli
-  status: Todo
+  status: Done
   maps_to: US3
 created_at: '2026-10-30T20:30:24Z'
-updated_at: '2026-10-30T20:36:32Z'
+updated_at: '2026-10-30T21:18:48Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -181,4 +181,15 @@ Tests: no new case. Falsify: drop one `env` name, print one line outside the cap
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-30T21:18:38Z] `python-dev` Elias Python:
+  - - Endpoint built and gated on release/0.19 (worktree branch `worktree-agent-a0434a2f3e808b237`, commits 31bf16ef and d06ec30d, not pushed). @manager @tech-lead
+      - Gates: pyright 0 errors; ruff check and format clean; manifest check current; `tests/meta tests/cli tests/daemon` 1748 passed, 2 skipped; `--api-mode remote tests/cli` 999 passed; `--api-mode remote --squad override tests/cli` 840 passed, 159 skipped (the same 159 `bundled_only` skips as the local override run); `--api-mode routes tests/cli` 999 passed; `-n0 tests/cross_process` 22 passed.
+      - Falsified (each planted break turned its test red): the 3 completion cases (a name dropped from the sent list), chunk order, unattached name, stdin, prompt answered / refused / invalid, changed screen, prompt after a write, browser port, 503 retiring, `-C` never read, non-UTF-8 attachment, `select_api` refusal; guards: an import-time env read and an `http.client` / `subprocess` import in the endpoint modules; parity: `TERM` dropped from the request (2 red), proxy bypassing the capture (51 red), two chunks reversed (6 red).
+    - Wire format the shim must send (stdlib JSON, `json.dumps`/`json.loads`, never a model serializer, so lone surrogates round-trip). Request: `argv` (list of str), `cwd`, `client_dir` (both absolute), `env` (name to value, only names of `squads._shim.SENT_ENVIRONMENT`), `prog_name`, `terminal`, `attachments` (argument as written to base64 of its bytes; stdin under `-`), `answers` (list of `{"digest": str, "line": str | null}`, `null` is end of input). `terminal`: `{"stdin"|"stdout"|"stderr": {"tty": bool, "encoding": str}, "size": [columns, lines] | null, "windows_vt": bool | null}`; unknown keys are refused. Answer, HTTP 200: `{"kind": "done", "output": [[stream, text], ...], "exit_code": int}` or `{"kind": "prompt", "output": [...], "text": str, "stream": "stdout" | "stderr", "digest": str}`; header `Server-Timing: handler;dur=<ms>`. 503 `{"not_executed": "retiring"}`; any other non-200 is the routes' error body. POST needs `Content-Type: application/json` and `Squads-Client: 1` on a TCP listener.
+      - A prompt: print `output`, then `text` to `stream`, read one line, send the same request with `{"digest", "line"}` appended to `answers`. `text` already ends with the prompt's `: `; the terminal echoes the typed line, the shim adds nothing. When a rerun's screen differs, the answer is `prompt` again with the full new output.
+      - Click re-asks after a line that is not an answer, inside the same run: that comes back as a `prompt` whose `text` begins with `Error: invalid input`.
+    - Decisions I took where the ADR is silent, worth a look: (1) `client_dir` is validated (absolute) and otherwise unused: the daemon's squad root is the context's `client_cwd`, because binding the client's directory there would make `LocalApi` walk up from a path the client named; `cwd` seeds `start_dir`. (2) The browser listener answers `404 not_found` "no such route" for the endpoint (as if absent), ahead of its Origin rules. (3) `os.environ` proxy reads `COLUMNS`/`LINES` only from the request's `env`; the client's terminal size feeds the per-request consoles, not the environment. (4) Rich binds `os.environ` at import, so installing the proxies also points `Console._environ` at them; without that Typer's own help and error consoles would read the daemon's environment.
+    - Gaps for the architect: (a) Typer latches `FORCE_TERMINAL` and `TERMINAL_WIDTH` into module constants at import, from the daemon's environment, so a served `--help` or error box does not see the client's `FORCE_COLOR`/`PY_COLORS` and sizes itself from Rich's own detection in the daemon (80 columns when it has no terminal), not the client's terminal; my consoles (everything `common.console` prints) do use the client's. (b) The stdout/stderr outside a request fall back to the process's original streams (devnull for a detached daemon, pytest's capture in the test process), not to the daemon log. (c) A daemon spawned from a shell that exports `SQUADS_SPANS` still prints spans into served commands' stderr: the name is not on the sent list, so it reads the daemon's own. The shim should not pass it on when it spawns the daemon.
+    - Test-suite changes outside the new files: `tests/cli/test_override.py` now reads the `--json` errors from `result.stderr` instead of the first two lines of the interleaved output (their position depended on the runner's stdout buffering; a served command keeps write order). `invoke` gains `routes` beside `remote`; `tests/_endpoint_client.py` is the harness's stand-in for the shim, to be replaced by the shim's own code in the next task.
+    - Shared files touched (others may also edit): `src/squads/_services/_service.py` (`RequestScope.run` takes an optional `context`, new `command_context`), `src/squads/_context.py` (`ServedCommand`, `RequestContext.served`), `src/squads/_cli/_common.py`, `src/squads/_cli/__init__.py`, `tests/conftest.py`, `conftest.py`. Not touched: `_index/_store.py`, `_itemfile.py`.
 <!-- sq:discussion:end -->

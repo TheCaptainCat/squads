@@ -62784,7 +62784,8 @@
       "refs": [
         "FEAT-1140",
         "TASK-1217",
-        "TASK-1218"
+        "TASK-1218",
+        "TASK-1263"
       ],
       "subentities": [
         {
@@ -63237,11 +63238,66 @@
           "attributes": {
             "severity": "low"
           }
+        },
+        {
+          "local_id": "F42",
+          "title": "Frontmatter cached under two spellings of each item path; the sweep grace walk exists to keep the copy",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F43",
+          "title": "RequestScope._context binds a partial ambient context so the override check can reach the cache",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F44",
+          "title": "Frontmatter cache is consulted inside transaction(), against ADR-1261 point 7's wording",
+          "status": "Open",
+          "assignee": "architect",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        },
+        {
+          "local_id": "F45",
+          "title": "ParseCache.item_files() serves only an internal-reading test; digest() duplicates digest_of()",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F46",
+          "title": "The copy-per-hit rule is unguarded: sharing cached objects keeps the remote suite green",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
         }
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T09:51:29Z",
+      "updated_at": "2026-10-30T21:23:12Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65591,7 +65647,7 @@
       "type": "task",
       "title": "Daemon command endpoint: CLI commands served in process",
       "slug": "daemon-command-endpoint-cli-commands-served-in-process",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "POST /v1/commands on the CLI listener: served execution on the daemon's LocalApi, stdio and env proxies, attachments, two-phase prompts, endpoint and route parity modes",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -65604,7 +65660,7 @@
         {
           "local_id": "ST1",
           "title": "Endpoint route, request and answer, admission",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65613,7 +65669,7 @@
         {
           "local_id": "ST2",
           "title": "Served execution on the daemon's own LocalApi",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65622,7 +65678,7 @@
         {
           "local_id": "ST3",
           "title": "Per-request consoles, stdio and environment proxies",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US10",
           "deferred_to": null,
@@ -65631,7 +65687,7 @@
         {
           "local_id": "ST4",
           "title": "Attachments and stdin served from the request",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US1",
           "deferred_to": null,
@@ -65640,7 +65696,7 @@
         {
           "local_id": "ST5",
           "title": "Two-phase prompts, nothing written before the answer",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65649,7 +65705,7 @@
         {
           "local_id": "ST6",
           "title": "Endpoint and route parity modes for tests/cli",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65658,7 +65714,7 @@
       ],
       "path": "tasks/TASK-001262-daemon-command-endpoint-cli-commands-served-in-process.md",
       "created_at": "2026-10-30T20:30:24Z",
-      "updated_at": "2026-10-30T20:36:32Z",
+      "updated_at": "2026-10-30T21:18:48Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

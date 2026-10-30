@@ -9,6 +9,7 @@ refs:
 - FEAT-1140
 - TASK-1217
 - TASK-1218
+- TASK-1263
 subentities:
 - local_id: F1
   title: role add/update --file bypass attachments and read the serving process's
@@ -221,8 +222,38 @@ subentities:
   status: Fixed
   assignee: python-dev
   severity: low
+- local_id: F42
+  title: Frontmatter cached under two spellings of each item path; the sweep grace
+    walk exists to keep the copy
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F43
+  title: RequestScope._context binds a partial ambient context so the override check
+    can reach the cache
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F44
+  title: Frontmatter cache is consulted inside transaction(), against ADR-1261 point
+    7's wording
+  status: Open
+  assignee: architect
+  severity: info
+- local_id: F45
+  title: ParseCache.item_files() serves only an internal-reading test; digest() duplicates
+    digest_of()
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F46
+  title: 'The copy-per-hit rule is unguarded: sharing cached objects keeps the remote
+    suite green'
+  status: Open
+  assignee: python-dev
+  severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T09:51:29Z'
+updated_at: '2026-10-30T21:23:12Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -230,6 +261,7 @@ Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1
 ## Scope
 
 - TASK-1217, commit 22ce7f65: the in-process command entry (`run`), per-invocation consoles, the request-seeded `RequestContext` (start directory, attachments, terminal facts, documents), attachment-served file reads, and the prompt helper that signals `NeedsTerminal`.
+- TASK-1263, commits ff9784bf and 4585afec: the daemon's content-keyed cache of the index, item frontmatter and the override check (ADR-1261 point 7).
 - Later tasks of FEAT-1140 join this review as they land.
 
 ## Method
@@ -1171,6 +1203,92 @@ Fix: wrap the body in `try: … finally: run(sq_command(project, "daemon", "stop
 <!-- sq:finding:F41:discussion -->
 <!-- sq:finding:F41:discussion:end -->
 <!-- sq:finding:F41:end -->
+
+<!-- sq:finding:F42 -->
+### F42 — Frontmatter cached under two spellings of each item path; the sweep grace walk exists to keep the copy
+
+<!-- sq:finding:F42:body -->
+TASK-1263. ADR-1261 point 7 asks for one entry per path, and for an entry to be dropped at the daemon's next corpus scan. The code keeps two entries per item file and drops an entry only at the second scan.
+
+Evidence: on a copy of this squad (1,229 item files) served through `tests/_daemon_harness.serve_squad`, a `GET /v1/items/TASK-1263` followed by a `GET /v1/check` leaves 2,458 frontmatter entries (1.8 MB pickled). 1,229 are absolute (`str(md)`, from the corpus walk and `read_frontmatter`). The other 1,229 are squad-relative (`item.path`, from `_validators.py:1030/1072` and `frontmatter_skew`). On a cold `check`, every block is parsed and pickled twice, once under each key.
+
+4585afec copes with this by adding a grace walk to `end_scan` (`oldest = self._scan - 1`), so the relative copies read after a walk are not dropped at the next one. The docstring says so. As a result, a deleted file survives two walks. Falsified: going back to the one-walk rule (`oldest = self._scan`) keeps all four tests green, so nothing pins the rule in either direction.
+
+Fix: give the entry one key. The cached value depends only on the YAML block (`yaml.safe_load(block)`). The path is needed only for bounding the cache, so one way is to resolve the label against the squad directory before it becomes the key. Then go back to the one-walk sweep that the ADR states.
+<!-- sq:finding:F42:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F42:discussion -->
+<!-- sq:finding:F42:discussion:end -->
+<!-- sq:finding:F42:end -->
+
+<!-- sq:finding:F43 -->
+### F43 — RequestScope._context binds a partial ambient context so the override check can reach the cache
+
+<!-- sq:finding:F43:body -->
+TASK-1263, `src/squads/_services/_service.py` `RequestScope._context`. The first statement is `bind_context(RequestContext(parse_cache=self._parse_cache))`. This function builds the request's context, and here it also overwrites the ambient context with a partial one. The only purpose is to let `_spec_refusal` -> `validate_against_index_fail_closed` find the cache through `get_context()`. The full context is bound a few lines later in `_bound`.
+
+This works today because each request runs in its own task, so the stub does not leak between requests. But it uses the ambient context as a side channel inside a function that reads as pure. ADR-1261 point 7 ("Threaded, not global") and the project rule (thread context rather than ambient state) both point the other way.
+
+Fix: pass the cache to `validate_against_index_fail_closed` as an argument, or compute `spec_error` after the full context is bound.
+<!-- sq:finding:F43:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F43:discussion -->
+<!-- sq:finding:F43:discussion:end -->
+<!-- sq:finding:F43:end -->
+
+<!-- sq:finding:F44 -->
+### F44 — Frontmatter cache is consulted inside transaction(), against ADR-1261 point 7's wording
+
+<!-- sq:finding:F44:body -->
+TASK-1263. ADR-1261 point 7 says `transaction()` "keeps re-reading from disk under the file lock and never consults it". 4585afec moved the frontmatter hook into `split_frontmatter`, which is called with a `source` inside transactions. For example, the pre-write skew guard `frontmatter_skew` (`_itemfile.py:97`, reached from `_itemfile.py:146`) runs under the write lock and now reads through the cache.
+
+This does not affect correctness. The file is still read, the key is the BLAKE2b digest of the exact block about to be parsed, the value depends only on that block, and every hit hands out a fresh copy. So the transaction sees exactly what a parse would give it. The problem is that the ADR's rule is broader than what the design needs, and the code now contradicts its text.
+
+Ask: architect, narrow the ADR wording to the index (the value that transactions must re-read under the lock), or say that content-keyed frontmatter is allowed there. Otherwise the code has to skip the hook inside a transaction.
+<!-- sq:finding:F44:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F44:discussion -->
+<!-- sq:finding:F44:discussion:end -->
+<!-- sq:finding:F44:end -->
+
+<!-- sq:finding:F45 -->
+### F45 — ParseCache.item_files() serves only an internal-reading test; digest() duplicates digest_of()
+
+<!-- sq:finding:F45:body -->
+TASK-1263. Two parts of `ParseCache` exist without a production need.
+
+- `item_files()` has one caller: `test_an_entry_for_a_file_that_is_gone_is_dropped_by_the_corpus_walks_that_follow`, which reaches `daemon.state.parse_cache`. ADR-1172 does not allow that kind of internal read in a test. The test is also a fourth case beyond the three the task planned. What the sweep guarantees is a memory bound, and nothing at the surface shows it. So either the test and `item_files()` go, or the test stays and the review records why. It does go red when `end_scan` is made a no-op (falsified).
+- `ParseCache.digest` (a staticmethod) is a second name for the module function `digest_of`. Its only caller is `validate_against_index_fail_closed`. One name is enough.
+<!-- sq:finding:F45:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F45:discussion -->
+<!-- sq:finding:F45:discussion:end -->
+<!-- sq:finding:F45:end -->
+
+<!-- sq:finding:F46 -->
+### F46 — The copy-per-hit rule is unguarded: sharing cached objects keeps the remote suite green
+
+<!-- sq:finding:F46:body -->
+TASK-1263. ADR-1261 point 7 says "entries cannot be mutated through what a caller receives". The pickle round trip in `_parsed` enforces that, but no test fails without it.
+
+Falsified: in a scratch worktree, I replaced the pickled copy with the object itself (stored and returned as is). Then `pytest -n 4 --api-mode remote tests/cli tests/daemon` gave 1049 passed, 2 skipped (log `~/.cache/rev1263/m6_nocopy.log`). Today no route seems to mutate a value it reads, so a regression here would stay hidden: the first caller that edits a returned frontmatter dict or `SquadsDB` would change it for every later request.
+
+This cannot be observed from the surface without a mutating caller, and an internal test would go against ADR-1172. Possible dispositions: a one-line comment at the `pickle.loads` site naming the rule it enforces, or WontFix with this reason.
+<!-- sq:finding:F46:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F46:discussion -->
+<!-- sq:finding:F46:discussion:end -->
+<!-- sq:finding:F46:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1308,4 +1426,17 @@ Fix: wrap the body in `try: … finally: run(sq_command(project, "daemon", "stop
       - pytest-timeout: a sleeping probe test with `-o timeout=3` under `-n 2` is reported as "worker 'gw0' crashed while running …::test_hangs_forever", so the hung test is named. The stack dump appears only under `-n0`. Under xdist it is lost with the worker's stderr. The pyproject comment "with every thread's stack in the log" is therefore true only for a serial run. This is a note, not a finding; a fix is to say "named (the stacks print with -n0)".
     - New: F41 (low). The switched-off test leaks a daemon when it fails (observed under mutation). Add the try/finally stop that its siblings have. @python-dev
     - Recommended: every REV-1223 finding is Verified except F41. TASK-1219 can be accepted once F41 is fixed, or accepted now with F41 left on the review, because F41 is test hygiene and changes no behaviour. ST8 (client budget) stays the operator's call. Scratch daemons stopped, and the /tmp symlink removed. One daemon left by the mutation run (pid 2855059, its directories deleted by pytest) cannot be stopped with `sq daemon stop`, and killing it was refused here. It idle-exits by about 11:14. @manager
+- [2026-10-30T21:23:12Z] `reviewer` Paul Reviewer:
+  - TASK-1263 review (ff9784bf, 4585afec): F42-F46, none above low. The probes ran on a copy of this squad under ~/.cache, through the in-process harness only. No daemon was started on this repository.
+    
+    What I checked and found sound:
+    - Staleness. Every cached read re-reads the file and keys on the BLAKE2b digest of the exact text it is about to parse. The post-parse steps (counter repair, vocab and badge validation) run on each copy. `transaction()` calls `_read_from_disk` without `cached`, so it never uses the index cache. Falsified: dropping the digest check turns 3 of 4 tests red, and dropping it from the memo key turns the override test red.
+    - Conflation by `source` label. Two texts that share a label cannot get each other's value: the value depends only on the hashed block, so the label only picks a slot. The worst case is a re-parse.
+    - Concurrency. The lock is never held while parsing, pickling or unpickling. A race between an old read and a new one can only leave the older digest in the slot, which costs one re-parse.
+    - Memo. Three `task show` requests ran `validate_against_index` once in total. `bundled_spec()` is a single object, so the identity key holds.
+    - Local mode. `parse_cache` is set only by `RequestScope`. The CLI context leaves it `None`.
+    - Memory. The index has one key (1.2 MB pickled). Frontmatter is bounded, but at twice the size it should be (F42).
+    - Import edges recorded. Comments and docstrings are short, with no ticket IDs or history.
+    
+    Recommended verdict for TASK-1263: acceptable once F42, F43 and F45 are fixed or given a disposition. F44 is the architect's call, and F46 needs a disposition.
 <!-- sq:discussion:end -->
