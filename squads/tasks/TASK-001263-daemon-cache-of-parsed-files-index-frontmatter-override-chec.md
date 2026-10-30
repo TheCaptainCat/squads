@@ -3,7 +3,7 @@ id: TASK-1263
 sequence_id: 1263
 type: task
 title: 'Daemon cache of parsed files: index, frontmatter, override check'
-status: Draft
+status: InProgress
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Todo
   maps_to: US2
 created_at: '2026-10-30T20:30:25Z'
-updated_at: '2026-10-30T20:31:25Z'
+updated_at: '2026-10-30T20:35:18Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -116,4 +116,6 @@ Tests: an override check refused, then answered once the index digest changes (1
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-30T20:35:18Z] `python-dev` Elias Python:
+  - Starting on the cache (ST1-ST3).
 <!-- sq:discussion:end -->

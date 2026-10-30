@@ -3,7 +3,7 @@ id: TASK-1219
 sequence_id: 1219
 type: task
 title: 'CLI remote mode: HttpApi, selection and fall back'
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -53,7 +53,7 @@ subentities:
   status: Done
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T20:32:46Z'
+updated_at: '2026-10-30T20:35:06Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -351,4 +351,6 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
       - ST8 Cancelled here and moved: ADR-1261 point 10 replaces the 275/235 ms budget with 100 ms of shim overhead, measured on the shim. TASK-1264 ST1 (lean endpoint path and the shim's import guard, which replaces this task's remote-client guard) and ST7 (benchmark and runbook) carry it; TASK-1265 ST2 the CI report. The levers that landed here keep their value for local mode.
       - ST1's CLI-side selection of `HttpApi` is reversed by TASK-1264 ST6; `HttpApi` and ST9's TUI selection stay.
       - @manager nothing else is owed here: TASK-1219 can be accepted on REV-1223's recommendation (2121447).
+- [2026-10-30T20:35:05Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-30): every REV-1223 finding on this task is Verified, ST1-ST7 and ST9 are built and green in CI, and ST8 moved to TASK-1264 and TASK-1265 against ADR-1261's 100 ms budget.
 <!-- sq:discussion:end -->

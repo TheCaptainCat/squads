@@ -3,9 +3,10 @@ id: TASK-1262
 sequence_id: 1262
 type: task
 title: 'Daemon command endpoint: CLI commands served in process'
-status: Draft
+status: InProgress
 parent: FEAT-1140
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-1261:implements
 description: 'POST /v1/commands on the CLI listener: served execution on the daemon''s
@@ -37,7 +38,7 @@ subentities:
   status: Todo
   maps_to: US3
 created_at: '2026-10-30T20:30:24Z'
-updated_at: '2026-10-30T20:31:10Z'
+updated_at: '2026-10-30T20:36:32Z'
 priority: high
 ---
 <!-- sq:body -->

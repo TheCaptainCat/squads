@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-10-30T20:33:12Z'
+updated_at: '2026-10-30T20:35:40Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -35,12 +35,13 @@ The operator set a new direction for the CLI's remote mode on 2026-10-30 (FEAT-1
 
 ### 1. One private command endpoint
 
-`POST /v1/commands` takes a command line and answers with its output. It is served **on the CLI listener only** (the Unix socket on POSIX, the CLI port on Windows), never on the browser port. It is private to one installation: the shim and the daemon always come from the same package (ADR-1052, point 8), so it carries no version negotiation, is absent from `GET /v1/openapi.json`, and is not documented in `docs/api.md`. The admission rules of ADR-1052, point 5, apply to it.
+`POST /v1/commands` takes a command line and answers with its output. It is served **on the CLI listener only** (the Unix socket on POSIX, the CLI port on Windows), never on the browser port. It is private to one installation: the shim and the daemon always come from the same package (ADR-1052, point 8), so it carries no version negotiation, is absent from `GET /v1/openapi.json`, and `docs/api.md` says only that the CLI reaches the daemon through a private channel outside the API, with no wire format. The admission rules of ADR-1052, point 5, apply to it.
 
 **Request** (UTF-8 JSON):
 
 - `argv`: the arguments after `sq`, as JSON strings; undecodable POSIX bytes travel as lone surrogates and round-trip.
-- `cwd`: the client's absolute starting directory. `-C` stays in `argv`; the shim has already resolved it to reach this daemon (point 4).
+- `cwd`: the client's absolute process directory, which spells paths in messages.
+- `client_dir`: the absolute directory the `-C` values resolve to from `cwd` (equal to `cwd` without `-C`). The shim resolves it, as it must to find this daemon (point 4), and reads attachments against it. A `-C` the shim cannot resolve makes it run the command locally, so the refusal is local mode's own. `-C` stays in `argv` and the served command does not apply it again.
 - `env`: the values of a fixed list, absent ones left out: `SQUADS_SESSION_ID`, `SQUADS_PARENT_SESSION_ID`, `NO_COLOR`, `FORCE_COLOR`, `CLICOLOR_FORCE`, `TTY_COMPATIBLE`, `TTY_INTERACTIVE`, `COLUMNS`, `LINES`, `TERM`, `COLORTERM`, and the shell-completion variables of bash, zsh and fish: `_SQ_COMPLETE`, `_SQUADS_COMPLETE`, `COMP_WORDS`, `COMP_CWORD`, `_TYPER_COMPLETE_ARGS`, `_TYPER_COMPLETE_WORD_TO_COMPLETE`, `_TYPER_COMPLETE_FISH_ACTION`. The list is one literal in the shim's module; a variable outside it does not exist for a served command. The daemon's diagnostic variables, `SQUADS_SPANS` and `SQUADS_DAEMON`, are never on it: they describe the process they are set for, so the shim prints its own spans and the daemon's handler time (sent back with the answer) under `SQUADS_SPANS`.
 - `prog_name`: the name the client was invoked as (`sq` or `squads`). Typer derives the usage text and the completion variable from it.
 - `terminal`: for each of stdin, stdout and stderr, whether it is a terminal and its encoding; the terminal's size; on Windows, whether the console has virtual-terminal processing on.
@@ -50,7 +51,7 @@ The operator set a new direction for the CLI's remote mode on 2026-10-30 (FEAT-1
 **Answer** (one of two, HTTP 200):
 
 - `done`: `output`, an ordered list of `[stream, text]` chunks, and `exit_code`. Chunks keep the order in which the command wrote to stdout and stderr, so a terminal showing both sees what local mode shows.
-- `prompt`: the output so far, the prompt text, and its digest (point 5). Nothing was written.
+- `prompt`: the output so far, the prompt text, the stream it is written to (stderr under `--json`, as Click and `confirm` do locally), and its digest (point 5). Nothing was written.
 
 A `503 {"not_executed": "retiring"}` stays the only refusal after which the shim may run the command itself (ADR-1052, points 2 and 13). The vocabulary hash is not sent: the shim parses nothing, and the daemon parses with the configuration it fingerprinted, which the retirement check holds to the files on disk.
 
@@ -58,7 +59,7 @@ A `503 {"not_executed": "retiring"}` stays the only refusal after which the shim
 
 - **The Typer app is built once, at daemon start-up.** It needs no cache keyed on the vocabulary: any edit to `.squads.toml` or `.overrides/` retires the daemon (ADR-1052, point 13), so the app never outlives the vocabulary it was built from.
 - **The API inside a served command is the daemon's own `LocalApi`,** bound on the request's `RequestContext` before the root callback runs. It reuses the normal-mode service composed at start-up and, per call, the steps of ADR-1225 section 7 that apply in process: the schema grant, the composition mode, the read scope. No fork, no subprocess, no HTTP call to itself. `select_api` refuses to run inside a served command, and a `tests/meta` guard holds that the endpoint's modules import neither `squads._cli._remote`, `http.client` nor `subprocess`.
-- **The squad is the daemon's.** A served command never walks up from `cwd` or reads any path the client names; `cwd` seeds `start_dir`, which spells paths in messages (ADR-1225 section 9). Client files arrive as attachments. ADR-1052 point 6 holds: a caller of a TCP listener reaches the squad and nothing else.
+- **The squad is the daemon's.** A served command never walks up from `cwd`, resolves `-C` or reads any path the client names: `cwd` seeds `start_dir`, which spells paths in messages (ADR-1225 section 9), and `client_dir` is bound as the effective directory as given, with no filesystem read. Client files arrive as attachments. ADR-1052 point 6 holds: a caller of a TCP listener reaches the squad and nothing else.
 - **Rendering happens in the daemon.** Each request gets its own consoles, built from `terminal`, so colour, width, box characters and wrapping are decided as the client's own process would. At start-up the daemon replaces `sys.stdin`, `sys.stdout` and `sys.stderr` with proxies that write to the current request's capture and read from its answers, and fall back to the daemon's log outside a request. The stdout and stderr proxies accept `bytes` as well as `str`, because Click and Typer write bytes on the completion path. It replaces `os.environ` the same way: inside a served command, a name on the fixed list reads the request's `env` (absent when the client did not send it), and every other name reads the daemon's own. `print()`, Click, Typer's completion, Rich and `actor.session_from_env()` then need no change. A `tests/meta` guard holds that no `squads` module reads an environment variable at import time, where the proxy cannot reach it. The guard is load-bearing: in the prototype, `_spans` read `SQUADS_SPANS` from the daemon's own environment at import, and a daemon started under it printed spans into every served command's stderr.
 - **Notices raised inside an operation** (ADR-1225 section 3) print through the sink the root callback sets, which in a served command is the request's stderr capture; they land in the output in the order local mode prints them.
 - **Execution is serial.** A served command runs on a worker thread (the server's loop cannot run `asyncio.run`) and holds the daemon's one serial lock (ADR-1225 section 7) for its whole run, parse to render, so writes order against route requests as they do today. Nothing in the design above relies on that lock: consoles, context, stdio proxies and Click's stack are per request or per thread, so concurrent served commands remain ADR-1052's change condition, at the cost of the worker pool.
@@ -72,7 +73,7 @@ A `503 {"not_executed": "retiring"}` stays the only refusal after which the shim
 
 ### 4. The client is a shim
 
-`squads.__main__:main` becomes the shim. It imports the interpreter's standard library, `squads` (whose `__init__` holds only `__version__`), `squads._endpoint` and the shim's own module, and nothing else: a `tests/meta` guard runs it in a subprocess and fails on any other `squads` module or third-party package in `sys.modules`. Its overhead is held to the budget of point 10.
+`squads.__main__:main` becomes the shim. It imports the interpreter's standard library, `squads` (whose `__init__` holds only `__version__`), `squads._endpoint` and the shim's own module, and the standard-library parts of `squads._daemon_link` it needs, and nothing else. A `tests/meta` guard runs it in a subprocess on two paths, a live daemon answering and a cold start up to the daemon's ready line, and fails on any other `squads` module or third-party package in `sys.modules`. The start path is standard library only: its stale-lock probe uses `fcntl.flock` on POSIX and `msvcrt.locking` on Windows, the primitives `filelock` uses in the daemon, so the two interoperate. Its overhead is held to the budget of point 10.
 
 The shim, in order:
 
@@ -80,7 +81,9 @@ The shim, in order:
 2. Reads `-C`/`--dir` from `argv` with the CLI's own hoisting rule; a `tests/meta` table test holds the shim's extraction equal to the root callback's over every accepted spelling.
 3. Runs locally, without contacting a daemon, when the first command token is in the **local-only table**: `init`, `adopt`, `daemon` and `ui`. A `tests/meta` guard holds the table to the registered root commands and to the operations marked `local_only`.
 4. Resolves the `Endpoint` (ADR-1052, point 9). No squad, the daemon off, or `SQUADS_DAEMON=off`: local.
-5. Connects, starting the daemon if none is live (ADR-1052, point 11), reads attachments, sends, and writes the answer: each chunk to its stream, through the CLI's Windows UTF-8-with-replacement stream setup, then exits with the code.
+5. Connects, starting the daemon if none is live (ADR-1052, point 11), reads attachments, sends with the answer timeout of the command's class (ADR-1225 section 3), and writes the answer: each chunk to its stream, through the CLI's Windows UTF-8-with-replacement stream setup, then exits with the code.
+
+**The timeout class.** The shim parses nothing, so it holds a literal table of the command paths whose operation is classed `long` (`migrate up`, `repair`, `import` and the rest); every other command is `standard`. A `tests/meta` guard holds the table equal to the commands bound to `long` operations in the operation table.
 
 `--help`, `docs`, `migrate help` and shell completion are served like any command: the daemon answers them from the Typer app and vocabulary it holds, which are the checkout's, and a completion that cannot reach a daemon before sending falls back locally. A Tab press therefore never rebuilds the spec-derived command tree in the client.
 
@@ -124,9 +127,9 @@ Rules:
 
 ### 9. Tests (ADR-1172)
 
-- **Endpoint parity:** the mode-parity run of `tests/cli` goes through the command endpoint: the harness sends each case's `argv` to the daemon application served on a thread against the copied squad and asserts the same exit code and whole output. Its jobs are ADR-1172's four (bundled squad on Linux, macOS and native Windows, override squad on Linux).
+- **Endpoint parity:** the mode-parity run of `tests/cli` goes through the command endpoint: the harness sends each case's `argv` to the daemon application served on a thread against the copied squad and asserts the same exit code and whole output. The harness builds one Typer app per session, as the daemon does once per start. A test's frozen clock reaches the served command through the harness, which binds it on the request's context in process; it never travels on the wire, and the daemon never reads the test process's state. Its jobs are ADR-1172's four (bundled squad on Linux, macOS and native Windows, override squad on Linux).
 - **Route parity:** `tests/cli` run once more with an `HttpApi` handed to the root callback, on Linux only, so every operation stays covered over HTTP although the CLI no longer selects it.
-- **Endpoint tests** under rules 4-6, without `covers` markers: each answer kind; a completion request for bash, zsh and fish answering local mode's candidates; ordered chunks; an unattached name; stdin attached under `-`; a prompt answered, refused, invalid, and a changed screen between phases; a prompt reached after a write, refused; the browser port refusing the endpoint.
+- **Endpoint tests** under rules 4-6, without `covers` markers: each answer kind; a completion request for bash, zsh and fish answering local mode's candidates; ordered chunks; an unattached name; stdin attached under `-`; a prompt answered, refused, invalid, and a changed screen between phases; a prompt reached after a write, refused, through a test-only command that writes then confirms, which the endpoint harness registers as a fixture (no CLI command reaches that branch; an exception to ADR-1172's surface-only rule, recorded here); the browser port refusing the endpoint.
 - **Cross-process set**, added members: the shim falling back on a refused connection; the daemon killed between the two phases of a prompt, the shim asking again locally with nothing written; the local-only table never contacting a daemon. Implicit start, no replay, Ctrl-C and the Windows detached spawn stay members.
 - **Guards:** the shim's import set; the file-argument table; the local-only table; `-C` extraction; no self call from the endpoint; no environment read at import time.
 - **Cache:** an in-process test per cached result: a file changed between two requests with the same size and timestamp, read back current; an override check refused, then rerun once the index digest changes.
@@ -280,4 +283,13 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
       5. The `prompt` answer: which stream the prompt text goes to is not specified (Click writes it to stderr under `--json`). TASK-1262 ST5 adds the stream to the answer.
       6. The parity harness: the test fixtures freeze the clock on the test's context, which a served request does not carry; TASK-1262 ST6 carries it through the harness, never through the daemon reading the test process.
       @architect
+- [2026-10-30T20:35:40Z] `architect` Robert Architect:
+  - Rulings on 64eadba (2026-10-30). The body is amended in place for each, and the status is unchanged. @tech-lead
+    1. Timeouts: yes. The shim holds a literal table of the command paths whose operation is `long`, guarded equal to the operation table (point 4).
+    2. Prompt after a write: accepted as an endpoint-harness fixture (one test-only command that writes, then confirms). It is recorded in section 9 as an exception to ADR-1172's surface-only rule.
+    3. `-C`: the request carries `client_dir`, the absolute directory the shim already resolved from `cwd` and `-C`. The daemon binds it as given, with no filesystem read, and does not apply `-C` again. If the shim cannot resolve `-C`, it runs the command locally (points 1 and 2).
+    4. Import guard: it runs both the live-daemon path and the cold-start path up to the ready line. Both are standard library only. The stale-lock probe uses `fcntl.flock` or `msvcrt.locking`, the primitives `filelock` uses in the daemon, so the two interoperate (point 4).
+    5. The `prompt` answer names the stream its text is written to, as local mode does (stderr under `--json`) (point 1).
+    6. Parity harness: one Typer app per session, and the frozen clock is bound on the served request's context by the harness in process, never on the wire (point 9).
+    7. `docs/api.md` says only that the CLI uses a private channel outside the API, with no wire format (point 1).
 <!-- sq:discussion:end -->
