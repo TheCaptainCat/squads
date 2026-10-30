@@ -18,7 +18,7 @@ description: Unix socket on POSIX, loopback ports on Windows and for the browser
   Starlette on uvicorn; one request at a time; edited configuration retires the daemon.
   The API's shape is ADR-1225
 created_at: '2026-10-16T11:27:26Z'
-updated_at: '2026-10-30T00:39:58Z'
+updated_at: '2026-10-30T07:36:29Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -94,9 +94,9 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
    C2 is rejected for 0.18. The operator has accepted, for the browser port, that any local process can drive the API, so a named pipe would buy isolation for one listener on one platform while the browser port gives it up on every platform. The authentication mode designed with the web app (MILE-868) covers the Windows CLI port too.
 5. **Admission rules, without authentication, on every TCP listener:**
    - A request whose `Host` is not exactly `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` is refused before routing. A DNS-rebinding page carries its own hostname and is refused.
-   - No CORS headers are sent and no preflight is answered. `GET` never mutates.
+   - No CORS headers are sent and no preflight is answered. `GET` and `HEAD` never mutate: `HEAD` is answered as the `GET` on the same route without its body, so admission treats both as the safe methods.
    - Every other method requires `Content-Type: application/json` and the custom request header `Squads-Client: 1` (the name case-insensitive, as in HTTP; the value exactly `1`), which a cross-origin page cannot send without a preflight that fails. A form post or a `text/plain` body fails this check. Clients send the header on every listener, the Unix socket included, so one request works on any of them. The name carries no `X-` prefix, which RFC 6648 retires for new headers.
-   - `Origin`: the browser port requires it to equal its own origin on every non-`GET` request; the Windows CLI port refuses any request that carries one, since browsers send it and the CLI never does.
+   - `Origin`: the browser port requires it to equal its own origin on every request whose method is neither `GET` nor `HEAD`; the Windows CLI port refuses any request that carries one, since browsers send it and the CLI never does.
 6. **Security, stated per platform.** The baseline everywhere is loopback-only binding plus point 5, which stops browser-originated attacks. Above it:
    - **POSIX, browser port off (the default):** only the owning user reaches the API.
    - **Native Windows, any configuration:** any local process or user can read and write the squad through the CLI port. Browsers cannot.
@@ -278,4 +278,6 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
     - Unchanged: points 4, 5, 7, 8, 11 and 13 to 15.
 - [2026-10-30T00:39:23Z, edited 2026-10-30T00:39:58Z] `architect` Robert Architect:
   - Amended in place 2026-10-30 with ADR-1225 section 3's new "Notices raised inside an operation" (FEAT-1140, tech lead 3d31d94, point 2), board rule 6. Status unchanged. Point 10: a notice an operation raises (the index lock's waiting notice, a reflog warning) travels in the answer's `warnings` and prints when the answer arrives; local mode prints it as raised, with the same lines. The "progress lines arrive together" clause is replaced.
+- [2026-10-30T07:36:29Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 for REV-1223 F22 and F27, per the manager's ruling on REV-1223 (5599c2c, operator delegation). Status unchanged. Point 5: `GET` and `HEAD` are the safe methods. `HEAD` is the `GET` on the same route without its body, so the `Content-Type`/`Squads-Client` requirement and the browser port's `Origin` requirement apply to every other method.
 <!-- sq:discussion:end -->

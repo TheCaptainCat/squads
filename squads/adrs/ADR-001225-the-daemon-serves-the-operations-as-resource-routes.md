@@ -15,7 +15,7 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-30T07:35:03Z'
+updated_at: '2026-10-30T07:36:31Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -52,7 +52,7 @@ The routes are the `method` and `path` fields of the operation table. One table 
 - **Everything sits under `/v1`.** `GET /v1/daemon` and `POST /v1/daemon/stop` are kept as ADR-1052 has them.
 - **Items are addressed by id only:** `/v1/items/{id}`, where the id is `TASK-12` for example. The route does not depend on the type, so a custom type needs no new route. Roster entries are addressed under `/v1/roles/{addr}`, `/v1/skills/{addr}` and `/v1/operators/{addr}`, where `addr` is a slug, an id or a number, as on the CLI.
 - **A roster entry's discussion** is a sub-resource of its roster route: `/v1/roles/{addr}/comments[/{hash}]`, `/v1/skills/{addr}/comments[/{hash}]` and `/v1/operators/{addr}/comments[/{hash}]`, with the methods of the item comment routes. The operation resolves `addr` within the route's roster kind, as every roster route does; an address that resolves to no entry answers `404 not_found` with today's text. The kind belongs to the operation, never to a request field that could contradict the path, and the request and response DTOs are the item comment routes' with `addr` in place of `id`. The CLI holds only the address, and only the operation may resolve it (ADR-1224, point 1), so the item route would cost a second call to learn the id, and a slug on `/v1/items/` would be ambiguous across the three kinds. A roster entry is also an item, so its id on the item comment routes reaches the same discussion.
-- **`GET` reads and never mutates.** This is ADR-1052's admission rule, and the cross-site defence relies on it. Filters are query parameters. A request DTO for a `GET` holds only flat fields, a repeated list item repeats its key (`?badge=priority=high&badge=severity=major`), and a `tests/meta` guard rejects a nested field on a `GET` request.
+- **`GET` reads and never mutates,** and `HEAD` is its body-less form. This is ADR-1052's admission rule, and the cross-site defence relies on it. Filters are query parameters. A request DTO for a `GET` holds only flat fields, a repeated list item repeats its key (`?badge=priority=high&badge=severity=major`), and a `tests/meta` guard rejects a nested field on a `GET` request.
 - **Writes:** `POST` on a collection creates, `PATCH` updates part of a resource, `PUT …/body` replaces a body, and `DELETE` removes.
 - **An action that is not create, update or delete** is a `POST` on a sub-resource named after it: `…/status`, `…/retype`, `…/activate`, `…/regen`. An operation over the whole squad is a `POST` under `/v1/squad/` (`sync`, `repair`, `renumber`, `migrate`, `repad`, `rename-type`, `rename-status`, `rename-field`, `rename-kind`, `import`). These run synchronously, as a command does.
 - **A local-only operation has no route.** `init` and `adopt` (`local_only` in the table) create a squad in the directory they run in, which a daemon serving another squad cannot do, and the CLI never sends them (section 5). They declare no method or path, the router and the OpenAPI document both leave them out, and a request to the path they would have answers `404 not_found` as any unknown path does. So the document lists exactly what the daemon serves, and a client generated from it holds no call that cannot succeed. Rejected: serving their routes to answer `400 invalid` with the reason, which keeps two routes that always refuse and lists them as callable.
@@ -118,7 +118,7 @@ The removal preview is a read, so it is a `GET`, on a sub-resource named for wha
 | 423 | `locked` | `IndexLockTimeoutError` |
 | 400 | `invalid` | any other `SquadsError` |
 | 421 | `misdirected` | admission, before routing, on a TCP listener: a `Host` that is not exactly `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` for the port the request arrived on, or a port that is not one of the daemon's listeners |
-| 403 | `forbidden` | admission, before routing: an `Origin` on the CLI port; on the browser port, a method other than `GET` whose `Origin` is missing or is not `http://<host>` of that listener; on any listener, the Unix socket included, a method other than `GET` without `Content-Type: application/json` or without `Squads-Client: 1` |
+| 403 | `forbidden` | admission, before routing: an `Origin` on the CLI port; on the browser port, a method other than `GET` or `HEAD` whose `Origin` is missing or is not `http://<host>` of that listener; on any listener, the Unix socket included, a method other than `GET` or `HEAD` without `Content-Type: application/json` or without `Squads-Client: 1` |
 | 500 | `internal` | an exception that is not a `SquadsError`. Its traceback goes to the daemon log, and the message says to read it. |
 
 - **A request no route takes** is answered by the router with the same body. A path no route serves answers `404 not_found` (`no such route`). A method the path lacks answers `405` with type `invalid` and an `Allow` header naming every method the table serves at that path (and `HEAD` beside a `GET`), as HTTP requires. 405 is the one status outside the table: the request named no operation, so no exception maps to it.
@@ -504,4 +504,6 @@ Board changes that follow acceptance, for their owners:
     
     - Section 3, error table: two admission rows. `421 misdirected` is a `Host` that does not name the TCP listener the request arrived on. `403 forbidden` is an `Origin` on the CLI port, a non-`GET` on the browser port without its own `Origin`, or a non-`GET` on any listener without `Content-Type: application/json` or `Squads-Client: 1`.
     - Section 3, refusals bullet: admission keeps ADR-1052 point 5's rules and answers with the error body (empty `warnings`, no `details`), checks in order `Host`, `Origin`, `Content-Type`, `Squads-Client`. Nothing is routed and the client never retries.
+- [2026-10-30T07:36:31Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 for REV-1223 F22 and F27, per the manager's ruling on REV-1223 (5599c2c). Status unchanged. Section 1: `HEAD` is the body-less form of `GET`. Section 3's 403 row reads "a method other than `GET` or `HEAD`" for both the browser port's `Origin` rule and the `Content-Type`/`Squads-Client` rule, matching ADR-1052 point 5.
 <!-- sq:discussion:end -->

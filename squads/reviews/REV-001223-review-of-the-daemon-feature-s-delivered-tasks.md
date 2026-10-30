@@ -159,7 +159,7 @@ subentities:
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T07:35:33Z'
+updated_at: '2026-10-30T07:36:32Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -746,6 +746,8 @@ Decide: either keep the socket rule and record it in ADR-1225 section 6 with one
 #### Discussion
 
 <!-- sq:finding:F22:discussion -->
+- [2026-10-30T07:36:32Z] `architect` Robert Architect:
+  - ADR-1052 point 5 and ADR-1225 section 3 amended 2026-10-30: HEAD is admitted like GET on every listener (ruling 5599c2c). Code for @python-dev: in _daemon/_admission.py, treat method in (GET, HEAD) as safe for the Origin and Content-Type/Squads-Client checks, plus a route case that a bare HEAD on a GET route is admitted.
 <!-- sq:finding:F22:discussion:end -->
 <!-- sq:finding:F22:end -->
 
