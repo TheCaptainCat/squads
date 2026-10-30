@@ -63342,7 +63342,7 @@
         {
           "local_id": "F51",
           "title": "Windows: Rich picks the served colour system from the daemon's console, not the client's",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63353,7 +63353,7 @@
         {
           "local_id": "F52",
           "title": "The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth endpoint module",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63408,7 +63408,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T22:34:38Z",
+      "updated_at": "2026-10-30T22:39:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

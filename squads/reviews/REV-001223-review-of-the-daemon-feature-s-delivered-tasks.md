@@ -244,7 +244,7 @@ subentities:
 - local_id: F45
   title: ParseCache.item_files() serves only an internal-reading test; digest() duplicates
     digest_of()
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F46
@@ -280,13 +280,13 @@ subentities:
 - local_id: F51
   title: 'Windows: Rich picks the served colour system from the daemon''s console,
     not the client''s'
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F52
   title: The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth
     endpoint module
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F53
@@ -314,7 +314,7 @@ subentities:
   assignee: architect
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T22:27:27Z'
+updated_at: '2026-10-30T22:39:29Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1351,6 +1351,8 @@ TASK-1263. Two parts of `ParseCache` exist without a production need.
     - `test_a_file_named_absolutely_and_relative_to_the_squad_is_parsed_once` is redundant: planting two keys per file also turns `test_a_served_command_reads_through_the_daemons_parse_cache` red, which observes the same thing through the endpoint.
     - `test_a_file_the_next_corpus_walk_does_not_read_is_parsed_again_when_it_comes_back` is the only test that pins the one-walk sweep (planting the grace walk back turns only it red). The same fact can be observed through the harness with the `yaml.safe_load` counter the endpoint test already uses: check, move an item file out, check, move it back, check, and assert its block is parsed again.
     Fix: drop the first, and move the second onto the served harness. Test-only, no source change.
+- [2026-10-30T22:34:38Z] `python-dev` Elias Python:
+  - Fixed in 81cd8409 (redundant unit test dropped, sweep test on the served harness with a yaml.safe_load counter; test-only change).
 <!-- sq:finding:F45:discussion:end -->
 <!-- sq:finding:F45:end -->
 
@@ -1503,6 +1505,8 @@ The native-Windows parity job cannot see this, because its client streams are pi
 - [2026-10-30T22:26:07Z] `reviewer` Paul Reviewer:
   - Reopened: the non-legacy branch is right, the legacy branch is not. `windows_color_system` returns "standard" on a legacy console, but Rich on a legacy Windows console picks `ColorSystem.WINDOWS` (rich/console.py:796-797), and a served Console built with `legacy_windows=True` on a Windows daemon already detected that before this change. So the mapping overrides a correct value. The two systems downgrade differently: over the 256 indexed colours plus a 6x16x6 RGB sample, 772 colours give different SGR codes, e.g. `grey50` is 37 under standard and 90 under windows, `dark_orange` 91 against 33. squads' own styles use only names on which the two agree (none of the above), so this is latent today, but the docstring states the wrong rule and the parametrized row `("truecolor", True, True, "standard")` pins it.
     Fix: return "windows" when legacy, and update the docstring and that row. Side note: both F51 tests (the 5-row table and the direct `build_console` call) are unit tests of internals; acceptable only because Linux cannot reach this through the endpoint, so say so in the test docstring or keep one row per branch.
+- [2026-10-30T22:39:27Z] `python-dev` Elias Python:
+  - - Fixed in 53a26c2d (TASK-1262 worktree, not pushed). A legacy Windows console now selects Rich's "windows" colour system (docstring and test row corrected). The served-path guard resolves import aliases and from-imports through an AST pass over the module's own bindings, covers pty and the loop's subprocess methods, and each spelling is planted once in the guard's table; its docstring claims only what it reads.
 <!-- sq:finding:F51:discussion:end -->
 <!-- sq:finding:F51:end -->
 
@@ -1534,6 +1538,8 @@ The behavioural defence is `select_api`'s runtime refusal, and that holds. The g
     - `import pty` then `pty.spawn([...])`
     The docstring says these modules "neither start a process nor open a connection", so the filter is narrower than the claim.
     Fix: treat the forbidden calls as importable names too (`os.system` etc. count when imported with `from os import`), resolve `import os as o` aliases, and add `pty`. Alternatively, use the runtime `sys.addaudithook` check the finding proposed, which covers every spelling.
+- [2026-10-30T22:39:28Z] `python-dev` Elias Python:
+  - - Fixed in 53a26c2d (TASK-1262 worktree, not pushed). A legacy Windows console now selects Rich's "windows" colour system (docstring and test row corrected). The served-path guard resolves import aliases and from-imports through an AST pass over the module's own bindings, covers pty and the loop's subprocess methods, and each spelling is planted once in the guard's table; its docstring claims only what it reads.
 <!-- sq:finding:F52:discussion:end -->
 <!-- sq:finding:F52:end -->
 
