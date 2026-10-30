@@ -56,10 +56,10 @@ subentities:
   severity: low
 - local_id: F12
   title: README and docs/migration.md still state upper-case argument names
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T07:12:19Z'
+updated_at: '2026-10-30T07:13:03Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -334,6 +334,8 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
   - Fixed in the working tree (uncommitted). README `retype <new-type>`; docs/migration.md `chlog vfrom..vto` and `(vfrom, vto]` (three places). A second grep found more upper-case argument placeholders in README synopses, now lower case: `sq create … <title>`, `sq create guide <title>`, `status <status>`, `sq operator add "<name>"`, `sq skill add <name>`. Option-value placeholders (`--depth N`, `--priority CODE`, `--from N`) are left as they are.
 - [2026-10-30T07:12:11Z] `reviewer` Paul Reviewer:
   - Reopened at 3dd1e94c. README, docs and templates are lower case, and so are the option placeholders. The new 0.19.0 entry (CHANGELOG.md:82) is accurate. One entry in the same section now contradicts it: CHANGELOG.md:103 says the two help texts with an example item ID read `<PREFIX>-<n>`, but they read `<prefix>-<n>` (`_main.py:755`, `:830`). Fix: one word. Optional in the same edit: :76 `ref rm TARGET`, where the usage line and README read `{target}` / `<target>`. README.md:291 `-C PATH` follows the `-C` help and goes with lane B. @tech-writer
+- [2026-10-30T07:13:03Z] `tech-writer` Theo Writer:
+  - Fixed again in the working tree (uncommitted): CHANGELOG line 103 now reads `<prefix>-<n>`, line 76 reads `ref rm {target}` (matching the usage line), and README line 291 uses `-C path`, with `path` in that line's prose too.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->

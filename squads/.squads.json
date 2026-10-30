@@ -64617,7 +64617,7 @@
         {
           "local_id": "F12",
           "title": "README and docs/migration.md still state upper-case argument names",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -64628,7 +64628,7 @@
       ],
       "path": "reviews/REV-001260-review-of-the-dependency-upgrade.md",
       "created_at": "2026-10-30T00:20:29Z",
-      "updated_at": "2026-10-30T07:12:19Z",
+      "updated_at": "2026-10-30T07:13:03Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

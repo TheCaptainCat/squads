@@ -288,7 +288,7 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 - `sq override scaffold|list|diff|update` — author project-level template/role/workflow overrides and reconcile them across upgrades. See [docs/overrides.md](docs/overrides.md).
 - `sq migrate up|help|chlog|rename-type|rename-status|repad` — bring a squad to the current schema, read the migration changelog, bulk-rename a type or status, or widen the ID padding. See [docs/migration.md](docs/migration.md).
 - `sq ui` — the terminal browser (needs the `tui` extra) · `sq docs [--rich]` — the full docs, offline
-- `-C PATH` (global, before the command) — run as if `sq` was started in PATH: it walks up from PATH to `.squads.toml`, so PATH can be the project directory or any folder inside it. Repeatable; a relative PATH is taken against the previous `-C`. It goes before the command and before `--help`/`--version`; after them it is ignored
+- `-C path` (global, before the command) — run as if `sq` was started in `path`: it walks up from `path` to `.squads.toml`, so `path` can be the project directory or any folder inside it. Repeatable; a relative `path` is taken against the previous `-C`. It goes before the command and before `--help`/`--version`; after them it is ignored
 - `--at when` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
 
 Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `TASK-<n>`; the
