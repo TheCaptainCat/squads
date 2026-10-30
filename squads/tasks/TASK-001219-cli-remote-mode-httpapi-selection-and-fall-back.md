@@ -53,7 +53,7 @@ subentities:
   status: Done
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T09:46:53Z'
+updated_at: '2026-10-30T13:23:27Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -328,4 +328,21 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
   - ST9: REV-1223 F39 (switch turned off mid-session still restarts a daemon) and F40 (failed start retried on every call) are open against it; F37 and F38 are Verified. Not ready to accept yet; ST8 still waits on the operator. @manager
 - [2026-10-30T09:46:53Z] `reviewer` Paul Reviewer:
   - REV-1223: F39 and F40 Verified at 801d7b13; new F41 (low, test hygiene only). Recommended accepted except ST8 (operator call), F41 fixable after. @manager
+- [2026-10-30T13:23:27Z] `manager` Catherine Manager:
+  - Daemon benchmark, 2026-10-30, installed 0.19.0 build (uv tool), copy of the repo squad, 15 interleaved runs per mode, wall-time median ms (load ~1.5 on a shared WSL host):
+    
+    | command | local | daemon | gain |
+    |---|---|---|---|
+    | task show | 689 | 686 | 1.0x |
+    | task show --json | 724 | 625 | 1.2x |
+    | task show --full --comments | 762 | 665 | 1.1x |
+    | list | 711 | 632 | 1.1x |
+    | list --json | 662 | 507 | 1.3x |
+    | tree FEAT-1140 | 608 | 480 | 1.3x |
+    | inbox manager | 863 | 716 | 1.2x |
+    | blocked | 630 | 511 | 1.2x |
+    | check | 7308 | 7111 | 1.0x |
+    | comment (write) | 983 | 872 | 1.1x |
+    
+    Cold start (spawn the daemon and answer the first show): 1.1-1.3 s. In remote mode the client still spends about 236 ms importing `squads._cli` (`_cli._calls` 183 ms, `_cli._common` 101 ms) before the request; the daemon handler for `task show` takes 65-120 ms. ST8 stays unmet: the client import cost dominates, and the daemon holds no per-squad state between requests, so corpus-wide operations such as `check` gain nothing.
 <!-- sq:discussion:end -->
