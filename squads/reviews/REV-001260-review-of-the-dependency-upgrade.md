@@ -12,23 +12,23 @@ refs:
 subentities:
 - local_id: F1
   title: Ruff exclude 'squads' also drops src/squads from check and format
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: Index lock tests are cross-process cases in the surface suite
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: No-flock filesystem ends in a traceback, not a SquadsError
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Killed-holder case bounds wall-clock time; holder docstring wrong
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F5
   title: BUG-1192 case duplicates four existing unknown-option cases
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: ADR-1172 argument-name clause describes the pre-0.27 usage line
@@ -43,7 +43,7 @@ subentities:
   status: Fixed
   severity: medium
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:30:36Z'
+updated_at: '2026-10-30T00:32:24Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -222,4 +222,8 @@ Fix (tech writer): write the entries from the handback. If G3 lands, the no-floc
   - Review of TASK-1243. Holds: bounds equal the locked versions, uv lock --check passes, the lock flags are right, the four lock cases fail when their subject breaks (concurrent-writers falsified 3 of 3 with a no-op acquire), the 10 s timeout case is acceptable under the ADR-1172 job bound, no metavar workarounds, BUG-1192 case red on typer 0.26.7 and green on 0.27.3, the docs/backends.md exclude is fine.
   - Findings: F1 high (the squads exclude drops src/squads from ruff check and format, all 230 files; anchor it as ./squads), F2 medium (lock tests belong to the ADR-1172 cross-process set, not tests/cli with incidental covers), F3 medium (no-flock filesystem ends in a traceback), F8 medium (CHANGELOG lacks the upgrade entries), F4-F6 low, F7 info for the operator. Not verified: macOS and Windows CI.
   - Verdict: changes requested. @manager route F1-F5 to the TASK-1243 dev (F1 first, it is one line), F6 to @architect (ADR-1172 amendment), F7 to op-pierre, F8 to @tech-writer.
+- [2026-10-30T00:32:24Z] `python-dev` Elias Python:
+  - F1-F5 fixed on branch worktree-agent-aa7a974cd9f4254e2 (on top of origin/release/0.19 6e0c62f5): 018fccc5 (F1), fd31ecf3 (F3), 84d0e2ba (F2, F4, F5).
+  - F1 exclude is now ./squads; ruff --show-files lists 230 src/squads files and no item file; fixed the over-long docstring line and two formatting hunks it found in src.
+  - F2 lock tests moved to tests/cross_process (real sq script, no covers, own CI job per OS, ignored by the main pytest job); F3 new IndexLockUnavailableError plus one tests/cli case, red without the fix; F4 clock assertion dropped, holder uses the store flags; F5 duplicate case dropped, the existing unknown-option cases pin BUG-1192. Gates: pyright 0, ruff clean, pytest tests 1795 passed, --squad override tests/cli 813 passed.
 <!-- sq:discussion:end -->

@@ -25,7 +25,7 @@ subentities:
   status: Todo
   story: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-28T22:26:04Z'
+updated_at: '2026-10-30T00:33:01Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -34,14 +34,14 @@ Adopter documentation for the daemon and its API, and the CHANGELOG entries for 
 
 ## What it covers
 
-- **Modes.** Remote and local mode, when each applies, that output is identical; the differences that remain: Ctrl-C (remote mode stops waiting and the operation completes, local mode ends the command), output arriving when an operation ends, the timeouts (5 s to connect, 300 s for an answer including time queued, no answer limit for migrate, repair, renumber and import, with the waiting notice after 10 s) and the "may still complete" message.
+- **Modes.** Remote and local mode, when each applies, that output is identical; the differences that remain: Ctrl-C (remote mode stops waiting and the operation completes, local mode ends the command), output arriving when an operation ends, the timeouts (5 s to connect, 300 s for an answer including time queued, no answer limit for the corpus-wide operations `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `migrate rename-field`, `migrate rename-kind`, `repair`, `renumber` and `import`, with the waiting notice after 10 s; the operation table's `timeout` class is the authority) and the "may still complete" message.
 - **Settings.** The `[daemon]` table (`enabled`, `idle_timeout_minutes` with 0 = never, `browser`), `SQUADS_DAEMON=on|off` and its precedence, what an unusable value does (local mode, one stderr line, `sq check`), that settings take effect at the next command.
 - **The fall back** and its stderr line; `sq daemon status` (with `--json`) and `sq daemon stop`. `sq daemon run` stays out of these docs.
-- **The API for another client** (ADR-1225 sections 1-3, 6): the routes under `/v1` and their grammar (items by id, roster entries by address, squad-wide operations under `/v1/squad/`, `GET` never mutates, filters as query parameters with repeated keys); the envelope (`data`, `omitted`, `warnings`); the error body and the status table (404, 409 with its four types, 423, 400, 500); the request headers (`Squads-Actor`, `Squads-At`, the session ids, `Squads-Client-Dir`, `Squads-Schema`, `Squads-Vocabulary`, `If-Match`, `Squads-Client: 1`) and what a client must send to be admitted (JSON content type, `Squads-Client`, `Host`, `Origin` on the browser port); `GET /v1/openapi.json` as the source of the result schemas, `GET /v1/daemon`, `POST /v1/daemon/stop`.
+- **The API for another client** (ADR-1225 sections 1-3, 6): the routes under `/v1` and their grammar (items by id, roster entries by address, squad-wide operations under `/v1/squad/`, `GET` never mutates, filters as query parameters with repeated keys); the envelope (`data`, `omitted`, `warnings`); the error body `{"error": {"type", "message", "warnings"}}` and the status table (404, 409 with its four types, 423, 400, 500); the request headers (`Squads-Actor`, `Squads-At`, the session ids, `Squads-Client-Dir`, `Squads-Schema`, `Squads-Vocabulary`, `If-Match`, `Squads-Client: 1`) and what a client must send to be admitted (JSON content type, `Squads-Client`, `Host`, `Origin` on the browser port); `GET /v1/openapi.json` as the source of the result schemas, `GET /v1/daemon`, `POST /v1/daemon/stop`. How a result carries a squad's own vocabulary (ADR-1250 section 7): an item or sub-entity row holds its stored attributes flat beside its core keys, `badges` maps each declared field that holds a value to its badge code on every row, a sub-entity carries `maps_to` and `deferred_to` and its `display` carries `maps_to` and `maps_to_kind`; a client reads badge values from `badges` and labels from `display` and the catalogs, as given, never from a field-named key. The document is the same for every squad, since the vocabulary travels in these maps.
 - **The declared actor.** `Squads-Actor` is declared by the client and never verified, so the actor recorded on an item, a comment or a reflog line is a claim, with the same standing as the session ids.
-- **Item versions.** The `ETag` on single-item reads and writes (a sub-entity shares its item's), the `etag` key of the show result, `If-Match` to refuse a write on an item changed since it was read (`409 changed_since_read`, nothing written), comments addressed by their content hash.
+- **Item versions.** The `ETag` on single-item reads and writes (a sub-entity shares its item's), the `etag` key of the show result (which local `show --json` also gains, a change the CHANGELOG lists), `If-Match` to refuse a write on an item changed since it was read (`409 changed_since_read`, nothing written), comments addressed by their content hash.
 - **Compatibility.** A client and a daemon at different schema versions refuse each other (`409 schema_mismatch`), the CLI's two messages and their remedies; a checkout whose workflow vocabulary differs from the daemon's is refused (`409 vocabulary_mismatch`) and the remedy; that an incompatible change to a result shape ships as a schema change (linking the stability guide).
-- **Dependencies.** Installing squads brings the daemon's HTTP server packages (`starlette`, `uvicorn`), which only the daemon loads.
+- **Dependencies.** Installing squads brings the daemon's HTTP server packages (`starlette`, `uvicorn`, with `h11` and `click`), which only the daemon loads.
 - **Runtime directory** per platform (socket, json, lock, log) and where; nothing is written in the squad; a development (editable) install should keep the daemon off.
 - **Security,** per platform, as US9 states it: on native Windows and on any platform with `daemon.browser` on, any local process or user can read and write the squad while the daemon runs; on POSIX with the browser port off, only the owning user can; browser-originated attacks are refused everywhere. Stated as a property, not a defect.
 
@@ -49,7 +49,7 @@ Likely homes: a daemon page and an API reference page under `docs/`, the configu
 
 ## Acceptance
 
-FEAT-1140 US9 in full. Every command, key, route, header and file named exists in the shipped code: check each against the implementation and against `GET /v1/openapi.json`, not the ADR.
+FEAT-1140 US9 in full. Shapes and stability tiers are linked to `docs/stability.md` (which the bundled-vocabulary docs updated for `badges`, `maps_to_kind` and the kind `label`), not restated. Every command, key, route, header and file named exists in the shipped code: check each against the implementation and against `GET /v1/openapi.json`, not the ADR.
 
 ## Test approach
 
@@ -79,7 +79,7 @@ Adopter page for remote and local mode and their differences (Ctrl-C, output at 
 ### ST2 — API reference and security stance
 
 <!-- sq:subtask:ST2:body -->
-API reference for another client: the route grammar, the envelope, the error statuses and types, the request headers with the declared, unverified actor, admission requirements, ETags and `If-Match`, the schema and vocabulary refusals with their remedies, `GET /v1/openapi.json`, `GET /v1/daemon`, `POST /v1/daemon/stop`. Security stated per platform exactly as US9 lists it, as a property. CHANGELOG entries in the unreleased section. Every route and header checked against the served OpenAPI document.
+API reference for another client: the route grammar, the envelope, the error body with its `warnings`, the error statuses and types, how a row carries the squad's own vocabulary (flat attributes, `badges`, `maps_to`, `display.maps_to_kind`), the request headers with the declared, unverified actor, admission requirements, ETags and `If-Match`, the schema and vocabulary refusals with their remedies, `GET /v1/openapi.json`, `GET /v1/daemon`, `POST /v1/daemon/stop`. Security stated per platform exactly as US9 lists it, as a property. CHANGELOG entries in the 0.19.0 section, the `etag` key that local `show --json` gains among them. Every route and header checked against the served OpenAPI document.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -92,4 +92,6 @@ API reference for another client: the route grammar, the envelope, the error sta
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-30T00:33:01Z] `tech-lead` Olivia Lead:
+  - Brought up to date (2026-10-30): the timeout list now names every `long` operation (`rename-field` and `rename-kind` included); the error body carries `warnings`; the API page covers how rows carry a squad's own vocabulary (ADR-1250 section 7) and links `docs/stability.md`; the CHANGELOG lists the `etag` key that local `show --json` gains; dependencies list `h11` and `click`.
 <!-- sq:discussion:end -->

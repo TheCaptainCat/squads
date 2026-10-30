@@ -58,7 +58,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-29T13:13:23Z'
+updated_at: '2026-10-30T00:32:40Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -501,4 +501,15 @@ Done when:
   - Re 45306f7 (2026-10-29): US10 trimmed to what the daemon owes (per-call actor, time, session ids and client directory; path spelling; reflog parity); the invocation-entry bullet is delivered under FEAT-1226. US1 and US10 back to Todo: TASK-1218/1219 still owe both and nothing under this feature has started them. @tech-lead
 - [2026-10-29T13:13:23Z] `manager` Catherine Manager:
   - Back to Ready: TASK-1217 moved to FEAT-1226 and shipped in 0.18.0; nothing else under this feature has started, and it now targets 0.18.1 (MILE-1241).
+- [2026-10-30T00:32:40Z] `tech-lead` Olivia Lead:
+  - Daemon tasks TASK-1218 to TASK-1222 brought up to date with release/0.19 (bug batch, FEAT-1249, FEAT-1242); decisions unchanged, all still Draft. Open points, each with my recommendation:
+    
+    1. @manager for the operator: should the remote-mode run also cover the override squad (`--squad override` plus remote mode on `tests/cli`, one more ubuntu job like `override-squad`)? Recommendation: yes. The bundled squad has no workflow override, so otherwise no CI run hashes a present override or carries a custom field, kind or flat attribute over the wire.
+    2. @architect: server-side stderr in remote mode. `_index/_store.py` prints the index-lock wait notice (asserted by `tests/cli/test_index_lock.py`, from FEAT-1242) and `_index/_reflog.py` its warnings straight to `sys.stderr`. In the daemon these go to its log, so a remote client never sees them. In the in-process parity harness they would leak into the captured output and pass falsely. Recommendation: carry them as `warnings` on the response or error envelope, the slot that already exists. The other option is a documented remote-mode difference with those cases skipped in remote mode, which would be the first parity exemption.
+    3. @architect: ADR-1172's time-bound sentence says the remote-mode run on Windows is the full suite, while mode parity and the override job run `tests/cli`. Recommendation: `tests/cli` on every OS, and amend the sentence.
+    4. @architect, clerical: ADR-1225 section 1's `/v1/squad/` list and section 3's timeout table predate `rename-field` and `rename-kind`. The operation table already serves both at `/v1/squad/rename-field|rename-kind` with class `long`. The budget is still called a 0.18 criterion, and it now ships in 0.19.
+    5. @architect: `uvicorn` brings the real `click` into every install, while the CLI imports typer's vendored `typer._click` (typer 0.27). Recommendation: add `click` to the remote-path import guard list, so a stray `import click` cannot bind to the wrong copy.
+    6. @manager for the operator: the dogfood trial (TASK-1222 ST2) needs this repository's squad at schema 0.19. The pre-release build refuses the current 0.17 squad, and migrating it is the operator's call. ST1 (`[daemon] enabled = false`) does not wait for it: 0.17.0 and 0.18.0 ignore unknown config keys.
+    
+    Parallel plan for the 2-developer cap is in the TASK-1218 and TASK-1219 bodies. In short: the TASK-1218 dependency commit (ST11) goes first. Then lane A (request path: ST3, ST8, ST4, ST9, ST10) and lane B (process: ST1, ST2, ST5, ST6, ST7) run in two worktrees and merge A then B. TASK-1219 follows with lane D (wire: ST4, ST5, ST7, ST6) and lane C (process: ST1, ST2, ST3, ST8, ST9, cross-process set) and merges D then C. TASK-1220 (devops), TASK-1221 (writer; ST2 can start after TASK-1218) and TASK-1222 (qa) come after TASK-1219.
 <!-- sq:discussion:end -->
