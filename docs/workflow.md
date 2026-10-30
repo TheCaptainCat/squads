@@ -1627,6 +1627,11 @@ run, so `sq reflog --op rename-type` reconstructs exactly which items a past ren
 verify with `sq check` after. All four run only on a squad at the package's schema: on one that is
 behind, run `sq migrate up` first.
 
+**Use case:** You released your squad with the built-in `task` type but later realize you want to call
+them `job` instead. Declare a `job` type in your workflow override, then run `sq migrate rename-type
+task job` to move all existing tasks across. Both types must exist in the spec while the rename runs;
+once `task` has no items left, you can drop it from a `[selected]` list if you want it gone.
+
 ### Renaming a badge field (`sq migrate rename-field`)
 
 A value stored under a field code the active spec no longer declares on that type or kind is kept
@@ -1662,8 +1667,8 @@ reports, so running it moves what the finding reports and nothing else.
 Three spellings of a kind are written into the files: its name in each block marker
 (`<!-- sq:outcome:OC1 -->`), its `plural` in the container marker (`<!-- sq:outcomes -->`), and its
 `local_prefix` in every local id and in every `maps_to` that targets it. After an override changes
-one of them, the `subentity_kind_mismatch` check (when a type selects it) reports each stale
-spelling and names the command:
+one of them, the `subentity_kind_mismatch` check, which every `work` type runs at `warn`, reports
+each stale spelling and names the command:
 
 ```
 warn JOB-9: block marker of AC1 carries kind 'action', not 'step'; `sq migrate rename-kind action step` brings it to the declaration
@@ -1683,7 +1688,3 @@ Discussion text and reflog entries keep the spellings they recorded.
 
 A kind's `label` and `heading` are not stored; changing them needs no command.
 
-**Use case:** You released your squad with the built-in `task` type but later realize you want to call
-them `job` instead. Declare a `job` type in your workflow override, then run `sq migrate rename-type
-task job` to move all existing tasks across. Both types must exist in the spec while the rename runs;
-once `task` has no items left, you can drop it from a `[selected]` list if you want it gone.

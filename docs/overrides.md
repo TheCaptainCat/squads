@@ -647,13 +647,15 @@ list is the only way it ever runs on that type:
   or a badge field its type declares, and every key of a sub-entity entry a core key or a field
   its kind declares. It reports at `warn` and never changes the file, and each finding names the
   `sq migrate rename-field` command scoped to what it reports; see **Attributes** (above).
-- `subentity_kind_mismatch` — every spelling of a sub-entity kind stored in an item must match the
-  kind its type hosts: block markers, the container marker, the local ids and the `maps_to`
-  values. It reports at `warn`, and each finding names the `sq migrate rename-kind` command that
-  brings the item to the declaration.
 - Eight policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
   `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion`,
   `ref_rule_target_typed` and `blocked_has_blocker`. See "The work-policy checks" below.
+
+`subentity_kind_mismatch` is not in that list: every type of the `work` category runs it (see
+below). It checks that every spelling of a sub-entity kind stored in an item matches the kind its
+type hosts: block markers, the container marker, the local ids and the `maps_to` values. It
+reports at `warn`, and each finding names the `sq migrate rename-kind` command that brings the
+item to the declaration.
 
 One more sits in no category's defaults but is selected on one bundled type:
 `subentities_settled_with_parent`, on `review`. See "The settled-parent check" below.
@@ -1426,7 +1428,7 @@ Some validators are always on as well. Every type runs the common core (`item_st
 `dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic` and `attribute_valid`) and
 the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
 `subentity_container_marker`, `subentity_body_written`, `subentity_title_present`,
-`subentity_deferral_resolved` and
+`subentity_deferral_resolved`, `subentity_kind_mismatch` and
 `subentity_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
 `pronouns_valid` for `roster`. A type's `validators` list can change their level, within each
 check's floor, but cannot drop them. Only the checks a type adds beyond them are selectable. The
@@ -1574,7 +1576,8 @@ with `No such option: --priority`. Each `--help` lists the field's codes
 `--set`, `--unset`, `--badge`, `--min-badge` and `--sort` are the generic forms, and take any
 declared field by code. `--badge`, `--min-badge` and `--sort` refuse, with exit `1`, a code that
 no non-roster type declares, naming the declared ones
-(`unknown badge field 'priority' (one of: urgency, work_size)`); `--set` and `--unset` refuse a
+(`unknown badge field 'priority' (one of: urgency, work_size)`,
+`unknown sort field 'priority' (one of: urgency, work_size)`); `--set` and `--unset` refuse a
 key the item's type does not declare
 (`'priority' is not a settable field of job items; valid: needs_review, owner_team, work_size`).
 
@@ -2470,8 +2473,7 @@ and the parameter it runs with — see § "Validators" above for the full gramma
 unselected include `ref_rule_target_present` (squads types the `implements` edge from a feature to a
 contract but never requires it — see [workflow.md](workflow.md#keeping-a-contract-current) §
 "Keeping a contract current"), `parent_present`, `no_status_banner`, `subentity_title_max`,
-`frontmatter_key_undeclared`, `subentity_kind_mismatch` and the eight work-policy checks listed
-there.
+`frontmatter_key_undeclared` and the eight work-policy checks listed there.
 
 `sq workflow lint` is the instrument. It reports **every** violation at once with a location and a
 fix hint, where a plain `sq` command stops at the first:
@@ -2548,9 +2550,9 @@ Four practical notes:
 A **badge field or a sub-entity kind you rename** is a data change, like a type: the old spelling
 stays in the files. A value stored under a field code the spec no longer declares is kept, never
 refused at load, and `sq migrate rename-field <old> <new>` moves it; a kind's stored name, plural
-and local prefix are moved by `sq migrate rename-kind <old> <new>`. The two checks
-`frontmatter_key_undeclared` and `subentity_kind_mismatch` report what is left to move, each naming
-its command. See [workflow.md § "Renaming existing types and statuses"](workflow.md#renaming-existing-types-and-statuses).
+and local prefix are moved by `sq migrate rename-kind <old> <new>`. `subentity_kind_mismatch`, which every `work` type runs, reports a stale kind spelling, and
+`frontmatter_key_undeclared`, when a type selects it, a value left under an old field code; each
+names its command. See [workflow.md § "Renaming existing types and statuses"](workflow.md#renaming-existing-types-and-statuses).
 
 ---
 

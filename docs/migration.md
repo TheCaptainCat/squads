@@ -387,8 +387,9 @@ Fix the entry in the file (keep the value you mean under its key, and remove the
 field or kind you rename in your override after the upgrade leaves its old spelling in the files:
 `sq migrate rename-field <old> <new>` moves the values of a renamed badge field, and
 `sq migrate rename-kind <old> <new>` the block markers, container marker, local ids and mappings of
-a renamed kind. The `frontmatter_key_undeclared` and `subentity_kind_mismatch` checks, when a type
-selects them, report what is left to move and name the command. See
+a renamed kind. `subentity_kind_mismatch`, which every `work` type runs, reports a stale kind spelling, and
+`frontmatter_key_undeclared`, when a type selects it, a value left under an old field code; each
+names the command. See
 [workflow.md § "Renaming a badge field"](workflow.md#renaming-a-badge-field-sq-migrate-rename-field)
 and [§ "Renaming a sub-entity kind"](workflow.md#renaming-a-sub-entity-kind-sq-migrate-rename-kind).
 

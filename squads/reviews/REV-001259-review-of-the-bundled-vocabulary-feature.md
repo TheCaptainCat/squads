@@ -147,12 +147,12 @@ subentities:
 - local_id: F29
   title: Docs say subentity_kind_mismatch ships unselected; every work type runs it
     by default
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F30
   title: CHANGELOG sort message, misplaced rename-type use case, side-state order
     not recorded
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F31
   title: Vocabulary scan misses an ID prefix with its dash (TASK-, f-strings, startswith)
@@ -174,7 +174,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-29T23:57:07Z'
+updated_at: '2026-10-30T00:00:04Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -843,6 +843,8 @@ The adopter docs say it ships unselected:
 #### Discussion
 
 <!-- sq:finding:F29:discussion -->
+- [2026-10-30T00:00:03Z] `tech-writer` Theo Writer:
+  - Fixed in the working tree (uncommitted). Driven at HEAD: a bundled scratch squad reports `subentity_kind_mismatch` with no selection. overrides.md: the check is out of the "not selected" list and the "ship unselected" list, has its own paragraph saying every `work` type runs it, and is added to the `work` defaults list; the rename paragraph is split from `frontmatter_key_undeclared`. workflow.md, migration.md and the CHANGELOG Added entry now say every `work` type runs it and that `frontmatter_key_undeclared` runs only when selected.
 <!-- sq:finding:F29:discussion:end -->
 <!-- sq:finding:F29:end -->
 
@@ -860,6 +862,8 @@ TASK-1258, smaller points, read and driven:
 #### Discussion
 
 <!-- sq:finding:F30:discussion -->
+- [2026-10-30T00:00:04Z] `tech-writer` Theo Writer:
+  - Fixed in the working tree (uncommitted). (1) The CHANGELOG and overrides.md now quote both messages, `unknown badge field` and `unknown sort field` (driven on the override squad). (2) The rename-type use-case paragraph in workflow.md is back at the end of "Renaming existing types and statuses", above the two new subsections. (3) New CHANGELOG Changed entries for the side-state order, the review template without a severity line (driven with `fields = []` on finding) and the help placeholders. README lines 183-184 now use the new item order. The sub-entity rows (README line 193, workflow.md lines 335-336) are left as they are: at HEAD `sq workflow` and the squads skill still print the sub-entity lifecycle as `(+ Blocked, Cancelled)`.
 <!-- sq:finding:F30:discussion:end -->
 <!-- sq:finding:F30:end -->
 

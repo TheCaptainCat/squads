@@ -180,8 +180,8 @@ The following table shows the **bundled default** status lifecycles:
 
 | Type | Lifecycle |
 |------|-----------|
-| epic / feature / task | `Draft → Ready → InProgress → InReview → Done` (+ `Blocked`, `Cancelled`) |
-| bug | `Open → InProgress → Fixed → Verified` (+ `WontFix`, `Blocked`, `Cancelled`) |
+| epic / feature / task | `Draft → Ready → InProgress → InReview → Done` (+ `Cancelled`, `Blocked`) |
+| bug | `Open → InProgress → Fixed → Verified` (+ `WontFix`, `Cancelled`, `Blocked`) |
 | decision (ADR) | `Proposed → Accepted → Superseded` (+ `Rejected`, `Deprecated`) |
 | contract | `Draft → Active → Superseded` (+ `Deprecated`) |
 | milestone | `Draft → InProgress → Done` (+ `Cancelled`) |
