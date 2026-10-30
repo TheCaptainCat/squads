@@ -55,6 +55,8 @@ _ERROR_DESCRIPTIONS = (
     (409, "conflict, vocabulary_mismatch, schema_mismatch or changed_since_read."),
     (423, "locked: the index lock stayed held by another process."),
     (500, "internal: an unexpected failure; the daemon's log holds the traceback."),
+    (421, "misdirected: the Host header does not name the listener; nothing ran."),
+    (403, "forbidden: the listener's admission rules refused a write; nothing ran."),
 )
 
 
@@ -124,6 +126,8 @@ def _responses(op: Operation[Any, Any], answer: dict[str, Any]) -> dict[str, Any
     }
     statuses = sorted({status for _, status in HTTP_STATUS})
     for status in statuses:
+        if status == 403 and op.route[0] in ("GET", "HEAD"):
+            continue
         responses[str(status)] = {
             "description": dict(_ERROR_DESCRIPTIONS)[status],
             "content": {"application/json": {"schema": {"$ref": _REF.format(model="ErrorBody")}}},

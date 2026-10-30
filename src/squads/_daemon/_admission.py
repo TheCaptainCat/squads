@@ -10,7 +10,8 @@ from typing import Any
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from squads._api._errors import ErrorBody, ErrorDetail
+from squads import _clock as clock
+from squads._api._errors import FORBIDDEN, HTTP_STATUS, MISDIRECTED, ErrorBody, ErrorDetail
 
 CLI = "cli"
 BROWSER = "browser"
@@ -26,6 +27,8 @@ class Activity:
     def __init__(self) -> None:
         self.in_flight = 0
         self._last = time.monotonic()
+        #: When the last request ended (or the daemon started), for the deadline it reports.
+        self.last_at = clock.now()
 
     def begin(self) -> None:
         self.in_flight += 1
@@ -33,17 +36,18 @@ class Activity:
     def end(self) -> None:
         self.in_flight -= 1
         self._last = time.monotonic()
+        self.last_at = clock.now()
 
     def idle_seconds(self) -> float | None:
         """Seconds since the last request ended; ``None`` while one is in progress."""
         return None if self.in_flight else time.monotonic() - self._last
 
 
-def _refusal(status: int, kind: str, message: str) -> Response:
+def _refusal(kind: str, message: str) -> Response:
     body = ErrorBody(error=ErrorDetail(type=kind, message=message))
     return Response(
         body.model_dump_json(exclude_none=True).encode(),
-        status_code=status,
+        status_code=dict(HTTP_STATUS)[kind],
         media_type="application/json",
     )
 
@@ -86,24 +90,20 @@ class Admission:
                 f"localhost:{port}",
                 f"[::1]:{port}",
             ):
-                return _refusal(421, "misdirected", "the Host header does not name this listener")
+                return _refusal(MISDIRECTED, "the Host header does not name this listener")
             if kind == CLI and origin is not None:
-                return _refusal(
-                    403, "forbidden", "this listener refuses a request that has an Origin"
-                )
+                return _refusal(FORBIDDEN, "this listener refuses a request that has an Origin")
             if (
                 kind == BROWSER
-                and method != "GET"
+                and method not in ("GET", "HEAD")
                 and (origin is None or origin.decode("latin-1").lower() != f"http://{host}")
             ):
-                return _refusal(
-                    403, "forbidden", "a write needs an Origin equal to this listener's"
-                )
-        if method != "GET":
+                return _refusal(FORBIDDEN, "a write needs an Origin equal to this listener's")
+        if isinstance(port, int) and method not in ("GET", "HEAD"):
             if not _is_json(headers.get(b"content-type")):
-                return _refusal(403, "forbidden", "a write needs Content-Type: application/json")
+                return _refusal(FORBIDDEN, "a write needs Content-Type: application/json")
             if headers.get(CLIENT_HEADER) != b"1":
-                return _refusal(403, "forbidden", "a write needs the header Squads-Client: 1")
+                return _refusal(FORBIDDEN, "a write needs the header Squads-Client: 1")
         return None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

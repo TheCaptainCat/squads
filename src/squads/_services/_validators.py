@@ -1625,7 +1625,11 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
 def _daemon_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """Each part of the ``[daemon]`` table in ``.squads.toml`` that is not usable (an unknown key,
     a value of the wrong kind, a non-table) and an unusable ``SQUADS_DAEMON``; each finding says
-    what the squad does meanwhile. It names the config file, or the variable."""
+    what the squad does meanwhile. It names the config file, or the variable.
+
+    ``SQUADS_DAEMON`` is the environment of the process running the check: the caller's in local
+    mode, the daemon's in remote mode, and a daemon refuses to start with an unusable value, so
+    the finding is never about a different process than the one that reported it."""
     level = squad_global_level(ctx.spec, "daemon_config_valid")
     issues = [
         CheckIssue(level, CONFIG_FILENAME, problem, rule="daemon_config_valid")

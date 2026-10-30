@@ -16,6 +16,19 @@ from tests.cli._output import json_text, printed
 
 pytestmark = pytest.mark.anyio
 
+REGENERATED_CONFIG = f"""\
+# squads project configuration
+schema_version = "{SCHEMA_VERSION}"
+squad_dir = "squads"
+active_backends = ["claude_code"]
+working_language = "en"
+
+[daemon]
+enabled = true
+idle_timeout_minutes = 5
+browser = false
+"""
+
 OLD_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_14"
 SCHEMA_17_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_17"
 CHECK_HINT = "  run `sq check` to verify integrity\n"
@@ -298,8 +311,7 @@ async def test_up_keeps_a_daemon_table_when_it_regenerates_the_config(project, i
 
     assert result.exit_code == 0, result.output
     regenerated = config.read_text(encoding="utf-8")
-    assert "default_backend" not in regenerated
-    assert "\n[daemon]\nenabled = true\nidle_timeout_minutes = 5\nbrowser = false\n" in regenerated
+    assert regenerated == REGENERATED_CONFIG
 
 
 @pytest.mark.covers("migrate up")

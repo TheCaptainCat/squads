@@ -11,12 +11,18 @@ The group talks to the daemon itself and never goes through one.
 # pyright: reportUnusedFunction=false
 
 import json
+from typing import Any
 
 import typer
 
 import squads._cli._common as common
 from squads._context import get_context
-from squads._daemon_link import ask_to_stop, daemon_identity, wait_until_gone
+from squads._daemon_link import (
+    ask_to_stop,
+    daemon_identity,
+    unanswering_daemon,
+    wait_until_gone,
+)
 from squads._endpoint import Endpoint, endpoint_for
 from squads._errors import NotInitializedError, SquadsError
 from squads._paths import process_dir
@@ -39,6 +45,17 @@ def _endpoint() -> Endpoint:
     return endpoint
 
 
+def _identity(endpoint: Endpoint) -> dict[str, Any] | None:
+    """The identity of the daemon, ``None`` when none runs; a daemon that holds the lock and does
+    not answer is an error, not an absence."""
+    identity = daemon_identity(endpoint)
+    if identity is None:
+        problem = unanswering_daemon(endpoint)
+        if problem is not None:
+            raise SquadsError(problem)
+    return identity
+
+
 def _print_json(document: dict[str, object]) -> None:
     common.print_json_clean(json.dumps(document))
 
@@ -51,7 +68,7 @@ def status(
     ),
 ) -> None:
     """Show the daemon serving this squad, or that none is running."""
-    identity = daemon_identity(_endpoint())
+    identity = _identity(_endpoint())
     if json_out:
         _print_json({"running": identity is not None, "daemon": identity})
         return
@@ -89,7 +106,7 @@ def stop(
     starts a fresh daemon.
     """
     endpoint = _endpoint()
-    was_running = daemon_identity(endpoint) is not None
+    was_running = _identity(endpoint) is not None
     if was_running:
         if not ask_to_stop(endpoint):
             raise SquadsError("the daemon did not accept the request to stop")

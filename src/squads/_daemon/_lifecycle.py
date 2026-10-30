@@ -11,8 +11,10 @@ import hashlib
 import json
 import logging
 import os
+import signal
 import sys
-from collections.abc import Callable
+import threading
+from collections.abc import Callable, Generator
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -25,7 +27,7 @@ from squads._daemon._admission import Activity, Admission
 from squads._daemon._app import build_app
 from squads._daemon._listeners import Bound, bind_listeners
 from squads._daemon._state import DaemonState
-from squads._endpoint import CONFIG_FILENAME, Endpoint, runtime_dir_problem
+from squads._endpoint import CONFIG_FILENAME, Endpoint, daemon_override, runtime_dir_problem
 from squads._errors import SquadsError
 from squads._spec_documents import spec_sources
 
@@ -83,6 +85,25 @@ def fingerprint(root: Path, squad_dir: Path) -> str:
     return digest.hexdigest()
 
 
+class _Server(uvicorn.Server):
+    """A uvicorn server that exits gracefully on SIGINT and SIGTERM and then returns, instead of
+    re-raising the signal on the way out, which would end the process before its files are
+    removed."""
+
+    @contextlib.contextmanager
+    def capture_signals(self) -> Generator[None]:
+        if threading.current_thread() is not threading.main_thread():
+            yield
+            return
+        wanted = (signal.SIGINT, signal.SIGTERM)
+        original = {sig: signal.signal(sig, self.handle_exit) for sig in wanted}
+        try:
+            yield
+        finally:
+            for sig, handler in original.items():
+                signal.signal(sig, handler)
+
+
 async def _finished(serving: asyncio.Task[None]) -> None:
     """Wait for the server task; uvicorn ends a start it cannot make with ``SystemExit``."""
     try:
@@ -97,7 +118,7 @@ class Daemon:
     def __init__(self, endpoint: Endpoint, report: Report | None = None) -> None:
         self.endpoint = endpoint
         self._report = report
-        self._server: uvicorn.Server | None = None
+        self._server: _Server | None = None
         self._stopping = False
         self._activity = Activity()
         #: Why the daemon did not start, once it has failed to.
@@ -119,6 +140,9 @@ class Daemon:
         problem = runtime_dir_problem(endpoint)
         if problem is not None:
             return self._fail(problem)
+        _, unusable = daemon_override(os.environ)
+        if unusable is not None:
+            return self._fail(unusable)
         lock = FileLock(
             str(endpoint.files.lock),
             thread_local=False,
@@ -134,9 +158,15 @@ class Daemon:
         try:
             return self._serve()
         finally:
+            # Unlinked while still held (POSIX), so a start racing this exit either fails on the
+            # held file or creates a fresh one; Windows cannot unlink a held file.
+            if sys.platform != "win32":
+                with contextlib.suppress(OSError):
+                    endpoint.files.lock.unlink()
             lock.release()
-            with contextlib.suppress(OSError):
-                endpoint.files.lock.unlink()
+            if sys.platform == "win32":  # pragma: no cover
+                with contextlib.suppress(OSError):
+                    endpoint.files.lock.unlink()
 
     # --- one life ---
 
@@ -210,7 +240,7 @@ class Daemon:
             lifespan="off",
             interface="asgi3",
         )
-        server = uvicorn.Server(config)
+        server = _Server(config)
         self._server = server
         server.should_exit = self._stopping
         serving = asyncio.create_task(server.serve(sockets=list(bound.sockets)))
@@ -243,8 +273,8 @@ class Daemon:
     def _idle_deadline(self, idle_seconds: int) -> datetime | None:
         if idle_seconds <= 0:
             return None
-        idle = self._activity.idle_seconds() or 0.0
-        return clock.now() + timedelta(seconds=max(idle_seconds - idle, 0.0))
+        since = clock.now() if self._activity.in_flight else self._activity.last_at
+        return since + timedelta(seconds=idle_seconds)
 
     # --- files ---
 

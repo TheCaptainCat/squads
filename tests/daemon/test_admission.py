@@ -134,3 +134,33 @@ async def test_any_origin_on_the_windows_cli_port_is_refused(project, run_daemon
     assert (status, json.loads(body)) == refused(
         403, "forbidden", "this listener refuses a request that has an Origin"
     )
+
+
+async def test_head_is_admitted_like_get(project, run_daemon) -> None:
+    enable_browser(project)
+    running = run_daemon(project)
+
+    status, _, _ = running.over_tcp("browser", "HEAD", "/v1/daemon")
+
+    assert status == 200
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="the CLI listener is a TCP port on Windows")
+async def test_the_cli_socket_asks_for_neither_the_content_type_nor_the_client_header(
+    project, run_daemon
+) -> None:
+    from squads._daemon_link import connection
+    from squads._endpoint import read_record
+
+    running = run_daemon(project)
+    conn = connection(running.endpoint, read_record(running.endpoint))
+    assert conn is not None
+    try:
+        conn.request("POST", "/v1/items", body=b"{}")
+        reply = conn.getresponse()
+        status, body = reply.status, json.loads(reply.read())
+    finally:
+        conn.close()
+
+    # routed and refused as an invalid request, not by admission
+    assert (status, body["error"]["type"]) == (400, "invalid")

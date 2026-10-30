@@ -284,8 +284,36 @@ async def test_a_daemon_timeout_that_is_not_a_whole_number_of_minutes_is_a_warni
                 "daemon_config_valid",
                 "warn",
                 ".squads.toml",
-                "[daemon] idle_timeout_minutes must be a whole number of minutes, 0 or more, "
-                "got -5; every command runs in local mode until it is fixed",
+                "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
+                "52560000, got -5; every command runs in local mode until it is fixed",
+            )
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("daemon_config_valid")
+async def test_a_daemon_timeout_too_long_to_schedule_is_a_warning(
+    project, invoke, check_json
+) -> None:
+    # no command edits `.squads.toml`
+    edit_config(
+        project,
+        'working_language = "en"',
+        'working_language = "en"\n\n[daemon]\nidle_timeout_minutes = 52560000',
+    )
+    assert await check_json() == ([], 0)
+
+    edit_config(project, "idle_timeout_minutes = 52560000", "idle_timeout_minutes = 52560001")
+
+    assert await check_json() == (
+        [
+            issue(
+                "daemon_config_valid",
+                "warn",
+                ".squads.toml",
+                "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
+                "52560000, got 52560001; every command runs in local mode until it is fixed",
             )
         ],
         0,

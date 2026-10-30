@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 from typing import Any
 
@@ -72,14 +73,16 @@ async def test_status_prints_the_identity_of_the_daemon(project, run_daemon, inv
         f"  listening: {ln['address']} ({ln['transport']}, {ln['kind']})"
         for ln in daemon["listeners"]
     ]
-    assert (result.exit_code, result.output.splitlines()) == (
+    lines = result.output.splitlines()
+    # each request moves the idle deadline, so the status call before this one is behind it
+    assert re.fullmatch(r"  exits idle at: \d{4}-\d\d-\d\dT[\d:.]+\+00:00", lines.pop(4))
+    assert (result.exit_code, lines) == (
         0,
         [
             f"daemon running (pid {os.getpid()})",
             f"  version: {__version__}",
             f"  squad: {project.squad_dir.resolve()}",
             f"  started: {daemon['started_at']}",
-            f"  exits idle at: {daemon['idle_deadline']}",
             *listening,
             f"  vocabulary: {daemon['vocabulary']['hash']}",
         ],
@@ -179,3 +182,91 @@ async def test_status_json_lists_the_browser_listener_when_it_is_on(
     browser = [ln for ln in listeners if ln["kind"] == "browser"]
     assert browser
     assert all(ln["address"].startswith(("127.0.0.1:", "[::1]:")) for ln in browser)
+
+
+@pytest.mark.covers("daemon status", "--json")
+async def test_status_finds_the_daemon_through_a_link_to_the_project(
+    project, run_daemon, invoke, tmp_path_factory
+) -> None:
+    run_daemon(project)
+    link = tmp_path_factory.mktemp("links") / "project"
+    try:
+        link.symlink_to(project.root, target_is_directory=True)
+    except OSError:
+        pytest.skip("this platform does not let the test create a link")
+
+    through_link = await _status(invoke, "-C", str(link))
+
+    assert through_link["daemon"]["squad_dir"] == str(project.squad_dir.resolve())
+
+
+def _hold_the_lock(endpoint):
+    """Hold the daemon's lock without serving, as a daemon that does not answer does."""
+    from filelock import FileLock
+
+    endpoint.runtime_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    lock = FileLock(
+        str(endpoint.files.lock),
+        thread_local=False,
+        fallback_to_soft=False,
+        preserve_lock_file=True,
+    )
+    lock.acquire(timeout=5)
+    return lock
+
+
+@pytest.mark.covers("daemon status")
+async def test_status_says_so_when_a_daemon_holds_the_lock_and_does_not_answer(
+    project, daemon_runtime, invoke
+) -> None:
+    from squads._endpoint import endpoint_for
+
+    endpoint = endpoint_for(project.root)
+    assert endpoint is not None
+    lock = _hold_the_lock(endpoint)
+    try:
+        result = await invoke(["daemon", "status"])
+    finally:
+        lock.release()
+
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: a daemon holds {endpoint.files.lock} but does not answer; it may be starting, "
+        "or it needs to be ended from outside\n",
+    )
+
+
+@pytest.mark.covers("daemon stop")
+async def test_stop_says_so_when_a_daemon_holds_the_lock_and_does_not_answer(
+    project, daemon_runtime, invoke
+) -> None:
+    from squads._endpoint import endpoint_for
+
+    endpoint = endpoint_for(project.root)
+    assert endpoint is not None
+    lock = _hold_the_lock(endpoint)
+    try:
+        result = await invoke(["daemon", "stop"])
+    finally:
+        lock.release()
+
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: a daemon holds {endpoint.files.lock} but does not answer; it may be starting, "
+        "or it needs to be ended from outside\n",
+    )
+
+
+@pytest.mark.covers("daemon run")
+async def test_run_refuses_to_start_with_an_unusable_squads_daemon(
+    project, daemon_runtime, invoke, monkeypatch
+) -> None:
+    monkeypatch.setenv("SQUADS_DAEMON", "maybe")
+
+    result = await invoke(["daemon", "run"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: SQUADS_DAEMON must be on or off, got 'maybe'; every command runs in local mode "
+        "until it is fixed\n",
+    )

@@ -81,6 +81,19 @@ def daemon_identity(endpoint: Endpoint) -> dict[str, Any] | None:
     return identity
 
 
+def unanswering_daemon(endpoint: Endpoint) -> str | None:
+    """Why a daemon that holds the lock cannot be asked anything, or ``None`` when nothing holds
+    it (no daemon runs) or the daemon answers. Call it after :func:`daemon_identity` found none."""
+    if lock_is_free(endpoint):
+        return None
+    record = read_record(endpoint)
+    pid = f" (pid {record.pid})" if record is not None else ""
+    return (
+        f"a daemon{pid} holds {endpoint.files.lock} but does not answer; it may be starting, "
+        "or it needs to be ended from outside"
+    )
+
+
 def ask_to_stop(endpoint: Endpoint) -> bool:
     """Ask the daemon to exit; whether it said it would."""
     return _call(endpoint, read_record(endpoint), "POST", "/v1/daemon/stop") is not None

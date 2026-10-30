@@ -28,6 +28,9 @@ DAEMON_ENV = "SQUADS_DAEMON"
 _MACOS_SOCKET_PATH_LIMIT = 103
 _SOCKET_PATH_LIMIT = 107
 
+#: The longest idle timeout, in minutes (a hundred years): longer cannot be scheduled.
+MAX_IDLE_MINUTES = 100 * 365 * 24 * 60
+
 _LOCAL_MODE = "every command runs in local mode until it is fixed"
 
 
@@ -71,12 +74,16 @@ def parse_daemon(raw: Any) -> tuple[DaemonSettings, list[DaemonProblem]]:
     problems: list[DaemonProblem] = []
     for key, value in table.items():
         if key == "idle_timeout_minutes":
-            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            if (
+                isinstance(value, int)
+                and not isinstance(value, bool)
+                and 0 <= value <= MAX_IDLE_MINUTES
+            ):
                 usable[key] = value
             else:
                 text = (
-                    f"[daemon] {key} must be a whole number of minutes, 0 or more, got {value!r}; "
-                    + _LOCAL_MODE
+                    f"[daemon] {key} must be a whole number of minutes from 0 to "
+                    f"{MAX_IDLE_MINUTES}, got {value!r}; " + _LOCAL_MODE
                 )
                 problems.append(DaemonProblem(text, fatal=True, key=key))
         elif key in ("enabled", "browser"):
@@ -273,10 +280,13 @@ def endpoint_for(
     if table is None:
         fatal.append(f"{CONFIG_FILENAME} cannot be read")
         table = {}
-    squad_name = table.get("squad_dir")
-    squad_dir = (
-        root / (squad_name if isinstance(squad_name, str) else DEFAULT_SQUAD_DIR)
-    ).resolve()
+    # The rule SquadsConfig validates: a non-empty string, else "squads" when the key is absent.
+    # Anything else is a config local mode reports, so the daemon is not used for it.
+    squad_name = table.get("squad_dir", DEFAULT_SQUAD_DIR)
+    if not isinstance(squad_name, str) or not squad_name:
+        fatal.append(f"{CONFIG_FILENAME} squad_dir must be a non-empty string")
+        squad_name = DEFAULT_SQUAD_DIR
+    squad_dir = (root / squad_name).resolve()
     settings, setting_problems = parse_daemon(table.get("daemon", {}))
     fatal.extend(p.text for p in setting_problems if p.fatal)
     forced, env_problem = daemon_override(env)
@@ -336,7 +346,11 @@ def runtime_dir_problem(endpoint: Endpoint, *, platform: str | None = None) -> s
     except OSError as exc:
         return f"cannot create {directory}: {exc.strerror}"
     if plat == "win32":
-        return None if directory.is_dir() else f"{directory} is not a directory"
+        if not directory.is_dir():
+            return f"{directory} is not a directory"
+        from squads._windows_owner import owner_problem
+
+        return owner_problem(directory)
     return _posix_dir_problem(directory, endpoint.files.socket, plat)
 
 

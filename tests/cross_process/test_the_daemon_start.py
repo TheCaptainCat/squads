@@ -17,6 +17,7 @@ from typing import Any
 
 import pytest
 
+from squads._daemon_link import wait_until_gone
 from squads._daemon_start import ensure
 from squads._endpoint import Endpoint, endpoint_for
 from squads._paths import SquadPaths
@@ -26,6 +27,7 @@ from tests.cross_process._sq import env, run, sq_command
 STARTER = """\
 import sys
 from pathlib import Path
+from squads._daemon_link import wait_until_gone
 from squads._daemon_start import ensure
 from squads._endpoint import endpoint_for
 endpoint = endpoint_for(Path(sys.argv[1]))
@@ -117,3 +119,20 @@ def test_a_runtime_directory_open_to_others_is_a_failed_start_that_says_why(
 
     assert reason == f"{endpoint.runtime_dir} is accessible to other users (mode 0755)"
     assert status(project) == {"running": False, "daemon": None}
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no SIGTERM to send")
+def test_a_daemon_ended_by_sigterm_removes_its_four_files(project, endpoint) -> None:
+    assert ensure(endpoint) is None
+    pid = status(project)["daemon"]["pid"]
+    assert [p.suffix for p in endpoint.files.all() if p.exists()] == [
+        ".sock",
+        ".json",
+        ".lock",
+        ".log",
+    ]
+
+    os.kill(pid, signal.SIGTERM)
+
+    assert wait_until_gone(endpoint, 15)
+    assert [p.name for p in endpoint.files.all() if p.exists()] == []

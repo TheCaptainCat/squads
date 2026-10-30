@@ -23,6 +23,9 @@ from squads._errors import (
 INVALID = "invalid"
 #: The error type of an exception that is not a ``SquadsError``.
 INTERNAL = "internal"
+#: The error types of a request a listener's admission rules refuse before routing.
+MISDIRECTED = "misdirected"
+FORBIDDEN = "forbidden"
 
 #: Exception class to error type, first match wins.
 ERROR_TYPES: tuple[tuple[type[SquadsError], str], ...] = (
@@ -49,6 +52,8 @@ HTTP_STATUS: tuple[tuple[str, int], ...] = (
     ("locked", 423),
     (INVALID, 400),
     (INTERNAL, 500),
+    (MISDIRECTED, 421),
+    (FORBIDDEN, 403),
 )
 
 

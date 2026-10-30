@@ -283,6 +283,7 @@ _discussion -> _sections top
 _discussion -> _workflow top
 _docfiles -> _api top
 _docfiles -> _errors top
+_endpoint -> _windows_owner local
 _endpoint -> squads local
 _index -> _actor local
 _index -> _aio local
@@ -354,6 +355,7 @@ _overrides -> _view_tags local
 _overrides -> _workflow top
 _overrides -> squads top
 _paths -> _context top
+_paths -> _endpoint top
 _paths -> _errors top
 _paths -> _models top
 _paths -> _workflow top

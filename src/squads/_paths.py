@@ -13,6 +13,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from squads._context import get_context
+from squads._endpoint import find_config
 from squads._errors import InvalidIdError, NotInitializedError, SquadsError
 from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
 from squads._models._item import prefix_from_id
@@ -30,16 +31,6 @@ def path_from_process_dir(path: Path) -> str:
     (the project root, or under ``-C``)."""
     start = get_context().start_dir
     return os.path.relpath(path, start if start is not None else process_dir())
-
-
-def find_config(start: Path) -> Path | None:
-    """Walk up from ``start`` looking for ``.squads.toml``."""
-    cur = start.resolve()
-    for d in (cur, *cur.parents):
-        candidate = d / CONFIG_FILENAME
-        if candidate.is_file():
-            return candidate
-    return None
 
 
 def load_config(config_path: Path) -> SquadsConfig:

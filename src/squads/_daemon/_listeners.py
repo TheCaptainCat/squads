@@ -4,6 +4,7 @@ on native Windows, and the browser listener when it is enabled."""
 import contextlib
 import pathlib
 import socket
+import sys
 from dataclasses import dataclass, field
 
 from squads._daemon._admission import BROWSER, CLI
@@ -49,6 +50,10 @@ def _bind_unix(path: str) -> socket.socket:
 def _bind_loopback(family: socket.AddressFamily, host: str, port: int) -> socket.socket:
     sock = socket.socket(family, socket.SOCK_STREAM)
     try:
+        if sys.platform == "win32":  # pragma: no cover
+            # Keeps another local process from binding the same port with SO_REUSEADDR and
+            # answering as the daemon.
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)  # pyright: ignore[reportAttributeAccessIssue]
         sock.bind((host, port))
         sock.listen(128)
     except OSError:
