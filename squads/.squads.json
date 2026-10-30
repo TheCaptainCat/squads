@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1260,
+  "counter": 1261,
   "padding": 6,
   "items": {
     "12": {
@@ -65550,6 +65550,35 @@
       "attributes": {},
       "slug_in_file": true,
       "id": "OP-10"
+    },
+    "1261": {
+      "sequence_id": 1261,
+      "type": "decision",
+      "title": "The CLI's remote mode: a shim and a private command endpoint",
+      "slug": "the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint",
+      "status": "Proposed",
+      "description": "The CLI becomes a stdlib shim that sends argv to a private daemon endpoint, which runs the CLI in process on LocalApi and renders; local fallback before sending; content-keyed parse cache",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1140",
+        "ADR-1052",
+        "ADR-1224",
+        "ADR-1225",
+        "ADR-1172",
+        "TASK-1219"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001261-the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint.md",
+      "created_at": "2026-10-30T19:12:57Z",
+      "updated_at": "2026-10-30T19:13:27Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1261"
     }
   }
 }
