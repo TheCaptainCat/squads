@@ -24,6 +24,7 @@ from squads._workflow._loader import load_workflow_spec
 from squads._workflow._models import WorkflowSpec
 from tests import _cli_surface as cli_surface
 from tests import _write_guard
+from tests._endpoint_client import EndpointClient
 from tests._helpers import make_service
 from tests._parity import ParityApi
 from tests._squads import (
@@ -240,14 +241,16 @@ def _reached(
 @pytest.fixture
 def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     """`runner.invoke` on a worker thread with a fresh template cache, so an async test can call
-    the CLI.
+    the CLI. In the remote modes the command goes to the daemon application of the squad, through
+    its command endpoint (`remote`) or an `HttpApi` handed to the root callback (`routes`).
 
     Each call records the pairs it reaches (`reached_pairs`, given a failed call's output too);
     at teardown the test fails when a pair its `covers` markers declare was not reached.
     """
     reached: set[cli_surface.Pair] = set()
-    remote = os.environ.get("SQUADS_TEST_MODE") == "remote"
-    parity = ParityApi() if remote else None
+    mode = os.environ.get("SQUADS_TEST_MODE")
+    parity = ParityApi() if mode == "routes" else None
+    endpoint = EndpointClient() if mode == "remote" else None
 
     async def _invoke(args: list[str], **kw: Any) -> Any:
         if parity is not None:
@@ -255,7 +258,10 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
         spec = _squad_spec()
         reached.update(_reached(args, spec))
         _env_cache.clear()
-        result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
+        if endpoint is not None:
+            result = await _aio.to_thread(functools.partial(endpoint.invoke, runner, args, **kw))
+        else:
+            result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
         if result.exit_code != 0:
             reached.update(_reached(args, spec, result.output))
         return result
@@ -263,6 +269,8 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     yield _invoke
     if parity is not None:
         parity.close()
+    if endpoint is not None:
+        endpoint.close()
     missing = _declared_pairs(request.node) - reached
     if missing:
         listed = ", ".join(

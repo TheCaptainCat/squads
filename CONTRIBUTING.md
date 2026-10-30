@@ -195,9 +195,10 @@ Two root options choose how `tests/cli/` runs, and they combine:
 - `--squad bundled|override` (or `SQUADS_TEST_SQUAD`): the bundled squad, or the override test squad
   that shares none of its vocabulary. Cases about one squad's own spelling carry `bundled_only` or
   `override_only` with a reason.
-- `--api-mode local|remote` (or `SQUADS_TEST_MODE`): each command's operation runs in the test
-  process, or is sent through `HttpApi` to the daemon's application served on a thread. Every case
-  asserts the same output in both modes, with no exemption.
+- `--api-mode local|remote|routes` (or `SQUADS_TEST_MODE`): each command runs in the test process
+  (`local`); is sent to the daemon application served on a thread, through its command endpoint
+  (`remote`); or runs in the test process with each operation sent to that application over HTTP
+  (`routes`). Every case asserts the same output in every mode, with no exemption.
 
 The root `conftest.py` sets `SQUADS_DAEMON=off` for the whole run, so no test starts a daemon unless
 it says so. `tests/daemon/` covers only what the remote run cannot see (the error table, admission,

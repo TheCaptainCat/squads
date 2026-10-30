@@ -1,6 +1,7 @@
-"""Repo-hygiene gate: outside the CLI, the terminal UI, ``squads.__main__`` and ``_spans``, no
-module writes to the process's stdout or stderr. A notice the engine raises is recorded on the
-request, so a daemon never prints a user's line and a remote call's output matches a local one's."""
+"""Repo-hygiene gate: outside the CLI, the terminal UI, ``squads.__main__``, ``_spans``, the
+daemon's stream proxies and the shim, no module writes to the process's stdout or stderr. A notice
+the engine raises is recorded on the request, so a daemon never prints a user's line and a remote
+call's output matches a local one's."""
 
 import ast
 import shutil
@@ -8,7 +9,16 @@ from pathlib import Path
 
 #: Modules (relative to ``src/squads``) allowed to write to the streams, as a path prefix.
 #: ``_daemon/_lifecycle.py`` writes its readiness line to the pipe it inherited, no process stream.
-_EXEMPT = ("_cli/", "_tui/", "__main__.py", "_spans.py", "_daemon/_lifecycle.py")
+#: ``_daemon/_proxies.py`` replaces the streams and ``_shim.py`` writes a served command's output.
+_EXEMPT = (
+    "_cli/",
+    "_tui/",
+    "__main__.py",
+    "_spans.py",
+    "_daemon/_lifecycle.py",
+    "_daemon/_proxies.py",
+    "_shim.py",
+)
 
 _STREAMS = frozenset({"stdout", "stderr", "__stdout__", "__stderr__"})
 
@@ -146,3 +156,19 @@ def test_every_shape_goes_red_when_injected_below_the_cli(tmp_path: Path) -> Non
     exempt = tmp_path / "src" / "squads" / "_cli" / "_common.py"
     exempt.write_text(exempt.read_text(encoding="utf-8") + "\nprint('x')\n", encoding="utf-8")
     assert _scan(tmp_path) == []
+
+
+def test_a_sibling_of_the_exempt_daemon_modules_is_not_exempt(tmp_path: Path) -> None:
+    """The proxies are exempt by name, not the daemon's other modules."""
+    shutil.copytree(
+        _repo_root() / "src" / "squads",
+        tmp_path / "src" / "squads",
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
+    daemon = tmp_path / "src" / "squads" / "_daemon"
+    for name, exempt in (("_proxies.py", True), ("_commands.py", False), ("_app.py", False)):
+        target = daemon / name
+        original = target.read_text(encoding="utf-8")
+        target.write_text(original + "\n\nprint('x')\n", encoding="utf-8")
+        assert (_scan(tmp_path) == []) is exempt, name
+        target.write_text(original, encoding="utf-8")

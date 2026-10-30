@@ -73,10 +73,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--api-mode",
         action="store",
         default=os.environ.get("SQUADS_TEST_MODE", "local"),
-        choices=("local", "remote"),
-        help="how the tests/cli surface suite reaches its operations: in this process (local), "
-        "or over HTTP to the daemon's application served on a thread (remote); it combines with "
-        "--squad (default: $SQUADS_TEST_MODE, else local)",
+        choices=("local", "remote", "routes"),
+        help="how the tests/cli surface suite runs its commands: in this process (local), through "
+        "the command endpoint of the daemon's application served on a thread (remote), or in this "
+        "process with the operations sent to that application over HTTP (routes); it combines "
+        "with --squad (default: $SQUADS_TEST_MODE, else local)",
     )
     parser.addoption(
         "--run-slow",

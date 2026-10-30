@@ -11,13 +11,14 @@ import json
 import os
 import socket
 import threading
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
 import uvicorn
+from typer._click import Command
 
 from squads._daemon._app import build_app
 from squads._daemon._state import DaemonState, RetirementCheck, never_retiring
@@ -96,11 +97,16 @@ def new_state(paths: SquadPaths) -> DaemonState:
 
 @contextmanager
 def serve_squad(
-    paths: SquadPaths, *, retirement_check: RetirementCheck = never_retiring
+    paths: SquadPaths,
+    *,
+    retirement_check: RetirementCheck = never_retiring,
+    command: Command | None = None,
+    clock: Callable[[], datetime | None] = lambda: None,
 ) -> Generator[Served]:
-    """Serve the squad at *paths* until the block ends."""
+    """Serve the squad at *paths* until the block ends. *command* is the command tree the
+    endpoint serves in place of the CLI's, and *clock* the time its commands run on."""
     state = new_state(paths)
-    app = build_app(state, retirement_check)
+    app = build_app(state, retirement_check, command=command, clock=clock)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("127.0.0.1", 0))
     host, port = sock.getsockname()

@@ -6,6 +6,7 @@ import json
 import pytest
 
 from tests._daemon_process import enable_browser
+from tests._endpoint_client import command_body
 
 pytestmark = pytest.mark.anyio
 
@@ -72,3 +73,27 @@ async def test_a_write_from_a_foreign_origin_is_refused_and_nothing_is_stored(
     )
     listed = await invoke(["list", "--type", "task", "--json"])
     assert (listed.exit_code, json.loads(listed.output)) == (0, [])
+
+
+async def test_the_browser_listener_does_not_serve_the_command_endpoint(
+    project, run_daemon
+) -> None:
+    enable_browser(project)
+    running = run_daemon(project)
+    host, port = running.listener("browser")
+    body = json.dumps(command_body(["--help"])).encode()
+
+    status, _, answer = running.over_tcp(
+        "browser",
+        "POST",
+        "/v1/commands",
+        headers={**HEADERS, "Origin": f"http://{host}:{port}"},
+        body=body,
+    )
+
+    assert (status, json.loads(answer)) == (
+        404,
+        {"error": {"type": "not_found", "message": "no such route", "warnings": []}},
+    )
+    served, _ = running.get_over_cli("/v1/commands", "POST", command_body(["--help"]))
+    assert served == 200

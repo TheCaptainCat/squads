@@ -268,13 +268,17 @@ _context -> _api typing
 _context -> _parse_cache typing
 _context -> _spec_documents typing
 _context -> _workflow typing
+_daemon -> _aio top
 _daemon -> _api top
+_daemon -> _cli top
 _daemon -> _clock top
+_daemon -> _context top
 _daemon -> _endpoint top
 _daemon -> _errors top
 _daemon -> _models top
 _daemon -> _parse_cache top
 _daemon -> _services top
+_daemon -> _shim top
 _daemon -> _spec_documents top
 _daemon -> squads top
 _daemon_link -> _endpoint top

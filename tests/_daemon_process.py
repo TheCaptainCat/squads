@@ -42,16 +42,19 @@ class Running:
         host, _, port = address.rpartition(":")
         return host, int(port)
 
-    def get_over_cli(self, target: str, method: str = "GET") -> tuple[int, bytes]:
-        """One request on the CLI listener, whichever transport that is."""
+    def get_over_cli(
+        self, target: str, method: str = "GET", body: dict[str, Any] | None = None
+    ) -> tuple[int, bytes]:
+        """One request on the CLI listener, whichever transport that is; a write carries *body*,
+        an empty object by default."""
         conn = connection(self.endpoint, read_record(self.endpoint))
         assert conn is not None
         try:
-            body = json.dumps({}) if method != "GET" else None
+            payload = json.dumps(body or {}) if method != "GET" else None
             conn.request(
                 method,
                 target,
-                body=body,
+                body=payload,
                 headers={"Content-Type": "application/json", "Squads-Client": "1"},
             )
             reply = conn.getresponse()

@@ -583,7 +583,7 @@ async def test_diff_without_a_name_names_a_broken_override_and_exits_1_after_the
     ]
     result = await invoke(["override", "diff", "--json"])
     assert result.exit_code == 1
-    assert result.output.splitlines()[:2] == expected
+    assert result.stderr.splitlines() == expected
     result = await invoke(["override", "diff"])
     assert result.exit_code == 1
     assert result.output.splitlines()[-2:] == expected
