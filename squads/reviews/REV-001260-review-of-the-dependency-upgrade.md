@@ -40,10 +40,10 @@ subentities:
   severity: info
 - local_id: F8
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
-  status: Open
+  status: Fixed
   severity: medium
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:25:16Z'
+updated_at: '2026-10-30T00:29:09Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -207,6 +207,8 @@ Fix (tech writer): write the entries from the handback. If G3 lands, the no-floc
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-10-30T00:29:09Z] `tech-writer` Theo Writer:
+  - Fixed in the working tree (uncommitted); each item was checked at HEAD on a scratch squad. CHANGELOG 0.19.0 Changed has a BREAKING entry for the Typer 0.27.3 wording (braced and lower-case usage names, `Missing argument 'title'.` with declared names such as STATUS kept, `is not a valid int.`, the `<str>`/`<int>` help column and the Arguments panel), an index-lock entry (the file stays on disk; no fallback where the filesystem has no lock) and the raised minimum versions. Fixed has the plain-text option suggestion. The existing 0.19 entry that quoted `Missing argument 'TITLE'.` and the two quotes of `--impact TEXT` (overrides.md and CHANGELOG) now show the new text, and the README `sq search TEXT` synopsis reads `<text>`. The lock entry does not quote a message for the no-lock case: until F3 lands it ends in a traceback.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 <!-- sq:findings:end -->

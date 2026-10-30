@@ -1571,7 +1571,7 @@ A bundled squad has `--priority`, `--no-priority` and `--min-priority` because t
 declares a `priority` field, and a bug's `--severity` because the bug declares `severity`. A squad
 whose override drops the field has none of them: `sq create task "…" --priority high` exits `2`
 with `No such option: --priority`. Each `--help` lists the field's codes
-(`--impact TEXT  Impact: high|medium|low.`).
+(`--impact <str>  Impact: high|medium|low.`).
 
 `--set`, `--unset`, `--badge`, `--min-badge` and `--sort` are the generic forms, and take any
 declared field by code. `--badge`, `--min-badge` and `--sort` refuse, with exit `1`, a code that

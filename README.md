@@ -307,7 +307,7 @@ works exactly like the canonical spelling.
 - `sq <type> <n> retype NEW-TYPE` — reclassify an item, keeping its number · `sq <type> <n> remove [--force] [--yes]` — hard-delete it (asks first; `--force` severs incoming refs)
 
 **Find & focus**
-- `sq search TEXT [--type] [--status] [--json]` — match item titles, summaries, and bodies/discussion
+- `sq search <text> [--type] [--status] [--json]` — match item titles, summaries, and bodies/discussion
 - `sq blocked [--json]` — open items blocked by other open items (via the dependency ref kinds — `blocks` / `depends-on` by default)
 - `sq mine <role> [--all] [--json]` — a role's open work: items assigned to it, **plus** items where one of its sub-entities (a story, subtask or finding) is assigned to it. The matched sub-entities are named in a `Matched` column and a `matched_subentities` key. Open/closed is judged per match, so a closed item still appears while your own sub-entity on it is open
 - `sq workload [--json]` — open/closed/total counts per assignee, with each assignee's sub-entity assignment counts as their own columns beside the item counts (never folded in)
