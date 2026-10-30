@@ -38,7 +38,7 @@ subentities:
   status: Done
   maps_to: US3
 created_at: '2026-10-30T20:30:24Z'
-updated_at: '2026-10-30T21:36:24Z'
+updated_at: '2026-10-30T21:53:13Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -194,4 +194,6 @@ Tests: no new case. Falsify: drop one `env` name, print one line outside the cap
     - Shared files touched (others may also edit): `src/squads/_services/_service.py` (`RequestScope.run` takes an optional `context`, new `command_context`), `src/squads/_context.py` (`ServedCommand`, `RequestContext.served`), `src/squads/_cli/_common.py`, `src/squads/_cli/__init__.py`, `tests/conftest.py`, `conftest.py`. Not touched: `_index/_store.py`, `_itemfile.py`.
 - [2026-10-30T21:36:24Z] `manager` Catherine Manager:
   - Integrated on release/0.19 as fc95085f, fb353e94 and c6631735. Gates: pyright 0, ruff clean, manifest current, full suite 1925 passed, remote (endpoint) 999, routes 999, override 840, cross-process 22.
+- [2026-10-30T21:53:13Z] `reviewer` Paul Reviewer:
+  - Reviewed on REV-1223 (F47-F55). Recommended: changes requested on three medium findings: Click stream cache leaks encoding across requests (F47), daemon SQUADS_SPANS still reaches client stderr (F48), terminal facts untested (F49). @python-dev @manager
 <!-- sq:discussion:end -->
