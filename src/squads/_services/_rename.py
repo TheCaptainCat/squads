@@ -407,7 +407,7 @@ class RenameMixin(ServiceCore):
             for item in items:
                 text = plan.rewritten_text(item, snapshot[item.sequence_id][1])
                 ids = plan.local_ids(item)
-                mapped = plan.mappings(item, db.get(item.parent) if item.parent else None)
+                mapped = plan.mappings(item)
                 if text != snapshot[item.sequence_id][1] or ids or mapped:
                     texts[item.sequence_id] = text
             changed = [it for it in items if it.sequence_id in texts]
@@ -416,7 +416,7 @@ class RenameMixin(ServiceCore):
             try:
                 for item in changed:
                     local = plan.local_ids(item)
-                    mapped = plan.mappings(item, db.get(item.parent) if item.parent else None)
+                    mapped = plan.mappings(item)
                     for entry in item.subentities:
                         entry.local_id = local.get(entry.local_id, entry.local_id)
                         entry.maps_to = mapped.get(entry.local_id, entry.maps_to)
@@ -538,7 +538,6 @@ class _KindPlan:
         self.plural = spec.subentity_plural(new)
         self.spec = spec
         self.block = re.compile(rf"(?:{re.escape(old)}|{re.escape(new)}):([^:]+){_BLOCK_SUFFIX}")
-        self.old_prefix: dict[str, str] = {}
         self.stale: dict[str, str] = {}
         self.targeting = {k for k in spec.subentity_kinds if spec.mapping_target_kind(k) == new}
 
@@ -561,12 +560,19 @@ class _KindPlan:
         if not item.subentities:
             return []
         problems: list[str] = []
-        prefixes = {(_split_local_id(s.local_id) or (s.local_id, ""))[0] for s in item.subentities}
-        if len(prefixes) > 1:
-            return [
-                f"{item.id}: entries carry more than one prefix ({', '.join(sorted(prefixes))})"
-            ]
-        self.old_prefix[item.id] = next(iter(prefixes))
+        problems += [
+            f"{item.id}: {entry.local_id} ends in no number"
+            for entry in item.subentities
+            if _split_local_id(entry.local_id) is None
+        ]
+        became: dict[str, list[str]] = {}
+        for entry in item.subentities:
+            became.setdefault(self._renamed(entry.local_id), []).append(entry.local_id)
+        problems += [
+            f"{item.id}: {' and '.join(ids)} would both become {target}"
+            for target, ids in became.items()
+            if len(ids) > 1
+        ]
         names = {self.new, *self._old_names(text)}
         problems += [
             f"{item.id}: no marker pair for {entry.local_id}"
@@ -599,28 +605,27 @@ class _KindPlan:
         }
         return names
 
-    def _renamed(self, item_id: str, local_id: str) -> str:
+    def _renamed(self, local_id: str) -> str:
+        """*local_id* with the declared prefix and its own number; one without a number is kept."""
         split = _split_local_id(local_id)
-        if split is None or split[0] != self.old_prefix.get(item_id):
-            return local_id
-        return f"{self.new_prefix}{split[1]}"
+        return local_id if split is None else f"{self.new_prefix}{split[1]}"
 
     def local_ids(self, item: Item) -> dict[str, str]:
         """The entries of *item* whose local id changes, old to new."""
         if not self.hosts(item):
             return {}
-        renamed = {s.local_id: self._renamed(item.id, s.local_id) for s in item.subentities}
+        renamed = {s.local_id: self._renamed(s.local_id) for s in item.subentities}
         return {old: new for old, new in renamed.items() if old != new}
 
-    def mappings(self, item: Item, parent: Item | None) -> dict[str, str | None]:
+    def mappings(self, item: Item) -> dict[str, str | None]:
         """For each entry of *item* mapping onto *new*, its new ``maps_to``, keyed by local id."""
-        if parent is None or self.spec.item_subentity_kind(item.type) not in self.targeting:
+        if self.spec.item_subentity_kind(item.type) not in self.targeting:
             return {}
         out: dict[str, str | None] = {}
         for entry in item.subentities:
             if (
                 entry.maps_to
-                and (renamed := self._renamed(parent.id, entry.maps_to)) != entry.maps_to
+                and (renamed := self._renamed(entry.maps_to)) != entry.maps_to
             ):
                 out[entry.local_id] = renamed
         return out
@@ -639,12 +644,12 @@ class _KindPlan:
             found = self.block.fullmatch(name)
             if found is None:
                 return None
-            local = self._renamed(item.id, found.group(1))
+            local = self._renamed(found.group(1))
             return f"{markers.PREFIX}{self.new}:{local}{found.group(2)}"
 
         text = sections.retag_markers(text, retag)
         for entry in item.subentities:
-            renamed = self._renamed(item.id, entry.local_id)
+            renamed = self._renamed(entry.local_id)
             if renamed != entry.local_id:
                 text = _with_heading_id(text, self.new, entry.local_id, renamed)
         return text

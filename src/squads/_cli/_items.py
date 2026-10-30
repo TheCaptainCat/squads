@@ -727,7 +727,7 @@ def _clear_field_param(field: Field) -> inspect.Parameter:
         f"no_{field.code}",
         inspect.Parameter.KEYWORD_ONLY,
         default=typer.Option(
-            False, f"--no-{_flag(field.code)}", help=f"Clear the {field.label} value."
+            False, f"--no-{_flag(field.code)}", help=f"Clear {field.label}."
         ),
         annotation=bool,
     )
@@ -952,7 +952,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
                 default=typer.Option(
                     False,
                     f"--no-{_flag(target)}",
-                    help=f"Clear the {spec.kind_label(target)} mapping.",
+                    help=f"Clear {spec.kind_label(target)} mapping.",
                 ),
                 annotation=bool,
             ),

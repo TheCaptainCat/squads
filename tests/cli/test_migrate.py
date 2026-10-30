@@ -1065,15 +1065,15 @@ async def test_rename_kind_refuses_a_type_that_does_not_host_the_kind(
     assert _squad_bytes(override_project) == before
 
 
+def _rewrite_in(path: Path, old: str, new: str) -> None:
+    path.write_text(path.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+
+
 @pytest.mark.covers("migrate rename-kind", "OLD")
-async def test_rename_kind_refuses_an_item_whose_entries_mix_prefixes(
+async def test_rename_kind_refuses_two_ids_that_would_become_the_same_id(
     override_project, invoke
 ) -> None:
-    initiative = _item_file(override_project, "initiatives", 8)
-    initiative.write_text(
-        initiative.read_text(encoding="utf-8").replace("local_id: OC2", "local_id: ZZ2"),
-        encoding="utf-8",
-    )
+    _rewrite_in(_item_file(override_project, "initiatives", 8), "OC2", "GO1")
     await invoke(["repair"])
     _redeclare_outcome_as_goal(override_project, prefix="GO")
     before = _squad_bytes(override_project)
@@ -1082,10 +1082,72 @@ async def test_rename_kind_refuses_an_item_whose_entries_mix_prefixes(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename kind 'outcome' to 'goal': INI-8: entries carry more than one "
-        "prefix (OC, ZZ)\n",
+        "error: cannot rename kind 'outcome' to 'goal': INI-8: OC1 and GO1 would both become GO1\n",
     )
     assert _squad_bytes(override_project) == before
+
+
+@pytest.mark.covers("migrate rename-kind", "OLD")
+async def test_rename_kind_brings_a_stray_prefix_among_declared_ones_to_the_declaration(
+    override_project, invoke
+) -> None:
+    _rewrite_in(_item_file(override_project, "initiatives", 8), "OC2", "XX2")
+    await invoke(["repair"])
+    mismatch = {
+        "level": "warn",
+        "item": "INI-8",
+        "message": "XX2 does not start with prefix 'OC' of kind 'outcome'; "
+        "`sq migrate rename-kind outcome outcome` brings it to the declaration",
+        "rule": "subentity_kind_mismatch",
+    }
+    reported = await invoke(["check", "--json"])
+    assert (reported.exit_code, json.loads(reported.output)) == (0, [mismatch])
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "outcome"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-kind done: outcome → outcome, 1 item(s) rewritten\n" + CHECK_HINT,
+    )
+    fixed = await invoke(["check", "--json"])
+    assert (fixed.exit_code, fixed.output) == (0, "[]\n")
+    shown = await invoke(["initiative", "8", "outcome", "2", "show"])
+    assert shown.output.splitlines()[0] == "OC2 — A published roadmap  (outcome)"
+
+
+@pytest.mark.covers("migrate rename-kind", "NEW")
+async def test_a_prefix_change_then_add_then_rename_gives_distinct_ids_and_a_clean_check(
+    override_project, invoke
+) -> None:
+    await invoke(["create", "initiative", "Second", "--author", "manager"])
+    await invoke(["initiative", "11", "add-outcome", "First", "-m", "One."])
+    _rewrite_in(
+        override_project.squad_dir / ".overrides" / "workflow.toml",
+        'local_prefix = "OC"',
+        'local_prefix = "GO"',
+    )
+    added = await invoke(["initiative", "11", "add-outcome", "Next", "-m", "Two."])
+    assert added.exit_code == 0, added.output
+
+    reported = await invoke(["check", "--json"])
+    assert sorted(
+        (i["item"], i["message"].split(" does")[0]) for i in json.loads(reported.output)
+    ) == [
+        ("INI-11", "OC1"),
+        ("INI-8", "OC1"),
+        ("INI-8", "OC2"),
+    ]
+
+    result = await invoke(["migrate", "rename-kind", "outcome", "outcome"])
+
+    assert (result.exit_code, result.output) == (
+        0,
+        "rename-kind done: outcome → outcome, 2 item(s) rewritten\n" + CHECK_HINT,
+    )
+    fixed = await invoke(["check", "--json"])
+    assert (fixed.exit_code, fixed.output) == (0, "[]\n")
+    second = await invoke(["initiative", "11", "outcome", "2", "show"])
+    assert second.output.splitlines()[0] == "GO2 — Next  (outcome)"
 
 
 @pytest.mark.covers("migrate rename-kind", "OLD")

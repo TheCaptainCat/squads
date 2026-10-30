@@ -1199,7 +1199,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         in update_help
     )
     assert (
-        "│ --no-outcome                   Clear the Desired outcome mapping.            │"
+        "│ --no-outcome                   Clear Desired outcome mapping.                │"
         in update_help
     )
     assert await _ok(invoke, ["job", "9", "actions"]) == (
@@ -1220,7 +1220,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
     create_help = (await _ok(invoke, ["create", "job", "--help"])).splitlines()
     list_help = (await _ok(invoke, ["list", "--help"])).splitlines()
     assert (
-        "│ --no-work-size                 Clear the Work size.                          │"
+        "│ --no-work-size                 Clear Work size.                              │"
         in update_item_help
     )
     assert (
@@ -1228,7 +1228,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         in create_help
     )
     assert (
-        "│ --min-urgency            <str>  At least this Urgency: now|soon|later.       │"
+        "│ --min-urgency            <str>  Urgency at least: now|soon|later.            │"
         in list_help
     )
 
@@ -1353,4 +1353,4 @@ async def test_a_declared_label_on_a_bundled_kind_reaches_the_mapping_option_hel
         await _ok(invoke, ["task", str(TASK), "subtask", "1", "update", "--help"])
     ).splitlines()
     assert any("Need it maps to, as `US<n>` or `<n>`." in line for line in add_help)
-    assert any("Clear the Need mapping." in line for line in update_help)
+    assert any("Clear Need mapping." in line for line in update_help)

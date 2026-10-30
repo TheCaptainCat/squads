@@ -65,7 +65,7 @@ def clear_option(field: Field) -> Any:
         param_decls=[f"--no-{flag_name(field.code)}", f"no_{field.code}"],
         is_flag=True,
         default=False,
-        help=f"Clear the {field.label}.",
+        help=f"Clear {field.label}.",
         expose_value=False,
         callback=_filer(UNSET_KEY, "no_"),
     )
@@ -76,7 +76,7 @@ def min_option(field: Field, codes: list[str]) -> Any:
     return typer.core.TyperOption(
         param_decls=[f"--min-{flag_name(field.code)}", f"min_{field.code}"],
         default=None,
-        help=f"At least this {field.label}: {'|'.join(codes)}.",
+        help=f"{field.label} at least: {'|'.join(codes)}.",
         expose_value=False,
         callback=_filer(MIN_KEY, "min_"),
     )
