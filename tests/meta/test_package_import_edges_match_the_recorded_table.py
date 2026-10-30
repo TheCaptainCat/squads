@@ -310,7 +310,6 @@ _interactions -> _specmerge top
 _interactions -> _workflow top
 _interactions -> squads local
 _itemfile -> _aio top
-_itemfile -> _context top
 _itemfile -> _errors top
 _itemfile -> _models top
 _itemfile -> _sections top
@@ -384,6 +383,7 @@ _roles -> _pronouns top
 _roles -> _specload top
 _roles -> _specmerge top
 _roles -> _util top
+_sections -> _context top
 _sections -> _errors top
 _sections -> _models top
 _services -> _actor top

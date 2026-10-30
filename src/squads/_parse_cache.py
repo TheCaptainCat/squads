@@ -102,11 +102,13 @@ class ParseCache:
             self._scan += 1
 
     def end_scan(self) -> None:
-        """End a walk that reached every item file: the entry of a file it did not read is for a
-        file that is no longer there, and is dropped."""
+        """End a walk that reached every item file: an entry not read since before the previous
+        walk began is for a file that is no longer there, and is dropped. (The walk and the
+        per-item checks that follow it spell a file's path differently, so an entry is also read
+        between two walks.)"""
         with self._lock:
-            current = self._scan
-            for key in [k for k, e in self._frontmatter.items() if e.scan < current]:
+            oldest = self._scan - 1
+            for key in [k for k, e in self._frontmatter.items() if e.scan < oldest]:
                 del self._frontmatter[key]
 
     def item_files(self) -> frozenset[str]:

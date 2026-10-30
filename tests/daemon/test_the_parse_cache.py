@@ -66,3 +66,16 @@ def test_a_refused_override_check_is_answered_once_the_index_changes(project: Sq
         index = project.squad_dir / ".squads.json"
         index.write_text(index.read_text(encoding="utf-8").replace('"TASK-2"', '"x"'))
         assert daemon.get("/v1/items").status == 200
+
+
+def test_an_entry_for_a_file_that_is_gone_is_dropped_by_the_corpus_walks_that_follow(
+    project: SquadPaths, serve
+) -> None:
+    daemon = serve(project)
+    item = project.squad_dir / make_task(daemon, "Doomed")
+    daemon.get("/v1/check")
+    assert any(key.endswith(item.name) for key in daemon.state.parse_cache.item_files())
+    item.unlink()
+    for _ in range(3):
+        daemon.get("/v1/check")
+    assert not any(key.endswith(item.name) for key in daemon.state.parse_cache.item_files())

@@ -10,6 +10,7 @@ import re
 from collections.abc import Callable
 from typing import Any, cast
 
+from squads._context import get_context
 from squads._errors import SquadsError
 from squads._models import _markers as markers
 
@@ -29,19 +30,26 @@ def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str
 
     Raises :class:`SquadsError` when the block between intact ``---`` delimiters is not valid YAML
     (a hand-edit, an unresolved merge conflict). *source* names the file in the message; a caller
-    holding only text leaves it unset and the message is the parse failure alone.
+    holding only text leaves it unset and the message is the parse failure alone. A named
+    *source* lets a daemon's parse cache supply the mapping, as a fresh copy.
     """
     m = _FRONTMATTER_RE.match(text)
     if not m:
         return {}, text
-    import yaml
+    block = m.group(1)
 
-    try:
-        loaded = yaml.safe_load(m.group(1))
-    except yaml.YAMLError as exc:
-        where = f" in {source}" if source else ""
-        raise SquadsError(f"malformed frontmatter{where}: {exc}") from exc
-    data: dict[str, Any] = cast("dict[str, Any]", loaded) if isinstance(loaded, dict) else {}
+    def parse() -> dict[str, Any]:
+        import yaml
+
+        try:
+            loaded = yaml.safe_load(block)
+        except yaml.YAMLError as exc:
+            where = f" in {source}" if source else ""
+            raise SquadsError(f"malformed frontmatter{where}: {exc}") from exc
+        return cast("dict[str, Any]", loaded) if isinstance(loaded, dict) else {}
+
+    cache = get_context().parse_cache if source else None
+    data = parse() if cache is None or not source else cache.frontmatter(source, block, parse)
     return data, text[m.end() :]
 
 
