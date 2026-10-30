@@ -11,7 +11,7 @@ import time
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from squads import _aio, _clock
 from squads._api._api import Mode
@@ -464,12 +464,19 @@ def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
         raise SquadsError(f"{exc} — run `sq workflow lint` to see details") from exc
 
 
+def _is_rooted(path: str) -> bool:
+    """Whether *path* names a root, on any platform: an absolute path, a leading separator or a
+    drive, so the refusal reads the same wherever the command runs."""
+    windows = PureWindowsPath(path)
+    return PurePosixPath(path).is_absolute() or bool(windows.root or windows.drive)
+
+
 def _checked_squad_dir(root: Path, squad_dir: str) -> str:
     """*squad_dir* when it is a non-empty relative folder that stays inside *root*, else a
     refusal: it is checked before init or adopt writes anything."""
     if not squad_dir.strip():
         raise SquadsError("--squad-dir must name a folder, not an empty value")
-    if Path(squad_dir).is_absolute():
+    if _is_rooted(squad_dir):
         raise SquadsError(f"--squad-dir must be relative to the project root, got {squad_dir!r}")
     if not (root / squad_dir).resolve().is_relative_to(root):
         raise SquadsError(f"--squad-dir must stay inside the project root, got {squad_dir!r}")

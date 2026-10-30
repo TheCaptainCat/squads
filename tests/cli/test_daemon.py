@@ -4,6 +4,7 @@ import json
 import os
 import re
 import shutil
+import sys
 from typing import Any
 
 import pytest
@@ -129,6 +130,16 @@ async def test_run_refuses_to_start_while_one_runs(project, run_daemon, invoke) 
     assert (result.exit_code, result.output) == (1, "error: already running\n")
 
 
+def _report_argument(write: int) -> int:
+    """What ``--report-fd`` takes for the pipe's write end: its descriptor, or on native Windows
+    the inheritable handle behind it."""
+    if sys.platform != "win32":
+        return write
+    import msvcrt
+
+    return msvcrt.get_osfhandle(write)  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+
+
 @pytest.mark.covers("daemon run", "--report-fd")
 async def test_run_reports_why_it_did_not_start_on_the_pipe_it_is_given(
     project, run_daemon, invoke
@@ -137,7 +148,7 @@ async def test_run_reports_why_it_did_not_start_on_the_pipe_it_is_given(
     read, write = os.pipe()
     try:
         # the daemon closes the write end once it has reported
-        result = await invoke(["daemon", "run", "--report-fd", str(write)])
+        result = await invoke(["daemon", "run", "--report-fd", str(_report_argument(write))])
         reported = os.read(read, 200)
     finally:
         os.close(read)

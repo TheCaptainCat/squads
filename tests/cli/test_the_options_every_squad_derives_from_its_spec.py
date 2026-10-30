@@ -4,6 +4,7 @@ sub-entity verbs, the reference and discussion views of an item, and the squads 
 """
 
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -84,7 +85,12 @@ async def test_add_json_prints_where_the_body_region_was_written(populated_proje
         await _ok(invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--json"])
     )
     path = payload.pop("path")
-    assert path.endswith(f"{P.third_folder}/{THIRD_ID.replace('-', '-00000')}-{P.third_slug}.md")
+    # A file's location on the host is spelled as the host spells it.
+    assert (
+        Path(path)
+        .as_posix()
+        .endswith(f"{P.third_folder}/{THIRD_ID.replace('-', '-00000')}-{P.third_slug}.md")
+    )
     start, end = P.third_add_lines
     assert payload == {
         "local_id": f"{P.third_kind_prefix}3",

@@ -72,8 +72,8 @@ def test_a_connection_lost_after_the_request_was_sent_is_an_error_and_is_not_rep
     assert (result.returncode, result.stdout) == (1, "")
     assert result.stderr == (
         f"error: the connection to the squad served at {endpoint_name(endpoint)} was lost after "
-        "the request was sent (Remote end closed connection without response); the operation "
-        "may still complete. Check its result before running it again.\n"
+        "the request was sent; the operation may still complete. Check its result before running "
+        "it again.\n"
     )
     assert daemon.requests == 1
     listed = run(sq_command(project, "list", "--type", "task", "--json"))

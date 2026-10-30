@@ -66,7 +66,7 @@ The output is the same; the timing and Ctrl-C are not.
   (`… after 300 s; the operation may still complete. …`) and exits `1`.
 - **Nothing is sent twice.** If the connection is lost after the request was sent, the command
   reports it (`error: the connection to the squad served at <endpoint> was lost after the request
-  was sent (…); the operation may still complete. …`) and exits `1`. It never runs the operation
+  was sent; the operation may still complete. …`) and exits `1`. It never runs the operation
   again, in either mode, because the first attempt may have been applied.
 
 A daemon that was found but cannot be connected to when the command sends its request (nothing

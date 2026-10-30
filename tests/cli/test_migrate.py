@@ -93,7 +93,7 @@ async def test_up_brings_an_older_squad_to_the_current_schema(
 def _snapshot(root: Path) -> dict[str, bytes]:
     """Every file under *root* except the index and its lock file, with its bytes."""
     return {
-        str(p.relative_to(root)): p.read_bytes()
+        p.relative_to(root).as_posix(): p.read_bytes()
         for p in sorted(root.rglob("*"))
         if p.is_file() and p.name not in (".squads.json", ".squads.json.lock")
     }

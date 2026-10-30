@@ -8,7 +8,11 @@ parsed with.
 """
 
 import http.client
+import select
+import socket
+import sys
 import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -33,6 +37,8 @@ from squads._models._schema import SCHEMA_VERSION, schema_tuple
 CONNECT_TIMEOUT = 5.0
 #: Seconds a ``standard`` operation may take to answer; a ``long`` one is never cut off.
 ANSWER_TIMEOUT = 300.0
+#: Seconds between the looks a Windows client takes at its socket while it waits.
+_POLL_SECONDS = 0.25
 #: Seconds a ``long`` operation waits before the caller is told it is waiting.
 WAIT_NOTICE_AFTER = 10.0
 
@@ -180,6 +186,8 @@ class HttpApi:
             notice.start()
         try:
             conn.request(method, target, body=body, headers=headers)
+            if sys.platform == "win32" and conn.sock is not None:
+                _await_readable(conn.sock, answer)
             reply = conn.getresponse()
             self.handler_ms = _handler_ms(reply.getheader("Server-Timing"))
             return reply.status, reply.read()
@@ -201,11 +209,13 @@ class HttpApi:
 
     # ------------------------------------------------------------------------- the answer
 
-    def _lost(self, exc: BaseException) -> SquadsError:
+    def _lost(self, _cause: BaseException) -> SquadsError:
+        """The error for a connection lost after the request was sent. It names no system error:
+        the text of one differs by platform, and the operation's outcome is unknown either way."""
         return SquadsError(
             f"the connection to the squad served at {self._endpoint} was lost after the request "
-            f"was sent ({exc}); the operation may still complete. Check its result before "
-            "running it again."
+            "was sent; the operation may still complete. Check its result before running it "
+            "again."
         )
 
     def _refusal(self, status: int, body: bytes) -> SquadsError:
@@ -267,6 +277,16 @@ class HttpApi:
         """Nothing was sent: the call runs locally when the squad is here, else say why not."""
         if self._local is None:
             raise SquadsError(f"cannot reach the squad served at {self._endpoint}: {cause}.")
+
+
+def _await_readable(sock: socket.socket, seconds: float | None) -> None:
+    """Wait until *sock* has something to read, in short slices. On Windows a blocking socket read
+    is not interrupted by Ctrl-C, but the interpreter handles it between slices; raises
+    :class:`TimeoutError` after *seconds* (never when ``None``)."""
+    deadline = None if seconds is None else time.monotonic() + seconds
+    while not select.select([sock], [], [], _POLL_SECONDS)[0]:
+        if deadline is not None and time.monotonic() >= deadline:
+            raise TimeoutError
 
 
 def _handler_ms(header: str | None) -> float | None:
