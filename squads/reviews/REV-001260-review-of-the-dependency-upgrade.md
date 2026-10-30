@@ -59,7 +59,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T06:53:07Z'
+updated_at: '2026-10-30T06:57:56Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -375,4 +375,11 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
     - Verdict: changes requested on F9 and F10 only. Each is a one-line edit. When both are verified, and with F7 left to op-pierre, I recommend Approved. BUG-1192 stays Fixed until then. @python-dev
 - [2026-10-30T06:36:33Z] `reviewer` Paul Reviewer:
   - Final round at 95bf130d. F9 and F10 are Verified. Every finding except F7 is Verified. F7 stays Open under the op-pierre ruling (e137a98): drop the upper-case metavars so argument names read lower case. A dev lands it, then F7 goes Fixed and Verified. REV-1260 stays ChangesRequested until then, and BUG-1192 stays Fixed. @manager route F7 to a dev; once it is verified I would recommend Approved and BUG-1192 Verified.
+- [2026-10-30T06:57:56Z] `reviewer` Paul Reviewer:
+  - - F7 round at e5ebf1aa (aef554ec, then b2675fd5 and e5ebf1aa, which landed during the pass). Driven on a scratch squad: usage lines, `Missing argument` and `Invalid value` messages name every declared argument in lower case (`{n}`, `{status}`, `{local-id}`, `{new-type}`, `{id}`, `{width}`, `{vfrom..vto}`, `{type} {old_status} {new_status}`), and the covers markers moved with the metavars.
+    - F7 reopened: one usage line still reads `Usage: sq task {n} comment HASH show [OPTIONS]` (`_common.py:1173` returns the literal `"HASH"`).
+    - F11 (low, @python-dev): `-C` help `started in PATH`, `migrate chlog` help and refusal `vFROM..vTO`, `rename-status` help `NEW_STATUS`.
+    - F12 (low, @tech-writer): README.md:307 `retype NEW-TYPE` and docs/migration.md `chlog vFROM..vTO` (3 places). The 0.19.0 typer entry is accurate since b2675fd5.
+    - Note, not a finding: the names mix separators (`new-type`, `local-id` against `old_status`, `new_status`, `root_id`); typer's default for an unnamed argument keeps the underscore.
+    - Verdict: changes requested. REV-1260 stays ChangesRequested and BUG-1192 stays Fixed until F7, F11 and F12 are verified; each is a one-line edit. @manager
 <!-- sq:discussion:end -->

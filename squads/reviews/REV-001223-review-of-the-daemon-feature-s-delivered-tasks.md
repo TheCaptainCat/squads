@@ -8,6 +8,7 @@ author: reviewer
 refs:
 - FEAT-1140
 - TASK-1217
+- TASK-1218
 subentities:
 - local_id: F1
   title: role add/update --file bypass attachments and read the serving process's
@@ -63,8 +64,40 @@ subentities:
     an unattached one says file'
   status: Verified
   severity: low
+- local_id: F13
+  title: Retirement and vocabulary checks run before a request queues, not before
+    it runs
+  status: Open
+  assignee: python-dev
+  severity: medium
+- local_id: F14
+  title: Single-item reads of sub-entity lists, refs and roster entries answer no
+    ETag
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F15
+  title: skills link-role and unlink-role ignore If-Match
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F16
+  title: GET-no-mutate case samples 12 of 53 GETs; two cases assert part of the response
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F17
+  title: Stream guard misses indirect writers; the daemon logger writes a 500 to stderr
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F18
+  title: Lane A wire decisions to record in ADR-1225
+  status: Open
+  assignee: architect
+  severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T00:58:39Z'
+updated_at: '2026-10-30T06:58:10Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -464,6 +497,112 @@ The missing-file line has the same cause as F11: an OSError still goes through r
   - Verified through sq on 7a6cd237. Local, every read failure gives cannot read role file NAME: REASON, for role add and role update: a missing file (No such file or directory), a directory (Is a directory), mode 000 (Permission denied), not UTF-8, and - with bad stdin. Served, the same wording covers not attached, no stdin attached and not UTF-8. Nothing else broke: -C sub, ./a//ok.toml attached as written, and - from an attachment all create the role, and .overrides/ files keep the Role override wording. The CHANGELOG [0.18.0] entry matches the missing-file and non-UTF-8 lines I observed.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
+
+<!-- sq:finding:F13 -->
+### F13 — Retirement and vocabulary checks run before a request queues, not before it runs
+
+<!-- sq:finding:F13:body -->
+`Application.check_client` (`_daemon/_app.py`) runs the retirement check, and the vocabulary check after it, when the request arrives, before `RequestScope.run` takes the one `asyncio.Lock`. A request queued behind another therefore runs on a configuration that changed while it waited. ADR-1052 point 13: "Before running each command it compares the fingerprint", and `sq override` and `sq migrate up` through the daemon are exactly the operations that change it for the request queued behind them.
+
+Driven at 9f01c537 with the harness (`serve_squad` with a flag as the retirement check): an external OS lock held, request 1 (`POST /v1/items`) sent and waiting on it, request 2 (`GET /v1/items`) sent and queued, then the flag set and the lock released. Request 2 answered `200` with the listing; it should have answered `503 {"not_executed": "retiring"}`.
+
+Fix: run the retirement and vocabulary checks inside the scope, after the lock is taken and before the handler (the schema check can stay ahead of the queue: it needs no squad state). One route case: a request queued behind a held lock, configuration changed before its turn, answers `retiring`.
+<!-- sq:finding:F13:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F13:discussion -->
+<!-- sq:finding:F13:discussion:end -->
+<!-- sq:finding:F13:end -->
+
+<!-- sq:finding:F14 -->
+### F14 — Single-item reads of sub-entity lists, refs and roster entries answer no ETag
+
+<!-- sq:finding:F14:body -->
+The rule "ETag only where the handler read or wrote the addressed file" is a sound mechanism (no re-read after commit, and the read, the compare and the write tag share one reader), but it leaves single-item reads without an `ETag`. Driven at 9f01c537:
+
+- `GET /v1/items/{id}/subentities`: no ETag. ADR-1225 §3 names "`GET /v1/items/{id}` and the sub-entity routes under it". (`…/subentities/ST1` and `…/comments` do carry one.)
+- `GET /v1/items/{id}/refs`: no ETag, though adding and removing a ref compare `If-Match`.
+- `GET /v1/roles/{addr}` (and the skill and operator show): no ETag, though `PATCH /v1/roles/{addr}` compares `If-Match` ("every single-item read"; "the same rule covers role, skill and operator"). A web front editing a role has to read it through `/v1/items/ROLE-1` to get the tag.
+
+Also, the OpenAPI document declares the `ETag` response header on every non-`DELETE` operation and on no `DELETE`, but `DELETE /v1/items/{id}/refs/{target}` answers with one.
+
+Fix: those handlers note the addressed item's read (`_address` plus a read through `_read_item_file`), and the OpenAPI document declares the header from the same rule the endpoint follows.
+<!-- sq:finding:F14:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F14:discussion -->
+<!-- sq:finding:F14:discussion:end -->
+<!-- sq:finding:F14:end -->
+
+<!-- sq:finding:F15 -->
+### F15 — skills link-role and unlink-role ignore If-Match
+
+<!-- sq:finding:F15:body -->
+`skills.link_role` and `skills.unlink_role` add or drop a `scopes` ref on the skill's file, but they are not in `CONDITIONAL_WRITES` (`_api/_ops.py`). ADR-1225 §3 lists "refs" among the checked writes, "for items and roster entries alike". Driven at 9f01c537: `POST /v1/skills/probe-skill/link-role` with a stale `If-Match` answered `200` and changed 8 files, where `skills.ref_add` with the same stale tag answers `409 changed_since_read`.
+
+Fix: add both to `CONDITIONAL_WRITES` (the guard already checks that every member is a non-GET operation of the table).
+<!-- sq:finding:F15:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F15:discussion -->
+<!-- sq:finding:F15:discussion:end -->
+<!-- sq:finding:F15:end -->
+
+<!-- sq:finding:F16 -->
+### F16 — GET-no-mutate case samples 12 of 53 GETs; two cases assert part of the response
+
+<!-- sq:finding:F16:body -->
+Two kinds of route case are weaker than ADR-1172 "The daemon's routes" asks.
+
+- `test_get_requests_leave_every_file_of_the_squad_as_they_found_it` calls 12 of the table's 53 `GET` operations. Falsified on a scratch export: a file write injected after `items.list` turns it red; the same write after `workload` or `items.refs` leaves it green. A probe that called all 53 (with a seeded item, sub-entity, comments, skill, operator, memory and notice) changed no file, so the property holds today. The case should iterate the `GET` operations of the table, so a new one is covered without an edit.
+- `test_a_transition_the_lifecycle_refuses_answers_409_conflict` asserts substrings of the message, and `test_a_partial_read_answers_200_with_what_it_left_out` asserts only the rows' `body`. ADR-1172 rule 5 and its routes section ask for the whole response.
+<!-- sq:finding:F16:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F16:discussion -->
+<!-- sq:finding:F16:discussion:end -->
+<!-- sq:finding:F16:end -->
+
+<!-- sq:finding:F17 -->
+### F17 — Stream guard misses indirect writers; the daemon logger writes a 500 to stderr
+
+<!-- sq:finding:F17:body -->
+The stream guard (`tests/meta/test_nothing_below_the_cli_writes_to_the_process_streams.py`) matches `sys` stream names and bare `print`. Falsified on a scratch export by appending to `_index/_reflog.py`: `print(..., file=sys.stderr)`, `from sys import stderr as _e` and `sys.__stderr__` turn it red; `os.write(2, b"x")` and `rich.console.Console(stderr=True)` leave it green.
+
+The live case is `_daemon/_app.py`: `_log.error("unhandled error in a request", exc_info=exc)` on a 500. The logger has no handler, so logging's last-resort handler writes the traceback to `sys.stderr`. In the in-process parity run (TASK-1219) that lands in the captured output the guard exists to keep clean. The 500 route case passes only because `caplog` attaches a handler.
+
+Fix: lane B's lifecycle gives the `squads.daemon` logger its log-file handler with `propagate=False`, and the harness does the same; the guard also flags `Console(` and `os.write(` below the CLI.
+<!-- sq:finding:F17:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F17:discussion -->
+<!-- sq:finding:F17:discussion:end -->
+<!-- sq:finding:F17:end -->
+
+<!-- sq:finding:F18 -->
+### F18 — Lane A wire decisions to record in ADR-1225
+
+<!-- sq:finding:F18:body -->
+Lane A made six wire decisions that ADR-1225 does not state yet. I confirm each as built; they belong in sections 2 and 3, so TASK-1219 and TASK-1221 build on the record.
+
+1. **ETag over text, not bytes.** The tag is the SHA-256 of the file's UTF-8 text with every line end LF (`_context.etag_of`), where section 3 says "the item file's bytes". Confirmed: the read, the compare and the write tag all go through one reader (`_aio.read_text`), and it is the vocabulary hash's rule, so a CRLF checkout does not change a tag.
+2. **Header text encoding.** Header values are read as UTF-8 bytes carried in Latin-1, falling back to the Latin-1 text (`_api/_http._header_text`). Confirmed. `HttpApi` must therefore send UTF-8 bytes, since `http.client` refuses a str outside Latin-1. Driven: a `Squads-Client-Dir` of `/tmp/café` sent as UTF-8 bytes is accepted.
+3. **`Squads-Client-Dir` must be absolute;** a relative one answers `400 invalid` (`Squads-Client-Dir must be an absolute path, got rel/dir`). Confirmed.
+4. **`details` on the error body:** `{"client", "daemon"}` for `schema_mismatch`, the per-document digests for `vocabulary_mismatch`, left out otherwise. Section 3 fixes the body as `{type, message, warnings}`.
+5. **`init` and `adopt` on the daemon** answer `400 invalid` (`squad.init creates a squad in the directory it runs in, so it runs locally`). Confirmed as the answer, but the routes are served and the OpenAPI document lists them as callable: either leave `local_only` operations out of the router and the document, or describe the `400` there.
+6. **A method a route lacks** answers `405` with type `invalid`, a status outside the error table.
+<!-- sq:finding:F18:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F18:discussion -->
+<!-- sq:finding:F18:discussion:end -->
+<!-- sq:finding:F18:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -513,4 +652,11 @@ The missing-file line has the same cause as F11: an OSError still goes through r
     - F3, F4, F6 stay Noted (subject removed). `git grep` finds no TerminalFacts, NeedsTerminal, needs_terminal, confirm_or_signal or prompt_or_signal in src or tests. The same pattern does match the parent of 5f5ef259, so the grep can find them. `build_consoles()` takes no arguments. The prompts are plain `typer.confirm`/`typer.prompt` in `_cli`.
     - F8 stays Verified. Driven on a scratch squad under a pseudo-terminal: `comment HASH remove` answered n prints the comment once before the prompt and nothing after "Aborted.", and the comment is kept.
     - No finding is open. The review stays open for FEAT-1140's tasks as they land. @tech-lead
+- [2026-10-30T06:57:56Z] `reviewer` Paul Reviewer:
+  - - TASK-1218 lane A reviewed at 9f01c537: 99a2fb0c (ST11), bec77aad (ST12), 20e5f2f6 and ae156f4c (ST3, ST4, ST8, ST9, ST10), against ADR-1225 sections 1-3, 5-7, ADR-1052 points 13-15, ADR-1172 "The daemon's routes" and ADR-1250 section 7. Probes ran on scratch squads through `tests/_daemon_harness.serve_squad`; falsifications on a scratch export of HEAD.
+    - Holds: every operation of the table routed from one loop; envelope and error body with `warnings` always present; the eight error-table rows held by the route cases (tests/daemon and the two guards: 26 passed on the export); schema, then vocabulary, then grant; a stale `If-Match` answers `409 changed_since_read` with no file changed on the 13 conditional writes driven one by one (item status, update, body, ref add, retype, remove; sub-entity add, update, body, remove; role update and body; operator update), and `*` passes, a weak tag fails; ETag on the created item, on a retype that moves the file, none on a remove; local `show --json` ends with `etag` after `display`; cross-mode visibility (local-mode operator add and assignee update read back by the daemon with the new display name and a new tag); every one of the 53 `GET` operations called with no file changed; notices merged into `warnings` and printed once in local mode; the CLI loads no starlette, uvicorn, click, h11 or `squads._daemon` on a `show --json`; starlette 1.10.0 and uvicorn 0.54.0 locked and bounded, no httpx, `uv lock --check` clean.
+    - Falsified: the changed-configuration case goes red with the vocabulary check moved ahead of the retirement check; the GET-no-mutate case goes red for `items.list` but stays green for `workload` and `items.refs` (F16); the stream guard catches its seven shapes but not `os.write` or a rich console (F17).
+    - The dev's decisions: init and adopt answering 400, an absolute `Squads-Client-Dir`, UTF-8 carried in Latin-1 headers, the ETag over LF-normalised text, and no httpx: confirmed, to be recorded in ADR-1225 (F18, @architect). The ETag-only-where-read rule: the mechanism is confirmed, its gaps are F14.
+    - New: F13 (medium) the retirement and vocabulary checks run before a request queues, so a queued request runs on a configuration that changed while it waited (driven); F14, F15, F16, F17 (low); F18 (info). Lane B's admission negatives are not in this pass.
+    - Verdict: changes requested. @python-dev F13-F17, @architect F18.
 <!-- sq:discussion:end -->

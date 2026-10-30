@@ -62777,7 +62777,8 @@
       "labels": [],
       "refs": [
         "FEAT-1140",
-        "TASK-1217"
+        "TASK-1217",
+        "TASK-1218"
       ],
       "subentities": [
         {
@@ -62911,11 +62912,77 @@
           "attributes": {
             "severity": "low"
           }
+        },
+        {
+          "local_id": "F13",
+          "title": "Retirement and vocabulary checks run before a request queues, not before it runs",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F14",
+          "title": "Single-item reads of sub-entity lists, refs and roster entries answer no ETag",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F15",
+          "title": "skills link-role and unlink-role ignore If-Match",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F16",
+          "title": "GET-no-mutate case samples 12 of 53 GETs; two cases assert part of the response",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F17",
+          "title": "Stream guard misses indirect writers; the daemon logger writes a 500 to stderr",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F18",
+          "title": "Lane A wire decisions to record in ADR-1225",
+          "status": "Open",
+          "assignee": "architect",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
         }
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T00:58:39Z",
+      "updated_at": "2026-10-30T06:58:10Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -64561,7 +64628,7 @@
       ],
       "path": "reviews/REV-001260-review-of-the-dependency-upgrade.md",
       "created_at": "2026-10-30T00:20:29Z",
-      "updated_at": "2026-10-30T06:53:07Z",
+      "updated_at": "2026-10-30T06:57:56Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
