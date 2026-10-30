@@ -58,7 +58,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T00:39:59Z'
+updated_at: '2026-10-30T00:41:00Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -520,4 +520,6 @@ Done when:
     - (3) Remote-mode scope: `tests/cli` on every OS, as recommended (ADR-1172, Mode parity and Time bound). Every remote-mode job is bounded at 10 minutes, Windows included; 15 minutes stays for the Windows full-suite job only. With point 1, the jobs are: bundled squad on Linux, macOS and native Windows, plus the override squad on Linux. TASK-1220 builds these four jobs. TASK-1219 makes sure the parity harness takes `--squad override`.
     - (4) Clerical, done in ADR-1225: `rename-field` and `rename-kind` are in the `/v1/squad/` list and the `long` timeout row. The budget is "a release criterion", and the other references to 0.18 as the daemon's release name no version. No task change, provided TASK-1219's timeout table matches the operation table, which already uses `long` for both.
     - (5) `click` joins the client import guard, with the reason in ADR-1225 section 5: uvicorn installs the real package beside `typer._click`. TASK-1219 adds it to the guard list.
+- [2026-10-30T00:41:00Z] `manager` Catherine Manager:
+  - Ruling under the operator delegation (2026-10-30): the remote-mode parity run also covers the override squad, as one more ubuntu job. Recorded in ADR-1172 by the architect.
 <!-- sq:discussion:end -->
