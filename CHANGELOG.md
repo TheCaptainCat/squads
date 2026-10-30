@@ -79,6 +79,7 @@ All notable changes to this project are documented here. The format follows
 
 - **BREAKING for scripts that parse usage or error text — squads requires Typer 0.27.3, and its wording changes.** An install that already resolved Typer 0.27 printed this text before; one that resolved an older Typer prints it from now on. Exit codes are unchanged (a usage error is still `2`).
   - Usage lines print every argument name in lower case, in braces: `sq create task [OPTIONS] {title}`, `sq task [OPTIONS] {n} COMMAND [ARGS]...`, `sq task {n} status [OPTIONS] {status}`, `sq task {n} subtask [OPTIONS] {local-id} COMMAND [ARGS]...`, `sq task {n} retype [OPTIONS] {new-type}`, `sq show [OPTIONS] {id}`, `sq migrate repad [OPTIONS] {width}`, `sq migrate chlog [OPTIONS] {vfrom..vto}`, `sq migrate rename-status [OPTIONS] {type} {old_status} {new_status}`. An optional argument prints in brackets: `sq tree [OPTIONS] [root_id]`. Option values are named the same way in `--help`: `--at when`, and `--file path` on `sq role add` and `sq role <slug> update`.
+  - Help text and messages name their placeholders in lower case too: `--badge` and `--min-badge` read `code=value` and refuse a value without `=` with `error: expected code=value, got 'priority'`; the refusal of a deferred sub-entity with no carrier ends `pass --deferred-to <id> (import: deferred_to)`; `sq migrate chlog` describes its range as `Releases after vfrom up to and including vto`; the comment group's help reads `comment hash show|edit|remove`; and an example ID reads `<prefix>-<n>`, or `<prefix>-<n>` to `<new-prefix>-<n>` on `retype`.
   - A missing argument is named the same way: `Missing argument 'title'.` and `Missing argument 'status'.`, where they read `Missing argument 'TITLE'.` and `Missing argument 'STATUS'.`.
   - An integer option or argument refuses a non-number with `'x' is not a valid int.` (`Invalid value for '--depth': 'x' is not a valid int.`), where it read `is not a valid integer.`
   - `--help` prints the value type as `<str>` and `<int>` instead of `TEXT` and `INTEGER`, and the Arguments panel lists each argument's name then its type (`title  <str>  Item title. [required]`).
@@ -129,9 +130,9 @@ All notable changes to this project are documented here. The format follows
 
 - **Typos in filters and ranges are refused instead of answering nothing.** Each of these used to exit `0` with an empty or unchanged result; each now exits `1` with the values it accepts:
   - `sq list --sort` and `sq tree --sort` with a field that is not an ordered badge field: `unknown sort field 'ghost' (one of: priority, severity)`.
-  - `--badge CODE=VALUE` and `--min-badge CODE=VALUE` on `list` and `tree` check the code against the declared badge fields and the value against that field's collection, as `--priority` does: `unknown badge field 'ghost' (one of: priority, severity)`, `unknown priority 'ghost' (one of: urgent, high, medium, low)`.
+  - `--badge code=value` and `--min-badge code=value` on `list` and `tree` check the code against the declared badge fields and the value against that field's collection, as `--priority` does: `unknown badge field 'ghost' (one of: priority, severity)`, `unknown priority 'ghost' (one of: urgent, high, medium, low)`.
   - `sq reflog --op` with an operation the reflog does not record: `unknown operation 'ghost' (one of: create, status, …)`.
-  - `sq migrate chlog` with a bound that is not a version, or a start that is not below the end: `expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got 'v0.17.0..v0.1.0'`.
+  - `sq migrate chlog` with a bound that is not a version, or a start that is not below the end: `expected a range like v0.1.1..v0.2.0 (vfrom..vto, from below to), got 'v0.17.0..v0.1.0'`.
 
   A negative `--depth` on `sq tree` and `sq graph` is refused as a usage error with exit `2`: `Invalid value for '--depth': must be 0 or more`.
 

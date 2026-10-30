@@ -696,7 +696,7 @@ The `sq migrate` sub-app's frozen surface:
   rebuild the index, stamp the new schema; refused with exit `1`, nothing migrated, when an item
   file cannot be indexed or the squad does not fit its declared vocabulary
 - `sq migrate help` — the changelog index
-- `sq migrate chlog vA..vB` — manual steps for migrations shipped in `(vA, vB]`
+- `sq migrate chlog vfrom..vto` — manual steps for migrations shipped in `(vfrom, vto]`
 - `sq migrate repad <width>` — raise the filename-padding width (see Tier 1)
 - `sq migrate rename-type <old> <new>` — bulk-rename every item of one type to another (same
   semantics, new prefix and folder), for when a vocabulary override renames a type you already
