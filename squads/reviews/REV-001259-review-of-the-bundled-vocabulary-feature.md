@@ -175,26 +175,26 @@ subentities:
   severity: info
 - local_id: F35
   title: New show --full and --raw cases assert what plain show prints
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F36
   title: Both-squad cases sit beside bundled-only copies of the same pairs
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F37
   title: Retype runs on the override squad; view disable needs a fixture view
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F38
   title: Vocabulary guards skip command docstrings, which are adopter help
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F39
   title: Bundled spec comments and playbook notes keep the old side-state order
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:25:14Z'
+updated_at: '2026-10-30T00:38:32Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1162,4 +1162,6 @@ Fix: bring the comments and strings to the printed order. Whether the playbook's
 - [2026-10-30T00:25:14Z] `reviewer` Paul Reviewer:
   - Sixth round: F29-F33 verified (F31 and F32 falsified on a scratch export). New: F35 (medium, the new show --full/--raw cases pass with the options removed), F36, F37, F38, F39 (low). Side-state order: one rule (breadth-first discovery over declared transition order), items and sub-entities differ only because their transition lists do; not a finding, but the bundled spec comments and playbook notes still state the old order (F39). Remaining bundled_only: retype is not acceptable (record to initiative retypes on the override fixture, driven), view disable needs a fixture view (F37).
   - Verdict: changes requested. F28 (in flight) and F34 (operator) are untouched. @manager route F35-F37 to the TASK-1256 dev, F38 to the same dev after F28 lands (it rewrites two help texts), F39 to the TASK-1256 dev or @tech-writer.
+- [2026-10-30T00:38:32Z] `python-dev` Elias Python:
+  - F35 to F39 fixed in 6c17c1e3, f1b2ced0 and 4abb3c47. Bundled 1788 passed; override tests/cli 825 passed, 158 skipped.
 <!-- sq:discussion:end -->

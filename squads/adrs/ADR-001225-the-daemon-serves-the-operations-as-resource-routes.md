@@ -15,12 +15,12 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-29T07:04:37Z'
+updated_at: '2026-10-30T00:39:56Z'
 ---
 <!-- sq:body -->
 ## Context
 
-ADR-1052 gave the daemon one command endpoint: `POST /v1/commands` takes a command line and answers with its exit code, stdout and stderr (option I). The operator ruled for it on 2026-10-25 (ADR-1052, comment ec061f4). On 2026-10-28 he reversed that ruling (FEAT-1140, comment b4c77e9; MILE-1152, comment e7119a6). The API becomes resource endpoints that a Vue or Angular front will call. The CLI in remote mode calls the same endpoints, through a layer that makes either the HTTP call or the local service call depending on the mode. Both this and the refactor that makes it possible ship in 0.18.
+ADR-1052 gave the daemon one command endpoint: `POST /v1/commands` takes a command line and answers with its exit code, stdout and stderr (option I). The operator ruled for it on 2026-10-25 (ADR-1052, comment ec061f4). On 2026-10-28 he reversed that ruling (FEAT-1140, comment b4c77e9; MILE-1152, comment e7119a6). The API becomes resource endpoints that a Vue or Angular front will call. The CLI in remote mode calls the same endpoints, through a layer that makes either the HTTP call or the local service call depending on the mode. Both this and the refactor that makes it possible ship in the same release.
 
 ADR-1224 (operations and DTOs) defines the operation table, the `Response[T]` envelope, the `Api` protocol with its `LocalApi` and `HttpApi` implementations, and the rule that the CLI never imports `_services` outside the local API's factory. This decision covers the HTTP side: the routes, the wire format, errors, how a mode is chosen, the daemon's request scope, and what changes in ADR-1052, ADR-1172 and the delivered TASK-1217.
 
@@ -54,7 +54,7 @@ The routes are the `method` and `path` fields of the operation table. One table 
 - **A roster entry's discussion** is a sub-resource of its roster route: `/v1/roles/{addr}/comments[/{hash}]`, `/v1/skills/{addr}/comments[/{hash}]` and `/v1/operators/{addr}/comments[/{hash}]`, with the methods of the item comment routes. The operation resolves `addr` within the route's roster kind, as every roster route does; an address that resolves to no entry answers `404 not_found` with today's text. The kind belongs to the operation, never to a request field that could contradict the path, and the request and response DTOs are the item comment routes' with `addr` in place of `id`. The CLI holds only the address, and only the operation may resolve it (ADR-1224, point 1), so the item route would cost a second call to learn the id, and a slug on `/v1/items/` would be ambiguous across the three kinds. A roster entry is also an item, so its id on the item comment routes reaches the same discussion.
 - **`GET` reads and never mutates.** This is ADR-1052's admission rule, and the cross-site defence relies on it. Filters are query parameters. A request DTO for a `GET` holds only flat fields, a repeated list item repeats its key (`?badge=priority=high&badge=severity=major`), and a `tests/meta` guard rejects a nested field on a `GET` request.
 - **Writes:** `POST` on a collection creates, `PATCH` updates part of a resource, `PUT …/body` replaces a body, and `DELETE` removes.
-- **An action that is not create, update or delete** is a `POST` on a sub-resource named after it: `…/status`, `…/retype`, `…/activate`, `…/regen`. An operation over the whole squad is a `POST` under `/v1/squad/` (`sync`, `repair`, `renumber`, `migrate`, `repad`, `rename-type`, `rename-status`, `import`). These run synchronously, as a command does.
+- **An action that is not create, update or delete** is a `POST` on a sub-resource named after it: `…/status`, `…/retype`, `…/activate`, `…/regen`. An operation over the whole squad is a `POST` under `/v1/squad/` (`sync`, `repair`, `renumber`, `migrate`, `repad`, `rename-type`, `rename-status`, `rename-field`, `rename-kind`, `import`). These run synchronously, as a command does.
 
 Examples (the table is authoritative):
 
@@ -158,6 +158,16 @@ No new mechanism is needed. A hash prefix resolves to exactly one full hash in i
 - The full hash can address more or fewer comments than were shown only when a byte-identical copy of the confirmed comment (same author, timestamp and text, as a merge can leave) was added or removed in between. The remove deletes the copies present at that moment, as `comment remove` already does with a duplicate group: they are the comment the user confirmed.
 - With `--yes` there is one call, and it resolves the typed prefix at that moment, as today.
 
+#### Notices raised inside an operation
+
+A notice the engine raises while an operation runs reaches the user in the envelope, in both modes. Today these are the index lock's waiting notice and the reflog's warnings (an append that failed, a malformed line skipped).
+
+- **Nothing below the CLI and the TUI writes to the process's stdout or stderr.** The engine records the notice on the request's `RequestContext`. `LocalApi` adds the recorded notices to the response's `warnings`, or to the error's `warnings` when the call is refused, as it adds the working-language notice. The daemon therefore never writes a user's notice to its log, and a refused call such as `423 locked` carries the waiting notice that preceded it.
+- **One printer.** The CLI prints each notice through its notice printer, `warning: <text>`, once per invocation. A notice's text carries no prefix of its own.
+- **When it appears.** In local mode the root callback gives the `RequestContext` a sink that prints a notice through the same printer as it is raised, so a wait for the lock is announced while it lasts, and the end-of-call pass skips it as already printed. In remote mode the daemon cannot speak before it answers, so the client prints the notice when the answer arrives, before the result or the error. The lines and their order are the same in both modes; only the moment differs, and parity compares output, not timing. The index lock's wait is bounded by its 10-second timeout.
+- **A `tests/meta` guard** fails on a write to `sys.stdout` or `sys.stderr`, or a `print` to either, in any module outside `_cli`, `_tui`, `squads.__main__` and `_spans`. `_spans` is exempt because its `SQUADS_SPAN` lines measure the process that prints them, the daemon included, and are not a user's output. The guard keeps parity true by construction, and it keeps a daemon line from landing in the in-process parity harness's captured output, where it would make a remote case pass falsely.
+- **Rejected:** a documented remote-mode difference, with those cases skipped in remote mode. It would be the first parity exemption, and a reflog warning reports a write that half failed, which a remote user needs as much as a local one. Also rejected: sending notices before the answer (a streamed or chunked response). It is a second response shape for one line inside a 10-second wait.
+
 #### Timeouts
 
 The operation table gives each operation a `timeout` class (ADR-1224, point 4), and `HttpApi` applies it:
@@ -165,7 +175,7 @@ The operation table gives each operation a `timeout` class (ADR-1224, point 4), 
 | Class | Operations | Connect | Answer |
 |---|---|---|---|
 | `standard` | every read and every item, roster, board, memory, override and `sync` write | 5 s | 300 s |
-| `long` | `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `repair`, `renumber`, `import` | 5 s | none: the client waits until the daemon answers |
+| `long` | `migrate up`, `migrate repad`, `migrate rename-type`, `migrate rename-status`, `migrate rename-field`, `migrate rename-kind`, `repair`, `renumber`, `import` | 5 s | none: the client waits until the daemon answers |
 
 - The answer timeout counts time spent queued: requests run one at a time, so a read sent during a migration waits for it. 300 s covers that on squads of the size measured here; a `long` operation is never cut off by its own client.
 - A `long` call prints `waiting for the daemon (<operation>)…` on stderr once it has waited 10 s, so a silent wait is not mistaken for a hang.
@@ -191,7 +201,7 @@ The operation table gives each operation a `timeout` class (ADR-1224, point 4), 
   - **Squad hosted elsewhere.** A `503 retiring` answer makes `HttpApi` resolve the endpoint again and send the call once more, which is safe because nothing ran. A second refusal fails with `error: the squad served at <endpoint> is restarting; re-run the command in a moment.` A server that cannot be reached fails with `error: cannot reach the squad served at <endpoint>: <cause>.` Both exit 1, and nothing runs locally.
   - **Either endpoint.** A `vocabulary_mismatch` is never retried and never falls back. A connection lost after the request was sent is an error and is never replayed (ADR-1052, point 10). Ctrl-C stops the client's wait, and a call the daemon has started runs to completion.
 - **The forwarder in `squads.__main__` goes.** The remote client is the CLI itself, which parses, validates, renders and never imports `_services`. Its cost is held to the budget below.
-- **Parity.** The mode-parity CI job of ADR-1172 reruns the surface suite with `HttpApi` against the daemon's application served in-process. What it proves is that a DTO round-trips through JSON (ADR-1224, point 2) and that the error table keeps messages and exit codes.
+- **Parity.** The mode-parity CI job of ADR-1172 reruns the surface suite with `HttpApi` against the daemon's application served in-process. What it proves is that a DTO round-trips through JSON (ADR-1224, point 2), that the error table keeps messages and exit codes, and that an operation's notices reach the client (section 3). It has no exemption: every case asserts the same output in both modes.
 
 #### What the client reads, and the vocabulary hash
 
@@ -259,7 +269,7 @@ For a local daemon the second case needs a configuration the daemon never loaded
 
 #### The client budget
 
-The operator ruled on 2026-10-28 that the remote client aims lower than about 0.3 s, with a measured budget as a 0.18 criterion (comment 8017910). Measured on 2026-10-28 on the WSL2 development host, Python 3.14.8: a prototype client that makes one call over a Unix socket to a server answering with TASK-1217's `show` payload, then renders it. Medians of 31 interleaved runs:
+The operator ruled on 2026-10-28 that the remote client aims lower than about 0.3 s, with a measured budget as a release criterion (comment 8017910). Measured on 2026-10-28 on the WSL2 development host, Python 3.14.8: a prototype client that makes one call over a Unix socket to a server answering with TASK-1217's `show` payload, then renders it. Medians of 31 interleaved runs:
 
 | Run | Median | p25-p75 |
 |---|---|---|
@@ -289,11 +299,11 @@ The levers, each measured on its own:
 
 The vocabulary is the ruling's price: 51 ms human and 69 ms `--json` (the two pairs of rows above). Of it, the spec model module takes 44-58 ms, the loader, merge and override modules 43-53 ms, the TOML parse, merge and validation 2 ms, and the hash 0.2 ms. The model module stays without a cache, which is ruled out.
 
-**The budget,** a 0.18 release criterion: the client's overhead, which is the process's wall time minus the daemon's handler time (sent by the daemon in a `Server-Timing` header), as the median of 31 interleaved runs of `sq <type> <n> show` on the reference host, is at most **275 ms** in human mode and **235 ms** with `--json`. That is 30 % and 27 % of today's local-mode time for the same command. The prototype meets it with 9 and 7 ms to spare; it lacks the real CLI's dispatch and renderer modules (an estimated 10-20 ms), which the loader trim offsets. The daemon's own work comes on top: a warm `show` takes 45-60 ms in the daemon (measured, inside the read scope), and composing the service once at start-up 74-91 ms.
+**The budget,** a release criterion: the client's overhead, which is the process's wall time minus the daemon's handler time (sent by the daemon in a `Server-Timing` header), as the median of 31 interleaved runs of `sq <type> <n> show` on the reference host, is at most **275 ms** in human mode and **235 ms** with `--json`. That is 30 % and 27 % of today's local-mode time for the same command. The prototype meets it with 9 and 7 ms to spare; it lacks the real CLI's dispatch and renderer modules (an estimated 10-20 ms), which the loader trim offsets. The daemon's own work comes on top: a warm `show` takes 45-60 ms in the daemon (measured, inside the read scope), and composing the service once at start-up 74-91 ms.
 
 How it is held:
 
-- **A deterministic guard** in `tests/meta` imports the remote path (root callback, `HttpApi`, the renderer) in a subprocess and fails if `sys.modules` holds `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette` or `uvicorn`, or holds `rich.markdown` before a body is rendered.
+- **A deterministic guard** in `tests/meta` imports the remote path (root callback, `HttpApi`, the renderer) in a subprocess and fails if `sys.modules` holds `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette`, `uvicorn` or `click`, or holds `rich.markdown` before a body is rendered. `click` is on the list because uvicorn installs the real package beside the copy typer vendors (`typer._click`), which is the one the CLI runs on; a stray `import click` would load a second Click on the client path.
 - **A benchmark script** measures the budget. The release runbook runs it on the reference host and records the numbers with the release. CI runs it as a report, not a gate: this host alone spread 40-90 ms between p25 and p75.
 
 What the budget costs in design: a literal command-name table at the root, guarded against the registered tree; DTO modules split by resource; a version string that does not come from package metadata; `gc` handling in `main`; `anyio` confined to the service side; and renderer modules that import only `rich` and `_api`. Local mode gets the same levers, apart from the ones that only remove `_services`.
@@ -332,7 +342,7 @@ The scope replaces ADR-1052, point 12, and is still one context manager beside t
 - gets the service for the operation's `mode`. The normal-mode service is built once at startup, and a fallback mode is composed for the request from the documents already loaded;
 - opens the read scope (ADR-753), awaits the handler, serialises the envelope and closes everything.
 
-It does not redirect stdio, set environment variables, build consoles or parse a command line. Requests still run one at a time, behind one `asyncio.Lock` around the handler, so writes order as they do today and no new concurrency is introduced in 0.18. Because nothing patches process state any more, ADR-1052's change condition "commands must run concurrently" now costs only the worker pool.
+It does not redirect stdio, set environment variables, build consoles or parse a command line. Requests still run one at a time, behind one `asyncio.Lock` around the handler, so writes order as they do today and no new concurrency is introduced. Because nothing patches process state any more, ADR-1052's change condition "commands must run concurrently" now costs only the worker pool.
 
 ### 8. ADR-1052: amended on acceptance, not superseded
 
@@ -393,7 +403,7 @@ Board changes that follow acceptance, for their owners:
 - Synchronising the workflow configuration between a client repository and a hosted squad is planned with a real remote mode (FEAT-33). The per-document digests that `GET /v1/daemon` and the mismatch answer already carry leave room for it.
 - `starlette`, `uvicorn`, `h11` and `click` become dependencies of every install; only the daemon imports them.
 - Adding a command means adding an operation, which gives it a route. The router, `HttpApi` and the parity run need no change.
-- The HTTP surface is the DTO surface. A shape that had no `--json` before 0.18 is provisional until the web front consumes it (ADR-1224, point 3).
+- The HTTP surface is the DTO surface. A shape that had no `--json` in a release before the daemon's is provisional until the web front consumes it (ADR-1224, point 3).
 
 ## Options considered and rejected
 
@@ -463,4 +473,9 @@ Board changes that follow acceptance, for their owners:
   - Amended in place 2026-10-29 for REV-1235 F48 (board rule 6). Status unchanged.
   - Section 3, errors: the envelope gains `warnings`, an empty list when there is none, with the meaning a response's `warnings` has. `HttpApi` attaches it to the `SquadsError` it raises.
   - Notice row: the notice rides on a response or on a refused call's error. A refusal the CLI makes before any call carries none, which is accepted, since the CLI does not read the configuration.
+- [2026-10-30T00:39:21Z, edited 2026-10-30T00:39:56Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 for the tech lead's open points on FEAT-1140 (3d31d94), board rule 6. Status unchanged.
+    - Section 3, new subsection "Notices raised inside an operation" (point 2). Nothing below `_cli` and `_tui` writes to stdout or stderr. The index lock's waiting notice and the reflog warnings are recorded on the `RequestContext`, and `LocalApi` adds them to the response's or the error's `warnings`. Local mode prints each one as it is raised, through a sink the root callback sets; remote mode prints it when the answer arrives. A `tests/meta` guard forbids stdout/stderr writes outside `_cli`, `_tui`, `squads.__main__` and `_spans`. No parity exemption; the exemption and a streamed answer are recorded as rejected. Section 5's parity bullet now names the notices and says the run has no exemption.
+    - Section 5, client import guard: `click` joins the list, with the reason (point 5).
+    - Clerical (point 4): `rename-field` and `rename-kind` join the `/v1/squad/` list (section 1) and the `long` timeout row (section 3). The budget is a release criterion, not a 0.18 one, and the other references to 0.18 as the daemon's release now name no version (Context, section 7, Consequences). The provenance line "measured on release/0.18" stays.
 <!-- sq:discussion:end -->

@@ -18,7 +18,7 @@ description: Unix socket on POSIX, loopback ports on Windows and for the browser
   Starlette on uvicorn; one request at a time; edited configuration retires the daemon.
   The API's shape is ADR-1225
 created_at: '2026-10-16T11:27:26Z'
-updated_at: '2026-10-28T21:47:36Z'
+updated_at: '2026-10-30T00:39:58Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -135,7 +135,7 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
     - A `not_executed` answer runs the call in local mode, with no line on stderr, where the endpoint has a local mode; for a squad hosted elsewhere, ADR-1225, section 5, applies.
     - **No replay after sending.** A connection lost after the request left the client is an error, never retried locally, because a write may already have committed.
     - **Ctrl-C** stops the client waiting, not the command: a command the daemon has started runs to completion, as it would once its transaction had begun in local mode. There is no mid-command cancel. In local mode Ctrl-C kills the process, so the two modes differ here; the user documentation for remote mode states the difference.
-    - Output is returned when the command ends; a long command's progress lines arrive together at the end.
+    - Output is returned when the command ends. A notice the operation raises while it runs, such as the index lock's waiting notice or a reflog warning, travels in the answer's `warnings` and prints when the answer arrives; local mode prints it as it is raised. The lines are the same in both modes (ADR-1225, section 3).
 
 ### Lifecycle
 
@@ -276,4 +276,6 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
     - Consequences: the CLI change points to ADR-1224, the cost is ADR-1225's client budget, and the FEAT-33 seam is HttpApi.
     - Two "What would change" items still named the removed command endpoint (stdio patching, POST /v1/commands streaming); they are restated in route terms.
     - Unchanged: points 4, 5, 7, 8, 11 and 13 to 15.
+- [2026-10-30T00:39:23Z, edited 2026-10-30T00:39:58Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 with ADR-1225 section 3's new "Notices raised inside an operation" (FEAT-1140, tech lead 3d31d94, point 2), board rule 6. Status unchanged. Point 10: a notice an operation raises (the index lock's waiting notice, a reflog warning) travels in the answer's `warnings` and prints when the answer arrives; local mode prints it as raised, with the same lines. The "progress lines arrive together" clause is replaced.
 <!-- sq:discussion:end -->

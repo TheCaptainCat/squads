@@ -14,7 +14,7 @@ description: 'CLI tests in-process on the bundled squad and a full-override squa
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-30T00:30:34Z'
+updated_at: '2026-10-30T00:39:57Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -149,11 +149,13 @@ The daemon's routes (ADR-1225) are a surface, but not (command, parameter) pairs
 
 ### Mode parity
 
-When the CLI answers the same commands in a second mode, currently the daemon's remote mode, parity is held by running this suite again in that mode, selected for the whole run, in its own CI job. Every existing case then asserts the same output in both modes. No case is added for parity.
+When the CLI answers the same commands in a second mode, currently the daemon's remote mode, parity is held by running this suite again in that mode, selected for the whole run, in its own CI job. Every existing case then asserts the same output in both modes. No case is added for parity, and no case is skipped in the second mode.
+
+The remote-mode run is `tests/cli`, the surface suite whose parity it holds, on every OS: on the bundled squad on Linux, macOS and native Windows, and on the override squad on Linux, each in its own job. The override-squad job is the only run whose vocabulary hash covers a present workflow override, and the only one that sends custom fields, kinds and attributes over the wire.
 
 ### Time bound
 
-Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The override-squad run, the remote-mode run and the cross-process set are CI test jobs under the same targets; the remote-mode run on Windows runs the full suite, so its bound is 15 minutes. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
+Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The override-squad run, the remote-mode runs and the cross-process set are CI test jobs under the same targets. A remote-mode run is `tests/cli` on every OS, Windows included, so its bound is 10 minutes; the 15-minute bound is only for the Windows job that runs the full suite. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
 
 ## Why
 
@@ -169,7 +171,7 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
 - Adding an option to any command fails the coverage guard until a test declares it. Adding a verb to the builder or a registrar fails nothing per type: one test on the reference host covers it, and the parity guard holds the rest.
 - A new bundled type needs no new surface tests unless it brings a parameter of a kind the suite does not test yet.
 - The override squad doubles the surface run, as its own CI job; it adds no case. The regression set is later work; its location is fixed here.
-- The daemon adds two CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
+- The daemon adds CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode on the bundled squad on each OS and on the override squad on Linux. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
 - The guards prove that a case exists, not that it is strong: a vacuous case is still caught by the falsification step and by review.
 
 ## Options considered and rejected
@@ -256,4 +258,9 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - Unchanged and restated: `.squads.json` is never read, and a refusal is asserted by its whole message lines, never a substring.
 - [2026-10-30T00:30:34Z] `architect` Robert Architect:
   - Amended in place 2026-10-30 (REV-1260 F6): rule "Parameter name" now names an argument by Click's `human_readable_name` alone, the declared metavar where set (`N`, `HASH`, `<slug|id|n>`), else the parameter name (`title`); the usage line may brace it (`{N}`, `{title}`) under typer 0.27. The refusal example now reads `covers("create <type>", "title")`. The guard and existing markers already follow this; no code change.
+- [2026-10-30T00:39:22Z, edited 2026-10-30T00:39:57Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 for FEAT-1140 points 1 and 3 (tech lead 3d31d94), board rule 6. Status unchanged.
+    - Mode parity: the remote-mode run is `tests/cli` on every OS, on the bundled squad on Linux, macOS and native Windows, and on the override squad on Linux (point 1, ruled yes by the manager under the operator's delegation, 2026-10-30). No case is skipped in remote mode.
+    - Time bound: the full-suite sentence for the Windows remote-mode run is gone. Every remote-mode job is bounded at 10 minutes; 15 minutes is only for the Windows full-suite job (point 3).
+    - Consequences: the CI-jobs bullet lists the remote-mode jobs.
 <!-- sq:discussion:end -->

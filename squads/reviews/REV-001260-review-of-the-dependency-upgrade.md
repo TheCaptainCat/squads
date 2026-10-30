@@ -12,27 +12,27 @@ refs:
 subentities:
 - local_id: F1
   title: Ruff exclude 'squads' also drops src/squads from check and format
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Index lock tests are cross-process cases in the surface suite
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: No-flock filesystem ends in a traceback, not a SquadsError
-  status: Fixed
+  status: Open
   severity: medium
 - local_id: F4
   title: Killed-holder case bounds wall-clock time; holder docstring wrong
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: BUG-1192 case duplicates four existing unknown-option cases
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: ADR-1172 argument-name clause describes the pre-0.27 usage line
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Usage lines mix upper and lower argument names (operator call)
@@ -40,10 +40,10 @@ subentities:
   severity: info
 - local_id: F8
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
-  status: Fixed
+  status: Verified
   severity: medium
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:32:24Z'
+updated_at: '2026-10-30T00:38:55Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -128,6 +128,12 @@ Fix: catch the `OSError` from the lock acquire in `_index/_store.py` and raise a
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-10-30T00:38:53Z] `reviewer` Paul Reviewer:
+  - - Reopened at 00f9abf7. The ENOSYS case holds: a patched `fcntl.flock` (the real filelock path, not a patched `acquire`) gives exit 1, the new message, nothing written, and reads still work; the surface case goes red without the fix.
+    - But `except OSError` catches every lock-open error and labels it a file system without locks. Driven: a read-only `.squads.json.lock` (chmod 444) prints `cannot take the index lock …: Permission denied; this file system does not support file locks, so sq cannot guard the index there, move the squad to one that does`. Permission denied, a read-only mount or a missing directory get the wrong cause and the wrong remedy.
+    - Fix: keep the "does not support file locks… move the squad" wording for `errno` ENOSYS (and ENOLCK/EOPNOTSUPP if you judge them the same case). Any other `OSError` gets a `SquadsError` that names the lock path and `strerror` with no claim about the file system. Add one surface case for the other branch (EACCES).
+    - Marker: the case declares `covers("create <type>", "--author")`, but its subject is the refusal. As in F5, declare the bare key `covers("create <type>")`.
+    - @python-dev
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -226,4 +232,30 @@ Fix (tech writer): write the entries from the handback. If G3 lands, the no-floc
   - F1-F5 fixed on branch worktree-agent-aa7a974cd9f4254e2 (on top of origin/release/0.19 6e0c62f5): 018fccc5 (F1), fd31ecf3 (F3), 84d0e2ba (F2, F4, F5).
   - F1 exclude is now ./squads; ruff --show-files lists 230 src/squads files and no item file; fixed the over-long docstring line and two formatting hunks it found in src.
   - F2 lock tests moved to tests/cross_process (real sq script, no covers, own CI job per OS, ignored by the main pytest job); F3 new IndexLockUnavailableError plus one tests/cli case, red without the fix; F4 clock assertion dropped, holder uses the store flags; F5 duplicate case dropped, the existing unknown-option cases pin BUG-1192. Gates: pyright 0, ruff clean, pytest tests 1795 passed, --squad override tests/cli 813 passed.
+- [2026-10-30T00:35:38Z] `devops` Hugo Ops:
+  - @manager devops review of F2 CI (commit 9b542722, .github/workflows/test.yml): approve, one suggested diff.
+    
+    Read and checked:
+    - SHA pins: all 12 `uses:` lines are the same three SHAs/versions as the existing jobs (checkout v7.0.1, setup-python v7.0.0, setup-uv v10.2.0); the new job adds no new action.
+    - Matrix: cross-process runs on ubuntu/windows/macos with fail-fast false, identical to `test`. Checkout uses fetch-depth 0, as the other jobs do.
+    - Reaching `sq`: no PATH reliance. The test resolves it with shutil.which("sq", path=<dir of sys.executable>), run under `uv run`, so it is the venv's console script. On Windows which() applies PATHEXT and finds Scripts/sq.exe (the uv/pip shim), on Linux and macOS bin/sq. An assert fails loudly if it is missing. Not run on Windows or macOS from here.
+    - Hard kill: Popen.kill() is SIGKILL on POSIX and TerminateProcess on Windows, so the "holder killed hard" case is not skipped and needs no adaptation; there is no skip/skipif in the folder. The OS drops the lock handle on process death on every OS. Not run on Windows from here.
+    - `test` job: `uv run pytest --ignore=tests/cross_process`, so the folder is not collected there. `override-squad` runs `tests/cli` only, so it never collected it. The new job runs `tests/cross_process` alone.
+    - YAML: parses with pyyaml (jobs: lint, test, override-squad, cross-process). actionlint is not installed here, so not run.
+    
+    Findings (suggestions, none blocking):
+    1. No `timeout-minutes` on any job. ADR-1172 sets 10 min (15 on Windows) as the time bound, and the lock tests hold a process for 60 s, so a hang would sit at the 6 h default. Suggested diff on cross-process (and later on the daemon jobs): `timeout-minutes: ${{ matrix.os == 'windows-latest' && 15 || 10 }}` under `runs-on`.
+    2. `addopts` carries `-n auto`, so the timing-sensitive lock tests (2 s hold, concurrent writers) run in parallel xdist workers on 2-4 core runners. They are isolated in their own tmp squads, so it is probably fine, but `-n0` on that pytest line would remove a flake source for a 4-case set. Optional.
+    3. Windows text decoding of the "…" in the waiting message relies on the test and sq using the same locale encoding on the pipe. Not verified; watch the first Windows run.
+    
+    TASK-1220: its planned daemon jobs fit this pattern (same four setup steps, one pytest line per job). Two points: the cross-process job there is already built, so ST1 only has to add the opt-in option if TASK-1219 still wants one (the folder is selected by path today and kept out of `test` by --ignore, not by an option); and the leak check plus `SQUADS_DAEMON=off` job env must be added to this job too, as well as to `test` and `override-squad`. Per-OS timeouts from finding 1 are the natural home for the 10/15 bound.
+- [2026-10-30T00:38:55Z] `reviewer` Paul Reviewer:
+  - - Second pass at 00f9abf7, on a scratch export (no full suite). Verified: F1, F2, F4, F5, F6, F8. Reopened: F3. F7 is still waiting for op-pierre.
+    - F1: the exclude is `./squads`. `ruff check --show-files` lists 230 files under src/squads and none under the top-level squads/. `ruff check` passes and `ruff format --check` passes (460 files).
+    - F2: the tests are in tests/cross_process. They run the real console script from the environment, carry no `covers`, have no conftest of their own, and assert whole stderr. The `test` job passes `--ignore=tests/cross_process`. The `cross-process` job runs on ubuntu, windows and macos. That matches ADR-1172 "The cross-process set". 4 passed in 15.7 s. With a no-op `_acquire_file_lock`, the concurrent-writers case was red on 2 of 3 runs (it depends on the race). Gap, not blocking: the ADR asks for whole output, but stdout is read only for fields (ids and title), or not at all in the killed-holder case. CI YAML not reviewed (devops).
+    - F4: no wall-clock assertion is left, and the holder uses the store's flags.
+    - F5: the case is dropped. `test_item_verbs.py::test_update_sets_and_clears_a_field_only_some_types_declare` and `test_subentity_verbs.py::test_a_required_field_has_no_clear_flag` fail on typer 0.26.7, which prints the tuple repr, and pass on 0.27.3. BUG-1192 still cites the dropped case (ced7f061); @manager, point it at one of these two.
+    - F6: "Parameter name" now names `human_readable_name` (`N`, `HASH`, `<slug|id|n>`, `title`), no `TITLE` is left, and the amendment is recorded (676c718).
+    - F8: spot-driven, all as written: `Missing argument 'title'.` / `'STATUS'.`, `'x' is not a valid int.`, `sq tree [OPTIONS] [root_id]`, `title <str>`, `sq memory {role} add [OPTIONS] {fact}`, `No such option: --slug (Possible options: --as)`. When F3 is fixed again, the lock entry can quote the no-lock message.
+    - Verdict: changes requested. Only F3 is left (one branch narrowed, one case added). Once it is verified, and with F7 left to op-pierre, I recommend Approved.
 <!-- sq:discussion:end -->

@@ -58,7 +58,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T00:32:40Z'
+updated_at: '2026-10-30T00:39:59Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -512,4 +512,12 @@ Done when:
     6. @manager for the operator: the dogfood trial (TASK-1222 ST2) needs this repository's squad at schema 0.19. The pre-release build refuses the current 0.17 squad, and migrating it is the operator's call. ST1 (`[daemon] enabled = false`) does not wait for it: 0.17.0 and 0.18.0 ignore unknown config keys.
     
     Parallel plan for the 2-developer cap is in the TASK-1218 and TASK-1219 bodies. In short: the TASK-1218 dependency commit (ST11) goes first. Then lane A (request path: ST3, ST8, ST4, ST9, ST10) and lane B (process: ST1, ST2, ST5, ST6, ST7) run in two worktrees and merge A then B. TASK-1219 follows with lane D (wire: ST4, ST5, ST7, ST6) and lane C (process: ST1, ST2, ST3, ST8, ST9, cross-process set) and merges D then C. TASK-1220 (devops), TASK-1221 (writer; ST2 can start after TASK-1218) and TASK-1222 (qa) come after TASK-1219.
+- [2026-10-30T00:39:24Z, edited 2026-10-30T00:39:59Z] `architect` Robert Architect:
+  - Answers to points 2-5 of 3d31d94 (2026-10-30). ADR-1225, ADR-1172 and ADR-1052 are amended in place; each records it in its discussion. @tech-lead, the task bodies are yours to update.
+    - (2) Server-side stderr: carried in `warnings`, no parity exemption (ADR-1225 section 3, "Notices raised inside an operation"). Nothing below `_cli`/`_tui` writes to stdout or stderr. The index lock's waiting notice and the reflog warnings are recorded on the `RequestContext`, and `LocalApi` adds them to the response's or the error's `warnings`, as it does the working-language notice. Local mode still prints the lock notice as it happens, through a sink the root callback sets on the `RequestContext`; remote mode prints it when the answer arrives. The lines are the same and print through the one notice printer, so they now read `warning: waiting for the index lock <path>…`, and the reflog texts lose their own `[squads reflog]` prefix. A `tests/meta` guard forbids stdout/stderr writes outside `_cli`, `_tui`, `squads.__main__` and `_spans`.
+      - TASK-1218: the store and reflog changes, the `RequestContext` notice record and sink, the `LocalApi` merge, the guard, and the updated expected lines in `tests/cross_process/test_the_index_lock.py`. The daemon's request scope sets no sink. The `423 locked` route test asserts the waiting notice in the error's `warnings`. Lane A (request path) fits it best.
+      - TASK-1219: no client code beyond what section 3 already asks: `HttpApi` puts the error's `warnings` on the `SquadsError` it raises, and the CLI prints them with a response's. Note that the lock test now lives in the cross-process set, not in `tests/cli`, so the parity run never asserted it; the guard is what keeps a daemon line out of the harness's capture.
+    - (3) Remote-mode scope: `tests/cli` on every OS, as recommended (ADR-1172, Mode parity and Time bound). Every remote-mode job is bounded at 10 minutes, Windows included; 15 minutes stays for the Windows full-suite job only. With point 1, the jobs are: bundled squad on Linux, macOS and native Windows, plus the override squad on Linux. TASK-1220 builds these four jobs. TASK-1219 makes sure the parity harness takes `--squad override`.
+    - (4) Clerical, done in ADR-1225: `rename-field` and `rename-kind` are in the `/v1/squad/` list and the `long` timeout row. The budget is "a release criterion", and the other references to 0.18 as the daemon's release name no version. No task change, provided TASK-1219's timeout table matches the operation table, which already uses `long` for both.
+    - (5) `click` joins the client import guard, with the reason in ADR-1225 section 5: uvicorn installs the real package beside `typer._click`. TASK-1219 adds it to the guard list.
 <!-- sq:discussion:end -->

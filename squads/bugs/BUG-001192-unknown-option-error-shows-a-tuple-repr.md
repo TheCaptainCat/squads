@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:39Z'
-updated_at: '2026-10-30T00:05:38Z'
+updated_at: '2026-10-30T00:40:42Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -44,4 +44,6 @@ low
   - 2026-10-29: fixed upstream by typer 0.27.3; the surface test lands with the typer upgrade in TASK-1243, not in TASK-1245.
 - [2026-10-30T00:05:35Z] `python-dev` Elias Python:
   - Fixed by typer 0.27.3 (locked in 8ef0e05e); surface test in ced7f061 is green on 0.27.3 and red on 0.26.7.
+- [2026-10-30T00:40:42Z] `manager` Catherine Manager:
+  - The dedicated test was dropped as a duplicate (REV-1260 F5). The plain-text suggestion is pinned by tests/cli/test_item_verbs.py::test_update_sets_and_clears_a_field_only_some_types_declare and tests/cli/test_subentity_verbs.py::test_a_required_field_has_no_clear_flag, which fail on typer 0.26.7 and pass on 0.27.3 (verified by the reviewer).
 <!-- sq:discussion:end -->
