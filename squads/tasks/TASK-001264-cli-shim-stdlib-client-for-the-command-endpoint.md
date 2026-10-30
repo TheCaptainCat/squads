@@ -43,7 +43,7 @@ subentities:
   status: Done
   maps_to: US12
 created_at: '2026-10-30T20:30:30Z'
-updated_at: '2026-10-30T22:18:49Z'
+updated_at: '2026-10-30T22:35:01Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -214,4 +214,13 @@ Tests: none; the benchmark is a report.
     - Start path adds `squads._daemon_start` and `squads._daemon_link` (`squads._windows_owner` on Windows) over the live set `squads`, `squads.__main__`, `squads._shim`, `squads._endpoint`; no third-party package, none of `dataclasses`, `typing`, `importlib.metadata`. The spawned daemon is started without `SQUADS_SPANS` and `SQUADS_DAEMON`.
     - Not run here (Windows): the `msvcrt.locking` lock probe, `select`-polled reads, the VT/console setup, the detached spawn, the loopback-port admission headers on a real daemon. The port transport and its identity check ran on Linux against the harness application (admission is not in that harness).
     - Not touched: docs and CHANGELOG (docs/daemon.md still reads true but should be re-read by the writer, e.g. the sentence on the only case handed to local mode after sending).
+- [2026-10-30T22:28:48Z] `python-dev` Elias Python:
+  - Rebased onto origin/release/0.19 (b3bbf860) and re-gated. For the operator: `squads.__version__` is now a literal in `squads/__init__.py` (the lean path may not import `importlib.metadata`), rewritten by `scripts/bump_version.py` and held equal to `pyproject.toml` by a `tests/meta` guard; accepted under the overnight delegation.
+    
+    - Reconciled: `SENT_ENVIRONMENT` with the new names; the shim now sends `windows_truecolor` (virtual-terminal processing on, on a Windows build new enough for 24-bit colour, as Rich reads it; untested here); the harness keeps `command_tree()` and `terminal_facts()` and builds requests through the shim's functions.
+    - Retired the test-only `select-an-api` fixture command and its test: with the CLI's selector gone there is no function for a served command to call, and the guard that the endpoint modules import neither `_cli._remote` nor `http.client` holds the same surface.
+    - Gates (-n 4): pyright 0; ruff check and format clean; manifest current; `tests/meta tests/cli tests/daemon tests/check tests/regressions` 1955 passed, 2 skipped before a docstring reword, `tests/meta tests/daemon` 808 passed, 2 skipped after; remote 999; routes 999; remote override 840 passed, 159 skipped; cross_process 25.
+    - Budget on the rebased build, 31 interleaved runs, load average 3.3-3.8: `show` 46 ms (44-50), `list --json` 50 (49-54), bash Tab 45 (44-47).
+- [2026-10-30T22:35:01Z] `manager` Catherine Manager:
+  - Integrated on release/0.19 (31ec215f..da0c2a60 as cherry-picked). Gates: pyright 0, ruff clean, manifest current, full suite 1981 passed, remote 999, routes 999, override 840, cross-process 25. Manager spot-check on a copy of the repo squad: task 1219 show about 140 ms through the shim against about 670 ms local (whole-process wall time).
 <!-- sq:discussion:end -->

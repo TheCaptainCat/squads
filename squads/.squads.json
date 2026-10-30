@@ -63276,7 +63276,7 @@
         {
           "local_id": "F45",
           "title": "ParseCache.item_files() serves only an internal-reading test; digest() duplicates digest_of()",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63408,7 +63408,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T22:27:27Z",
+      "updated_at": "2026-10-30T22:34:38Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65970,7 +65970,7 @@
       ],
       "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
       "created_at": "2026-10-30T20:30:30Z",
-      "updated_at": "2026-10-30T22:18:49Z",
+      "updated_at": "2026-10-30T22:35:01Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
