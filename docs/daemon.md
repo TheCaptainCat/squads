@@ -102,10 +102,10 @@ The output is the same; the timing and Ctrl-C are not.
   commands wait for as long as they take: `sq migrate up`, `sq migrate repad`,
   `sq migrate rename-type`, `sq migrate rename-status`, `sq migrate rename-field`,
   `sq migrate rename-kind`, `sq repair`, `sq renumber` and `sq import`. After 10 seconds they print
-  a line on stderr naming the command, so a long run is not taken for a hang:
+  a line on stderr naming the operation, so a long run is not taken for a hang:
 
   ```
-  waiting for the daemon (repair)…
+  waiting for the daemon (squad.repair)…
   warning: waiting for the index lock <path>…
   ```
 
@@ -278,14 +278,16 @@ runs in local mode and prints one line on stderr. For a runtime directory open t
 warning: the daemon could not be used (/run/user/1000/squads is accessible to other users (mode 0755)); running locally. Set SQUADS_DAEMON=off or `enabled = false` under [daemon] in .squads.toml to stop trying.
 ```
 
+The same line, with `the daemon did not answer` as the reason, follows a daemon that is running
+but cannot be connected to: the command tries to reach it again for up to 5 seconds, then runs in
+local mode.
+
 The next command tries again. A daemon that refuses to start for a reason in the squad itself,
 such as a workflow override that does not load, names that reason; the command then reports the
 same problem in local mode.
 
 A command also runs in local mode, with nothing printed, when:
 
-- a running daemon cannot be connected to, or the connection fails before the command has been
-  sent;
 - a file the command names cannot be read (see
   [Files a command reads, and prompts](#files-a-command-reads-and-prompts)), or a `-C` directory
   cannot be entered, so that local mode reports it;
