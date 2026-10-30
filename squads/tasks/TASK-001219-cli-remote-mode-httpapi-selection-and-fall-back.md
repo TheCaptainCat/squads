@@ -22,11 +22,11 @@ subentities:
   maps_to: US3
 - local_id: ST2
   title: Implicit start, discovery and failed start
-  status: Todo
+  status: Done
   maps_to: US4
 - local_id: ST3
   title: Native Windows client path
-  status: Todo
+  status: Done
   maps_to: US6
 - local_id: ST4
   title: HttpApi requests, headers and errors
@@ -46,14 +46,14 @@ subentities:
   maps_to: US11
 - local_id: ST8
   title: 'Client budget: levers, import guard, benchmark'
-  status: Todo
+  status: Cancelled
   maps_to: US12
 - local_id: ST9
   title: The terminal UI as a daemon client
   status: Done
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T13:23:27Z'
+updated_at: '2026-10-30T20:32:46Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -345,4 +345,10 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
     | comment (write) | 983 | 872 | 1.1x |
     
     Cold start (spawn the daemon and answer the first show): 1.1-1.3 s. In remote mode the client still spends about 236 ms importing `squads._cli` (`_cli._calls` 183 ms, `_cli._common` 101 ms) before the request; the daemon handler for `task show` takes 65-120 ms. ST8 stays unmet: the client import cost dominates, and the daemon holds no per-squad state between requests, so corpus-wide operations such as `check` gain nothing.
+- [2026-10-30T20:32:46Z] `tech-lead` Olivia Lead:
+  - - Disposition under ADR-1261 (2026-10-30, breakdown on FEAT-1140):
+      - ST2 and ST3 set Done: implicit start, discovery, failed start and the Windows detached spawn are built (`_daemon_start.py`, 4b5e1dd) and held by `tests/cross_process/test_the_daemon_start.py`, green on every OS in the two CI runs that closed TASK-1220. Their statuses had not been moved.
+      - ST8 Cancelled here and moved: ADR-1261 point 10 replaces the 275/235 ms budget with 100 ms of shim overhead, measured on the shim. TASK-1264 ST1 (lean endpoint path and the shim's import guard, which replaces this task's remote-client guard) and ST7 (benchmark and runbook) carry it; TASK-1265 ST2 the CI report. The levers that landed here keep their value for local mode.
+      - ST1's CLI-side selection of `HttpApi` is reversed by TASK-1264 ST6; `HttpApi` and ST9's TUI selection stay.
+      - @manager nothing else is owed here: TASK-1219 can be accepted on REV-1223's recommendation (2121447).
 <!-- sq:discussion:end -->

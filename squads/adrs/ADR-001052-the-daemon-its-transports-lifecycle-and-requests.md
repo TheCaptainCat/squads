@@ -14,11 +14,12 @@ refs:
 - FEAT-1140
 - MILE-1152
 - ADR-1225
+- ADR-1261
 description: Unix socket on POSIX, loopback ports on Windows and for the browser;
   Starlette on uvicorn; one request at a time; edited configuration retires the daemon.
   The API's shape is ADR-1225
 created_at: '2026-10-16T11:27:26Z'
-updated_at: '2026-10-30T07:36:29Z'
+updated_at: '2026-10-30T20:27:14Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -36,13 +37,13 @@ The 0.18 line (MILE-1152, FEAT-1140) adds a squads daemon: a long-lived local pr
 
 The operator ruled on three further points in this ADR's discussion (2026-10-25):
 
-- **One command endpoint for both clients.** The CLI and the web client both call `POST /v1/commands`; FEAT-33's Protocol-typed `RemoteService` is dropped. On 2026-10-28 the operator reversed this ruling (FEAT-1140, comment b4c77e9; MILE-1152, comment e7119a6): both clients call resource routes generated from ADR-1224's operation table, as ADR-1225 decides.
+- **One command endpoint for both clients.** The CLI and the web client both call `POST /v1/commands`; FEAT-33's Protocol-typed `RemoteService` is dropped. On 2026-10-28 the operator reversed this ruling (FEAT-1140, comment b4c77e9; MILE-1152, comment e7119a6): both clients call resource routes generated from ADR-1224's operation table, as ADR-1225 decides. On 2026-10-30 he set the CLI's remote mode apart (FEAT-1140, comment c2dced7): the CLI reaches the daemon through a private command endpoint, beside the routes, which stay the API for every other client (ADR-1261).
 - **An environment override,** `SQUADS_DAEMON=on|off`, beside the configuration file's switch.
 - **Ctrl-C in remote mode stops only the client's wait,** and the documentation says so.
 
 ADR-1128 decides how the service is built: one composition function, the workflow spec, role catalog and playbook loaded once per invocation, and in the daemon the service built once at startup with a per-request scope. It leaves two points to this decision: how an edited override, or a file changed outside the daemon, reaches a running daemon, and what the request scope is.
 
-This decision sets the transport, discovery, the lifecycle and the request model; the API's shape is ADR-1225's. The facts that bear on them, read from release/0.17 (the 0.17.0 code the 0.18 release builds on) on 2026-10-25 unless stated otherwise:
+This decision sets the transport, discovery, the lifecycle and the request model; the API's shape is ADR-1225's, and the CLI's command endpoint ADR-1261's. The facts that bear on them, read from release/0.17 (the 0.17.0 code the 0.18 release builds on) on 2026-10-25 unless stated otherwise:
 
 1. **The integrity core already supports more than one writer.** `IndexStore.transaction()` (`src/squads/_index/_store.py`) takes a per-loop `anyio.Lock`, a per-process mutex, then a cross-process `filelock.FileLock` on `<squad-dir>/.squads.json.lock` (10-second timeout, a waiting notice after 1 second). Inside the lock it re-reads the index from disk, writes the markdown first and commits the index last with `os.replace`. The per-invocation read scope (`_ReadScope`, a `ContextVar`) is opened by the CLI's `command` bridge and never wired to that commit path. A daemon that writes through `transaction()` is one more process under the same lock.
 2. **Nothing about the squad survives an invocation today.** The index is read from disk at most once per invocation (the read scope), item files are read from disk, and the spec documents are loaded per invocation. Module-level state is limited to CODE caches by `tests/meta/test_no_unallowlisted_module_level_mutable_state.py`; per-request values live on `RequestContext` (`src/squads/_context.py`). Two caches sit outside that guard and depend on squad files: the custom-type command caches (`SpecKeyedCache`, keyed on the spec object) and the Jinja environment cache (`_rendering/_engine.py`, keyed on the squad directory, which decides at build time whether `.overrides/templates` exists).
@@ -68,13 +69,13 @@ This decision sets the transport, discovery, the lifecycle and the request model
 
 ## Decision
 
-Adopt **option C with C1** for the transport. For the API, option I is replaced by ADR-1225: resource routes generated from ADR-1224's operation table, which the CLI's remote mode and the browser both call.
+Adopt **option C with C1** for the transport. For the public API, option I is replaced by ADR-1225: resource routes generated from ADR-1224's operation table, which the TUI, the browser and every other client call. The CLI's remote mode is option I in private form (ADR-1261): a shim sends the command line to an endpoint served on the CLI listener only, and the daemon runs the CLI in process.
 
 Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsidered in ADR-1225. Its two reasons no longer hold: under ADR-1224 the wire forms are the operations' DTOs, built once for both `--json` and HTTP, and the client's cost is held to a measured budget. `HttpApi` takes the place the `RemoteService` seam had.
 
 ### The API
 
-1. **One HTTP/1.1 application, served on every listener.** Its operation routes, requests, responses and errors are ADR-1225's. This decision keeps:
+1. **One HTTP/1.1 application, served on every listener.** Its operation routes, requests, responses and errors are ADR-1225's. `POST /v1/commands`, the CLI's private command endpoint, is ADR-1261's and is served on the CLI listener only, never on the browser port. This decision keeps:
    - **Wire encoding.** Request and response bodies are UTF-8 JSON.
    - `GET /v1/daemon` returns the daemon's identity and state: pid, squads version, the squad directory's real path, listeners, start time, idle deadline, and the vocabulary hash with one digest per document (ADR-1225, section 5).
    - `POST /v1/daemon/stop` asks the daemon to exit once the request in progress has finished.
@@ -102,7 +103,7 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
    - **Native Windows, any configuration:** any local process or user can read and write the squad through the CLI port. Browsers cannot.
    - **Any platform, browser port on:** the same as Windows, through the browser port.
 
-   The daemon never reads a file named by a client path from its own filesystem (ADR-1225, section 2), so a caller who can reach a TCP listener reaches the squad and nothing else the owning user can read. The operator accepts this until the MILE-868 authentication mode exists.
+   The browser port never serves the command endpoint. The daemon never reads a file named by a client path from its own filesystem: route requests carry file text in their DTOs (ADR-1225, section 2), and served commands carry attachments (ADR-1261, point 3), so a caller who can reach a TCP listener reaches the squad and nothing else the owning user can read. The operator accepts this until the MILE-868 authentication mode exists.
 
 ### Discovery and settings
 
@@ -128,19 +129,20 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
 
 ### The client
 
-9. **Remote mode is the CLI itself, calling the daemon through `HttpApi`** (ADR-1224, point 4; ADR-1225, section 5).
-   - One function resolves "which squad, reached how": from the client directory and the `-C` values to the squad directory (the `.squads.toml` walk-up, reading `squad_dir` and `[daemon]` with `tomllib`) and from there to an `Endpoint`. That module is shared with the daemon and with `SquadsConfig`'s reading of `[daemon]`, so the two sides cannot resolve differently; the CLI's root callback and `effective_dir` use it. It reads only what ADR-1225, section 5, lists under endpoint resolution.
-   - **Local mode, silently,** when there is no squad, and for what needs no daemon: `daemon` (it talks to the daemon itself), `init` and `adopt` (they create the squad the key is made from), shell completion, `--help` and a bare `--version`.
-10. **What reaches the user.** The CLI renders the response in its own process (ADR-1224).
-    - A `not_executed` answer runs the call in local mode, with no line on stderr, where the endpoint has a local mode; for a squad hosted elsewhere, ADR-1225, section 5, applies.
+9. **The CLI's remote mode is a shim that sends the command line to the daemon** (ADR-1261, point 4). `HttpApi` is the TUI's client (ADR-1224, point 7).
+   - One function resolves "which squad, reached how": from the client directory and the `-C` values to the squad directory (the `.squads.toml` walk-up, reading `squad_dir` and `[daemon]` with `tomllib`) and from there to an `Endpoint`. That module is shared with the daemon and with `SquadsConfig`'s reading of `[daemon]`, so the two sides cannot resolve differently; the shim, the CLI's root callback and `effective_dir` use it. It reads only what ADR-1225, section 5, lists under endpoint resolution.
+   - **Local mode, silently,** when there is no squad, and for the shim's local-only table: `daemon` (it talks to the daemon itself), `init` and `adopt` (they create the squad the key is made from) and `ui` (the TUI runs in the client's process). A bare `--version` is answered by the shim. Shell completion, `--help` and the package-data commands are served like any command.
+   - **Client files** named by `--file` or `import`'s argument travel as attachments, by the shim's file-argument table (ADR-1261, point 3).
+10. **What reaches the user.** The daemon renders a served command and returns its output as ordered stdout and stderr chunks with the exit code; the shim writes each chunk to its stream through the CLI's Windows UTF-8-with-replacement stream setup (ADR-1261, point 1). Fallback is ADR-1261, point 6, and prompts run in two phases with nothing written before the answer (ADR-1261, point 5).
+    - A `not_executed` answer runs the command in local mode, with no line on stderr, where the endpoint has a local mode; for a squad hosted elsewhere, ADR-1225, section 5, applies.
     - **No replay after sending.** A connection lost after the request left the client is an error, never retried locally, because a write may already have committed.
     - **Ctrl-C** stops the client waiting, not the command: a command the daemon has started runs to completion, as it would once its transaction had begun in local mode. There is no mid-command cancel. In local mode Ctrl-C kills the process, so the two modes differ here; the user documentation for remote mode states the difference.
-    - Output is returned when the command ends. A notice the operation raises while it runs, such as the index lock's waiting notice or a reflog warning, travels in the answer's `warnings` and prints when the answer arrives; local mode prints it as it is raised. The lines are the same in both modes (ADR-1225, section 3).
+    - Output is returned when the command ends. A notice an operation raises while it runs, such as the index lock's waiting notice or a reflog warning, lands in a served command's stderr in the order local mode prints it; over the routes it travels in the answer's `warnings` and prints when the answer arrives. The lines are the same in every mode (ADR-1225, section 3).
 
 ### Lifecycle
 
 11. **Start, idle exit and stop.**
-    - A command that finds no live daemon for its key, with the daemon enabled, spawns `sys.executable -m squads daemon run` for that squad, detached from the terminal (a new session on POSIX; `DETACHED_PROCESS`, `CREATE_NEW_PROCESS_GROUP` and `CREATE_NO_WINDOW` on Windows). The child reports on a pipe, then closes it: `ready` once it serves, or one line saying why it cannot. The client waits for that line for at most 5 seconds.
+    - A command that finds no live daemon for its key, with the daemon enabled, spawns `sys.executable -m squads daemon run` for that squad, detached from the terminal (a new session on POSIX; `DETACHED_PROCESS`, `CREATE_NEW_PROCESS_GROUP` and `CREATE_NO_WINDOW` on Windows). The child reports on a pipe, then closes it: `ready` once it serves, or one line saying why it cannot. The client waits for that line for at most 5 seconds: a cold start measured about 1 s for spawning and answering the first `show`, so the bound is reached only by a start that is failing (ADR-1261, point 6).
     - **Two clients at once.** Both may spawn; the lock lets one child win, the other reports "already running", and both clients connect to the winner.
     - **Failed start.** A spawn error, a child that reports failure, no answer within 5 seconds, or an unusable runtime directory: the command runs in local mode with one line on stderr giving the reason and how to turn the daemon off. The next command tries again. Where no local squad exists, the command fails with a `SquadsError`. A child that becomes ready after its client gave up serves later commands.
     - **Idle exit** after `idle_timeout_minutes` without a request; a command in progress counts as activity until it ends. The daemon removes its files and releases its lock. The idle exit is not tested.
@@ -152,13 +154,14 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
 12. **One request at a time.**
     - The daemon accepts connections on every listener but runs operations strictly one at a time, in arrival order. Identity and stop requests are answered without waiting.
     - **The request scope** is ADR-1225's, section 7.
-    - **Warm across requests:** imported modules, the documents loaded at startup, the normal-mode service, and the CODE caches. **Read per request, as local mode does:** the index (through the read scope), item files, and the override's cross-check against the index. No squad data is kept between requests, so a write by any process is visible to the next request in either mode.
+    - **Warm across requests:** imported modules, the documents loaded at startup, the normal-mode service, and the CODE caches. **Read per request, as local mode does:** the index (through the read scope) and item files. The only squad data kept between requests is the three cached results of ADR-1261, point 7 (the parsed index, parsed frontmatter, and the override's check against the index), keyed by the digest of the bytes each read has just read and never a source of truth, so a write by any process is visible to the next request in either mode.
+    - **`needs_terminal`:** a served command that reaches a prompt answers with it and has written nothing; the shim asks and sends the command again with the answer (ADR-1261, point 5).
     - The scope holds no service collaborator, so ADR-1128's reopen trigger (three or more request-scoped collaborators with teardown) is not met.
 13. **Edited configuration retires the daemon.**
     - The daemon fingerprints its configuration at startup: the bytes of `.squads.toml` and the names and bytes of every file under `<squad-dir>/.overrides/`. This covers the workflow, roles and playbook overrides, per-role override files and template overrides.
     - Before running each command it compares the fingerprint. On any difference it answers `retiring`, finishes nothing further, and exits; the client runs that command locally and the next command starts a daemon that loads the new configuration. `sq override` and `sq migrate up`, which write these files, retire the daemon the same way.
     - The comparison reads bytes rather than modification times, so a same-size edit inside one timestamp tick is not missed.
-    - Item files and the index need no invalidation, because nothing read from them outlives a command (point 12). A `git checkout` is seen the same way: items through the per-command reads, overrides through the fingerprint.
+    - Item files and the index need no invalidation, because what is cached from them is keyed by their content (point 12). A `git checkout` is seen the same way: items through the per-command reads, overrides through the fingerprint.
     - The daemon runs the code it started with, and nothing detects an editable install. This repository keeps the daemon off (point 7). The contributor documentation says that a daemon started from a development checkout serves the code it started with until `sq daemon stop`, and that `SQUADS_DAEMON=off` keeps a session in local mode. The key's package directory (point 8) already keeps a checkout's daemon from answering an installed release. Detection through PEP 610's `direct_url.json` would add a package-metadata lookup to every forwarded command to protect contributors, who already have both switches.
 14. **The daemon is a peer under the file lock, never its owner.** Every write goes through the same service code as local mode, so through `IndexStore.transaction()` and the rebuild paths unchanged. A local-mode CLI, a daemon, a daemon of another version or installation, an editor extension shelling out to `sq`, and a git hook serialise exactly as concurrent CLIs do today.
 15. **Corpus-wide operations and version skew.**
@@ -168,13 +171,13 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
 ## Consequences
 
 - **The CLI layer changes before the daemon can run it:** ADR-1224's operations and DTOs, with each command calling one operation through an `Api`. Each change is invisible in local mode.
-- **Remote mode's cost is the client budget of ADR-1225, section 5:** at most 275 ms of client overhead in human mode and 235 ms with `--json` on the reference host, plus the operation's own work in the daemon, which includes the per-request index read (0.032s on this repository's squad).
+- **Remote mode's cost is the shim's budget of ADR-1261, point 10:** at most 100 ms of shim overhead on the reference host, plus the command's own work in the daemon, parsing and rendering included.
 - **Local mode is always complete wherever the squad is local.** Daemon off, an unusable runtime directory, a failed start or a declined command all leave a working CLI, and correctness never depends on which path answered.
-- **Parity is tested, not assumed.** The CLI's command matrix runs in both modes and compares exit code, stdout and stderr byte for byte with stdout not a terminal, and with a terminal of fixed width and colour system. The TCP listeners add a negative test for every admission rule: a rebinding `Host`, a cross-origin form post, a `text/plain` write, a missing or wrong `Squads-Client` header, a foreign `Origin` on the browser port, and any `Origin` on the Windows CLI port.
+- **Parity is tested, not assumed.** The CLI's command matrix runs in both modes and compares exit code, stdout and stderr byte for byte with stdout not a terminal, and with a terminal of fixed width and colour system. A served command renders in the daemon, so parity rests on the terminal facts and the forwarded environment reaching Rich (ADR-1261, points 1 and 2). The TCP listeners add a negative test for every admission rule: a rebinding `Host`, a cross-origin form post, a `text/plain` write, a missing or wrong `Squads-Client` header, a foreign `Origin` on the browser port, and any `Origin` on the Windows CLI port.
 - **Commands queue.** A long command, a migration above all, delays every other command sent to that daemon until it ends; local-mode commands still wait only for the file lock, as today.
 - **Old daemons are reaped by idle exit.** A squad that sets `idle_timeout_minutes = 0` keeps them until logout, a stop, or the next configuration change.
 - **The caches outside the mutable-state guard are safe in the daemon:** the custom-type command caches are keyed on the spec object, which lives as long as the daemon, and an override template appearing or changing retires the daemon, so the Jinja environment cache keyed on the squad directory never outlives the overrides it was built from.
-- **Room for a squad hosted elsewhere** (FEAT-33). The endpoint-resolution function is the one seam: later its input can be a configured remote address with no local directory. Routes never carry a client filesystem path, and client file text travels in the request DTO, so a remote daemon needs nothing from the client's disk. "Local mode exists" is decided by the `Endpoint` that resolution returns. `HttpApi` is the shared seam (ADR-1225); FEAT-33's `RemoteService` is not built as such. The `.claude/` pointer gap noted on FEAT-33 returns with that case.
+- **Room for a squad hosted elsewhere** (FEAT-33). The endpoint-resolution function is the one seam: later its input can be a configured remote address with no local directory. Routes never carry a client filesystem path, and client file text travels in the request DTO, so a remote daemon needs nothing from the client's disk. "Local mode exists" is decided by the `Endpoint` that resolution returns. The command endpoint is private to one installation, so a hosted squad's CLI uses the routes; `HttpApi` is the shared seam (ADR-1225); FEAT-33's `RemoteService` is not built as such. The `.claude/` pointer gap noted on FEAT-33 returns with that case.
 - **`SQUADS_DAEMON` is part of the adopter surface,** documented beside `[daemon]` and covered by `sq check`'s validation (point 7).
 - **Ctrl-C behaves differently in the two modes,** and the documentation states it: remote mode abandons the wait, local mode kills the command.
 - **Remote access beyond localhost, and the authentication mode, are a later decision.** No listener binds a non-loopback address. The MILE-868 authentication mode applies to every TCP listener, the Windows CLI port included.
@@ -185,7 +188,6 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
 - **CPython gains `AF_UNIX` on Windows:** the Windows CLI port can become a socket in `%LOCALAPPDATA%`.
 - **The authentication mode lands:** a single loopback listener (option A) becomes a candidate simplification.
 - **Commands must run concurrently** (the web app's reads queueing behind writes, measured): the serial lock of ADR-1225, section 7, gives way to a worker pool.
-- **The per-command index read is measured as the dominant cost of a remote command:** an index snapshot kept across commands, revalidated against the index file before each one.
 - **Progress output must arrive while a command runs:** a long operation streams its response.
 <!-- sq:body:end -->
 
@@ -280,4 +282,16 @@ Option II's rejection, and with it that of FEAT-33's `RemoteService`, is reconsi
   - Amended in place 2026-10-30 with ADR-1225 section 3's new "Notices raised inside an operation" (FEAT-1140, tech lead 3d31d94, point 2), board rule 6. Status unchanged. Point 10: a notice an operation raises (the index lock's waiting notice, a reflog warning) travels in the answer's `warnings` and prints when the answer arrives; local mode prints it as raised, with the same lines. The "progress lines arrive together" clause is replaced.
 - [2026-10-30T07:36:29Z] `architect` Robert Architect:
   - Amended in place 2026-10-30 for REV-1223 F22 and F27, per the manager's ruling on REV-1223 (5599c2c, operator delegation). Status unchanged. Point 5: `GET` and `HEAD` are the safe methods. `HEAD` is the `GET` on the same route without its body, so the `Content-Type`/`Squads-Client` requirement and the browser port's `Origin` requirement apply to every other method.
+- [2026-10-30T20:27:14Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 on the acceptance of ADR-1261, as its amendment section lists. Board rule 6: a clause-level change, linked related to ADR-1261, not superseded. Status unchanged.
+    - Context: the 2026-10-30 direction is added (FEAT-1140 c2dced7), and the scope sentence names ADR-1261 for the CLI's command endpoint.
+    - Decision: the routes stay the public API, and the CLI's remote mode is option I in private form (ADR-1261).
+    - Point 1: `POST /v1/commands` returns as ADR-1261's, on the CLI listener only.
+    - Point 6: the browser port never serves the endpoint, and served commands read client files only as attachments.
+    - Point 9: the remote client is the shim. The local-only list is `init`, `adopt`, `daemon` and `ui`, with `--version` answered by the shim. Completion, `--help` and the package-data commands are served, and client files travel as attachments.
+    - Point 10: the daemon renders, and the shim writes the ordered chunks through the Windows stream setup. Fallback and two-phase prompts follow ADR-1261 points 5 and 6. Notices land in a served command's stderr in local mode's order.
+    - Point 11: the 5 s bound is kept, with its reason.
+    - Point 12: the three content-keyed cached results replace "no squad data is kept", and `needs_terminal` returns, two-phase. Point 13 now points to the content keys.
+    - Consequences: the cost is the shim's 100 ms budget, parity rests on terminal facts and the environment, and a hosted squad's CLI uses the routes. The change condition "index snapshot kept across commands" is removed, since it is met.
+    - Unchanged: points 2 to 5, 7, 8, 14 and 15.
 <!-- sq:discussion:end -->

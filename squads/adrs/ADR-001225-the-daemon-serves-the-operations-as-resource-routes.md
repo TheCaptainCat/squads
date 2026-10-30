@@ -11,16 +11,17 @@ refs:
 - ADR-1052
 - ADR-1224
 - ADR-1172
+- ADR-1261
 description: Resource routes under /v1 generated from the operation table replace
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-30T08:01:35Z'
+updated_at: '2026-10-30T20:27:16Z'
 ---
 <!-- sq:body -->
 ## Context
 
-ADR-1052 gave the daemon one command endpoint: `POST /v1/commands` takes a command line and answers with its exit code, stdout and stderr (option I). The operator ruled for it on 2026-10-25 (ADR-1052, comment ec061f4). On 2026-10-28 he reversed that ruling (FEAT-1140, comment b4c77e9; MILE-1152, comment e7119a6). The API becomes resource endpoints that a Vue or Angular front will call. The CLI in remote mode calls the same endpoints, through a layer that makes either the HTTP call or the local service call depending on the mode. Both this and the refactor that makes it possible ship in the same release.
+ADR-1052 gave the daemon one command endpoint: `POST /v1/commands` takes a command line and answers with its exit code, stdout and stderr (option I). The operator ruled for it on 2026-10-25 (ADR-1052, comment ec061f4). On 2026-10-28 he reversed that ruling (FEAT-1140, comment b4c77e9; MILE-1152, comment e7119a6). The API becomes resource endpoints that a Vue or Angular front will call. The CLI in remote mode calls the same endpoints, through a layer that makes either the HTTP call or the local service call depending on the mode. Both this and the refactor that makes it possible ship in the same release. On 2026-10-30 the operator set the CLI apart (FEAT-1140, comment c2dced7): its remote mode is a shim that sends the command line to a private command endpoint (ADR-1261). The routes stay the API for every other client.
 
 ADR-1224 (operations and DTOs) defines the operation table, the `Response[T]` envelope, the `Api` protocol with its `LocalApi` and `HttpApi` implementations, and the rule that the CLI never imports `_services` outside the local API's factory. This decision covers the HTTP side: the routes, the wire format, errors, how a mode is chosen, the daemon's request scope, and what changes in ADR-1052, ADR-1172 and the delivered TASK-1217.
 
@@ -200,21 +201,26 @@ The operation table gives each operation a `timeout` class (ADR-1224, point 4), 
 - The partial-read report and warnings in the body.
 - No command lines to assemble or quote, and no terminal facts, stream encodings or attachments to fake.
 
+The command endpoint of ADR-1261 is private to the CLI of one installation and served on the CLI listener only, so the web front never sees it.
+
 ### 5. The remote client
 
 #### Choosing between the HTTP and the local call
 
-- **The root callback picks the API once per invocation** (ADR-1224, point 4). It picks `HttpApi` when ADR-1052's endpoint resolution finds the daemon enabled and reachable, or starts it: settings and `SQUADS_DAEMON` (point 7), discovery (point 8), implicit start and fall back (point 11). Otherwise it picks `LocalApi` where the endpoint has a local mode; for a squad hosted elsewhere, an unreachable server is an error (below).
-  - A command that makes no call never contacts or starts a daemon: `docs`, `migrate help`, `migrate chlog`, `--version`, `--help` and completion.
-  - Neither does a local-only operation (`init`, `adopt`), nor `daemon`. `sq ui` selects by the same rule and keeps the rule for its whole session, re-resolving the endpoint after a retirement or a refused connection (ADR-1224, point 7).
+This section's selection, fall back, vocabulary hash and parity rules govern `HttpApi`'s callers: the TUI (ADR-1224, point 7) and a hosted squad's client. The CLI follows ADR-1261, points 4 and 6: its shim sends the command line to the private endpoint, or runs it locally before sending, and every CLI process runs on `LocalApi`.
+
+- **The TUI picks the API** by this rule (ADR-1224, points 4 and 7). It picks `HttpApi` when ADR-1052's endpoint resolution finds the daemon enabled and reachable, or starts it: settings and `SQUADS_DAEMON` (point 7), discovery (point 8), implicit start and fall back (point 11). Otherwise it picks `LocalApi` where the endpoint has a local mode; for a squad hosted elsewhere, an unreachable server is an error (below).
+  - On the CLI's side, `init`, `adopt`, `daemon` and `ui` run locally and never contact a daemon; `docs`, `migrate help`, `migrate chlog`, `--help` and completion are served like any command (ADR-1261, point 4). `sq ui` keeps this rule for its whole session, re-resolving the endpoint after a retirement or a refused connection (ADR-1224, point 7).
 - **Fall back is per call, and only where a local mode exists.** The `Endpoint` says whether it does (below): a local daemon has one, a squad hosted elsewhere (FEAT-33) has none.
   - **Local daemon.** A `not_executed` answer makes `HttpApi` rerun that call on `LocalApi`, silently. A daemon that cannot be reached or started gives way to `LocalApi` as ADR-1052, point 11, says.
   - **Squad hosted elsewhere.** A `503 retiring` answer makes `HttpApi` resolve the endpoint again and send the call once more, which is safe because nothing ran. A second refusal fails with `error: the squad served at <endpoint> is restarting; re-run the command in a moment.` A server that cannot be reached fails with `error: cannot reach the squad served at <endpoint>: <cause>.` Both exit 1, and nothing runs locally.
   - **Either endpoint.** A `vocabulary_mismatch` is never retried and never falls back. A connection lost after the request was sent is an error and is never replayed (ADR-1052, point 10). Ctrl-C stops the client's wait, and a call the daemon has started runs to completion.
-- **The forwarder in `squads.__main__` goes.** The remote client is the CLI itself, which parses, validates, renders and never imports `_services`. Its cost is held to the budget below.
-- **Parity.** The mode-parity CI job of ADR-1172 reruns the surface suite with `HttpApi` against the daemon's application served in-process. What it proves is that a DTO round-trips through JSON (ADR-1224, point 2), that the error table keeps messages and exit codes, and that an operation's notices reach the client (section 3). It has no exemption: every case asserts the same output in both modes.
+- **The CLI's remote client is the shim in `squads.__main__`** (ADR-1261, point 4). It sends the command line; the daemon parses, renders and calls its operations through its own `LocalApi`. Its cost is held to the budget below.
+- **Parity.** The mode-parity CI jobs of ADR-1172 rerun the surface suite through the command endpoint (ADR-1261, point 9). One more job, on Linux, reruns it with an `HttpApi` handed to the root callback, against the daemon's application served in-process. What it proves is that a DTO round-trips through JSON (ADR-1224, point 2), that the error table keeps messages and exit codes, and that an operation's notices reach the client (section 3). It has no exemption: every case asserts the same output in both modes.
 
 #### What the client reads, and the vocabulary hash
+
+This subsection describes a client that parses with the checkout's vocabulary or calls the routes with its hash: the TUI and a hosted squad's client. The CLI's shim reads only what endpoint resolution reads and sends no hash, because the daemon parses its command line (ADR-1261, point 1).
 
 The operator ruled on 2026-10-28 that in remote mode the CLI reads nothing from the squad (comment 88165cc), and that the client's repository carries the same overrides and vocabulary as the server: the CLI parses with its own vocabulary and sends a hash of it with its one call, and the server refuses on a mismatch, with no vocabulary fetch and no cache (comment 7f4f1d5). The two hold together because of what each reads:
 
@@ -310,14 +316,16 @@ The levers, each measured on its own:
 
 The vocabulary is the ruling's price: 51 ms human and 69 ms `--json` (the two pairs of rows above). Of it, the spec model module takes 44-58 ms, the loader, merge and override modules 43-53 ms, the TOML parse, merge and validation 2 ms, and the hash 0.2 ms. The model module stays without a cache, which is ruled out.
 
-**The budget,** a release criterion: the client's overhead, which is the process's wall time minus the daemon's handler time (sent by the daemon in a `Server-Timing` header), as the median of 31 interleaved runs of `sq <type> <n> show` on the reference host, is at most **275 ms** in human mode and **235 ms** with `--json`. That is 30 % and 27 % of today's local-mode time for the same command. The prototype meets it with 9 and 7 ms to spare; it lacks the real CLI's dispatch and renderer modules (an estimated 10-20 ms), which the loader trim offsets. The daemon's own work comes on top: a warm `show` takes 45-60 ms in the daemon (measured, inside the read scope), and composing the service once at start-up 74-91 ms.
+These figures describe a CLI that parses and renders in the client and calls the routes. The CLI built that way measured 311-337 ms of client overhead after its levers (TASK-1219), so its remote mode became ADR-1261's shim.
+
+**The budget,** a release criterion, is ADR-1261's, point 10: the shim's overhead, the process's wall time minus the daemon's handler time, as the median of 31 interleaved runs of `sq <type> <n> show` on the GitHub-hosted Linux runner of the budget-report job, is at most **100 ms**, for human output, `--json` and completion alike.
 
 How it is held:
 
-- **A deterministic guard** in `tests/meta` imports the remote path (root callback, `HttpApi`, the renderer) in a subprocess and fails if `sys.modules` holds `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette`, `uvicorn` or `click`, or holds `rich.markdown` before a body is rendered. `click` is on the list because uvicorn installs the real package beside the copy typer vendors (`typer._click`), which is the one the CLI runs on; a stray `import click` would load a second Click on the client path.
+- **A deterministic guard** in `tests/meta` runs the shim in a subprocess and fails on any `squads` module beyond `_endpoint` and the shim's own, or on `dataclasses`, `typing` or `importlib.metadata` (ADR-1261, points 4 and 10). The TUI's remote path keeps the earlier list: it fails if `sys.modules` holds `squads._services`, `squads._index`, `jinja2`, `yaml`, `anyio`, `filelock`, `importlib.metadata`, `starlette`, `uvicorn` or `click`, or holds `rich.markdown` before a body is rendered. `click` is on the list because uvicorn installs the real package beside the copy typer vendors (`typer._click`), which is the one the CLI runs on; a stray `import click` would load a second Click on the client path.
 - **A benchmark script** measures the budget. The release runbook runs it on the reference host and records the numbers with the release. CI runs it as a report, not a gate: this host alone spread 40-90 ms between p25 and p75.
 
-What the budget costs in design: a literal command-name table at the root, guarded against the registered tree; DTO modules split by resource; a version string that does not come from package metadata; `gc` handling in `main`; `anyio` confined to the service side; and renderer modules that import only `rich` and `_api`. Local mode gets the same levers, apart from the ones that only remove `_services`.
+The levers below keep their value for local mode and for the shim's local fallback. What they cost in design: a literal command-name table at the root, guarded against the registered tree; DTO modules split by resource; a version string that does not come from package metadata; `gc` handling in `main`; `anyio` confined to the service side; and renderer modules that import only `rich` and `_api`. Local mode gets the same levers, apart from the ones that only remove `_services`.
 
 ### 6. The HTTP server: Starlette on uvicorn
 
@@ -355,6 +363,8 @@ The scope replaces ADR-1052, point 12, and is still one context manager beside t
 
 It does not redirect stdio, set environment variables, build consoles or parse a command line. Requests still run one at a time, behind one `asyncio.Lock` around the handler, so writes order as they do today and no new concurrency is introduced. Because nothing patches process state any more, ADR-1052's change condition "commands must run concurrently" now costs only the worker pool.
 
+A command served through ADR-1261's endpoint holds the same lock for its whole run, parse to render, on a worker thread. It binds its `RequestContext` from the request body rather than headers, skips the vocabulary check (the daemon parses with what it loaded), and writes through the stdio and environment proxies the daemon installs once at start-up (ADR-1261, point 2).
+
 ### 8. ADR-1052: amended on acceptance, not superseded
 
 Board rule 6 decides between the two. Transport, admission, security, settings, discovery, lifecycle, staleness, writes and version skew still hold, so this is a clause-level change: ADR-1052 is narrowed in place, its discussion records what changed, and the two decisions are linked `related`. The amendment:
@@ -390,6 +400,8 @@ Removed once the remote client is the CLI:
 - `NeedsTerminal`, `confirm_or_signal` and `prompt_or_signal`, which become plain `typer.confirm` and `typer.prompt` again;
 - the root callback's copying of seeded terminal facts.
 
+ADR-1261 brings back attachments, terminal facts and the prompt signal in the form of its points 1, 3 and 5. `run(argv)` is what both the daemon's endpoint and the shim's local fallback call.
+
 REV-1223's deferred F3, F4, F6 and F8 lose their subject with that removal. Their disposition is the reviewer's.
 
 ### 10. Order of the work, and what gates what
@@ -397,7 +409,7 @@ REV-1223's deferred F3, F4, F6 and F8 lose their subject with that removal. Thei
 - **D1, the daemon process** (TASK-1218, reshaped), on Starlette and uvicorn with the OpenAPI document. It starts once increment 0 of ADR-1224 has landed (the operation table, the envelope, the error form). The daemon routes from the table, so it serves each operation as the refactor adds it. Settings, discovery, lifecycle, admission and the browser port are ADR-1052's and do not wait for the refactor.
 - **D2, remote mode** (TASK-1219, reshaped) follows D1: the root callback's API selection, endpoint resolution, implicit start, fall back, `HttpApi` and the vocabulary hash. The budget's levers and guard land with it. A command not yet moved onto an operation runs locally, so remote mode can be trialled early with `SQUADS_DAEMON=on` (ADR-1052, point 7).
 - **The mode-parity job** is switched on with D2 and covers what has moved.
-- **The release gate:** every command on an operation (ADR-1224's increment 5) and the TUI on the `Api` in both modes (its increment 6), the client budget of section 5 met on the reference host with its import guard green, and the parity job, the cross-process set and the surface suite green on Linux, macOS and native Windows.
+- **The release gate:** every command on an operation (ADR-1224's increment 5) and the TUI on the `Api` in both modes (its increment 6), the shim's budget (ADR-1261, point 10) met on the reference host with its import guard green, and the parity job, the cross-process set and the surface suite green on Linux, macOS and native Windows.
 - CI (TASK-1220), adopter documentation (TASK-1221, which now documents the routes, the envelope, the error table and the DTO schemas) and the dogfood (TASK-1222) keep their places.
 
 Board changes that follow acceptance, for their owners:
@@ -407,9 +419,9 @@ Board changes that follow acceptance, for their owners:
 
 ## Consequences
 
-- One API serves two clients, as ruled on 2026-10-16: the CLI's remote mode and the web front call the same routes, and there is no second protocol.
-- The command endpoint's machinery goes: argv over the wire, stdio and environment patching, terminal facts and attachments. So do the parity questions it raised about Rich's rendering in another process. The renderer always runs in the user's own process.
-- A remote command costs the client budget, at most 275 ms in human mode and 235 ms with `--json` on the reference host, plus the operation's own work in the daemon, 45-60 ms for a warm `show`. Local mode takes 0.87-0.92 s today. ADR-1052's 0.1 s is not reached, because the client parses with the checkout's vocabulary and renders with Rich.
+- One public API: the TUI, the web front and a hosted squad's client call the same routes. The CLI of the same installation reaches the daemon through the private command endpoint of ADR-1261, whose served commands call the same operations.
+- The routes carry no argv, stdio or terminal facts. The command endpoint carries them for the CLI and renders in the daemon, so Rich's rendering in another process is held by terminal facts, the forwarded environment and endpoint parity (ADR-1261).
+- A remote CLI command costs the shim, at most 100 ms on the reference host, plus the command's own work in the daemon (ADR-1261, point 10).
 - Using a squad remotely needs a checkout that carries its workflow configuration. A divergence is refused before anything runs, never parsed around.
 - Synchronising the workflow configuration between a client repository and a hosted squad is planned with a real remote mode (FEAT-33). The per-document digests that `GET /v1/daemon` and the mismatch answer already carry leave room for it.
 - `starlette`, `uvicorn`, `h11` and `click` become dependencies of every install; only the daemon imports them.
@@ -418,7 +430,7 @@ Board changes that follow acceptance, for their owners:
 
 ## Options considered and rejected
 
-- **Keep `POST /v1/commands` beside the routes.** That is two protocols for one daemon, against the 2026-10-16 "one API" ruling. It would also keep every piece of machinery section 9 removes.
+- **Keep `POST /v1/commands` beside the routes as a public API.** That is two protocols for every client, against the 2026-10-16 "one API" ruling. ADR-1261 brings it back for the CLI only, private to one installation and served on the CLI listener alone, so every other client still has one protocol.
 - **One RPC route per operation (`POST /v1/ops/{name}`).** It is the smallest router, but it loses `GET` semantics, which the admission rules use as the cross-site defence, and it is not the resource shape the operator asked for.
 - **A standard-library forwarder that also renders,** to keep the 0.1 s client. It would be a second renderer, without Rich, that has to produce the same bytes as the first. That is the drift ADR-1224 exists to remove.
 - **Fetch the vocabulary from the daemon,** at each call or cached on the client. Ruled out by the operator on 2026-10-28 in favour of the hash. Measured, a fetch at each call cost 15-40 ms over parsing with no vocabulary.
@@ -508,4 +520,15 @@ Board changes that follow acceptance, for their owners:
   - Amended in place 2026-10-30 for REV-1223 F22 and F27, per the manager's ruling on REV-1223 (5599c2c). Status unchanged. Section 1: `HEAD` is the body-less form of `GET`. Section 3's 403 row reads "a method other than `GET` or `HEAD`" for both the browser port's `Origin` rule and the `Content-Type`/`Squads-Client` rule, matching ADR-1052 point 5.
 - [2026-10-30T08:01:35Z] `architect` Robert Architect:
   - Amended in place 2026-10-30 for REV-1223 F22. Status unchanged. Section 3, 403 row: every admission check runs on TCP listeners only, as ADR-1052 point 5 says. That includes the `Content-Type`/`Squads-Client` rule, which I had wrongly extended to the Unix socket. The socket is owner-only (`0600` in a `0700` directory) and checks none of them; clients still send both headers on it.
+- [2026-10-30T20:27:16Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 on the acceptance of ADR-1261 (board rule 6, linked related, status unchanged).
+    - Context: the 2026-10-30 direction is added, and the CLI's remote mode is ADR-1261's shim and private endpoint.
+    - Section 4: the private endpoint is never offered to the web front.
+    - Section 5, choosing: the rules govern `HttpApi`'s callers (the TUI and a hosted client); the CLI follows ADR-1261 points 4 and 6. The "forwarder goes" bullet is reversed to "the shim is the CLI's remote client". Parity: endpoint jobs plus one Linux route-parity job.
+    - Section 5, what the client reads: scoped to clients that send the hash; the shim reads only what endpoint resolution reads.
+    - Section 5, budget: replaced by ADR-1261 point 10 (100 ms of shim overhead on the GitHub-hosted Linux runner). The measurements are kept as the record of the route-calling CLI. The shim's guard names `dataclasses`, `typing` and `importlib.metadata`, and the levers stay for local mode.
+    - Section 7: a served command runs inside the same lock on a worker thread, binds its context from the body, skips the hash, and writes through the start-up proxies.
+    - Section 9: attachments, terminal facts and the prompt signal return in ADR-1261's form.
+    - Section 10's release gate, Consequences and the rejected "keep POST /v1/commands" option are updated to match.
+    - Unchanged: sections 1 to 3, 6 and 8.
 <!-- sq:discussion:end -->

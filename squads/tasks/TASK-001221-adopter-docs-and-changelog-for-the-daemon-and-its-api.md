@@ -27,7 +27,7 @@ subentities:
   assignee: tech-writer
   maps_to: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-30T08:40:03Z'
+updated_at: '2026-10-30T20:32:47Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -115,4 +115,6 @@ API reference for another client: the route grammar, the envelope, the error bod
       - F35: 403 and 405 on every operation (GET included), 421/403/405 on the /v1/daemon routes; F36: `?type=task&type=feature` gives 400 `invalid request: type takes one value, got 2`.
     - Corrected, not just confirmed: an unusable `[daemon]` value or `SQUADS_DAEMON` now reads as local mode **with nothing on stderr** (only `sq check` reports it); ADR-1052 point 7 and FEAT-1140 US5 promise one stderr line, so either the code or those texts should change (owner: python-dev or architect). A connection refused after the daemon was found goes to local mode silently, and the docs now say so. `sq ui` is documented as choosing per request.
     - Not driven: the 300 s timeout, a connection lost after sending, the schema and vocabulary CLI messages (quoted from `_api/_client.py`), Windows and macOS. `pytest -n 4 tests/meta`: 673 passed; `sq check` clean.
+- [2026-10-30T20:32:47Z] `tech-lead` Olivia Lead:
+  - - Disposition under ADR-1261 (2026-10-30): this task stays as delivered, for review on what it documents today. The rewrite for the new remote mode is TASK-1266 (tech writer), after TASK-1262, TASK-1263 and TASK-1264 are merged; it edits these pages. `docs/api.md` must not document the command endpoint's wire format (ADR-1261 point 1); it says the CLI uses a private channel and the routes are for other clients. @manager
 <!-- sq:discussion:end -->

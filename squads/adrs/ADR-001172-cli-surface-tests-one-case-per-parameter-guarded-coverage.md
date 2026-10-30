@@ -10,11 +10,12 @@ refs:
 - ADR-1025
 - ADR-1225
 - ADR-1250
+- ADR-1261
 description: 'CLI tests in-process on the bundled squad and a full-override squad:
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-30T06:45:28Z'
+updated_at: '2026-10-30T20:27:17Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -141,21 +142,25 @@ Specific regression tests, one per verified bug, are a separate set in `tests/re
 
 A behaviour belongs here only when no in-process test can observe it: it needs one process to start, find or outlive another, a signal, or the operating system's own way of spawning a process. Anything an in-process test can observe is tested in-process instead. These behaviours form a small, named set outside the surface suite: each test names the one behaviour it holds, and a behaviour joins only when it meets this condition. The set runs the real `sq` console script against a scratch squad and asserts as rule 5 does: exit code and whole output, state read back through `show --json`. It is named as rule 6 says. It carries no `covers` marker and neither counts toward nor replaces surface coverage. It runs in its own CI job on each OS.
 
-The daemon's members are implicit start, discovery, fall back, no replay after a lost connection, Ctrl-C, and the detached spawn on Windows.
+The daemon's members are implicit start, discovery, fall back, no replay after a lost connection, Ctrl-C, and the detached spawn on Windows; and, for the CLI's shim (ADR-1261), the fall back on a refused connection, the daemon killed between the two phases of a prompt (the shim asking again locally, nothing written), and the local-only commands never contacting a daemon.
 
 ### The daemon's routes
 
-The daemon's routes (ADR-1225) are a surface, but not (command, parameter) pairs. The mode-parity run covers every operation over HTTP, so route tests are kept only for what it cannot see: one case per row of the error table, a vocabulary mismatch on an unchanged and on a changed configuration, the OpenAPI document covering every operation, a partial read's envelope, the binding of each metadata header, a `GET` that does not mutate, and the admission negatives listed in ADR-1052. They follow rules 4 to 6: they run in-process, with the daemon's HTTP application served on a thread of the test process against a copied squad; they assert the whole response and read state back through the CLI; and they live in a module named for the behaviour of the route they hold. They carry no `covers` marker, because there is no pair for one to name.
+The daemon's routes (ADR-1225) are a surface, but not (command, parameter) pairs. The route-parity run (below) covers every operation over HTTP, so route tests are kept only for what it cannot see: one case per row of the error table, a vocabulary mismatch on an unchanged and on a changed configuration, the OpenAPI document covering every operation, a partial read's envelope, the binding of each metadata header, a `GET` that does not mutate, and the admission negatives listed in ADR-1052. They follow rules 4 to 6: they run in-process, with the daemon's HTTP application served on a thread of the test process against a copied squad; they assert the whole response and read state back through the CLI; and they live in a module named for the behaviour of the route they hold. They carry no `covers` marker, because there is no pair for one to name.
+
+The CLI's private command endpoint (ADR-1261) is tested the same way, for what parity cannot see: each answer kind, ordered output chunks, completion in bash, zsh and fish, an unattached file name, stdin attached under `-`, a prompt answered, refused, invalid and on a changed screen, a prompt reached after a write, and the browser port refusing the endpoint.
 
 ### Mode parity
 
-When the CLI answers the same commands in a second mode, currently the daemon's remote mode, parity is held by running this suite again in that mode, selected for the whole run, in its own CI job. Every existing case then asserts the same output in both modes. No case is added for parity, and no case is skipped in the second mode.
+When the CLI answers the same commands in a second mode, currently the daemon's remote mode through the command endpoint (ADR-1261), parity is held by running this suite again in that mode, selected for the whole run, in its own CI job. Every existing case then asserts the same output in both modes. No case is added for parity, and no case is skipped in the second mode.
 
-The remote-mode run is `tests/cli`, the surface suite whose parity it holds, on every OS: on the bundled squad on Linux, macOS and native Windows, and on the override squad on Linux, each in its own job. The override-squad job is the only run whose vocabulary hash covers a present workflow override, and the only one that sends custom fields, kinds and attributes over the wire.
+The remote-mode run is `tests/cli`, the surface suite whose parity it holds, on every OS: on the bundled squad on Linux, macOS and native Windows, and on the override squad on Linux, each in its own job. The override-squad job is the only run whose served commands parse with a present workflow override, custom fields, kinds and attributes included.
+
+One more run, the route parity, reruns `tests/cli` on Linux with an `HttpApi` handed to the root callback against the daemon's routes, so every operation stays covered over HTTP although the CLI no longer selects `HttpApi`.
 
 ### Time bound
 
-Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The override-squad run, the remote-mode runs and the cross-process set are CI test jobs under the same targets. A remote-mode run is `tests/cli` on every OS, Windows included, so its bound is 10 minutes; the 15-minute bound is only for the Windows job that runs the full suite. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
+Every CI test job runs in under 10 minutes; Windows, running the full suite, in at most 15. A target is met on an OS when every one of at least two runs on that OS is under it. The override-squad run, the remote-mode runs, the route-parity run and the cross-process set are CI test jobs under the same targets. A remote-mode run is `tests/cli` on every OS, Windows included, so its bound is 10 minutes; the 15-minute bound is only for the Windows job that runs the full suite. There is no test-count ceiling and no row-budget guard: the time targets are the only bound, and review checks for cross products and duplicated cases.
 
 ## Why
 
@@ -171,7 +176,7 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
 - Adding an option to any command fails the coverage guard until a test declares it. Adding a verb to the builder or a registrar fails nothing per type: one test on the reference host covers it, and the parity guard holds the rest.
 - A new bundled type needs no new surface tests unless it brings a parameter of a kind the suite does not test yet.
 - The override squad doubles the surface run, as its own CI job; it adds no case. The regression set is later work; its location is fixed here.
-- The daemon adds CI jobs and no surface cases: the cross-process set on each OS, and the surface suite in remote mode on the bundled squad on each OS and on the override squad on Linux. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
+- The daemon adds CI jobs and no surface cases: the cross-process set on each OS, the surface suite in remote mode on the bundled squad on each OS and on the override squad on Linux, and the route-parity run on Linux. The coverage guard sees neither the cross-process set nor the route tests, since neither carries a `covers` marker.
 - The guards prove that a case exists, not that it is strong: a vacuous case is still caught by the falsification step and by review.
 
 ## Options considered and rejected
@@ -265,4 +270,11 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - Consequences: the CI-jobs bullet lists the remote-mode jobs.
 - [2026-10-30T06:45:28Z] `architect` Robert Architect:
   - Amended in place 2026-10-30 (REV-1260 F7, op-pierre ruling: argument names lower case everywhere): rules "Command key" and "Parameter name" now use `n`, `hash`, `local-id`, `status` and the usage form `{n}`. "Parameter name" also states that every argument name is lower case, so a declared metavar is written in lower case. The markers in tests/cli and the metavars in src/squads already match.
+- [2026-10-30T20:27:17Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 on the acceptance of ADR-1261 (board rule 6, linked related, status unchanged).
+    - Cross-process set: three shim members join (fall back on a refused connection, the daemon killed between prompt phases, local-only commands never contacting a daemon).
+    - Routes: covered by the new route-parity run. The command endpoint's own tests are listed beside the route tests (answer kinds, chunk order, completion in three shells, attachments, stdin, prompts, browser-port refusal).
+    - Mode parity: the remote-mode jobs go through the command endpoint. One Linux route-parity job reruns `tests/cli` with an `HttpApi` handed to the root callback.
+    - Time bound and Consequences: the route-parity run is added to the jobs.
+    - Unchanged: rules 1 to 6, scope and regression tests.
 <!-- sq:discussion:end -->

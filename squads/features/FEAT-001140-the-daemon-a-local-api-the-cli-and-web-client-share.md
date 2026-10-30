@@ -57,7 +57,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T19:06:19Z'
+updated_at: '2026-10-30T20:33:11Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -529,4 +529,14 @@ Done when:
     - The TASK-1217 attachment system comes back (attachments keyed by the argument as written, an unattached path refused), with needs_terminal for prompts.
     - If the daemon does not answer before the request is sent, the CLI switches entirely to local mode. After the request is sent, nothing is replayed.
     - The daemon keeps a cache of parsed files, validated against the files on disk (stat per file, under the read lock); the cache is never a source of truth.
+- [2026-10-30T20:33:10Z] `tech-lead` Olivia Lead:
+  - - ADR-1261 breakdown (2026-10-30), five Draft tasks, unassigned:
+      - TASK-1262 (python-dev) the command endpoint and served execution, stdio and env proxies, attachments, two-phase prompts, endpoint and route parity modes: US1, US3, US10. 13 tests, 2 guards.
+      - TASK-1263 (python-dev) the daemon's content-keyed cache of the index, frontmatter and the override check: US2. 3 tests.
+      - TASK-1264 (python-dev) the stdlib shim, the CLI off `HttpApi`, the 100 ms budget: US3, US6, US12. 3 cross-process tests, 4 guards (5 with the timeout table), one guard replaced.
+      - TASK-1265 (devops) the endpoint and route parity jobs and the shim budget report: US3, US12.
+      - TASK-1266 (tech-writer) the docs and CHANGELOG for the new remote mode: US9.
+      - Order: TASK-1262 and TASK-1263 in parallel; TASK-1264 after TASK-1262; TASK-1265 after both 1262 and 1264 (its ST1 can start after 1262); TASK-1266 after 1262-1264. TASK-1222 (dogfood) now also depends on 1263 and 1264 and stays gated on the operator.
+      - TASK-1219: ST8 moved to TASK-1264 ST1/ST7 and TASK-1265 ST2; ST2 and ST3 were built and are now Done. TASK-1221 stays for review as delivered; TASK-1266 rewrites it.
+    - @product-owner these stories and bullets contradict ADR-1261 and need your rewrite: the body's "The CLI still parses and renders in the user's own process" and "call the same routes ... there is no second protocol" (the CLI now uses a private endpoint; other clients the routes); the budget acceptance bullet and US12 (100 ms of shim overhead on the GitHub-hosted runner, a shim import guard instead of the service-layer guard); US3's "commands that make no call ... never contact or start a daemon" (`--help`, `docs` and completion are served now; only `init`, `adopt`, `daemon`, `ui` stay local) and its fall back rules (local before sending, never after); US2's "no squad data is kept between requests" (the three content-keyed results of point 7); US1's "file content travels as text in the request" (true for routes; the CLI sends attachments). No story states the cache's outcome (`check` 7.0 to 1.75 s); I mapped TASK-1263 to US2 for its correctness rule. Add a bullet to US12 or a story if you want the speed-up held as an outcome.
 <!-- sq:discussion:end -->

@@ -11,6 +11,8 @@ refs:
 - TASK-1219:depends-on
 - TASK-1220:depends-on
 - ADR-1225:implements
+- TASK-1264:depends-on
+- TASK-1263:depends-on
 description: enabled = false committed with a switch-on step, SQUADS_DAEMON=on trial,
   result recorded before enabling
 subentities:
@@ -27,7 +29,7 @@ subentities:
   status: Todo
   maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-30T00:33:02Z'
+updated_at: '2026-10-30T20:32:51Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -50,6 +52,10 @@ FEAT-1140 US3, the timeout and Ctrl-C bullets, checked live and recorded (ST3). 
 ## Test approach
 
 A manual trial, not a suite test: between trial steps, compare a daemon answer with a local answer (`SQUADS_DAEMON=off`) for the same `--json` read; afterwards `sq repair` reports nothing to fix, `sq check` is clean, and `sq daemon status --json` reports none running once `sq daemon stop` returns. Record the commands run in the result comment. New tests: 0.
+
+## Under ADR-1261
+
+The trial and the live checks run against the shim and the command endpoint (TASK-1262, TASK-1263, TASK-1264), not the earlier `HttpApi` CLI. ST2 adds to the board work: a `comment remove` confirmed through the two prompt phases, a Tab completion, `--help`, a `--file -` write, and `check` timed cold and warm (the parse cache). ST3's cases apply to the shim's answer timeouts as TASK-1264 ST4 builds them; take the exact texts from the shipped code, not from this body.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -114,4 +120,6 @@ Afterwards `sq repair` has nothing to fix, `sq check` is clean, and `sq daemon s
   - ST3 added per op-pierre 20c1d4d: live check of the 10 s waiting notice, the 300 s answer timeout and Ctrl-C, provoked by pausing the daemon with SIGSTOP on a scratch squad, results recorded here. @qa
 - [2026-10-30T00:33:02Z] `tech-lead` Olivia Lead:
   - Brought up to date (2026-10-30): the ST2 trial needs this squad at schema 0.19 first (the pre-release build refuses 0.17), and that migration is the operator's call (open on FEAT-1140). ST1 is safe now: 0.17.0 and 0.18.0 ignore the `[daemon]` table.
+- [2026-10-30T20:32:51Z] `tech-lead` Olivia Lead:
+  - - Stays Draft and gated on the operator's go (2026-10-30): the trial needs this squad at schema 0.19, which is op-pierre's call. Now depends on TASK-1264 and TASK-1263 as well; the body gains the ADR-1261 additions to the trial. @manager
 <!-- sq:discussion:end -->

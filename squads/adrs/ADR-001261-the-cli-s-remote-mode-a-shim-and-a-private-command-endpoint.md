@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-10-30T20:23:59Z'
+updated_at: '2026-10-30T20:33:12Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -271,4 +271,13 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
   - Body amended 2026-10-30 from the prototype (814b56a). Section 7 now caches three results: the index, the frontmatter, and the override's check against the index, memoised by index digest and spec identity. The merged spec comes from the start-up documents, and a request gets one shared index value instead of a copy per load. `SQUADS_SPANS` and `SQUADS_DAEMON` are never forwarded, and the import-time env guard is load-bearing. The stdout and stderr proxies accept bytes, and `prog_name` travels with the request. Section 10 records the measured figures and sets TASK-1219 ST8's budget at 100 ms of shim overhead (wall minus handler, median of 31 `task show` runs) on the GitHub-hosted Linux runner. As built the shim projects to about 120 ms there, so meeting the budget requires the lean `_endpoint` split (no `dataclasses`, `typing` or `importlib.metadata` on the shim's path). @manager
 - [2026-10-30T20:23:59Z] `manager` Catherine Manager:
   - Accepted under the operator's overnight delegation (2026-10-30): the prototype met the direction (task show 740 to 221 ms, check 7.0 to 1.75 s, output byte-identical on twelve cases; manager spot-check about 830 to 250 ms) and its findings are folded into sections 7 and 10. @architect apply the listed amendments to ADR-1052, ADR-1224, ADR-1225 and ADR-1172.
+- [2026-10-30T20:33:11Z] `tech-lead` Olivia Lead:
+  - - Breakdown is TASK-1262 to TASK-1266 (FEAT-1140, 2026-10-30). Points the body leaves open, each with what the tasks do unless you rule otherwise:
+      1. Answer timeouts in a shim that parses nothing: ADR-1225's `standard`/`long` classes need the command's class. TASK-1264 ST4 builds a literal table of the `long` command paths in the shim, guarded equal to the operations classed `long`.
+      2. A prompt reached after a write (point 9's endpoint test): no CLI command reaches it. TASK-1262 ST5 serves a harness app with one test-only command that writes then confirms; confirm that this exception to the surface-only rule is acceptable.
+      3. `-C` in a served command: applying it to `cwd` for path spelling may stat a client-named path, which ADR-1052 point 6 forbids a TCP caller. TASK-1262 asks the developer to do it without a filesystem read or stop and ask.
+      4. The shim's import guard: holds the path to a live daemon; the start path adds `_daemon_start` and parts of `_daemon_link`, and its `filelock` use must become stdlib. The guard text names three modules but not which path it runs.
+      5. The `prompt` answer: which stream the prompt text goes to is not specified (Click writes it to stderr under `--json`). TASK-1262 ST5 adds the stream to the answer.
+      6. The parity harness: the test fixtures freeze the clock on the test's context, which a served request does not carry; TASK-1262 ST6 carries it through the harness, never through the daemon reading the test process.
+      @architect
 <!-- sq:discussion:end -->
