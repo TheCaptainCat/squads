@@ -58,6 +58,7 @@ RESERVED_CLI_VERBS: frozenset[str] = frozenset(
         "blocked",
         "board",
         "check",
+        "daemon",
         "create",
         "dev",
         "docs",

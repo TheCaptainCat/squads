@@ -9,11 +9,16 @@ from typing import Any, cast
 
 from pydantic import ValidationError
 
+from squads._endpoint import parse_daemon
 from squads._errors import SquadsError
 from squads._models._config import DisplaySettings, SquadsConfig
 
 _LEGACY_KEYS = ("default_backend", "default_role")
-_CARRIED_KEYS = frozenset(SquadsConfig.model_fields) - {"init_names", "display_problems"}
+_CARRIED_KEYS = frozenset(SquadsConfig.model_fields) - {
+    "init_names",
+    "display_problems",
+    "daemon_problems",
+}
 _KEY = re.compile(r"^[ \t]*[\"']?schema_version[\"']?[ \t]*=")
 _STAMP = re.compile(
     r"^([ \t]*([\"']?)schema_version\2[ \t]*=[ \t]*)(\"[^\"\\\n]*\"|'[^'\n]*')([ \t]*(?:#.*)?)$"
@@ -49,6 +54,8 @@ def _uncarried(table: dict[str, Any]) -> tuple[str, ...]:
         ]
     elif "display" in table:
         keys.append("display")
+    if "daemon" in table:
+        keys += [f"daemon.{p.key}" if p.key else "daemon" for p in parse_daemon(table["daemon"])[1]]
     return tuple(keys)
 
 

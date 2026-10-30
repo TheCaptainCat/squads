@@ -73,6 +73,12 @@ LAZY_GROUPS: tuple[LazyGroup, ...] = (
         "Manage project-level template and role overrides.",
     ),
     LazyGroup(
+        "daemon",
+        "squads._cli._daemon",
+        "daemon_app",
+        "See and stop the daemon that serves this squad.",
+    ),
+    LazyGroup(
         "workflow",
         "squads._cli._workflow_cmd",
         "workflow_app",
@@ -322,7 +328,7 @@ def main_callback(
     change_dir: list[str] = typer.Option(
         [],
         "-C",
-        help="Run as if sq was started in PATH (repeatable; relative to the previous -C).",
+        help="Run as if sq was started in path (repeatable; relative to the previous -C).",
         metavar="path",
         callback=common.check_change_dir,
         is_eager=True,

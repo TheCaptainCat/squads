@@ -237,8 +237,11 @@ _cli -> _badges top
 _cli -> _clock local
 _cli -> _context local
 _cli -> _context top
+_cli -> _daemon local
+_cli -> _daemon_link top
 _cli -> _discussion top
 _cli -> _docfiles local
+_cli -> _endpoint top
 _cli -> _errors top
 _cli -> _index top
 _cli -> _migrations top
@@ -262,10 +265,14 @@ _context -> _api typing
 _context -> _spec_documents typing
 _context -> _workflow typing
 _daemon -> _api top
+_daemon -> _clock top
+_daemon -> _endpoint top
 _daemon -> _errors top
 _daemon -> _models top
 _daemon -> _services top
 _daemon -> _spec_documents top
+_daemon -> squads top
+_daemon_link -> _endpoint top
 _discussion -> _badges top
 _discussion -> _errors top
 _discussion -> _models top
@@ -274,6 +281,7 @@ _discussion -> _sections top
 _discussion -> _workflow top
 _docfiles -> _api top
 _docfiles -> _errors top
+_endpoint -> squads local
 _index -> _actor local
 _index -> _aio local
 _index -> _aio top
@@ -310,6 +318,7 @@ _migrations -> _api top
 _migrations -> _backends top
 _migrations -> _clock top
 _migrations -> _discussion top
+_migrations -> _endpoint top
 _migrations -> _errors top
 _migrations -> _index top
 _migrations -> _interactions top
@@ -325,6 +334,7 @@ _migrations -> _view_tags top
 _migrations -> _views top
 _migrations -> _workflow top
 _models -> _clock top
+_models -> _endpoint top
 _models -> _errors top
 _models -> _util top
 _overrides -> _aio top
@@ -375,6 +385,7 @@ _services -> _board top
 _services -> _clock top
 _services -> _context top
 _services -> _discussion top
+_services -> _endpoint top
 _services -> _errors local
 _services -> _errors top
 _services -> _index local

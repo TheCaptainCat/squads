@@ -261,6 +261,83 @@ async def test_a_display_setting_that_is_not_a_boolean_is_a_warning(
     )
 
 
+# daemon_config_valid
+
+
+@pytest.mark.breaches("daemon_config_valid")
+async def test_a_daemon_timeout_that_is_not_a_whole_number_of_minutes_is_a_warning(
+    project, invoke, check_json
+) -> None:
+    # no command edits `.squads.toml`
+    edit_config(
+        project,
+        'working_language = "en"',
+        'working_language = "en"\n\n[daemon]\nidle_timeout_minutes = 5',
+    )
+    assert await check_json() == ([], 0)
+
+    edit_config(project, "idle_timeout_minutes = 5", "idle_timeout_minutes = -5")
+
+    assert await check_json() == (
+        [
+            issue(
+                "daemon_config_valid",
+                "warn",
+                ".squads.toml",
+                "[daemon] idle_timeout_minutes must be a whole number of minutes, 0 or more, "
+                "got -5; every command runs in local mode until it is fixed",
+            )
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("daemon_config_valid")
+async def test_a_daemon_key_squads_does_not_know_is_a_warning(project, invoke, check_json) -> None:
+    # no command edits `.squads.toml`
+    edit_config(
+        project, 'working_language = "en"', 'working_language = "en"\n\n[daemon]\nbrowser = true'
+    )
+    assert await check_json() == ([], 0)
+
+    edit_config(project, "browser = true", "browser = true\nport = 80")
+
+    assert await check_json() == (
+        [
+            issue(
+                "daemon_config_valid",
+                "warn",
+                ".squads.toml",
+                "[daemon] has an unknown key 'port'; it is ignored",
+            )
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("daemon_config_valid")
+async def test_a_squads_daemon_value_that_is_not_on_or_off_is_a_warning(
+    project, invoke, check_json, monkeypatch
+) -> None:
+    monkeypatch.setenv("SQUADS_DAEMON", "off")
+    assert await check_json() == ([], 0)
+
+    monkeypatch.setenv("SQUADS_DAEMON", "maybe")
+
+    assert await check_json() == (
+        [
+            issue(
+                "daemon_config_valid",
+                "warn",
+                "SQUADS_DAEMON",
+                "SQUADS_DAEMON must be on or off, got 'maybe'; every command runs in local "
+                "mode until it is fixed",
+            )
+        ],
+        0,
+    )
+
+
 # working_language_valid
 
 

@@ -1280,6 +1280,7 @@ dropped or given another level:
 | `role_base_resolves` | a live role whose base does not resolve: a catalog role whose slug the catalog does not declare, a template role naming an undeclared template or missing (or carrying) the `tech` its template takes, a role that defines itself without a job title or description, or one storing both `template` and `mission` (see [roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from)) | `error` |
 | `role_definition_shadowed` | a per-slug role file that sets a field the role stores in its item, so `sq role <slug> update` of that field has no effect | `warn` |
 | `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
+| `daemon_config_valid` | an unknown key or an unusable value in `.squads.toml`'s `[daemon]` table, or a `SQUADS_DAEMON` that is not `on` or `off`; every command runs in local mode until an unusable value is fixed | `warn` |
 | `working_language_valid` | a `working_language` in `.squads.toml` that is not a language tag squads recognises; English applies | `warn` |
 | `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
 

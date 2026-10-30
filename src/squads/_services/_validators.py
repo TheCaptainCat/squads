@@ -9,6 +9,7 @@ cannot be selected, and are reported even when the frontmatter is unreadable (ru
 """
 
 import dataclasses
+import os
 import re
 import unicodedata
 from collections.abc import Callable
@@ -24,6 +25,7 @@ from squads import _sections as sections
 from squads import _view_remedies as view_remedies
 from squads import _view_tags as view_tags
 from squads._backends._base import AgentBackend, BackendContext
+from squads._endpoint import DAEMON_ENV, daemon_override
 from squads._errors import InvalidIdError, SquadsError
 from squads._interactions._loader import (
     playbook_override_command_lines,
@@ -1620,6 +1622,21 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def _daemon_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each part of the ``[daemon]`` table in ``.squads.toml`` that is not usable (an unknown key,
+    a value of the wrong kind, a non-table) and an unusable ``SQUADS_DAEMON``; each finding says
+    what the squad does meanwhile. It names the config file, or the variable."""
+    level = squad_global_level(ctx.spec, "daemon_config_valid")
+    issues = [
+        CheckIssue(level, CONFIG_FILENAME, problem, rule="daemon_config_valid")
+        for problem in ctx.paths.config.daemon_problems
+    ]
+    _, env_problem = daemon_override(os.environ)
+    if env_problem is not None:
+        issues.append(CheckIssue(level, DAEMON_ENV, env_problem, rule="daemon_config_valid"))
+    return issues
+
+
 def _working_language_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """A ``working_language`` in ``.squads.toml`` that is not a BCP 47 tag Babel knows; English
     applies. An absent key is valid. The finding names the config file."""
@@ -2119,6 +2136,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "role_definition_shadowed": _role_definition_shadowed,
     "playbook_guide_role_live": _playbook_guide_role_live,
     "display_config_valid": _display_config_valid,
+    "daemon_config_valid": _daemon_config_valid,
     "working_language_valid": _working_language_valid,
     "view_transform_resolves": _view_transform_resolves,
     "type_has_live_author": _type_has_live_author,

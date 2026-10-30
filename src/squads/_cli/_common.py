@@ -5,11 +5,10 @@ import copy
 import functools
 import io
 import json
-import os
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Any, cast
 
 import typer
@@ -46,6 +45,7 @@ from squads._cli._render import _comments as comment_render
 from squads._cli._render import _writes as write_render
 from squads._cli._render._style import intent_style
 from squads._context import get_context
+from squads._endpoint import ChangeDirError, change_directory
 from squads._errors import (
     NotInitializedError,
     SquadsError,
@@ -140,29 +140,6 @@ CHANGE_DIR_PARAM = "change_dir"
 _ROOT_CALLBACK_RAN_KEY = "squads.root_callback_ran"
 
 
-class ChangeDirError(Exception):
-    """A ``-C`` value that ``chdir`` would refuse; the message names the path and the reason."""
-
-
-def _enter(path: Path, part: str) -> Path:
-    """Step from *path* into *part* the way ``chdir`` does, one component at a time."""
-    if part == "..":
-        return path.parent
-    candidate = path / part
-    try:
-        resolved = candidate.resolve(strict=True)
-    except FileNotFoundError:
-        raise ChangeDirError(f"{candidate} does not exist") from None
-    except OSError as exc:
-        reason = "permission denied" if isinstance(exc, PermissionError) else exc.strerror
-        raise ChangeDirError(f"{candidate} cannot be entered: {reason}") from None
-    if not resolved.is_dir():
-        raise ChangeDirError(f"{candidate} is not a directory")
-    if not os.access(resolved, os.X_OK):
-        raise ChangeDirError(f"{candidate} cannot be entered: permission denied")
-    return resolved
-
-
 def effective_dir(values: Sequence[str]) -> Path:
     """The directory ``-C`` selects: the process directory, then each value entered in order
     as ``chdir`` would (an absolute value replaces what came before, an empty one changes
@@ -170,16 +147,7 @@ def effective_dir(values: Sequence[str]) -> Path:
     component that is missing, not a directory, or not searchable. A request that carries its
     own starting directory begins there instead of at the process directory."""
     start = get_context().start_dir
-    path = (start if start is not None else process_dir()).resolve()
-    for value in values:
-        pure = PurePath(value)
-        parts = pure.parts
-        if pure.is_absolute():
-            path, parts = Path(pure.anchor), parts[1:]
-        for part in parts:
-            if part != ".":
-                path = _enter(path, part)
-    return path
+    return change_directory(start if start is not None else process_dir(), values)
 
 
 def root_effective_dir(ctx: Any) -> Path:

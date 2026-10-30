@@ -57,6 +57,10 @@ type Name = tuple[str, str]
 #: through it is not a write of the caller's own.
 GATED_ROUTE: Name = ("squads._services._local_api", "LocalApi")
 
+#: The one entry that runs a process of its own: the daemon keeps its runtime files (a socket, a
+#: record, a lock and a log in the user's runtime directory), none of them squad data.
+PROCESS_ENTRY: Name = ("squads._daemon._lifecycle", "run_daemon")
+
 
 def _dotted(node: ast.AST) -> str | None:
     if isinstance(node, ast.Name):
@@ -240,7 +244,7 @@ def _units(paths: list[Path]) -> Iterator[_Unit]:
 def _writers(units: list[_Unit]) -> set[Name]:
     """Every top-level name whose body writes, directly or through a call to another writer; a
     function returning a writing class, and a class a writing class derives from, write too."""
-    writers = {(u.module, _unit_name(u)) for u in units if u.writes}
+    writers = {(u.module, _unit_name(u)) for u in units if u.writes} - {PROCESS_ENTRY}
     changed = True
     while changed:
         changed = False
@@ -252,7 +256,7 @@ def _writers(units: list[_Unit]) -> set[Name]:
                 found.add(key)
             if is_class and key in writers:
                 found |= u.types
-            new = found - writers - {GATED_ROUTE}
+            new = found - writers - {GATED_ROUTE, PROCESS_ENTRY}
             if new:
                 writers |= new
                 changed = True

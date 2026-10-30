@@ -285,6 +285,24 @@ async def test_up_run_again_changes_no_file(tmp_path, monkeypatch, invoke) -> No
 
 
 @pytest.mark.covers("migrate up")
+async def test_up_keeps_a_daemon_table_when_it_regenerates_the_config(project, invoke) -> None:
+    config = project.root / ".squads.toml"
+    text = config.read_text(encoding="utf-8")
+    config.write_text(
+        text.replace(f'schema_version = "{SCHEMA_VERSION}"', 'schema_version = "0.17"')
+        + '\ndefault_backend = "claude_code"\n\n[daemon]\nidle_timeout_minutes = 5\n',
+        encoding="utf-8",
+    )
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    regenerated = config.read_text(encoding="utf-8")
+    assert "default_backend" not in regenerated
+    assert "\n[daemon]\nenabled = true\nidle_timeout_minutes = 5\nbrowser = false\n" in regenerated
+
+
+@pytest.mark.covers("migrate up")
 async def test_up_refuses_a_squad_newer_than_the_package(project, invoke) -> None:
     config = project.root / ".squads.toml"
     config.write_text(

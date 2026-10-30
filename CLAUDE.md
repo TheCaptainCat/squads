@@ -19,7 +19,7 @@ uv build                # wheel/sdist (templates ship as package data)
 _cli → _api ← _services → (index store, backends, rendering, roles, interactions, …)
 _cli → _services only in _cli/_calls.local_api() (the LocalApi factory)
 _api  imports only pydantic, _errors and _models
-_models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
+_models  shared; imports only _clock, _endpoint, _errors and _util (and, through _clock, _context)
 ```
 
 Every command calls an operation through the `Api` and renders the DTO it answers with; the TUI
@@ -53,6 +53,12 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   prefix→folder map, the spec is the sole authority and folder resolution goes through
   `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_attributes`
   (`AttributeKey`, `AttributeSpec`, `CORE_KEYS` and the typed roster accessors).
+- `_endpoint.py` — standard library only: the one resolution from a start directory and the `-C` values to
+  the squad directory and an `Endpoint` (transport, runtime directory, the four files per key, whether the
+  daemon may be used), plus the `[daemon]` table parser and `SQUADS_DAEMON`; `SquadsConfig`, `sq check`,
+  `effective_dir` and the daemon all read through it. `_daemon_link.py` is the standard-library client
+  `sq daemon` uses (identity, stop, wait). `_daemon/` is the process: `_lifecycle` (lock, fingerprint,
+  retirement, idle exit), `_listeners` (the sockets it binds) and `_admission` (the per-listener rules).
 - `_paths.py` — resolve the active squad folder (the `.squads.toml` walk-up from the effective
   directory, `RequestContext.client_cwd`, which root `-C` sets), map an ID/type to its location,
   and guard `abspath` against path traversal.

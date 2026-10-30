@@ -156,6 +156,31 @@ def serve():
 
 
 @pytest.fixture
+def daemon_runtime(monkeypatch):
+    """A runtime directory of the test's own, short enough for a socket path, that the endpoint
+    resolution picks up in place of the user's."""
+    import sys
+    import tempfile
+
+    variable = {"win32": "LOCALAPPDATA", "darwin": "TMPDIR"}.get(sys.platform, "XDG_RUNTIME_DIR")
+    with tempfile.TemporaryDirectory(prefix="sqd") as base:
+        monkeypatch.setenv(variable, base)
+        yield Path(base)
+
+
+@pytest.fixture
+def run_daemon(daemon_runtime):
+    """Run a squad's daemon, lifecycle and listeners included, as `run_daemon(paths)`; every one is
+    stopped at the end of the test."""
+    from contextlib import ExitStack
+
+    from tests._daemon_process import running_daemon
+
+    with ExitStack() as stack:
+        yield lambda paths: stack.enter_context(running_daemon(paths))
+
+
+@pytest.fixture
 def svc(project):
     """A `Service` over the `project` squad."""
     return make_service(project)

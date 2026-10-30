@@ -69,6 +69,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "role_definition_shadowed",
         "playbook_guide_role_live",
         "display_config_valid",
+        "daemon_config_valid",
         "working_language_valid",
         "view_transform_resolves",
         "type_has_live_author",
@@ -94,6 +95,7 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
         "role_definition_shadowed",
         "playbook_guide_role_live",
         "display_config_valid",
+        "daemon_config_valid",
         "working_language_valid",
         "view_transform_resolves",
     }
@@ -126,6 +128,7 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "role_definition_shadowed": "warn",
     "playbook_guide_role_live": "warn",
     "display_config_valid": "warn",
+    "daemon_config_valid": "warn",
     "working_language_valid": "warn",
     "view_transform_resolves": "error",
     "type_has_live_author": "warn",
