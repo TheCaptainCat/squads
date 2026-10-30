@@ -52,11 +52,19 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   prefix→folder map, the spec is the sole authority and folder resolution goes through
   `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_attributes`
   (`AttributeKey`, `AttributeSpec`, `CORE_KEYS` and the typed roster accessors).
-- `_endpoint.py` — standard library only: the one resolution from a start directory and the `-C` values to
+- `_endpoint.py` — standard library only, and lean (no `dataclasses`, `typing` or `importlib.metadata`,
+  so its records are plain classes): the one resolution from a start directory and the `-C` values to
   the squad directory and an `Endpoint` (transport, runtime directory, the four files per key, whether the
   daemon may be used), plus the `[daemon]` table parser and `SQUADS_DAEMON`; `SquadsConfig`, `sq check`,
-  `effective_dir` and the daemon all read through it. `_daemon_link.py` is the standard-library client
-  `sq daemon` uses (identity, stop, wait). `_daemon/` is the process: `_lifecycle` (lock, fingerprint,
+  `effective_dir`, the shim and the daemon all read through it. `squads.__version__` is a literal (kept
+  equal to `pyproject.toml` by `scripts/bump_version.py` and a `tests/meta` guard) for the same reason.
+  `_shim.py` is the CLI's entry (`squads.__main__:main`): standard library plus `_endpoint`, it sends the
+  command line to the daemon's command endpoint, answers its prompts and writes the answer, or imports
+  `squads._cli` and runs the command in its own process when the command is local-only (`init`, `adopt`,
+  `daemon`, `ui`), there is no usable daemon, or nothing could be sent; its tables (file arguments, local-only
+  commands, `long` commands) are held to the command tree and the operation table by `tests/meta`, and its
+  import set by a subprocess guard. `_daemon_start.py` (reached only to start a daemon) and
+  `_daemon_link.py` are its standard-library helpers, which `sq daemon` shares. `_daemon/` is the process: `_lifecycle` (lock, fingerprint,
   retirement, idle exit), `_listeners` (the sockets it binds) and `_admission` (the per-listener rules).
 - `_paths.py` — resolve the active squad folder (the `.squads.toml` walk-up from the effective
   directory, `RequestContext.client_cwd`, which root `-C` sets), map an ID/type to its location,
@@ -190,7 +198,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   refuses at load a derived option or import key that collides on its surface.
   `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the table to the group
   Typers the `_cli` modules define. A command parses its arguments, builds one request DTO and
-  calls one operation through `_calls.py` (`call`, `select_api`, the `local_api()` factory, and
+  calls one operation through `_calls.py` (`call`, the `local_api()` factory, and
   the printers for `--json`, warnings and omissions), then renders. `_render/` holds the
   renderers: they take a DTO and a console only, and
   `tests/meta/test_renderers_read_neither_the_vocabulary_nor_the_configuration.py` keeps them, and

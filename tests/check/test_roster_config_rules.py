@@ -282,8 +282,7 @@ async def test_a_daemon_timeout_that_is_not_a_whole_number_of_minutes_is_a_warni
         "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
         "52560000, got -5; every command runs in local mode until it is fixed"
     )
-    # the setting is unusable, so the command line says so as well
-    assert await check_json(stderr=f"warning: {message}\n") == (
+    assert await check_json() == (
         [
             issue(
                 "daemon_config_valid",
@@ -314,8 +313,7 @@ async def test_a_daemon_timeout_too_long_to_schedule_is_a_warning(
         "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
         "52560000, got 52560001; every command runs in local mode until it is fixed"
     )
-    # the setting is unusable, so the command line says so as well
-    assert await check_json(stderr=f"warning: {message}\n") == (
+    assert await check_json() == (
         [
             issue(
                 "daemon_config_valid",
@@ -364,8 +362,7 @@ async def test_a_squads_daemon_value_that_is_not_on_or_off_is_a_warning(
         "SQUADS_DAEMON must be on or off, got 'maybe'; every command runs in local "
         "mode until it is fixed"
     )
-    # the setting is unusable, so the command line says so as well
-    assert await check_json(stderr=f"warning: {message}\n") == (
+    assert await check_json() == (
         [
             issue(
                 "daemon_config_valid",
