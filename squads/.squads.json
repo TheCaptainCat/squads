@@ -63508,7 +63508,7 @@
         {
           "local_id": "F66",
           "title": "CHANGELOG and docs/daemon.md describe the pre-shim remote mode",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "tech-writer",
           "maps_to": null,
           "deferred_to": null,
@@ -63541,7 +63541,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T23:39:47Z",
+      "updated_at": "2026-10-30T23:41:05Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66200,7 +66200,7 @@
       ],
       "path": "tasks/TASK-001266-docs-and-changelog-for-the-shim-based-remote-mode.md",
       "created_at": "2026-10-30T20:30:38Z",
-      "updated_at": "2026-10-30T23:08:16Z",
+      "updated_at": "2026-10-30T23:41:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

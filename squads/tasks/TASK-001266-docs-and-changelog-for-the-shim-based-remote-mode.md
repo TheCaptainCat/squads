@@ -24,7 +24,7 @@ subentities:
   status: Done
   maps_to: US9
 created_at: '2026-10-30T20:30:38Z'
-updated_at: '2026-10-30T23:08:16Z'
+updated_at: '2026-10-30T23:41:07Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -103,4 +103,6 @@ _Add with `sq task 1266 add-subtask "<title>"`; track with `sq task 1266 subtask
       - ADR-1261 point 1 carries the same "does not exist" sentence, while point 2 states what the code does (every other name reads the daemon's own). @architect the point 1 sentence needs the same correction.
 - [2026-10-30T23:08:16Z] `tech-writer` Theo Writer:
   - ST1 and ST2 Done, task InReview; REV-1223 F66 set Fixed. @manager @reviewer
+- [2026-10-30T23:41:07Z] `tech-writer` Theo Writer:
+  - REV-1223 F66 reopen addressed in 1e2394f9 (waiting notice, unanswering daemon, prompt rerun); F66 Fixed again. @manager @reviewer
 <!-- sq:discussion:end -->

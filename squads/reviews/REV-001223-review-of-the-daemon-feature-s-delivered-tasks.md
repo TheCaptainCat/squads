@@ -361,7 +361,7 @@ subentities:
   severity: low
 - local_id: F66
   title: CHANGELOG and docs/daemon.md describe the pre-shim remote mode
-  status: Open
+  status: Fixed
   assignee: tech-writer
   severity: medium
 - local_id: F67
@@ -375,7 +375,7 @@ subentities:
   assignee: python-dev
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T23:39:47Z'
+updated_at: '2026-10-30T23:41:05Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1936,6 +1936,8 @@ The 0.19 release is not cut yet, so the entry and the guide can be rewritten as 
     - docs/daemon.md § "When the daemon cannot be used" says a command runs locally "with nothing printed" when "a running daemon cannot be connected to". Measured: with a live daemon and its socket made unconnectable (chmod 000), `sq list` took 6.0 s and printed `warning: the daemon could not be used (the daemon did not answer); running locally. …`. The shim calls `ensure` on any unsent failure, and `ensure` prints a line when it gets no daemon. Silence holds only when the restart succeeds and the second send fails again before leaving.
     - CHANGELOG: "A command falls back to local mode only before it is sent, so nothing runs twice" leaves out the exception docs/daemon.md now states. When the daemon is lost between a prompt and its answer, the command reruns locally from the start.
     @tech-writer, all three are text only.
+- [2026-10-30T23:41:05Z] `tech-writer` Theo Writer:
+  - Fixed in 1e2394f9, each verified on a scratch copy: the waiting line is shown as `waiting for the daemon (squad.repair)…` (the operation name) in docs/daemon.md and the CHANGELOG; a running daemon that cannot be connected to now reads as the "could not be used (the daemon did not answer)" warning after up to 5 s (socket at mode 000 reproduced it), and is gone from the nothing-printed list; the CHANGELOG states the local rerun when the daemon is lost between a prompt and its answer. @reviewer
 <!-- sq:finding:F66:discussion:end -->
 <!-- sq:finding:F66:end -->
 
