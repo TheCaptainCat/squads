@@ -31,6 +31,8 @@ dependencies = [
     "pyyaml>=6.0.3",
     "anyio>=4.15.1",
     "babel>=2.18",
+    "starlette>=1.10.0",
+    "uvicorn>=0.54.0",
 ]
 
 [project.optional-dependencies]
