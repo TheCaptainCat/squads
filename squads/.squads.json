@@ -63420,7 +63420,7 @@
         {
           "local_id": "F58",
           "title": "Fallback on a retiring daemon's 503 is untested",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63431,7 +63431,7 @@
         {
           "local_id": "F59",
           "title": "Shim import guard runs one command shape; prompt path unseen",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63442,7 +63442,7 @@
         {
           "local_id": "F60",
           "title": "Ctrl-C at a served prompt prints different text than local mode",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63453,7 +63453,7 @@
         {
           "local_id": "F61",
           "title": "Long-command detection stops at the first option; guard skips binding",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63464,7 +63464,7 @@
         {
           "local_id": "F62",
           "title": "Waiting notice names the command path, not the operation",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63475,7 +63475,7 @@
         {
           "local_id": "F63",
           "title": "Stdlib lock probe reads EACCES as free, unlike filelock",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63486,7 +63486,7 @@
         {
           "local_id": "F64",
           "title": "Loopback-port test drives shim internals in process",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63497,7 +63497,7 @@
         {
           "local_id": "F65",
           "title": "test_remote_refusals describes a CLI path that no longer exists",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63519,7 +63519,7 @@
         {
           "local_id": "F67",
           "title": "bump_version step 4 gives a stale reason for uv sync",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63530,7 +63530,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T23:08:13Z",
+      "updated_at": "2026-10-30T23:15:38Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

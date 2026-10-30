@@ -321,42 +321,42 @@ subentities:
   severity: high
 - local_id: F58
   title: Fallback on a retiring daemon's 503 is untested
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F59
   title: Shim import guard runs one command shape; prompt path unseen
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F60
   title: Ctrl-C at a served prompt prints different text than local mode
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F61
   title: Long-command detection stops at the first option; guard skips binding
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F62
   title: Waiting notice names the command path, not the operation
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F63
   title: Stdlib lock probe reads EACCES as free, unlike filelock
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F64
   title: Loopback-port test drives shim internals in process
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F65
   title: test_remote_refusals describes a CLI path that no longer exists
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F66
@@ -366,11 +366,11 @@ subentities:
   severity: medium
 - local_id: F67
   title: bump_version step 4 gives a stale reason for uv sync
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T23:08:13Z'
+updated_at: '2026-10-30T23:15:38Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1711,6 +1711,8 @@ Suggested: one cross-process member in which a daemon retires (edit `.squads.tom
 #### Discussion
 
 <!-- sq:finding:F58:discussion -->
+- [2026-10-30T23:15:20Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: cross-process member: a retiring daemon's 503 runs the command locally; red when the shim prints it.
 <!-- sq:finding:F58:discussion:end -->
 <!-- sq:finding:F58:end -->
 
@@ -1743,6 +1745,8 @@ Suggested: add a second shape to the live case that goes through a prompt and an
 #### Discussion
 
 <!-- sq:finding:F59:discussion -->
+- [2026-10-30T23:15:23Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: import guard runs a read, a stdin attachment, a confirmed prompt and a no-deadline command; a yaml import on the prompt path goes red; uncovered paths named in the docstring.
 <!-- sq:finding:F59:discussion:end -->
 <!-- sq:finding:F59:end -->
 
@@ -1763,6 +1767,8 @@ One way to fix it: on Ctrl-C at a prompt, send the end of input to the daemon as
 #### Discussion
 
 <!-- sq:finding:F60:discussion -->
+- [2026-10-30T23:15:25Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: Ctrl-C at a prompt is sent as end of input so the daemon renders the abort; a pty member holds the bytes equal to local mode.
 <!-- sq:finding:F60:discussion:end -->
 <!-- sq:finding:F60:end -->
 
@@ -1781,6 +1787,8 @@ Suggested: skip the root value options (`--at`, `-C`) when collecting the words,
 #### Discussion
 
 <!-- sq:finding:F61:discussion -->
+- [2026-10-30T23:15:27Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: command words are read past --at/--dir; the guard binds each path to the operation its callback calls, red when two pairs swap.
 <!-- sq:finding:F61:discussion:end -->
 <!-- sq:finding:F61:end -->
 
@@ -1798,6 +1806,8 @@ Found by reading the code. Not seen live: a served `repair` on a copy of this sq
 #### Discussion
 
 <!-- sq:finding:F62:discussion -->
+- [2026-10-30T23:15:29Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: the notice names the operation, as in waiting for the daemon (squad.repair).
 <!-- sq:finding:F62:discussion:end -->
 <!-- sq:finding:F62:end -->
 
@@ -1817,6 +1827,8 @@ Low: the runtime directory is normally tmpfs or a local disk that reports `EWOUL
 #### Discussion
 
 <!-- sq:finding:F63:discussion -->
+- [2026-10-30T23:15:32Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: EACCES, EAGAIN and EWOULDBLOCK read as held, as filelock does; a test makes flock answer each.
 <!-- sq:finding:F63:discussion:end -->
 <!-- sq:finding:F63:end -->
 
@@ -1836,6 +1848,8 @@ Suggested: run the cases through the console script with a platform override for
 #### Discussion
 
 <!-- sq:finding:F64:discussion -->
+- [2026-10-30T23:15:34Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: the loopback cases run the real entry point in a process, resolving the endpoint for a platform with ports (the one seam, named in the file docstring).
 <!-- sq:finding:F64:discussion:end -->
 <!-- sq:finding:F64:end -->
 
@@ -1853,6 +1867,8 @@ Suggested: reword the docstring for the subject it now holds (an `HttpApi` clien
 #### Discussion
 
 <!-- sq:finding:F65:discussion -->
+- [2026-10-30T23:15:36Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: docstring reworded to an HttpApi client's refusal text, handed to the root callback as route parity does; kept, not retired.
 <!-- sq:finding:F65:discussion:end -->
 <!-- sq:finding:F65:end -->
 
@@ -1894,6 +1910,8 @@ Checked and fine: `set_init_version` rewrites the one `__version__ = "..."` line
 #### Discussion
 
 <!-- sq:finding:F67:discussion -->
+- [2026-10-30T23:15:38Z] `python-dev` Elias Python:
+  - Fixed in a69a3b4b: step 4 reason reworded: the installed metadata and the lock follow the bump.
 <!-- sq:finding:F67:discussion:end -->
 <!-- sq:finding:F67:end -->
 <!-- sq:findings:end -->
