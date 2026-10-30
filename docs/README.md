@@ -21,6 +21,8 @@ backend.
 | **[adoption.md](adoption.md)** | Migrating an existing project: `sq adopt` + history-preserving `--at` timestamps. |
 | **[overrides.md](overrides.md)** | Customizing templates, roles, agent names, your squad's vocabulary, and the per-role guidance in each item skill: `.overrides/` layout, the override grammar (shadow / append / drop), the `sq override` workflow, and handling drift across upgrades. |
 | **[migration.md](migration.md)** | Upgrading a squad to a new squads version: `sq migrate up`, the changelog (`help`/`chlog`), what counts as a breaking change, and the per-release manual steps. |
+| **[daemon.md](daemon.md)** | The daemon that answers commands in remote mode: turning it on or off (`[daemon]`, `SQUADS_DAEMON`), `sq daemon status` and `stop`, what it keeps on your machine, and who can reach it. |
+| **[api.md](api.md)** | The daemon's HTTP API, for writing a client: routes, headers, the answer and error bodies, item versions (`ETag`/`If-Match`) and the OpenAPI document. |
 
 **Under the hood / contributing**
 

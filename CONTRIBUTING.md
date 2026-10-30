@@ -186,9 +186,28 @@ in that test's `LONG_BODIES` list.
 ## Tests
 
 `tests/` holds the repository guards (`tests/meta/`, described above), the CLI surface tests
-(`tests/cli/`), the check rule tests (`tests/check/`), the cross-process set (`tests/cross_process/`,
-the real `sq` script where one process must find, outlive or wait for another; it has its own CI job)
-and the fixtures they share.
+(`tests/cli/`), the check rule tests (`tests/check/`), the daemon's route tests (`tests/daemon/`), the
+cross-process set (`tests/cross_process/`, the real `sq` script where one process must find, outlive
+or wait for another, the daemon's start included; it has its own CI job) and the fixtures they share.
+
+Two root options choose how `tests/cli/` runs, and they combine:
+
+- `--squad bundled|override` (or `SQUADS_TEST_SQUAD`): the bundled squad, or the override test squad
+  that shares none of its vocabulary. Cases about one squad's own spelling carry `bundled_only` or
+  `override_only` with a reason.
+- `--api-mode local|remote` (or `SQUADS_TEST_MODE`): each command's operation runs in the test
+  process, or is sent through `HttpApi` to the daemon's application served on a thread. Every case
+  asserts the same output in both modes, with no exemption.
+
+The root `conftest.py` sets `SQUADS_DAEMON=off` for the whole run, so no test starts a daemon unless
+it says so. `tests/daemon/` covers only what the remote run cannot see (the error table, admission,
+the OpenAPI document, header binding, ETags, retirement, the browser listener): it serves the
+application through `tests/_daemon_harness.py` (`serve`), calls it with `http.client`, asserts the
+whole response, and carries no `covers` marker.
+
+**Keep the daemon off in a checkout you are changing.** A daemon serves the code it started with,
+so after a change it keeps answering with the old code until it exits. Export `SQUADS_DAEMON=off`
+in your shell, or run `sq daemon stop` after each change.
 
 `tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
 fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:

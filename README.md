@@ -218,6 +218,8 @@ Full docs (with diagrams) live in **[docs/](docs/README.md)**:
   `.overrides/`, and reconciling drift across upgrades.
 - **[migration](docs/migration.md)** — schema migrations: `sq migrate up`, the changelog, and the
   manual steps per release.
+- **[daemon](docs/daemon.md)** — the daemon that answers commands, its settings, and who can reach
+  it · **[api](docs/api.md)** — its HTTP API, for writing a client of your own.
 - **[stability](docs/stability.md)** — the 1.0 contract: which surfaces are stable after 1.0 and what each promises.
 - **[internals](docs/internals.md)** / **[backends](docs/backends.md)** — under the hood & writing a backend.
 
@@ -288,6 +290,7 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 - `sq override scaffold|list|diff|update` — author project-level template/role/workflow overrides and reconcile them across upgrades. See [docs/overrides.md](docs/overrides.md).
 - `sq migrate up|help|chlog|rename-type|rename-status|repad` — bring a squad to the current schema, read the migration changelog, bulk-rename a type or status, or widen the ID padding. See [docs/migration.md](docs/migration.md).
 - `sq ui` — the terminal browser (needs the `tui` extra) · `sq docs [--rich]` — the full docs, offline
+- `sq daemon status [--json]` · `sq daemon stop [--json]` — show or stop the daemon that answers this squad's commands; turn it off with `enabled = false` under `[daemon]` in `.squads.toml` or `SQUADS_DAEMON=off`. See [docs/daemon.md](docs/daemon.md).
 - `-C path` (global, before the command) — run as if `sq` was started in `path`: it walks up from `path` to `.squads.toml`, so `path` can be the project directory or any folder inside it. Repeatable; a relative `path` is taken against the previous `-C`. It goes before the command and before `--help`/`--version`; after them it is ignored
 - `--at when` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
 

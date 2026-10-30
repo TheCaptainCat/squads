@@ -70,6 +70,34 @@ mapping), or ensure the task's parent is the right feature. In a squad whose kin
 names, the message and the option name them: the option is named after the kind the parent
 hosts.
 
+### "the daemon could not be used (…); running locally"
+A command tried to start the squad's daemon and could not, so it ran in local mode: the result is
+correct, only slower. The reason in parentheses says why: no answer within 5 seconds, a runtime
+directory that is owned by another user or open to others, a socket path that is too long, or a
+problem in the squad itself that the command then reports too. The next command tries again. To
+stop trying, turn the daemon off: `enabled = false` under `[daemon]` in `.squads.toml`, or
+`SQUADS_DAEMON=off` in your environment. See [daemon.md](daemon.md#when-the-daemon-cannot-be-used).
+
+### "no answer from the squad served at … the operation may still complete"
+A command in remote mode stopped waiting for the daemon: you pressed Ctrl-C (exit `130`), its
+answer took longer than 300 seconds (exit `1`), or the connection was lost after the request was
+sent. The daemon may still have run the operation, so check its result (`show`, `list`,
+`sq reflog`) before running the command again. See
+[daemon.md](daemon.md#what-differs-between-the-modes).
+
+### "… speaks schema v…, and the squad served at … runs schema v…" / "this checkout's workflow vocabulary differs from the squad served at …"
+The client and the daemon it reached disagree on the schema version or on the workflow vocabulary,
+and the call was refused before anything ran. The message names the remedy: install the squads
+release at the daemon's schema, upgrade and migrate the squad, or bring this checkout's
+`.overrides/workflow.toml` in line with the squad's. See
+[daemon.md](daemon.md#client-and-daemon-versions).
+
+### My edit to `.squads.toml` or an override seems ignored
+It is not: a changed `.squads.toml` or file under `.overrides/` retires the running daemon, and the
+next command answers with the new configuration. If you run squads from a source checkout and
+changed squads' own code, a running daemon still serves the old code: run `sq daemon stop`, or keep
+the daemon off there (`SQUADS_DAEMON=off`).
+
 ### I upgraded squads: do I need to do anything?
 Run `sq sync`. It regenerates the project's tool-owned files (the `squads`/`sq-<type>` skills,
 pointers, the `CLAUDE.md` and `AGENTS.md` sections) from the installed version. Nothing warns you
@@ -232,6 +260,7 @@ The documented, stable contract:
 | `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
 | `3` | Error-level issues were found | `sq check` reported one or more `error`-level issues, or `sq import` applied the file and the check of the items it touched found one. The import's events are on disk: do not retry it, read `applied` from its `--json` output. `warn`-level-only results still exit 0. |
 | `4` | The answer is short | A listing finished and named what it could not read: `sq board list`, `sq inbox`, `sq search`, `sq memory <role> list`, `sq memory <role> search`. stdout still carries a valid payload in its usual shape. |
+| `130` | Interrupted | You pressed Ctrl-C while a command in remote mode waited for the daemon. The operation may still complete; check its result before running the command again. |
 
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
 directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.

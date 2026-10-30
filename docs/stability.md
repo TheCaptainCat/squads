@@ -494,6 +494,24 @@ files are unchanged. The table is closed: an unknown key or a non-boolean value 
 `sq check` warning, and the default applies. See
 [roles.md § "Pronouns"](roles.md#pronouns).
 
+### Daemon settings in `.squads.toml`
+
+A `[daemon]` table in `.squads.toml` holds three keys: `enabled` (boolean, default `true`),
+`idle_timeout_minutes` (a whole number of minutes, default `30`, `0` for never) and `browser`
+(boolean, default `false`). The environment variable `SQUADS_DAEMON`, `on` or `off` in any case,
+overrides `enabled` for every command run in that environment; unset or empty, the table decides.
+See [daemon.md § "Settings"](daemon.md#settings).
+
+- **Absent.** The defaults apply; a project without the table needs no change.
+- **An unknown key** is reported by `sq check` (`daemon_config_valid`, `warn`) and otherwise
+  ignored, so a table written for a newer squads does not stop an older one.
+- **An unusable value** (a wrong type, a negative timeout, a `[daemon]` that is not a table) or an
+  unusable `SQUADS_DAEMON` puts every command in local mode, with one line on stderr, and is
+  reported by `sq check`. It never changes what a command does, only where it runs.
+- **Takes effect** at the next command: a changed `.squads.toml` retires the running daemon.
+- **Written by** no command: `sq init` and `sq adopt` leave it out, and `sq migrate up` keeps its
+  values.
+
 ### Working language in `.squads.toml`
 
 A top-level `working_language` key holds one BCP 47 language tag, such as `fr`, `en` or `pt-BR`.
@@ -525,7 +543,7 @@ configured: they reply in the language that human writes in.
 - **`sq init`, and `sq adopt` when the file is missing**, write the whole file.
 - **`sq migrate up`**, when it runs at least one migration, edits the value of the one top-level
   `schema_version = "<v>"` line and nothing else: comments, key order, `working_language`,
-  `[display]` and any key squads does not read stay as written. When that edit cannot be made
+  `[display]`, `[daemon]` and any key squads does not read stay as written. When that edit cannot be made
   safely (no such line or more than one, a value written as a multi-line or escaped string, or a
   result that does not parse back to the same table with only `schema_version` changed), the run
   refuses before any migration starts, names the file and line, and says what to write by hand.
@@ -718,6 +736,16 @@ refused like every other command (see [migration.md](migration.md#what-runs-on-a
 
 Runner modules are private; never use `python -m`; `sq migrate` is the only entry point.
 
+### The daemon commands
+
+`sq daemon status [--json]` and `sq daemon stop [--json]` are the frozen surface of the `sq daemon`
+group (see [daemon.md](daemon.md#inspecting-and-stopping-the-daemon)). `stop` with no daemon
+running does nothing and exits `0`. Their human output is display text. The group's hidden `run`
+command, its options and the report it writes when a daemon starts are private to squads and may
+change in any release.
+
+`daemon` is a command name of `sq`, so no item type or alias can be named `daemon`.
+
 ### Bulk import
 
 `sq import <file>` loads a JSONL event stream in one process — the supported path for bringing
@@ -760,6 +788,10 @@ Frozen contract:
 | `4` | The result is incomplete — stdout carries a valid payload in its documented shape, and entries are missing |
 
 The distinct code for integrity findings lets CI distinguish "issues were found" from "command errored".
+
+A command in remote mode that is interrupted (Ctrl-C) while it waits for the daemon exits `130`, as
+an interrupted process conventionally does; the operation it sent may still complete (see
+[daemon.md](daemon.md#what-differs-between-the-modes)).
 
 #### Partial results and code `4`
 
@@ -967,7 +999,8 @@ until a client of their own consumes them; they are then frozen under this tier:
   `ref rm`, `view add`, `view disable` and adding a comment; sub-entity `update` and `body`; the role, skill, operator and dev verbs that write, and `dev
   list`; `board post`, `board clear`, `memory add`, `memory forget`; `override scaffold`,
   `override update`, `sync`; `workflow show`, `workflow lint`, `docs`, `migrate help`,
-  `migrate chlog`; `repair`, `renumber`, the `migrate` verbs, `init` and `adopt`. A write to one
+  `migrate chlog`; `repair`, `renumber`, the `migrate` verbs, `init` and `adopt`; `daemon status`
+  and `daemon stop`. A write to one
   resource answers `{entry, …}`: `entry` is the resource it wrote, or for a delete the resource
   as it was, and what the command reports is a field beside it:
 
@@ -1087,6 +1120,7 @@ The frozen surface includes:
   | `views` | always present: an object of view name (vocabulary) to the output of that view's transform, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform; `{}` when none does. Each value is the JSON the transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}` |
   | `display.body` | display: the body as `sq show` prints it, each view tag expanded. A view whose template fails to render keeps its tag as written, and the command warns on stderr |
   | `display.attributes` | display: one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order |
+  | `etag` | the last key: a strong entity tag of the item's file as the command read it, a quoted string such as `"\"94dbfed2…\""`; opaque, compared for equality only; provisional |
 
   A sub-entity's object carries no `views`.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
@@ -1227,6 +1261,41 @@ reflog and the omissions report. Command help may describe a payload, but it is 
 reference. The plainer listings (`list`, `blocked`, `workload`, `mine`) are not enumerated here:
 the fields they emit are their contract. Listing a key here records a promise its shape already
 makes, and leaving one out never exempts it: the promise above covers every field a shape emits.
+
+### The HTTP API
+
+The daemon's API ([api.md](api.md)) carries the same shapes as `--json`, and adds a wire layer of
+its own. The two are versioned apart:
+
+- **`/v1` versions the wire layer:** the route grammar (items at `/v1/items/{id}`, roster entries
+  at `/v1/roles/{addr}`, `/v1/skills/{addr}` and `/v1/operators/{addr}`, squad-wide operations under
+  `/v1/squad/`, `GET` and `HEAD` that never mutate), the success envelope
+  `{data, omitted, warnings}`, the error body `{"error": {type, message, warnings, details?}}`, the
+  `503 {"not_executed": "retiring"}` answer, the request headers (`Squads-Actor`, `Squads-At`,
+  `Squads-Session-Id`, `Squads-Parent-Session-Id`, `Squads-Client-Dir`, `Squads-Schema`,
+  `Squads-Vocabulary`, `If-Match`, `Squads-Client`), the `ETag` response header and the admission
+  rules. An incompatible change to any of them comes with a new prefix, `/v2`.
+- **The schema version versions the shapes.** An operation's `data` is the result object of its
+  command, so it is held to this tier as that command's `--json` document is: frozen where the
+  document is frozen, provisional where it is provisional. The request bodies and query parameters
+  are provisional. An incompatible change to any of them is a schema change, as for `--json`: the
+  daemon refuses a client at another schema version (`409 schema_mismatch`) rather than answer it
+  in a shape it does not expect. The OpenAPI document (`GET /v1/openapi.json`) describes the
+  shapes of the running version; its `info.version` is the schema version.
+- **Error types** are an open set: `not_found`, `conflict`, `changed_since_read`,
+  `schema_mismatch`, `vocabulary_mismatch`, `locked`, `invalid`, `forbidden`, `misdirected` and
+  `internal` today. Each keeps the status it answers with; handle an unknown type as the generic
+  failure of its status. `message` is display. `details` is present only on `schema_mismatch`
+  (`client`, `daemon`) and `vocabulary_mismatch` (one digest per document, named by its path).
+- **An `ETag`** is opaque and compared for equality only. It names the item file's state, not the
+  answer's.
+- **`Squads-Actor` is declared, not verified.** The actor a write through the API records is a
+  claim, with the same untrusted, observability-only standing as the reflog's session ids.
+
+Not part of the contract, and free to change in any release: the runtime directory's location and
+file names, the contents of `<key>.json` and `<key>.log`, how the daemon's key is derived, the
+`Server-Timing` header, the vocabulary hash's algorithm (compare it for equality only), and the
+order of the listeners `GET /v1/daemon` reports.
 
 ---
 

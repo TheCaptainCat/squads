@@ -3,9 +3,10 @@ id: TASK-1221
 sequence_id: 1221
 type: task
 title: Adopter docs and changelog for the daemon and its API
-status: Ready
+status: InReview
 parent: FEAT-1140
 author: tech-lead
+assignee: tech-writer
 refs:
 - ADR-1052:implements
 - TASK-1219:depends-on
@@ -17,14 +18,16 @@ description: Modes, settings, fall back, daemon commands, routes, envelope, erro
 subentities:
 - local_id: ST1
   title: Modes, settings, fall back and daemon commands
-  status: Todo
+  status: Done
+  assignee: tech-writer
   maps_to: US9
 - local_id: ST2
   title: API reference and security stance
-  status: Todo
+  status: Done
+  assignee: tech-writer
   maps_to: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-30T08:06:40Z'
+updated_at: '2026-10-30T08:19:02Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -94,4 +97,13 @@ API reference for another client: the route grammar, the envelope, the error bod
 <!-- sq:discussion -->
 - [2026-10-30T00:33:01Z] `tech-lead` Olivia Lead:
   - Brought up to date (2026-10-30): the timeout list now names every `long` operation (`rename-field` and `rename-kind` included); the error body carries `warnings`; the API page covers how rows carry a squad's own vocabulary (ADR-1250 section 7) and links `docs/stability.md`; the CHANGELOG lists the `etag` key that local `show --json` gains; dependencies list `h11` and `click`.
+- [2026-10-30T08:19:01Z] `tech-writer` Theo Writer:
+  - - @manager TASK-1221 written in the working tree (uncommitted), ST1 and ST2 Done, task InReview.
+      - New: `docs/daemon.md` (modes and their differences, `[daemon]` and `SQUADS_DAEMON`, the fall back line, `sq daemon status|stop`, lifecycle, runtime directory per platform, dependencies, development install, version refusals, security per platform as US9 states it, Windows notes) and `docs/api.md` (reaching the listeners, OpenAPI, routes and grammar, request headers with the unverified actor, admission, envelope, error body and status table incl. 405/`Allow` and 503 retiring, how rows carry the vocabulary, ETag/If-Match, comments by hash, compatibility, the daemon's own routes).
+      - Edited: `docs/stability.md` (Tier 1 "Daemon settings", Tier 2 "The daemon commands", exit `130`, `etag` row on show, `daemon status/stop` in the provisional list, a Tier 3 "The HTTP API" section: `/v1` versions the wire layer, the schema version the shapes, error types an open set, what is not contract), `docs/faq.md` (four entries, exit `130`), `docs/README.md` and `README.md` (index and command reference), `CHANGELOG.md` 0.19.0 (Added: daemon, `[daemon]`/`SQUADS_DAEMON`, `sq daemon`, the HTTP API, the browser listener; Changed: background process by default with the CI remedy; the dependency line now says only the daemon loads them), `CONTRIBUTING.md` (`tests/daemon/`, `--squad`, `--api-mode`, `SQUADS_DAEMON=off` in the root conftest, keep the daemon off in a checkout you change).
+    - Driven on a scratch squad with the dev tree (`sq daemon run` started there three times and stopped each time: by a `.squads.toml` edit, by `sq daemon stop`, by `POST /v1/daemon/stop`; `sq daemon status` clean at the end): status human and `--json`, stop running and none (`--json` too), `daemon run` refused while one runs (`error: already running`, exit 1), retirement (503 `{"not_executed":"retiring"}`, four runtime files gone), `sq check` lines for an unusable value, an unknown key and a bad `SQUADS_DAEMON`, local `show --json` ending with `etag`, cross-mode visibility both ways. With curl on the socket and the browser port: the OpenAPI document (3.1.0, `info.version` 0.19, 93 paths, 127 operations, header parameters), GET/HEAD with `ETag` and `Server-Timing`, a sub-entity sharing its item's ETag, If-Match current (200, new ETag) and stale (409 `changed_since_read`, nothing written), 409 `conflict`, 404 item and `no such route`, 405 with `allow: DELETE, GET, HEAD, PATCH`, unknown body and query fields (400), relative `Squads-Client-Dir` (400), `schema_mismatch` and `vocabulary_mismatch` with `details`, `Squads-At` recorded, unknown actor refused, no actor recorded as `system`, every admission refusal (421 Host; 403 no Origin, wrong Origin, no `Squads-Client`, `text/plain`, preflight) and the socket admitting a write without either header.
+    - Depends on TASK-1219's unmerged parts, written from the ADRs and the code on release/0.19 but not driven end to end, because `select_api` still returns `LocalApi`: the implicit start and the selection itself, the fall back stderr line (text quoted from `_daemon_start.failure_line`), the one stderr line for an unusable setting (only the `sq check` text is verified), Ctrl-C ending the wait with exit 130 (REV-1223 F30 is open: one Ctrl-C does not end the wait today), the timeout and connection-lost messages and the schema and vocabulary CLI messages (quoted from `_api/_client.py`), "a connection that cannot be made is handled like a failed start", `sq ui` following the same rule (ST9), and the default-on behaviour the Changed entry describes. Re-read these sentences in `docs/daemon.md` and the CHANGELOG once TASK-1219 lands.
+    - Not run: native Windows and macOS (runtime directories, the CLI port, `Origin` on it), idle exit, crash leftovers, `423 locked`, `500 internal`.
+    - Observed, for the owners: a repeated single-valued query key keeps the last value silently (`?type=task&type=feature` lists features only); the OpenAPI document lists no `403` on `GET` operations, which the Windows CLI port answers to a `GET` carrying an `Origin`.
+    - `uv run --all-extras pytest -n 4 tests/meta`: 675 passed. The docs guards were shown to read the new pages (a dead `sq` verb and an item id appended to `docs/api.md` turned both red; restored). `sq check` clean.
 <!-- sq:discussion:end -->
