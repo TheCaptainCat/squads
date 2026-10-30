@@ -12,7 +12,7 @@ async def test_chlog_does_not_answer_a_typo_with_no_manual_steps(invoke) -> None
     result = await invoke(["migrate", "chlog", "a..b"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got 'a..b'\n",
+        "error: expected a range like v0.1.1..v0.2.0 (vfrom..vto, from below to), got 'a..b'\n",
     )
 
 

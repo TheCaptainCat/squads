@@ -1,7 +1,7 @@
 """`sq board ...` — the team bulletin board: short, prescriptive broadcast notices.
 
 Grammar:
-  sq board post -m "<notice>" [--until DATE] [--as <slug>]  — post a notice
+  sq board post -m "<notice>" [--until date] [--as <slug>]  — post a notice
   sq board list [--json]                                    — current (unexpired) notices
   sq board clear <n>                                        — take the n-th listed notice down
 

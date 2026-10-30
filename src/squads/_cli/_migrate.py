@@ -2,7 +2,7 @@
 
 - `sq migrate up`                          run the automatic migration(s) for this squad
 - `sq migrate help`                        the migration changelog index (every shipped migration)
-- `sq migrate chlog vA..vB`                the complete manual steps for migrating across a
+- `sq migrate chlog vfrom..vto`                the complete manual steps for migrating across a
                                             release range
 - `sq migrate rename-type old new`         bulk-rename every old-type item to new type
 - `sq migrate rename-status type old new`  bulk-move every type item at old status to new status
@@ -89,7 +89,7 @@ def migrate_chlog(
     span: str = typer.Argument(
         ...,
         metavar="vfrom..vto",
-        help="Releases after vFROM up to and including vTO, such as `v0.1.1..v0.2.0`.",
+        help="Releases after vfrom up to and including vto, such as `v0.1.1..v0.2.0`.",
     ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the migrations with manual steps."
@@ -140,7 +140,7 @@ def migrate_rename_type(
     """Move every item of one type to another, with the new prefix and folder.
 
     Both types must already be declared, non-roster types; this does not declare
-    NEW_TYPE. Run `sq check` afterwards.
+    new_type. Run `sq check` afterwards.
     """
     request = RenameTypeRequest(old_type=old_type, new_type=new_type)
     response = calls.call(ops.RENAME_TYPE, request)
@@ -167,7 +167,7 @@ def migrate_rename_status(
 ):
     """Relabel a status on every item of one type, without a transition.
 
-    NEW_STATUS must already be in the type's lifecycle. Run `sq check` afterwards.
+    new_status must already be in the type's lifecycle. Run `sq check` afterwards.
     """
     request = RenameStatusRequest(type=item_type, old_status=old_status, new_status=new_status)
     response = calls.call(ops.RENAME_STATUS, request)
@@ -234,7 +234,7 @@ def migrate_rename_kind(
 
 
 def _parse_span(span: str) -> tuple[str, str]:
-    expected = f"expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got {span!r}"
+    expected = f"expected a range like v0.1.1..v0.2.0 (vfrom..vto, from below to), got {span!r}"
     lo, sep, hi = span.partition("..")
     if not sep:
         raise SquadsError(expected)

@@ -10,7 +10,7 @@ Grammar:
   sq skill <slug|id|n> link-role <role> — scope the skill to a role (+ resync that role)
   sq skill <slug|id|n> unlink-role <role> — remove that scope (+ resync that role)
   sq skill <slug|id|n> regen            — regenerate the Claude pointer
-  sq skill <slug|id|n> status <S>       — transition the skill's status
+  sq skill <slug|id|n> status <status>       — transition the skill's status
   sq skill <slug|id|n> view add <name>       — place or re-enable a view tag in sq:body
   sq skill <slug|id|n> view disable <name>   — disable a view tag in sq:body (kept, not removed)
   sq skill <slug|id|n> remove --purge — delete the skill item (or set status Archived)
@@ -206,7 +206,7 @@ def skill_ref_add(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill, the ref's target and kind."),
 ) -> None:
-    """Add a ref from this skill to TARGET."""
+    """Add a ref from this skill to the target."""
     common.declare_actor(as_)
     request = SkillRefRequest(addr=address_of(ctx), target=target, kind=kind)
     response = calls.call(ops.SKILL_REF_ADD, request)
@@ -223,7 +223,7 @@ def skill_ref_rm(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill and the ref's target."),
 ) -> None:
-    """Remove this skill's ref to TARGET."""
+    """Remove this skill's ref to the target."""
     common.declare_actor(as_)
     request = SkillRefRemoveRequest(addr=address_of(ctx), target=target)
     response = calls.call(ops.SKILL_REF_RM, request)

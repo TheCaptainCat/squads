@@ -66,12 +66,12 @@ from squads._roles._catalog import resolve_roles
 
 
 def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
-    """Parse repeatable ``CODE=VALUE`` tokens (``--badge``/``--min-badge``) into a dict."""
+    """Parse repeatable ``code=value`` tokens (``--badge``/``--min-badge``) into a dict."""
     out: dict[str, str] = {}
     for pair in pairs:
         code, sep, value = pair.partition("=")
         if not sep or not code.strip():
-            raise SquadsError(f"expected CODE=VALUE, got {pair!r}")
+            raise SquadsError(f"expected code=value, got {pair!r}")
         field = parse_badge_field(code)
         out[field] = parse_filter_badge_code(field, value)
     return out
@@ -81,7 +81,7 @@ def _build_badge_filters(
     ctx: typer.Context, badge: list[str], min_badge: list[str]
 ) -> tuple[dict[str, str], dict[str, str]]:
     """Merge the derived ``--<code>``/``--min-<code>`` options into the generic ``--badge``/
-    ``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``: each means exactly its generic
+    ``--min-badge code=value`` maps shared by ``list``/``tree``: each means exactly its generic
     form.
 
     Values validate cross-type (:func:`parse_filter_badge_code`) because the filter itself is
@@ -347,12 +347,12 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
     badge: list[str] = typer.Option(
-        [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
+        [], "--badge", help="Exact filter on any declared badge field: code=value (repeatable)."
     ),
     min_badge: list[str] = typer.Option(
         [],
         "--min-badge",
-        help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
+        help="Threshold filter on any ordered badge field: code=value (repeatable).",
     ),
     sort: str | None = typer.Option(
         None, "--sort", help="Sort by an ordered badge field's rank, by its code."
@@ -414,12 +414,12 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     ),
     label: str | None = typer.Option(None, "--label", help="Show only items carrying this label."),
     badge: list[str] = typer.Option(
-        [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
+        [], "--badge", help="Exact filter on any declared badge field: code=value (repeatable)."
     ),
     min_badge: list[str] = typer.Option(
         [],
         "--min-badge",
-        help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
+        help="Threshold filter on any ordered badge field: code=value (repeatable).",
     ),
     sort: str | None = typer.Option(
         None, "--sort", help="Sort each level by an ordered badge field's rank."
@@ -752,7 +752,7 @@ def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Show only entries on this full item ID, such as `<PREFIX>-<n>`.",
+        help="Show only entries on this full item ID, such as `<prefix>-<n>`.",
         metavar="id",
     ),
     actor: str | None = typer.Option(
@@ -791,7 +791,7 @@ def reflog(
 ):
     """Show the log of every command that changed the squad, latest last.
 
-    Filters combine: `--item <PREFIX>-<n> --op status` shows only that item's
+    Filters combine: `--item <prefix>-<n> --op status` shows only that item's
     status changes. A squad with no log yet prints nothing rather than an error.
     """
     from squads import _clock as clock
@@ -827,7 +827,7 @@ def reflog(
 @handle_errors
 def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="id", help="Item ID, such as `<PREFIX>-<n>`, or its bare number."
+        ..., metavar="id", help="Item ID, such as `<prefix>-<n>`, or its bare number."
     ),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
     raw: bool = common.raw_option(),

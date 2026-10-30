@@ -223,7 +223,7 @@ async def test_badge_keeps_the_items_whose_field_has_the_value(readable, invoke)
 async def test_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _list(invoke, "--badge", "priority") == (
         1,
-        ["error: expected CODE=VALUE, got 'priority'"],
+        ["error: expected code=value, got 'priority'"],
     )
 
 
@@ -243,7 +243,7 @@ async def test_min_badge_keeps_the_items_at_least_that_rank(readable, invoke) ->
 async def test_min_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _list(invoke, "--min-badge", "priority") == (
         1,
-        ["error: expected CODE=VALUE, got 'priority'"],
+        ["error: expected code=value, got 'priority'"],
     )
 
 

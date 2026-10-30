@@ -1056,7 +1056,7 @@ def address_epilog(group: str, noun: str, examples: Sequence[str], group_verbs: 
     ``{verbs}`` marker is filled in once the addressed verbs are registered."""
     one = f"one {noun}"
     paragraphs = [
-        f"Address {one}: sq {group} {ADDRESS_METAVAR} VERB, where VERB is one of {{verbs}}.",
+        f"Address {one}: sq {group} {ADDRESS_METAVAR} verb, where verb is one of {{verbs}}.",
         "Examples:",
         *examples,
         f"A slug matching a group verb ({group_verbs}) cannot address {one} by slug; "
@@ -1170,7 +1170,7 @@ class CommentGroup(typer.core.TyperGroup):
                 soft_wrap=True,
             )
             raise typer.Exit(2)
-        return "HASH", addr_cmd, args
+        return "hash", addr_cmd, args
 
 
 class _HashGroup(typer.core.TyperGroup):

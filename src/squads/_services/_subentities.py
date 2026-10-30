@@ -372,7 +372,7 @@ class SubentitiesMixin(ServiceCore):
         if moved and in_deferred and sub.deferred_to is None:
             raise SquadsError(
                 f"{sub.local_id} cannot be {sub.status} without the item that carries the "
-                "work; pass --deferred-to <ID> (import: deferred_to)"
+                "work; pass --deferred-to <id> (import: deferred_to)"
             )
 
     def _set_block_assignee_model(

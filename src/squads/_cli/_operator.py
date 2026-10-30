@@ -3,7 +3,7 @@
 Grammar:
   sq operator add <name> [--slug slug]  — register a human operator
   sq operator <slug|id|n> show           — show an operator's metadata panel
-  sq operator <slug|id|n> status <S>     — transition the operator's status
+  sq operator <slug|id|n> status <status>     — transition the operator's status
   sq operator <slug|id|n> remove --purge — delete an operator (or set status Archived)
 
 Address resolution order (exact match, no fuzzy):

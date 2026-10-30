@@ -49,7 +49,7 @@ def _filer(key: str, prefix: str = "") -> Any:
 
 
 def value_option(field: Field, help_text: str) -> Any:
-    """`--<code> VALUE` for *field*, filed under its code."""
+    """`--<code> value` for *field*, filed under its code."""
     return typer.core.TyperOption(
         param_decls=[f"--{flag_name(field.code)}", field.code],
         default=None,
@@ -72,7 +72,7 @@ def clear_option(field: Field) -> Any:
 
 
 def min_option(field: Field, codes: list[str]) -> Any:
-    """`--min-<code> VALUE` for an ordered *field*, filed under its code."""
+    """`--min-<code> value` for an ordered *field*, filed under its code."""
     return typer.core.TyperOption(
         param_decls=[f"--min-{flag_name(field.code)}", f"min_{field.code}"],
         default=None,

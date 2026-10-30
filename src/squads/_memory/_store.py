@@ -54,7 +54,7 @@ async def _unique_slug(folder: Path, base_slug: str) -> str:
     """*base_slug* if free, else the first ``<base_slug>-2``, ``-3``, ... not already on disk.
 
     A memory file is addressed purely by its slug (no counter prefix disambiguates it the way
-    an item's ``<ID>-<slug>.md`` does), so a same-slug second fact gets a numeric suffix rather
+    an item's ``<id>-<slug>.md`` does), so a same-slug second fact gets a numeric suffix rather
     than clobbering or hard-erroring — still a human-meaningful id, never a sequence number.
     """
     if not await _aio.path_exists(folder / f"{base_slug}.md"):

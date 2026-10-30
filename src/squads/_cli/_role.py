@@ -7,7 +7,7 @@ Grammar:
   sq role add <slug> …               — create a role that defines itself
   sq role <slug|id|n> show           — show a role's card + body
   sq role <slug|id|n> regen          — regenerate the Claude pointer
-  sq role <slug|id|n> status <S>     — transition the role's status
+  sq role <slug|id|n> status <status>     — transition the role's status
   sq role <slug|id|n> set-default    — move the default-role designation here
   sq role <slug|id|n> update …       — edit the name, pronouns, model or (own definition) fields
   sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body

@@ -526,7 +526,7 @@ def _cmd_retype(item: typer.Typer) -> None:
     ):
         """Reclassify this item to a different type, keeping its number and body.
 
-        Only the prefix changes, as `<PREFIX>-<n>` to `<NEW-PREFIX>-<n>`, and every
+        Only the prefix changes, as `<prefix>-<n>` to `<new-prefix>-<n>`, and every
         reference to the item is rewritten. The status is kept when both types share
         a lifecycle, and reset to the new type's first status otherwise.
         """
@@ -621,7 +621,7 @@ def _cmd_refs(item: typer.Typer) -> None:
             False, "--json", help="Print one JSON object: the item's row after the write."
         ),
     ):
-        """Add a ref from this item to TARGET."""
+        """Add a ref from this item to the target."""
         common.declare_actor(as_)
         request = ItemRefRequest(**_address(ctx), target=target, kind=kind)
         _finish(ops.ITEM_REF_ADD, request, json_out, render_ref_added)
@@ -636,7 +636,7 @@ def _cmd_refs(item: typer.Typer) -> None:
             False, "--json", help="Print one JSON object: the item's row after the write."
         ),
     ):
-        """Remove this item's ref to TARGET."""
+        """Remove this item's ref to the target."""
         common.declare_actor(as_)
         request = ItemRefRemoveRequest(**_address(ctx), target=target)
         _finish(ops.ITEM_REF_RM, request, json_out, render_ref_removed)

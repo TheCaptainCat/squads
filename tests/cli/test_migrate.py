@@ -315,7 +315,7 @@ async def test_help_lists_the_migrations_oldest_first_outside_any_squad(invoke) 
     result = await invoke(["migrate", "help"])
     assert result.exit_code == 0, result.output
     lines = result.output.splitlines()
-    assert lines[0].strip() == "migration changelog — read steps with `sq migrate chlog vA..vB`"
+    assert lines[0].strip() == "migration changelog — read steps with `sq migrate chlog vfrom..vto`"
     assert [c.strip() for c in lines[2].strip("┃").split("┃")] == [
         "Release",
         "Schema",
@@ -349,7 +349,7 @@ async def test_chlog_refuses_a_range_without_two_dots(invoke) -> None:
     result = await invoke(["migrate", "chlog", "v0.2.0"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got 'v0.2.0'\n",
+        "error: expected a range like v0.1.1..v0.2.0 (vfrom..vto, from below to), got 'v0.2.0'\n",
     )
 
 
@@ -363,7 +363,7 @@ async def test_chlog_refuses_a_bound_that_is_no_version_or_a_range_not_ascending
     result = await invoke(["migrate", "chlog", span])
     assert (result.exit_code, result.output) == (
         1,
-        f"error: expected a range like v0.1.1..v0.2.0 (vFROM..vTO, FROM below TO), got {span!r}\n",
+        f"error: expected a range like v0.1.1..v0.2.0 (vfrom..vto, from below to), got {span!r}\n",
     )
 
 
