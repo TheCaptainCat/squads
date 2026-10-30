@@ -227,7 +227,7 @@ def _windows_vt() -> bool | None:  # pragma: no cover
 
 def _windows_truecolor(vt: bool | None) -> bool | None:  # pragma: no cover
     """Whether the console shows 24-bit colour, as Rich reads it: virtual-terminal processing on a
-    Windows build from 10.0.15063."""
+    Windows build new enough for it."""
     if vt is None:
         return None
     if not vt:
