@@ -4,7 +4,9 @@ its back, to the same size and with its timestamp restored, is read back as it n
 import os
 from pathlib import Path
 
-from squads._parse_cache import ParseCache
+import pytest
+import yaml
+
 from squads._paths import SquadPaths
 from tests._daemon_harness import Served, serve_squad
 from tests.check._arrange import write_override
@@ -16,7 +18,7 @@ def rewrite_in_place(path: Path, old: str, new: str) -> None:
     """Replace *old* by *new*, of the same length, and give the file its timestamps back."""
     assert len(old) == len(new)
     before = path.stat()
-    path.write_text(path.read_text(encoding="utf-8").replace(old, new, 1), encoding="utf-8")
+    path.write_bytes(path.read_bytes().replace(old.encode(), new.encode(), 1))
     os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
     assert (path.stat().st_size, path.stat().st_mtime_ns) == (before.st_size, before.st_mtime_ns)
 
@@ -69,29 +71,21 @@ def test_a_refused_override_check_is_answered_once_the_index_changes(project: Sq
         assert daemon.get("/v1/items").status == 200
 
 
-def counting(cache: ParseCache, key: str, block: str, calls: list[str]) -> None:
-    cache.frontmatter(key, block, lambda: calls.append(key) or {"k": 1})
-
-
-def test_a_file_named_absolutely_and_relative_to_the_squad_is_parsed_once(tmp_path: Path) -> None:
-    cache = ParseCache(tmp_path)
-    calls: list[str] = []
-    counting(cache, str(tmp_path / "tasks" / "TASK-1.md"), "k: 1", calls)
-    counting(cache, "tasks/TASK-1.md", "k: 1", calls)
-    assert len(calls) == 1
-
-
 def test_a_file_the_next_corpus_walk_does_not_read_is_parsed_again_when_it_comes_back(
-    tmp_path: Path,
+    project: SquadPaths, serve, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    cache = ParseCache(tmp_path)
-    calls: list[str] = []
-    counting(cache, "tasks/kept.md", "k: 1", calls)
-    counting(cache, "tasks/gone.md", "k: 1", calls)
-    cache.begin_scan()
-    counting(cache, "tasks/kept.md", "k: 1", calls)
-    cache.end_scan()
-    calls.clear()
-    counting(cache, "tasks/kept.md", "k: 1", calls)
-    counting(cache, "tasks/gone.md", "k: 1", calls)
-    assert calls == ["tasks/gone.md"]
+    daemon = serve(project)
+    item = project.squad_dir / make_task(daemon, "Doomed")
+    parsed: list[str] = []
+    real = yaml.safe_load
+    monkeypatch.setattr(yaml, "safe_load", lambda text: parsed.append(text) or real(text))
+    daemon.get("/v1/check")
+    kept = tmp_path / "away.md"
+    item.rename(kept)
+    daemon.get("/v1/check")
+    kept.rename(item)
+    parsed.clear()
+
+    daemon.get("/v1/check")
+
+    assert [block for block in parsed if "Doomed" in block] != []

@@ -11,7 +11,7 @@ import pickle
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePath
 
 
 def digest_of(text: str) -> bytes:
@@ -43,7 +43,7 @@ class ParseCache:
     def __init__(self, squad_dir: Path) -> None:
         # A file is named by its absolute path in a corpus walk and relative to the squad in a
         # check rule; both spellings of the squad directory map onto one key.
-        self._bases = tuple({f"{squad_dir}/", f"{squad_dir.resolve()}/"})
+        self._bases = tuple({PurePath(squad_dir), PurePath(squad_dir.resolve())})
         self._lock = threading.Lock()
         self._index: dict[str, _Entry] = {}
         self._frontmatter: dict[str, _Entry] = {}
@@ -57,9 +57,18 @@ class ParseCache:
     def frontmatter[T](self, key: str, text: str, parse: Callable[[], T]) -> T:
         """The frontmatter read from the file *key* (absolute, or relative to the squad), as
         :meth:`_parsed` returns it."""
-        for base in self._bases:
-            key = key.removeprefix(base)
-        return self._parsed(self._frontmatter, key, text, parse)
+        return self._parsed(self._frontmatter, self._file_key(key), text, parse)
+
+    def _file_key(self, label: str) -> str:
+        """*label* as a path relative to the squad, with ``/`` separators, whatever the platform
+        spelled it with; a path outside the squad keeps its own spelling."""
+        path = PurePath(label)
+        if path.is_absolute():
+            for base in self._bases:
+                if path.is_relative_to(base):
+                    return path.relative_to(base).as_posix()
+            return label
+        return path.as_posix()
 
     def _parsed[T](
         self, entries: dict[str, _Entry], key: str, text: str, parse: Callable[[], T]
