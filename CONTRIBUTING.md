@@ -186,7 +186,9 @@ in that test's `LONG_BODIES` list.
 ## Tests
 
 `tests/` holds the repository guards (`tests/meta/`, described above), the CLI surface tests
-(`tests/cli/`), the check rule tests (`tests/check/`) and the fixtures they share.
+(`tests/cli/`), the check rule tests (`tests/check/`), the cross-process set (`tests/cross_process/`,
+the real `sq` script where one process must find, outlive or wait for another; it has its own CI job)
+and the fixtures they share.
 
 `tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
 fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:

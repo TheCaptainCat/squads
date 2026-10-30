@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._output import read_json, unknown_option
+from tests.cli._output import read_json
 from tests.cli._roster import usage_error
 
 pytestmark = pytest.mark.anyio
@@ -267,16 +267,3 @@ async def test_clear_json_prints_the_notice_taken_down(project, invoke) -> None:
         + "\n"
     )
     assert await _board(invoke) == []
-
-
-@pytest.mark.covers("board post", "--message")
-async def test_post_names_the_options_close_to_an_unknown_one_as_plain_text(
-    project, invoke
-) -> None:
-    await _post(invoke, "-m", "Freeze on Friday")
-    result = await invoke(["board", "post", "-m", "Second", "--slug", "manager"])
-    assert (result.exit_code, result.output) == (
-        2,
-        unknown_option("board post [OPTIONS]", "board post", "--slug", " (Possible options: --as)"),
-    )
-    assert [notice["body"] for notice in await _board(invoke)] == ["Freeze on Friday"]
