@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-10-30T20:35:40Z'
+updated_at: '2026-10-30T21:24:20Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -114,7 +114,7 @@ The merged workflow spec is not re-read per request either: a served command tak
 Rules:
 
 - **Keyed by content, not by stat.** An entry is keyed by its path and a BLAKE2b digest of the bytes the read path has just read. A read still reads the file (23 ms for every item file, 5-7 ms with the hash for the index; fact 4) and skips only the parse on a digest hit. Nothing is validated in advance: the read itself is the validation, so a change by git, an editor, another installation or a local-mode CLI is seen by the next read, with no dependence on a filesystem's timestamp granularity or inode reuse.
-- **Reads only.** The cache is consulted where `IndexStore.load` and the item-file read parse; `transaction()` keeps re-reading from disk under the file lock and never consults it. It is never a source of truth, and dropping it at any moment changes nothing but time.
+- **What a write sees.** `transaction()` re-reads and re-parses the index from disk under the file lock and never consults the index cache. A frontmatter parse may hit its cache anywhere, inside a transaction too (the pre-write skew guard, for one): the file is still read, the key is the digest of the exact text about to be parsed, and a hit hands out a fresh copy, so it returns what the parse would. Nothing cached is a source of truth, and dropping the cache at any moment changes nothing but time.
 - **Bounded by the corpus:** one entry per path, replaced when its digest changes; an entry for a path no longer read is dropped when the daemon next scans the corpus. Entries cannot be mutated through what a caller receives. A hit is not paid per load: an index hit costs about 13 ms to copy or unpickle at this corpus size, and one request loads the index several times, so a request receives one value, shared by every load in that request (frozen, or one copy per request), never a copy per load. Frontmatter copies are cheap enough per hit.
 - **Threaded, not global.** The cache hangs off the daemon's state and reaches the store through the `RequestContext`; it is not module-level state, and local mode has none.
 - Out of scope: caching `check`'s rule results, which span items. With the three results cached, `check`'s handler measured 1.6 s against 7.0 s locally (point 10); its rule work is most of what remains.
@@ -292,4 +292,6 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
     5. The `prompt` answer names the stream its text is written to, as local mode does (stderr under `--json`) (point 1).
     6. Parity harness: one Typer app per session, and the frozen clock is bound on the served request's context by the harness in process, never on the wire (point 9).
     7. `docs/api.md` says only that the CLI uses a private channel outside the API, with no wire format (point 1).
+- [2026-10-30T21:24:20Z] `architect` Robert Architect:
+  - Section 7 amended in place 2026-10-30 for REV-1223 F44: the never-consulted rule now covers the index cache only; frontmatter parses may hit the content-keyed cache inside a transaction. Status unchanged.
 <!-- sq:discussion:end -->

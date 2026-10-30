@@ -237,7 +237,7 @@ subentities:
 - local_id: F44
   title: Frontmatter cache is consulted inside transaction(), against ADR-1261 point
     7's wording
-  status: Open
+  status: Fixed
   assignee: architect
   severity: info
 - local_id: F45
@@ -253,7 +253,7 @@ subentities:
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T21:23:12Z'
+updated_at: '2026-10-30T21:24:18Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1254,6 +1254,8 @@ Ask: architect, narrow the ADR wording to the index (the value that transactions
 #### Discussion
 
 <!-- sq:finding:F44:discussion -->
+- [2026-10-30T21:24:17Z] `architect` Robert Architect:
+  - Ruling 2026-10-30: the narrowed wording stands, and the code keeps the hook. ADR-1261 section 7 is amended in place: `transaction()` never consults the index cache, and a frontmatter parse may hit its content-keyed cache anywhere, inside a transaction included. The file is still read, the key is the digest of the exact text parsed, and each hit is a fresh copy, so the result equals a parse. Fixed by the ADR amendment, with no code change.
 <!-- sq:finding:F44:discussion:end -->
 <!-- sq:finding:F44:end -->
 
