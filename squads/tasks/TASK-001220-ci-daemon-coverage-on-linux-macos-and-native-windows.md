@@ -3,7 +3,7 @@ id: TASK-1220
 sequence_id: 1220
 type: task
 title: 'CI: daemon coverage on Linux, macOS and native Windows'
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -27,7 +27,7 @@ subentities:
   status: Done
   maps_to: US12
 created_at: '2026-10-28T14:08:43Z'
-updated_at: '2026-10-30T10:05:11Z'
+updated_at: '2026-10-30T10:12:18Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -125,4 +125,6 @@ The benchmark script of TASK-1219 ST8 run on one runner as a report: the human a
     - Timing on release/0.19: push and PR triggers are main-only, so push the branch and run `gh workflow run test.yml --ref release/0.19`, or use Actions > test > Run workflow with the branch chosen. Do it twice, then read each job's duration with `gh run view <id> --json jobs`.
 - [2026-10-30T10:05:11Z] `manager` Catherine Manager:
   - CI run 41037144455 on release/0.19 (workflow_dispatch, 2026-10-30): every job green on ubuntu, macOS and native Windows. Windows full suite 7m28s (bound 15), remote-mode Windows 2m58s, cross-process Windows 1m43s; every other job under 3m. A second run confirms the ADR-1172 time bound.
+- [2026-10-30T10:12:17Z] `manager` Catherine Manager:
+  - Second run 41038135366 (2026-10-30): all green again. Windows full suite 6m34s, remote-mode Windows 3m01s, cross-process Windows 1m31s; all others under 3m. The ADR-1172 bounds hold on two runs per OS. client-budget on the GitHub runner: 416 / 411 ms (human / --json), against 547 / 541 before the import trims; still over 275 / 235 on that hardware.
 <!-- sq:discussion:end -->
