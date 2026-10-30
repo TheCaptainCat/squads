@@ -67,124 +67,134 @@ subentities:
 - local_id: F13
   title: Retirement and vocabulary checks run before a request queues, not before
     it runs
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: medium
 - local_id: F14
   title: Single-item reads of sub-entity lists, refs and roster entries answer no
     ETag
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F15
   title: skills link-role and unlink-role ignore If-Match
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F16
   title: GET-no-mutate case samples 12 of 53 GETs; two cases assert part of the response
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F17
   title: Stream guard misses indirect writers; the daemon logger writes a 500 to stderr
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F18
   title: Lane A wire decisions to record in ADR-1225
-  status: Fixed
+  status: Verified
   assignee: architect
   severity: info
 - local_id: F19
   title: 'SIGTERM kills the daemon before its cleanup: all four runtime files stay'
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F20
   title: daemon status and stop report none running when the identity call fails,
     while the lock is held
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F21
   title: Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon
     answers 500
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F22
   title: Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD
     refused as a write
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F23
   title: Endpoint resolution unit tests and a substring migrate assertion break ADR-1172
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F24
   title: The .squads.toml walk-up is duplicated in _paths and _endpoint despite the
     one-place rule
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F25
   title: Reserving daemon breaks an adopter type or alias of that name; no migration
     note says so
-  status: Fixed
+  status: Verified
   assignee: tech-writer
   severity: low
 - local_id: F26
   title: Lock released before its file is unlinked lets two daemons hold one key
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F27
   title: Admission types misdirected/forbidden are absent from the error table and
     the OpenAPI document
-  status: Fixed
+  status: Verified
   assignee: architect
   severity: info
 - local_id: F28
   title: daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: info
 - local_id: F29
   title: 'Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE,
     runtime-dir ACL'
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: info
 - local_id: F30
   title: One Ctrl-C does not end HttpApi's wait under asyncio.run
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: high
 - local_id: F31
   title: Parity run misses a dropped Client-Dir or Session-Id header
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 - local_id: F32
   title: Hosted-squad retry and Client-Dir omission are not built
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F33
   title: Remote refusal tests cannot see a fall back; pin v0.19
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F34
   title: Vocabulary guard parses only --help; self-check tests CPython
+  status: Fixed
+  assignee: python-dev
+  severity: low
+- local_id: F35
+  title: OpenAPI document omits 403 on GETs, the daemon routes' refusals and 405
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F36
+  title: A repeated single-value query key silently keeps its last value
   status: Open
   assignee: python-dev
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T08:05:30Z'
+updated_at: '2026-10-30T08:21:23Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -992,6 +1002,43 @@ Read: `tests/daemon/test_remote_refusals.py`.
 <!-- sq:finding:F34:discussion -->
 <!-- sq:finding:F34:discussion:end -->
 <!-- sq:finding:F34:end -->
+
+<!-- sq:finding:F35 -->
+### F35 — OpenAPI document omits 403 on GETs, the daemon routes' refusals and 405
+
+<!-- sq:finding:F35:body -->
+`GET /v1/openapi.json` does not declare every answer admission can give, so a client built from the document cannot learn them (the point of F27).
+
+- **403 on a `GET` or `HEAD`.** `_openapi._responses` skips 403 on every `GET`/`HEAD` operation. On the native Windows CLI port, admission refuses any request that carries an `Origin` with `403 forbidden`, whatever the method (`_admission.py`, `kind == CLI and origin is not None`; ADR-1225 section 3's table says so). Raised by the tech writer while driving the routes for TASK-1221; confirmed by reading.
+- **`GET /v1/daemon` and `POST /v1/daemon/stop`** declare only their 200. Admission runs ahead of them too: driven, `DELETE /v1/daemon` with a foreign `Host` answers 421, and a browser-port `POST /v1/daemon/stop` without `Squads-Client` answers 403.
+- **The `Squads-Client` header parameter** says "Required with the value 1 on every request that is not a GET". As amended (ADR-1052 point 5, ADR-1225 section 3), it is required only on TCP listeners and `HEAD` is exempt.
+- **405.** ADR-1225 section 6 says the document carries "the error envelope for each status of point 3, the router's 404 and 405 included"; no operation declares 405. Either declare it or the architect strikes "and 405" from section 6.
+
+Fix: declare 403 on every operation (its description naming when a `GET` gets it), give the two daemon routes the 421/403 responses, and correct the header text. The route test for the admission responses should cover a `GET` operation and the daemon routes.
+<!-- sq:finding:F35:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F35:discussion -->
+<!-- sq:finding:F35:discussion:end -->
+<!-- sq:finding:F35:end -->
+
+<!-- sq:finding:F36 -->
+### F36 — A repeated single-value query key silently keeps its last value
+
+<!-- sq:finding:F36:body -->
+A query key whose field takes one value, sent more than once, keeps the last value and drops the others without a word. Driven on a scratch daemon: `GET /v1/items?type=role&type=skill` lists only skills; `?type=role&type=nonsense` lists nothing. An unknown key is refused (`?typ=role` answers `400 invalid`: `unknown field(s) typ`), so the silent drop is the odd one out, and a web client that thinks `type` is a list gets a wrong answer with a 200. Raised by the tech writer for TASK-1221.
+
+Cause (read): `_daemon/_request._query_fields` reads `request.query_params[key]`, which is Starlette's last value, for every field that is not a list.
+
+Fix: refuse a repeated key whose field is not a list with `400 invalid` (for example `type takes one value, got 2`), plus one route case. Documenting the last-wins rule instead would keep a wrong 200 answer.
+<!-- sq:finding:F36:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F36:discussion -->
+<!-- sq:finding:F36:discussion:end -->
+<!-- sq:finding:F36:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1075,4 +1122,20 @@ Read: `tests/daemon/test_remote_refusals.py`.
   - Lane D (ef9a81f0, the remote-mode wire) reviewed against ADR-1225 sections 2, 3 and 5, ADR-1052 point 10 and ADR-1172 mode parity. New findings: F30 (high), F31 (medium), F32, F33 and F34 (low). Verdict on lane D: changes requested, because of F30 (Ctrl-C) and F31 (parity blind to two headers).
   - Verified sound: timeouts read op.timeout (5 s connect; 300 s or none for the answer; the notice after 10 s for long); fall back only on 503 retiring or a failed connect, never after the request was sent; schema_mismatch and vocabulary_mismatch never fall back; local_only always runs locally; header text sent as UTF-8 bytes; the client directory sent absolute (cwd); SQUADS_DAEMON=off set in pytest_configure; error warnings restored. Squads-Actor and Squads-At dropped on the wire turn 31 and 16 remote cases red.
   - No finding for the import guard: _daemon_link imports filelock only inside lock_is_free, and importing _cli._remote does not load it (driven). What loads on the client path is _index, jinja2 and yaml through _cli._common, and importlib.metadata through the pydantic build of _api._errors. Both are in the ST8 starting point already (lane C).
+- [2026-10-30T08:21:23Z] `reviewer` Paul Reviewer:
+  - - F13-F29 Verified at 10de9125 (lane B fix 8cfea24c; ADR amendments 25b16a6b, 68cc2ed0, 38ddefda, b05c77e5; docs 46b01e03). Driven with a real `sq daemon run` on a scratch squad; mutations on a scratch export of HEAD.
+    - F19: SIGTERM ends `daemon run` with exit 0 and removes all four files. Red with plain `uvicorn.Server` (cross-process case).
+    - F20: lock free, nothing answers: none running, exit 0. Lock held, nothing answers: `status`, `status --json` and `stop` each print the held-lock error, exit 1. Two cases red when the check is dropped.
+    - F21: 9000000000000 and 52560001 reported by `sq check`; 52560000 gives a 2126 deadline. Red without the bound.
+    - F22/HEAD: on the socket, a write without the headers reaches the route (400 invalid). On the browser port, a missing `Squads-Client` or `Content-Type` answers 403, and `HEAD` answers 200 even with a foreign `Origin`. Red both ways.
+    - F23/F24: the unit file is gone, the migrate case compares the whole file, and the link case runs through `-C`. One `find_config` in src. A non-string `squad_dir` disables the endpoint and local mode reports it.
+    - F26: the lock is unlinked while held, then released. filelock 4.2.4, the floor in pyproject, retries on an unlinked inode (`st_nlink == 0`), so a racer holding the old file cannot win. Read only.
+    - F28: `SQUADS_DAEMON=maybe` refuses the start. Without the refusal, the case serves forever (red by hang).
+    - F27/F18: the constants are in `HTTP_STATUS`. No route for init/adopt (404). Memory search is at `/v1/search/memory/{role}`, and `/v1/memory/manager/search` reaches the slug. ETag on role and item reads; the document declares it on 78 operations. 405 sends `Allow: GET, HEAD, POST`. The literal-segment guard and the routed-operation count go red under mutation.
+    - F25: driven. A `daemon` alias stops `list` and `migrate up` with the documented message. `rename-type` exists in 0.17.0.
+    - F29: Windows code read only (`SO_EXCLUSIVEADDRUSE`, ctypes owner check that fails open). Unrun, as recorded.
+    - F13-F17 (lane A): the gate runs inside the lock, and the queued-request case is red with it moved ahead. Link-role and unlink-role are conditional (red when dropped). The GET case iterates every routed `GET`. The NullHandler on `squads.daemon` stops logging's last-resort write to stderr (7 cases red without it).
+    - Not a finding: the ETag route case iterates what `carries_etag` selects, so it stays green if a create leaves the predicate. Only the document would lose the header.
+    - New, from the tech writer's route drive: F35 (low, the OpenAPI document omits the Windows CLI port's 403 on GETs, the daemon routes' 421/403, a stale `Squads-Client` description and 405) and F36 (low, a repeated single-value query key keeps its last value). Both are TASK-1218 code. @python-dev
+    - Recommended: TASK-1218 accepted once F35 and F36 are fixed and verified. F30-F34 (lane D) are marked Fixed and still need verifying. `sq daemon status` is clean for the repo squad; the scratch daemon is stopped.
 <!-- sq:discussion:end -->

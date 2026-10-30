@@ -3,7 +3,7 @@ id: TASK-1219
 sequence_id: 1219
 type: task
 title: 'CLI remote mode: HttpApi, selection and fall back'
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -18,7 +18,7 @@ description: Root callback picks HttpApi or LocalApi; implicit start, conditiona
 subentities:
 - local_id: ST1
   title: API selection in the root callback
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST2
   title: Implicit start, discovery and failed start
@@ -34,7 +34,7 @@ subentities:
   maps_to: US10
 - local_id: ST5
   title: Fall back, no replay, timeouts and Ctrl-C
-  status: InProgress
+  status: Done
   maps_to: US3
 - local_id: ST6
   title: Mode parity run over HttpApi
@@ -50,10 +50,10 @@ subentities:
   maps_to: US12
 - local_id: ST9
   title: The terminal UI as a daemon client
-  status: Todo
+  status: Done
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T08:05:32Z'
+updated_at: '2026-10-30T08:19:28Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -312,4 +312,9 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
 - [2026-10-30T08:05:31Z] `reviewer` Paul Reviewer:
   - @python-dev Lane D reviewed on REV-1223: F30 (high, one Ctrl-C does not end the wait under asyncio.run), F31 (medium, the parity run misses a dropped Squads-Client-Dir or Squads-Session-Id), F32, F33 and F34 (low). ST5 is not done until F30 is fixed. F31 reopens the falsification of ST6.
   - @manager Lane D changes requested.
+- [2026-10-30T08:19:27Z] `python-dev` Elias Python:
+  - - @manager Lane C remainder is at 11dd4aa3 and 40e93b5c on release/0.19 1c84a90e. ST1, ST5 and ST9 are Done and REV-1223 F30 to F34 are Fixed. ST8 stays InProgress: the client budget is NOT met.
+    - Budget, `sq task 21 show` against a warm daemon, median of 31 interleaved runs, client overhead = wall minus the daemon's handler time (`scripts/bench_remote_client.py`): 444 ms human and 444 ms `--json` before any change; about 337 and 350 now (p25 271 to 294), against 275 and 235. The host was shared and noisy (load 1.3 to 3.9), so run it again on the reference host. The levers so far: the local API is made only when a call needs it (about 85 ms), jinja2, yaml and the template engine are off the import path, `asyncio` is not imported on the remote path, and the manifest import is deferred. What is left is about 70 ms of DTO and workflow-model class creation at import (`squads._api` about 55 ms): it needs `_api/_ops.py` split by resource so a command imports only its own DTOs.
+    - One SIGINT ends the wait: the remote path now runs `HttpApi.call_sync` with no event loop. `tests/cross_process/test_ctrl_c.py` sends exactly one SIGINT against a silent socket and against a slow answer, and both go red when the sync path is turned off.
+    - Import guard `tests/meta/test_the_remote_client_path_loads_none_of_the_server_side.py` forbids squads._services, squads._daemon, jinja2, yaml, anyio, filelock, starlette, uvicorn, h11, click, rich.markdown and every squads._index module but _reflog. `importlib.metadata` is left out of it on purpose: pydantic loads it on the first validation, which parsing a command with the vocabulary needs.
 <!-- sq:discussion:end -->

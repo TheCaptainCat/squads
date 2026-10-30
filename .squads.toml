@@ -3,3 +3,6 @@ schema_version = "0.19"
 squad_dir = "squads"
 active_backends = ["claude_code"]
 squads_version = "0.17.0"
+
+[daemon]
+enabled = false

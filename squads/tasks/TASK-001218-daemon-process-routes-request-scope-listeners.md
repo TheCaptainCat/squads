@@ -65,7 +65,7 @@ subentities:
   status: Done
   maps_to: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T07:31:36Z'
+updated_at: '2026-10-30T08:21:24Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -354,4 +354,6 @@ Tests: the guard (1); the expected waiting lines in `tests/cross_process/test_th
     - Not run on Windows or macOS: the TCP CLI port path, `msvcrt.open_osfhandle` report handle, the Windows `Origin` negative (skipped by platform), macOS runtime directory and 103-byte socket limit. Idle exit and crash leftovers are built, untested.
 - [2026-10-30T07:31:36Z] `reviewer` Paul Reviewer:
   - Lane B reviewed on REV-1223: findings F19-F29 (8 low, 3 info), nothing blocking. See the REV-1223 comment for the verdict and the probes.
+- [2026-10-30T08:21:24Z] `reviewer` Paul Reviewer:
+  - REV-1223: F13-F29 Verified at 10de9125. New low findings F35 (OpenAPI omits some admission answers) and F36 (repeated single-value query key) are on this task, for @python-dev. Recommend accepting TASK-1218 once both are verified.
 <!-- sq:discussion:end -->

@@ -33465,7 +33465,7 @@
       ],
       "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-30T07:31:36Z",
+      "updated_at": "2026-10-30T08:21:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -33479,7 +33479,7 @@
       "type": "task",
       "title": "CLI remote mode: HttpApi, selection and fall back",
       "slug": "cli-remote-mode-httpapi-selection-and-fall-back",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Root callback picks HttpApi or LocalApi; implicit start, conditional fall back, timeouts, schema and vocabulary headers, client budget and guard, parity run, the TUI as a daemon client",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -33496,7 +33496,7 @@
         {
           "local_id": "ST1",
           "title": "API selection in the root callback",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -33532,7 +33532,7 @@
         {
           "local_id": "ST5",
           "title": "Fall back, no replay, timeouts and Ctrl-C",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -33568,7 +33568,7 @@
         {
           "local_id": "ST9",
           "title": "The terminal UI as a daemon client",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US13",
           "deferred_to": null,
@@ -33577,7 +33577,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-30T08:05:32Z",
+      "updated_at": "2026-10-30T08:19:28Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -33648,11 +33648,11 @@
       "type": "task",
       "title": "Adopter docs and changelog for the daemon and its API",
       "slug": "adopter-docs-and-changelog-for-the-daemon-and-its-api",
-      "status": "Ready",
+      "status": "InReview",
       "description": "Modes, settings, fall back, daemon commands, routes, envelope, errors, headers, ETags, compatibility, declared actor, runtime files, per-platform security",
       "parent": "FEAT-1140",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "tech-writer",
       "labels": [],
       "refs": [
         "ADR-1052:implements",
@@ -33665,8 +33665,8 @@
         {
           "local_id": "ST1",
           "title": "Modes, settings, fall back and daemon commands",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "tech-writer",
           "maps_to": "US9",
           "deferred_to": null,
           "attributes": {}
@@ -33674,8 +33674,8 @@
         {
           "local_id": "ST2",
           "title": "API reference and security stance",
-          "status": "Todo",
-          "assignee": null,
+          "status": "Done",
+          "assignee": "tech-writer",
           "maps_to": "US9",
           "deferred_to": null,
           "attributes": {}
@@ -33683,7 +33683,7 @@
       ],
       "path": "tasks/TASK-001221-adopter-docs-and-changelog-for-the-daemon-and-its-api.md",
       "created_at": "2026-10-28T14:08:44Z",
-      "updated_at": "2026-10-30T08:06:40Z",
+      "updated_at": "2026-10-30T08:19:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -62916,7 +62916,7 @@
         {
           "local_id": "F13",
           "title": "Retirement and vocabulary checks run before a request queues, not before it runs",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62927,7 +62927,7 @@
         {
           "local_id": "F14",
           "title": "Single-item reads of sub-entity lists, refs and roster entries answer no ETag",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62938,7 +62938,7 @@
         {
           "local_id": "F15",
           "title": "skills link-role and unlink-role ignore If-Match",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62949,7 +62949,7 @@
         {
           "local_id": "F16",
           "title": "GET-no-mutate case samples 12 of 53 GETs; two cases assert part of the response",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62960,7 +62960,7 @@
         {
           "local_id": "F17",
           "title": "Stream guard misses indirect writers; the daemon logger writes a 500 to stderr",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62971,7 +62971,7 @@
         {
           "local_id": "F18",
           "title": "Lane A wire decisions to record in ADR-1225",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "architect",
           "maps_to": null,
           "deferred_to": null,
@@ -62982,7 +62982,7 @@
         {
           "local_id": "F19",
           "title": "SIGTERM kills the daemon before its cleanup: all four runtime files stay",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62993,7 +62993,7 @@
         {
           "local_id": "F20",
           "title": "daemon status and stop report none running when the identity call fails, while the lock is held",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63004,7 +63004,7 @@
         {
           "local_id": "F21",
           "title": "Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon answers 500",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63015,7 +63015,7 @@
         {
           "local_id": "F22",
           "title": "Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD refused as a write",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63026,7 +63026,7 @@
         {
           "local_id": "F23",
           "title": "Endpoint resolution unit tests and a substring migrate assertion break ADR-1172",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63037,7 +63037,7 @@
         {
           "local_id": "F24",
           "title": "The .squads.toml walk-up is duplicated in _paths and _endpoint despite the one-place rule",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63048,7 +63048,7 @@
         {
           "local_id": "F25",
           "title": "Reserving daemon breaks an adopter type or alias of that name; no migration note says so",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "tech-writer",
           "maps_to": null,
           "deferred_to": null,
@@ -63059,7 +63059,7 @@
         {
           "local_id": "F26",
           "title": "Lock released before its file is unlinked lets two daemons hold one key",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63070,7 +63070,7 @@
         {
           "local_id": "F27",
           "title": "Admission types misdirected/forbidden are absent from the error table and the OpenAPI document",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "architect",
           "maps_to": null,
           "deferred_to": null,
@@ -63081,7 +63081,7 @@
         {
           "local_id": "F28",
           "title": "daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63092,7 +63092,7 @@
         {
           "local_id": "F29",
           "title": "Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE, runtime-dir ACL",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63103,7 +63103,7 @@
         {
           "local_id": "F30",
           "title": "One Ctrl-C does not end HttpApi's wait under asyncio.run",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63114,7 +63114,7 @@
         {
           "local_id": "F31",
           "title": "Parity run misses a dropped Client-Dir or Session-Id header",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63125,7 +63125,7 @@
         {
           "local_id": "F32",
           "title": "Hosted-squad retry and Client-Dir omission are not built",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63136,7 +63136,7 @@
         {
           "local_id": "F33",
           "title": "Remote refusal tests cannot see a fall back; pin v0.19",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63147,6 +63147,28 @@
         {
           "local_id": "F34",
           "title": "Vocabulary guard parses only --help; self-check tests CPython",
+          "status": "Fixed",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F35",
+          "title": "OpenAPI document omits 403 on GETs, the daemon routes' refusals and 405",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F36",
+          "title": "A repeated single-value query key silently keeps its last value",
           "status": "Open",
           "assignee": "python-dev",
           "maps_to": null,
@@ -63158,7 +63180,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T08:05:30Z",
+      "updated_at": "2026-10-30T08:21:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
