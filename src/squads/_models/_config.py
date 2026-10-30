@@ -1,7 +1,6 @@
 """Project configuration, persisted as ``.squads.toml`` at the project root."""
 
 import re
-from dataclasses import asdict
 from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -87,7 +86,7 @@ class SquadsConfig(BaseModel):
     #: What was unusable in the ``[daemon]`` table that was read; never written back.
     daemon_problems: list[str] = Field(default_factory=list[str], exclude=True)
 
-    model_config = {"extra": "ignore"}
+    model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
 
     @model_validator(mode="before")
     @classmethod
@@ -133,7 +132,7 @@ class SquadsConfig(BaseModel):
             lines.append("")
         if self.daemon != DaemonSettings():
             lines.append("[daemon]")
-            lines.extend(f"{k} = {str(v).lower()}" for k, v in asdict(self.daemon).items())
+            lines.extend(f"{k} = {str(v).lower()}" for k, v in self.daemon.as_dict().items())
             lines.append("")
         if self.init_names:
             lines.append("[init.names]")

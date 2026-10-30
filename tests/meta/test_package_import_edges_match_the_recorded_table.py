@@ -205,8 +205,7 @@ def inits_with_code(src: Path) -> frozenset[str]:
 
 #: ``importer -> imported kind``, one row per edge, sorted.
 EDGES = textwrap.dedent("""\
-__main__ -> _cli local
-__main__ -> squads top
+__main__ -> _shim top
 _actor -> _context top
 _aio -> _errors top
 _api -> _errors top
@@ -240,10 +239,9 @@ _cli -> _context local
 _cli -> _context top
 _cli -> _daemon local
 _cli -> _daemon_link top
-_cli -> _daemon_start local
+_cli -> _daemon_start top
 _cli -> _discussion top
 _cli -> _docfiles local
-_cli -> _endpoint local
 _cli -> _endpoint top
 _cli -> _errors top
 _cli -> _index top
@@ -431,6 +429,10 @@ _services -> _views top
 _services -> _workflow top
 _services -> squads local
 _services -> squads top
+_shim -> _cli local
+_shim -> _daemon_start local
+_shim -> _endpoint top
+_shim -> squads local
 _spans -> _context top
 _spec_documents -> _api top
 _spec_documents -> _errors top

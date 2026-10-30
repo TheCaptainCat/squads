@@ -18,18 +18,13 @@ import typer.main
 from typer._click import Command
 from typer.testing import CliRunner
 
+from squads import _shim as shim
 from squads._cli import app
 from squads._context import get_context
 from squads._daemon._lifecycle import fingerprint
 from squads._endpoint import ChangeDirError, Endpoint, change_directory, endpoint_for
 from squads._paths import resolve
-from squads._shim import SENT_ENVIRONMENT
 from tests._daemon_harness import Reply, Served, serve_squad
-
-#: The commands that run in the client's own process.
-LOCAL_ONLY = frozenset({"init", "adopt", "daemon", "ui"})
-
-_VALUE_OPTIONS = frozenset({"-C", "--at", "--dir"})
 
 
 @dataclass(frozen=True)
@@ -40,40 +35,6 @@ class Outcome:
     output: str
     stdout: str
     stderr: str
-
-
-def _leading(argv: list[str]) -> tuple[list[str], str | None]:
-    """The `-C` values of *argv* and its first command word."""
-    changes: list[str] = []
-    i = 0
-    while i < len(argv):
-        word = argv[i]
-        if word in _VALUE_OPTIONS:
-            if word == "-C" and i + 1 < len(argv):
-                changes.append(argv[i + 1])
-            i += 2
-        elif word.startswith("-C") and not word.startswith("--"):
-            changes.append(word[2:])
-            i += 1
-        elif word.startswith("-"):
-            i += 1
-        else:
-            return changes, word
-    return changes, None
-
-
-def _file_arguments(argv: list[str], command: str | None) -> list[str]:
-    """The arguments that name a client file: the value of `--file`, and `import`'s first word."""
-    named: list[str] = []
-    for i, word in enumerate(argv):
-        if word == "--file" and i + 1 < len(argv):
-            named.append(argv[i + 1])
-        elif word.startswith("--file="):
-            named.append(word.removeprefix("--file="))
-    if command == "import":
-        after = argv[argv.index("import") + 1 :]
-        named.extend(word for word in after[:1] if word == "-" or not word.startswith("-"))
-    return named
 
 
 def terminal_facts(
@@ -106,17 +67,16 @@ def command_body(argv: list[str], **fields: Any) -> dict[str, Any]:
     """The request that sends *argv* from the current directory as a client with piped streams
     would, with each of *fields* in place of the default."""
     cwd = str(Path.cwd())
-    return {
-        "argv": argv,
-        "cwd": cwd,
-        "client_dir": cwd,
-        "env": {},
-        "prog_name": "sq",
-        "terminal": terminal_facts(),
-        "attachments": {},
-        "answers": [],
-        **fields,
-    }
+    request = shim.build_request(
+        argv,
+        cwd=cwd,
+        client_dir=cwd,
+        attachments={},
+        terminal=terminal_facts(),
+        environ={},
+        prog_name="sq",
+    )
+    return {**request, **fields}
 
 
 @functools.cache
@@ -156,11 +116,11 @@ class EndpointClient:
 
     @staticmethod
     def _attachments(
-        argv: list[str], command: str | None, client_dir: Path, stdin: str
+        argv: list[str], lead: shim.Leading, client_dir: Path, stdin: str
     ) -> dict[str, str] | None:
         """The client files the command line names, or ``None`` when one cannot be read."""
         attached: dict[str, str] = {}
-        for name in _file_arguments(argv, command):
+        for name in shim.file_arguments(argv, lead):
             try:
                 raw = stdin.encode() if name == "-" else (client_dir / name).read_bytes()
             except OSError:
@@ -170,22 +130,29 @@ class EndpointClient:
 
     def _plan(self, argv: list[str], stdin: str) -> dict[str, Any] | None:
         """The request that serves *argv*, or ``None`` when the shim would run it locally."""
-        changes, command = _leading(argv)
-        if command in LOCAL_ONLY or argv == ["--version"]:
+        lead = shim.leading(argv)
+        if argv == ["--version"] or shim.runs_here(lead):
             return None
         cwd = Path.cwd()
         try:
-            client_dir = change_directory(cwd, changes)
+            client_dir = change_directory(cwd, lead.dirs)
         except ChangeDirError, OSError:
             return None
         endpoint = endpoint_for(client_dir, environ={}, version="test")
         if endpoint is None or not endpoint.enabled:
             return None
-        attachments = self._attachments(argv, command, client_dir, stdin)
+        attachments = self._attachments(argv, lead, client_dir, stdin)
         if attachments is None:
             return None
-        env = {name: os.environ[name] for name in SENT_ENVIRONMENT if name in os.environ}
-        request = command_body(argv, client_dir=str(client_dir), env=env, attachments=attachments)
+        request = shim.build_request(
+            argv,
+            cwd=str(cwd),
+            client_dir=str(client_dir),
+            attachments=attachments,
+            terminal=terminal_facts(),
+            environ=os.environ,
+            prog_name="sq",
+        )
         return {"endpoint": endpoint, "request": request}
 
     def invoke(self, runner: CliRunner, argv: list[str], *, input: str | None = None) -> Any:

@@ -256,7 +256,7 @@ def test_an_answer_is_not_fed_to_a_screen_the_user_did_not_see(
 
 def _commands_no_cli_command_has() -> Command:
     """A command tree with the commands that reach what no command of the CLI does: one that
-    writes, then asks, and one that selects an API of its own."""
+    writes, then asks."""
     host = typer.Typer(name="sq")
     host.callback()(main_callback)
 
@@ -264,10 +264,6 @@ def _commands_no_cli_command_has() -> Command:
     def write_then_ask() -> None:  # pyright: ignore[reportUnusedFunction]
         calls.call(ops.SYNC, SyncRequest())
         common.confirm("Go on?", json_out=False)
-
-    @host.command("select-an-api")
-    def select_an_api() -> None:  # pyright: ignore[reportUnusedFunction]
-        calls.select_api()
 
     return typer.main.get_command(host)
 
@@ -288,17 +284,6 @@ def test_the_answer_carries_the_daemons_handler_time(project: SquadPaths, serve)
 
     assert reply.status == 200
     assert reply.headers["server-timing"].startswith("handler;dur=")
-
-
-def test_a_served_command_cannot_select_an_api_of_its_own(project: SquadPaths, serve) -> None:
-    daemon = serve(project, command=_commands_no_cli_command_has())
-
-    reply = post_commands(daemon, command_body(["select-an-api"]))
-
-    assert (reply.status, reply.json()) == (
-        200,
-        {"kind": "done", "output": [["stderr", INTERNAL_ERROR]], "exit_code": 1},
-    )
 
 
 def test_a_directory_the_client_names_with_c_is_never_read(

@@ -4,10 +4,14 @@ stop and wait for its files to go. Shared by ``sq daemon`` and the remote client
 import http.client
 import json
 import socket
+import sys
 import time
-from typing import Any
 
 from squads._endpoint import DaemonRecord, Endpoint, read_record
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from typing import Any
 
 #: Seconds a client waits for a daemon to answer an identity or stop request.
 ANSWER_TIMEOUT = 5.0
@@ -101,24 +105,35 @@ def ask_to_stop(endpoint: Endpoint) -> bool:
 
 def lock_is_free(endpoint: Endpoint) -> bool:
     """Whether no process holds the daemon's lock, so a daemon whose socket refuses connections is
-    dead. A lock file nobody created is free."""
-    if not endpoint.files.lock.exists():
-        return True
-    from filelock import FileLock, Timeout
-
-    probe = FileLock(
-        str(endpoint.files.lock),
-        thread_local=False,
-        fallback_to_soft=False,
-        preserve_lock_file=True,
-    )
+    dead. A lock file nobody created is free. The probe takes the lock the way the daemon's
+    ``filelock`` does (``flock`` on POSIX, a one-byte range lock on Windows), so the two see each
+    other."""
     try:
-        probe.acquire(timeout=0)
-    except Timeout:
+        with endpoint.files.lock.open("rb") as held:
+            return _take(held.fileno())
+    except OSError:  # missing, or not one this user can open: nothing here to wait for
+        return True
+
+
+def _take(fd: int) -> bool:
+    """Whether the exclusive lock of *fd* was free; closing *fd* gives it back."""
+    if sys.platform == "win32":  # pragma: no cover
+        import msvcrt
+
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType]
+        except OSError:
+            return False
+        return True
+    import fcntl
+
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
         return False
     except OSError:
         return True
-    probe.release()
     return True
 
 

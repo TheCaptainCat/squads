@@ -1,5 +1,6 @@
 """An unusable daemon setting is said once and the command runs locally; a daemon that goes away
-mid-session is started again for the next call, or the call runs locally with one line saying why.
+mid-session of the terminal UI's API is started again for the next call, or the call runs locally
+with one line saying why.
 
 Each case runs the real `sq` console script or a client process against a scratch squad and a
 runtime directory of its own.
@@ -18,21 +19,21 @@ from squads._endpoint import Endpoint, endpoint_for
 from squads._paths import SquadPaths
 from tests.cross_process._sq import env, run, sq_command
 
-#: A client that holds one API for a whole session and asks for the API of each call the way
-#: `sq ui` does. The mode says what happens to the daemon meanwhile.
+#: A client that holds one API for a whole session and asks it to look for a daemon again before
+#: each call, the way the terminal UI does. The mode says what happens to the daemon meanwhile.
 SESSION = """\
 import asyncio, json, pathlib, subprocess, sys
 from squads._api import _ops as ops
 from squads._api._dto._workflow import CatalogRequest
-from squads._cli import _calls
-from squads._cli._calls import SelectedApi, session_api
+from squads._cli import _remote
+from squads._cli._remote import SelectedApi
 
 root, sq, mode, target = sys.argv[1:5]
 prior = SelectedApi(pathlib.Path(root))
 
 def call():
-    api = session_api(prior, pathlib.Path(root))
-    return len(asyncio.run(api.call(ops.WORKFLOW_TYPES, CatalogRequest())).data.items)
+    prior.reselect()
+    return len(asyncio.run(prior.call(ops.WORKFLOW_TYPES, CatalogRequest())).data.items)
 
 def pid():
     command = [sq, "-C", root, "daemon", "status", "--json"]
@@ -45,7 +46,7 @@ def stop():
 first = None
 if mode == "stuck":
     pathlib.Path(target).chmod(0o755)
-    _calls.RETRY_AFTER = 0
+    _remote.RETRY_AFTER = 0
     for _ in range(3):
         types = call()
 elif mode == "backoff":
@@ -61,7 +62,7 @@ elif mode == "recover":
     pathlib.Path(target).chmod(0o755)
     call(); call()
     pathlib.Path(target).chmod(0o700)
-    _calls.RETRY_AFTER = 0
+    _remote.RETRY_AFTER = 0
     types = call()
 else:
     call()

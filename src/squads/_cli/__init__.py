@@ -377,7 +377,7 @@ def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> 
             start_dir=prior.start_dir,
             documents=prior.documents,
             consoles=common.build_consoles(),
-            api=calls.invocation_api(prior.api, client_cwd),
+            api=calls.invocation_api(prior.api),
             notices=NoticeLog(sink=common.print_notice),
             parse_cache=prior.parse_cache,
             served=prior.served,

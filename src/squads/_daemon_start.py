@@ -47,6 +47,16 @@ def discard_stale(endpoint: Endpoint) -> None:
             path.unlink()
 
 
+#: The variables that describe the process they are set for, not the daemon it starts.
+_NOT_INHERITED = ("SQUADS_SPANS", "SQUADS_DAEMON")
+
+
+def _daemon_environment() -> dict[str, str]:
+    """The environment a spawned daemon starts with: this one, without the diagnostic switches a
+    served command would otherwise read from the daemon's own."""
+    return {name: value for name, value in os.environ.items() if name not in _NOT_INHERITED}
+
+
 def _spawn(endpoint: Endpoint) -> tuple[subprocess.Popen[bytes], int]:
     """Start ``sq daemon run`` for the endpoint, detached from this terminal; returns the process
     and the read end of the pipe it reports on."""
@@ -69,6 +79,7 @@ def _spawn(endpoint: Endpoint) -> tuple[subprocess.Popen[bytes], int]:
                 stderr=devnull,
                 creationflags=_WINDOWS_FLAGS,
                 startupinfo=startup,
+                env=_daemon_environment(),
             )
         else:
             process = subprocess.Popen(
@@ -78,6 +89,7 @@ def _spawn(endpoint: Endpoint) -> tuple[subprocess.Popen[bytes], int]:
                 stderr=devnull,
                 pass_fds=(write,),
                 start_new_session=True,
+                env=_daemon_environment(),
             )
     except OSError:
         os.close(read)

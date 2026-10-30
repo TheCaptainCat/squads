@@ -2,7 +2,6 @@
 
 from squads._api._api import Api
 from squads._cli import app
-from squads._cli._calls import session_api
 from squads._cli._common import handle_errors
 from squads._context import get_context
 from squads._errors import SquadsError
@@ -19,14 +18,16 @@ def ui() -> None:
             "the sq ui terminal UI needs the optional 'tui' extra — "
             "install it with `pip install squads[tui]`"
         ) from exc
+    from squads._cli._remote import SelectedApi
     from squads._tui._app import SquadsApp, open_session
 
-    ctx = get_context()
+    session = SelectedApi(get_context().client_cwd)
 
     def selector() -> Api:
-        return session_api(ctx.api, ctx.client_cwd)
+        session.reselect()
+        return session
 
     import asyncio
 
-    session, opening = asyncio.run(open_session(selector))
-    SquadsApp(session, opening).run()
+    tui_session, opening = asyncio.run(open_session(selector))
+    SquadsApp(tui_session, opening).run()

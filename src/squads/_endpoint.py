@@ -5,6 +5,10 @@ an :class:`Endpoint`. The CLI, the daemon and ``SquadsConfig``'s reading of ``[d
 it, so they cannot resolve differently. It is standard library only and reads nothing but
 ``SQUADS_DAEMON``, the ``.squads.toml`` the walk-up finds (``squad_dir`` and ``[daemon]``), the
 squad directory's real path and the daemon's files in the runtime directory.
+
+The CLI's shim loads it on every command, so it imports neither ``dataclasses``, ``typing`` nor
+the installed-package metadata: its records are plain classes and its annotations are never
+evaluated.
 """
 
 import hashlib
@@ -13,10 +17,12 @@ import os
 import stat
 import sys
 import tomllib
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path, PurePath
-from typing import Any, Literal, NamedTuple, cast
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+    from typing import Any, Literal
 
 CONFIG_FILENAME = ".squads.toml"
 DEFAULT_SQUAD_DIR = "squads"
@@ -34,29 +40,56 @@ MAX_IDLE_MINUTES = 100 * 365 * 24 * 60
 _LOCAL_MODE = "every command runs in local mode until it is fixed"
 
 
-@dataclass(frozen=True)
 class DaemonSettings:
     """The ``[daemon]`` table of ``.squads.toml``."""
 
+    __slots__ = ("browser", "enabled", "idle_timeout_minutes")
+
     #: ``false``: local mode only; the CLI never starts or contacts a daemon.
-    enabled: bool = True
+    enabled: bool
     #: Exit after this long without a request; ``0`` is never.
-    idle_timeout_minutes: int = 30
+    idle_timeout_minutes: int
     #: Also open the browser listener.
-    browser: bool = False
+    browser: bool
+
+    def __init__(
+        self, enabled: bool = True, idle_timeout_minutes: int = 30, browser: bool = False
+    ) -> None:
+        self.enabled = enabled
+        self.idle_timeout_minutes = idle_timeout_minutes
+        self.browser = browser
+
+    def as_dict(self) -> dict[str, bool | int]:
+        """The settings by key, in the order the table writes them."""
+        return {
+            "enabled": self.enabled,
+            "idle_timeout_minutes": self.idle_timeout_minutes,
+            "browser": self.browser,
+        }
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, DaemonSettings) and self.as_dict() == other.as_dict()
+
+    __hash__ = None  # pyright: ignore[reportAssignmentType]
+
+    def __repr__(self) -> str:
+        return f"DaemonSettings({', '.join(f'{k}={v!r}' for k, v in self.as_dict().items())})"
 
 
-class DaemonProblem(NamedTuple):
+class DaemonProblem:
     """Something unusable in the ``[daemon]`` table: a line for ``sq check``, and whether it puts
     the CLI in local mode (an unknown key is reported and otherwise ignored)."""
 
-    text: str
-    fatal: bool
-    #: The key that is unusable; ``None`` when the whole table is.
-    key: str | None = None
+    __slots__ = ("fatal", "key", "text")
+
+    def __init__(self, text: str, fatal: bool, key: str | None = None) -> None:
+        self.text = text
+        self.fatal = fatal
+        #: The key that is unusable; ``None`` when the whole table is.
+        self.key = key
 
 
-def parse_daemon(raw: Any) -> tuple[DaemonSettings, list[DaemonProblem]]:
+def parse_daemon(raw: object) -> tuple[DaemonSettings, list[DaemonProblem]]:
     """The settings *raw* declares, with a problem for each part that is not usable.
 
     Never raises: an unknown key, a boolean that is not ``true`` or ``false``, a timeout that is
@@ -69,7 +102,7 @@ def parse_daemon(raw: Any) -> tuple[DaemonSettings, list[DaemonProblem]]:
                 f"[daemon] must be a table, got {type(raw).__name__}; {_LOCAL_MODE}", fatal=True
             )
         ]
-    table = cast("dict[str, Any]", raw)
+    table: dict[str, Any] = raw  # pyright: ignore[reportUnknownVariableType]
     usable: dict[str, Any] = {}
     problems: list[DaemonProblem] = []
     for key, value in table.items():
@@ -159,25 +192,40 @@ def find_config(start: Path) -> Path | None:
     return None
 
 
-Transport = Literal["unix", "tcp"]
+type Transport = Literal["unix", "tcp"]
 
 
-@dataclass(frozen=True)
 class EndpointFiles:
     """The four files a daemon keeps per key in the runtime directory."""
 
-    socket: Path
-    info: Path
-    lock: Path
-    log: Path
+    __slots__ = ("info", "lock", "log", "socket")
+
+    def __init__(self, socket: Path, info: Path, lock: Path, log: Path) -> None:
+        self.socket = socket
+        self.info = info
+        self.lock = lock
+        self.log = log
 
     def all(self) -> tuple[Path, ...]:
         return (self.socket, self.info, self.lock, self.log)
 
 
-@dataclass(frozen=True)
 class Endpoint:
     """Where a squad's daemon lives and how a client reaches and recognises it."""
+
+    __slots__ = (
+        "enabled",
+        "files",
+        "identity_check",
+        "key",
+        "local_mode",
+        "problems",
+        "root",
+        "runtime_dir",
+        "settings",
+        "squad_dir",
+        "transport",
+    )
 
     #: The project root, which holds ``.squads.toml``.
     root: Path
@@ -198,17 +246,54 @@ class Endpoint:
     #: Whether the daemon may be started or contacted: the table and ``SQUADS_DAEMON`` decide.
     enabled: bool
     #: What is unusable in the settings, one line each; local mode applies for the cause.
-    problems: tuple[str, ...] = ()
+    problems: tuple[str, ...]
+
+    def __init__(
+        self,
+        root: Path,
+        squad_dir: Path,
+        key: str,
+        runtime_dir: Path,
+        settings: DaemonSettings,
+        enabled: bool,
+        problems: tuple[str, ...],
+        windows: bool,
+    ) -> None:
+        self.root = root
+        self.squad_dir = squad_dir
+        self.key = key
+        self.runtime_dir = runtime_dir
+        self.files = EndpointFiles(
+            socket=runtime_dir / f"{key}.sock",
+            info=runtime_dir / f"{key}.json",
+            lock=runtime_dir / f"{key}.lock",
+            log=runtime_dir / f"{key}.log",
+        )
+        self.transport = "tcp" if windows else "unix"
+        self.identity_check = "pid-and-path" if windows else "socket"
+        self.local_mode = True
+        self.settings = settings
+        self.enabled = enabled
+        self.problems = problems
 
 
-@dataclass(frozen=True)
 class DaemonRecord:
     """What ``<key>.json`` says about the daemon that wrote it."""
+
+    __slots__ = ("listeners", "pid", "squad_dir", "version")
 
     pid: int
     version: str
     squad_dir: str
     listeners: tuple[tuple[str, str, str], ...]
+
+    def __init__(
+        self, pid: int, version: str, squad_dir: str, listeners: tuple[tuple[str, str, str], ...]
+    ) -> None:
+        self.pid = pid
+        self.version = version
+        self.squad_dir = squad_dir
+        self.listeners = listeners
 
     def address(self, transport: str, kind: str) -> str | None:
         """The address of the first listener of *transport* serving *kind*, or ``None``."""
@@ -295,26 +380,15 @@ def endpoint_for(
     # An unusable setting puts every command in local mode: nothing is started or contacted.
     enabled = not fatal and (settings.enabled if forced is None else forced)
     key = squad_key(squad_dir, version, package)
-    runtime = runtime_directory(env, plat)
-    files = EndpointFiles(
-        socket=runtime / f"{key}.sock",
-        info=runtime / f"{key}.json",
-        lock=runtime / f"{key}.lock",
-        log=runtime / f"{key}.log",
-    )
-    on_windows = plat == "win32"
     return Endpoint(
         root=root,
         squad_dir=squad_dir,
         key=key,
-        runtime_dir=runtime,
-        files=files,
-        transport="tcp" if on_windows else "unix",
-        identity_check="pid-and-path" if on_windows else "socket",
-        local_mode=True,
+        runtime_dir=runtime_directory(env, plat),
         settings=settings,
         enabled=enabled,
         problems=tuple(fatal),
+        windows=plat == "win32",
     )
 
 
