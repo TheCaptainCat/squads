@@ -51,7 +51,7 @@ subentities:
   status: Fixed
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T06:29:25Z'
+updated_at: '2026-10-30T06:34:03Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -213,6 +213,8 @@ Dropping squads' own upper-case metavars would make them consistent with typer's
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-10-30T06:34:03Z] `op-pierre` Pierre Chat:
+  - 2026-10-30: argument names stay lower case everywhere: drop squads own upper-case metavars (N, STATUS, HASH, …) so usage lines read {n}, {status}, {hash}.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 

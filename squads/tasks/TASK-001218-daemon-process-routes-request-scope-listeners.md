@@ -63,10 +63,10 @@ subentities:
   story: US1
 - local_id: ST12
   title: Operation notices travel in warnings, nothing below the CLI prints
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T00:46:03Z'
+updated_at: '2026-10-30T00:50:49Z'
 ---
 <!-- sq:body -->
 ## Goal

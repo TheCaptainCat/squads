@@ -194,7 +194,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T06:29:23Z'
+updated_at: '2026-10-30T06:34:02Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -982,6 +982,8 @@ Options: derive the examples from the active spec, as the squads skill and the C
 #### Discussion
 
 <!-- sq:finding:F34:discussion -->
+- [2026-10-30T06:34:02Z] `op-pierre` Pierre Chat:
+  - 2026-10-30: no derivation. When an adopter renames a type, they override the role definitions too; the bundled roles.toml text stays as written.
 <!-- sq:finding:F34:discussion:end -->
 <!-- sq:finding:F34:end -->
 
