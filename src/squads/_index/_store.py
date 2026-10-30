@@ -304,8 +304,17 @@ class IndexStore:
         self.lock_path = lock_path
         self._spec = spec
         # Layer 3 — cross-process file lock. thread_local=False is safe because Layer 2
-        # guarantees single-threaded entry, so its shared-state race is unreachable.
-        self._lock = FileLock(str(lock_path), timeout=lock_timeout, thread_local=False)
+        # guarantees single-threaded entry, so its shared-state race is unreachable. The lock must
+        # be the OS lock, which dies with its holder: fallback_to_soft=False fails loudly where it
+        # is unavailable rather than degrading to a marker file that outlives a killed process,
+        # and preserve_lock_file=True keeps the file on disk after release on every platform.
+        self._lock = FileLock(
+            str(lock_path),
+            timeout=lock_timeout,
+            thread_local=False,
+            fallback_to_soft=False,
+            preserve_lock_file=True,
+        )
         self._lock_timeout = lock_timeout
         # Layer 2 — proc-mutex: one OS thread in the file-lock section at a time.
         self._proc_mutex: threading.Lock = threading.Lock()

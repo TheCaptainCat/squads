@@ -78,11 +78,11 @@ async def test_up_brings_an_older_squad_to_the_current_schema(
 
 
 def _snapshot(root: Path) -> dict[str, bytes]:
-    """Every file under *root* except the index, with its bytes."""
+    """Every file under *root* except the index and its lock file, with its bytes."""
     return {
         str(p.relative_to(root)): p.read_bytes()
         for p in sorted(root.rglob("*"))
-        if p.is_file() and p.name != ".squads.json"
+        if p.is_file() and p.name not in (".squads.json", ".squads.json.lock")
     }
 
 
@@ -372,7 +372,7 @@ async def test_chlog_requires_a_range(invoke) -> None:
     result = await invoke(["migrate", "chlog"])
     assert (result.exit_code, result.output) == (
         2,
-        "Usage: sq migrate chlog [OPTIONS] vFROM..vTO\n"
+        "Usage: sq migrate chlog [OPTIONS] {vFROM..vTO}\n"
         "Try 'sq migrate chlog --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ Missing argument 'vFROM..vTO'.                                               │\n"
@@ -542,9 +542,9 @@ async def test_repad_refuses_a_width_that_is_not_an_integer(populated_project, i
     result = await invoke(["migrate", "repad", "wide"])
     assert (result.exit_code, result.output) == (
         2,
-        "Usage: sq migrate repad [OPTIONS] WIDTH\nTry 'sq migrate repad --help' for help.\n"
+        "Usage: sq migrate repad [OPTIONS] {WIDTH}\nTry 'sq migrate repad --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ Invalid value for 'WIDTH': 'wide' is not a valid integer.                    │\n"
+        "│ Invalid value for 'WIDTH': 'wide' is not a valid int.                        │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
 
