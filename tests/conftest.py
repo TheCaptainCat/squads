@@ -5,6 +5,7 @@ The leak guards are autouse; the squad fixtures copy a template built once per m
 """
 
 import functools
+import os
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -24,6 +25,7 @@ from squads._workflow._models import WorkflowSpec
 from tests import _cli_surface as cli_surface
 from tests import _write_guard
 from tests._helpers import make_service
+from tests._parity import ParityApi
 from tests._squads import (
     FROZEN,
     Builder,
@@ -244,8 +246,12 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     at teardown the test fails when a pair its `covers` markers declare was not reached.
     """
     reached: set[cli_surface.Pair] = set()
+    remote = os.environ.get("SQUADS_TEST_MODE") == "remote"
+    parity = ParityApi() if remote else None
 
     async def _invoke(args: list[str], **kw: Any) -> Any:
+        if parity is not None:
+            bind_context(replace(get_context(), api=parity))
         spec = _squad_spec()
         reached.update(_reached(args, spec))
         _env_cache.clear()
@@ -255,6 +261,8 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
         return result
 
     yield _invoke
+    if parity is not None:
+        parity.close()
     missing = _declared_pairs(request.node) - reached
     if missing:
         listed = ", ".join(

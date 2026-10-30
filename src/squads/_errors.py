@@ -159,3 +159,8 @@ class VocabularyMismatchError(SquadsError):
     def __init__(self, digests: dict[str, str]) -> None:
         super().__init__("the client's workflow vocabulary differs from the squad's")
         self.details = dict(digests)
+
+
+class ClientInterruptedError(SquadsError):
+    """The caller stopped waiting for an answer (Ctrl-C); the operation it sent may still
+    complete."""

@@ -70,6 +70,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "test squad that shares none of its vocabulary (default: $SQUADS_TEST_SQUAD, else bundled)",
     )
     parser.addoption(
+        "--api-mode",
+        action="store",
+        default=os.environ.get("SQUADS_TEST_MODE", "local"),
+        choices=("local", "remote"),
+        help="how the tests/cli surface suite reaches its operations: in this process (local), "
+        "or over HTTP to the daemon's application served on a thread (remote); it combines with "
+        "--squad (default: $SQUADS_TEST_MODE, else local)",
+    )
+    parser.addoption(
         "--run-slow",
         action="store_true",
         default=False,
@@ -88,6 +97,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 def pytest_configure(config: pytest.Config) -> None:
     """Publish the selected squad to the modules that read it at import time."""
     os.environ["SQUADS_TEST_SQUAD"] = str(config.getoption("--squad"))
+    os.environ["SQUADS_TEST_MODE"] = str(config.getoption("--api-mode"))
+    # No test starts a daemon unless it says so; one that exercises the daemon sets it itself.
+    os.environ["SQUADS_DAEMON"] = "off"
 
 
 def _skip_other_squad(config: pytest.Config, items: list[pytest.Item]) -> None:

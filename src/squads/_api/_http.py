@@ -10,7 +10,7 @@ from urllib.parse import quote, urlencode
 from pydantic import BaseModel, ValidationError
 
 from squads._api._api import Operation
-from squads._api._errors import ErrorBody
+from squads._api._errors import ErrorBody, ErrorDetail
 from squads._api._response import Response
 from squads._errors import SquadsError
 
@@ -104,15 +104,34 @@ def encode_request(op: Operation[Any, Any], req: BaseModel) -> tuple[str, str, b
     return method, target, json.dumps(fields).encode("utf-8")
 
 
-def parse_response[Res](op: Operation[Any, Res], status: int, body: bytes) -> Response[Res]:
-    """The response a ``200`` answer carries; any other answer raises the ``SquadsError`` whose
-    message the server sent."""
-    if status == 200:
-        return Response[op.response].model_validate_json(body)
+def error_detail(status: int, body: bytes) -> ErrorDetail:
+    """The error an answer other than ``200`` carries; an answer with no error body is a
+    ``SquadsError`` of its own."""
     try:
-        detail = ErrorBody.model_validate_json(body).error
+        return ErrorBody.model_validate_json(body).error
     except ValidationError:
         raise SquadsError(f"the server answered {status} with no error body") from None
+
+
+def is_retiring(status: int, body: bytes) -> bool:
+    """Whether an answer is the daemon declining the call because its configuration changed."""
+    if status != 503:
+        return False
+    try:
+        document: Any = json.loads(body)
+    except ValueError:
+        return False
+    if not isinstance(document, dict):
+        return False
+    return cast("dict[str, Any]", document).get("not_executed") == "retiring"
+
+
+def parse_response[Res](op: Operation[Any, Res], status: int, body: bytes) -> Response[Res]:
+    """The response a ``200`` answer carries; any other answer raises the ``SquadsError`` whose
+    message and notices the server sent."""
+    if status == 200:
+        return Response[op.response].model_validate_json(body)
+    detail = error_detail(status, body)
     failure = SquadsError(detail.message)
     failure.warnings = tuple(detail.warnings)
     raise failure

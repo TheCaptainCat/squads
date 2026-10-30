@@ -27,6 +27,12 @@ def select_api() -> Api:
     return local_api()
 
 
+def invocation_api(prior: Api | None) -> Api:
+    """The API an invocation starts with: *prior* when the context it replaces already carries
+    one (a harness hands the root callback its own), else the one selected."""
+    return prior if prior is not None else select_api()
+
+
 def call[Req: BaseModel, Res](op: Operation[Req, Res], req: Req) -> Response[Res]:
     """Make the one call a command makes, through the invocation's API."""
     api = get_context().api

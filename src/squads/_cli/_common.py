@@ -47,6 +47,7 @@ from squads._cli._render._style import intent_style
 from squads._context import get_context
 from squads._endpoint import ChangeDirError, change_directory
 from squads._errors import (
+    ClientInterruptedError,
     NotInitializedError,
     SquadsError,
 )
@@ -830,7 +831,7 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
         except SquadsError as exc:
             print_notices(exc.warnings)
             err_console.print(f"[red]error:[/red] {e(error_text(exc))}", soft_wrap=True)
-            raise typer.Exit(1) from exc
+            raise typer.Exit(130 if isinstance(exc, ClientInterruptedError) else 1) from exc
 
     return wrapper
 
