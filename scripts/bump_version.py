@@ -15,7 +15,8 @@ clear message):
   2. Rewrite ``pyproject.toml`` ``version`` and the ``__version__`` literal
      of ``src/squads/__init__.py`` -> the new version.
   3. Rewrite ``clients/vscode/package.json`` ``version`` -> the new version.
-  4. ``uv sync --all-extras`` so ``squads.__version__`` reflects the bump.
+  4. ``uv sync --all-extras`` so the installed distribution's metadata and the
+     lock follow the bump.
   5. Template-manifest gotcha: ``git checkout v<prior> --
      src/squads/_rendering/templates_manifest.json`` (restoring the prior
      release's entry byte-identical to its tag), then run

@@ -175,3 +175,67 @@ def test_the_local_only_commands_are_never_sent_to_a_daemon(
         silent.close()
 
     assert (codes, silent.requests) == ({"daemon": 0, "init": 0, "adopt": 0, "ui": 0}, 0)
+
+
+def test_a_daemon_that_retires_runs_nothing_and_the_command_runs_locally(
+    project: SquadPaths, endpoint: Endpoint
+) -> None:
+    assert ensure(endpoint) is None
+    config = project.config_path
+    config.write_text(config.read_text(encoding="utf-8") + "\n# edited\n", encoding="utf-8")
+
+    result = subprocess.run(
+        sq_command(project, "list", "--json"),
+        capture_output=True,
+        text=True,
+        env=remote_env(),
+        check=False,
+    )
+
+    assert (result.returncode, result.stderr) == (0, "")
+    assert [item["type"] for item in json.loads(result.stdout)] == ["role"]
+
+
+def _ctrl_c_at_the_prompt(project: SquadPaths, daemon: str, *argv: str) -> tuple[int, bytes]:
+    """The exit code and whole terminal output of *argv* on a pseudo-terminal it owns, interrupted
+    once it asks."""
+    import pty
+
+    command = sq_command(project, *argv)
+    pid, master = pty.fork()
+    if pid == 0:  # pragma: no cover
+        os.execve(command[0], command, {**env(), "SQUADS_DAEMON": daemon, "TERM": "xterm"})
+    shown = b""
+    while PROMPT not in shown:
+        shown += os.read(master, 4096)
+    os.write(master, b"\x03")
+    try:
+        while chunk := os.read(master, 4096):
+            shown += chunk
+    except OSError:  # the terminal closes with the process
+        pass
+    os.close(master)
+    _, status = os.waitpid(pid, 0)
+    return os.waitstatus_to_exitcode(status), shown
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="the terminal is a Unix pseudo-terminal")
+@pytest.mark.filterwarnings("ignore:This process:DeprecationWarning")
+def test_ctrl_c_at_a_prompt_reads_as_it_does_locally(
+    project: SquadPaths, endpoint: Endpoint
+) -> None:
+    number = json.loads(
+        local(project, "create", "task", "Prompted", "--author", "manager", "--json").stdout
+    )["sequence_id"]
+    local(project, "task", str(number), "comment", "--as", "manager", "-m", "Kept")
+    short = json.loads(local(project, "task", str(number), "comments", "--json").stdout)[0][
+        "short_hash"
+    ]
+    remove = ("task", str(number), "comment", short, "remove", "--as", "manager")
+
+    here = _ctrl_c_at_the_prompt(project, "off", *remove)
+    served = _ctrl_c_at_the_prompt(project, "on", *remove)
+
+    assert served == here
+    assert here[0] == 1
+    assert comments_of(project, number) == ["- Kept"]

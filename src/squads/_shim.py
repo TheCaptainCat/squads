@@ -26,8 +26,8 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from typing import Any
 
-#: The variables the client sends with a command, absent ones left out. A variable outside this
-#: list does not exist for a served command; the daemon's diagnostic variables are never on it.
+#: The variables the client sends with a command, absent ones left out. A served command reads
+#: these from the request, and any other variable from the daemon's own environment.
 SENT_ENVIRONMENT: tuple[str, ...] = (
     "SQUADS_SESSION_ID",
     "SQUADS_PARENT_SESSION_ID",
@@ -173,11 +173,21 @@ def file_arguments(argv: list[str], lead: Leading) -> list[str]:
     return named
 
 
-def long_command(lead: Leading) -> tuple[str, ...] | None:
-    """The command path of *lead* when its operation has no answer deadline, else ``None``."""
-    for path, _ in LONG_COMMANDS:
-        if tuple(lead.words[: len(path)]) == path:
-            return path
+def long_command(argv: list[str], lead: Leading) -> str | None:
+    """The operation of *argv* when it has no answer deadline, else ``None``. The command words
+    are read past options, as the CLI reads a global option wherever it stands."""
+    words: list[str] = []
+    skip = False
+    for word in argv[lead.at :]:
+        if skip:
+            skip = False
+        elif word in ("--at", "--dir"):
+            skip = True
+        elif not word.startswith("-"):
+            words.append(word)
+    for path, operation in LONG_COMMANDS:
+        if tuple(words[: len(path)]) == path:
+            return operation
     return None
 
 
@@ -600,7 +610,7 @@ class Retiring(Fallback):
 class Session:
     """One command line sent to the daemon: its request, its answers and its output."""
 
-    def __init__(self, endpoint: Endpoint, request: dict[str, Any], long: tuple[str, ...] | None):
+    def __init__(self, endpoint: Endpoint, request: dict[str, Any], long: str | None):
         self.endpoint = endpoint
         self.request = request
         self.long = long
@@ -621,11 +631,7 @@ class Session:
         except Unsent as exc:
             raise Fallback from exc
         wait = None if self.long is not None else ANSWER_TIMEOUT
-        notice = (
-            Notice(f"waiting for the daemon ({' '.join(self.long)})…")
-            if self.long is not None
-            else None
-        )
+        notice = Notice(f"waiting for the daemon ({self.long})…") if self.long is not None else None
         try:
             _send(sock, host, "POST", "/v1/commands", body)
             self.sent = True
@@ -685,14 +691,12 @@ class SendFailed(Exception):
 
 def _read_line() -> str | None:
     """One line of stdin without its line end, or ``None`` at the end of input. Ctrl-C at the
-    prompt aborts the command as the prompt does."""
+    prompt is the end of input too, which the prompt aborts on as it does for Ctrl-C."""
     try:
         line = sys.stdin.readline()
     except KeyboardInterrupt:
-        sys.stderr.write("\nAborted!\n")
-        sys.stderr.flush()
-        raise SystemExit(1) from None
-    except OSError, ValueError:
+        return None
+    except (OSError, ValueError):  # fmt: skip
         return None
     if not line:
         return None
@@ -745,7 +749,7 @@ class Plan:
         self,
         endpoint: Endpoint,
         request: dict[str, Any],
-        long: tuple[str, ...] | None,
+        long: str | None,
         stdin: bytes | None,
     ) -> None:
         self.endpoint = endpoint
@@ -806,7 +810,7 @@ def plan(argv: list[str]) -> Plan | None:
         environ=os.environ,
         prog_name=program_name(),
     )
-    return Plan(endpoint, request, long_command(lead), stdin)
+    return Plan(endpoint, request, long_command(argv, lead), stdin)
 
 
 def serve(argv: list[str]) -> int | None:

@@ -126,14 +126,14 @@ def _take(fd: int) -> bool:
         except OSError:
             return False
         return True
+    import errno
     import fcntl
 
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        return False
-    except OSError:
-        return True
+    except OSError as exc:
+        # contention, as ``filelock`` reads it: some filesystems report EACCES for a held lock
+        return exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK)
     return True
 
 

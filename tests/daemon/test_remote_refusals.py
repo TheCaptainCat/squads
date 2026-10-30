@@ -1,5 +1,7 @@
-"""What the CLI prints when the daemon refuses a client for its schema or its vocabulary: whole
-stderr and exit code, nothing run and no fall back to local mode."""
+"""What an `HttpApi` client prints when the daemon refuses it for its schema or its vocabulary:
+whole stderr and exit code, nothing run and no fall back to local mode. The CLI process does not
+select `HttpApi` itself; the terminal UI does, and this file hands one to the root callback as the
+route-parity run does, so the refusal text is held as that client renders it."""
 
 import functools
 import http.client

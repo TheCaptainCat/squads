@@ -1,6 +1,7 @@
-"""Repo-hygiene gate: the CLI's shim, run as the console script runs it, loads no `squads` module
-beyond the few it is allowed, no third-party package, and none of `dataclasses`, `typing` or
-`importlib.metadata`, on the way to a live daemon and on a cold start that ends with one."""
+"""Repo-hygiene gate: the shim loads no `squads` module beyond a few, no third-party package and
+none of `dataclasses`, `typing`, `importlib.metadata`, on a live path (a read, a stdin attachment,
+a confirmed prompt, a command with no deadline) and on a cold start. Not run: the error and
+Ctrl-C handlers, the local fall back and the Windows-only branches."""
 
 import json
 import subprocess
@@ -53,17 +54,37 @@ def _breaches(loaded: list[str], allowed: frozenset[str]) -> list[str]:
     return sorted(found)
 
 
-def _loaded(project: SquadPaths, out: Path) -> list[str]:
+def _loaded(
+    project: SquadPaths, out: Path, argv: list[str] | None = None, stdin: str = ""
+) -> list[str]:
     done = subprocess.run(
-        [sys.executable, "-I", "-c", PROBE, str(out), "-C", str(project.root), "list", "--json"],
+        [
+            sys.executable,
+            "-I",
+            "-c",
+            PROBE,
+            str(out),
+            "-C",
+            str(project.root),
+            *(argv or ["list", "--json"]),
+        ],
         capture_output=True,
         text=True,
+        input=stdin,
         env={**env(), "SQUADS_DAEMON": "on"},
         check=False,
     )
     assert (done.returncode, done.stderr) == (0, "")
-    assert json.loads(done.stdout)
     return json.loads(out.read_text(encoding="utf-8"))
+
+
+def _setup(project: SquadPaths) -> tuple[str, str]:
+    """A task with a comment, made without a daemon: its number and the comment's short hash."""
+    created = run(sq_command(project, "create", "task", "Shapes", "--author", "manager", "--json"))
+    number = str(json.loads(created.stdout)["sequence_id"])
+    run(sq_command(project, "task", number, "comment", "--as", "manager", "-m", "Remove me"))
+    listed = run(sq_command(project, "task", number, "comments", "--json"))
+    return number, json.loads(listed.stdout)[0]["short_hash"]
 
 
 @pytest.fixture
@@ -83,7 +104,20 @@ def test_the_shim_on_the_way_to_a_live_daemon_loads_only_its_own_modules(
     assert endpoint is not None
     assert ensure(endpoint) is None
 
-    assert _breaches(_loaded(project, tmp_path / "live.json"), _LIVE) == []
+    number, short = _setup(project)
+    shapes = {
+        "read": (["list", "--json"], ""),
+        "a stdin attachment": (["task", number, "body", "--file", "-", "--force"], "From stdin\n"),
+        "a confirmed prompt": (
+            ["task", number, "comment", short, "remove", "--as", "manager"],
+            "y\n",
+        ),
+        "no answer deadline": (["repair"], ""),
+    }
+
+    for name, (argv, stdin) in shapes.items():
+        loaded = _loaded(project, tmp_path / "live.json", argv, stdin)
+        assert (name, _breaches(loaded, _LIVE)) == (name, [])
 
 
 def test_the_shim_that_starts_a_daemon_adds_only_the_start_modules(
