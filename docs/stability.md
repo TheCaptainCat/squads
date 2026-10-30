@@ -506,8 +506,8 @@ See [daemon.md § "Settings"](daemon.md#settings).
 - **An unknown key** is reported by `sq check` (`daemon_config_valid`, `warn`) and otherwise
   ignored, so a table written for a newer squads does not stop an older one.
 - **An unusable value** (a wrong type, a negative timeout, a `[daemon]` that is not a table) or an
-  unusable `SQUADS_DAEMON` puts every command in local mode, with one line on stderr, and is
-  reported by `sq check`. It never changes what a command does, only where it runs.
+  unusable `SQUADS_DAEMON` puts every command in local mode, silently, and is reported by
+  `sq check`. It never changes what a command does, only where it runs.
 - **Takes effect** at the next command: a changed `.squads.toml` retires the running daemon.
 - **Written by** no command: `sq init` and `sq adopt` leave it out, and `sq migrate up` keeps its
   values.

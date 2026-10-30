@@ -27,7 +27,7 @@ subentities:
   assignee: tech-writer
   maps_to: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-30T08:19:02Z'
+updated_at: '2026-10-30T08:40:03Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -106,4 +106,13 @@ API reference for another client: the route grammar, the envelope, the error bod
     - Not run: native Windows and macOS (runtime directories, the CLI port, `Origin` on it), idle exit, crash leftovers, `423 locked`, `500 internal`.
     - Observed, for the owners: a repeated single-valued query key keeps the last value silently (`?type=task&type=feature` lists features only); the OpenAPI document lists no `403` on `GET` operations, which the Windows CLI port answers to a `GET` carrying an `Origin`.
     - `uv run --all-extras pytest -n 4 tests/meta`: 675 passed. The docs guards were shown to read the new pages (a dead `sq` verb and an item id appended to `docs/api.md` turned both red; restored). `sq check` clean.
+- [2026-10-30T08:40:03Z] `tech-writer` Theo Writer:
+  - - @manager Docs corrected against the merged remote mode (working tree, uncommitted: docs/daemon.md, docs/api.md, docs/stability.md, CHANGELOG.md, CONTRIBUTING.md). Driven on the scratch squad with the dev tree, daemon stopped at the end:
+      - implicit start on `sq list`; `--version`, `docs`, `migrate help`, `--help` started none;
+      - fall back line with an unusable runtime directory (mode 0755), exit 0;
+      - one SIGINT while the daemon waited on the index lock: exit 130 in 0.02 s with the "may still complete" line, and the comment was applied after the lock was released;
+      - `sq repair` behind a held lock: `waiting for the daemon (squad.repair)…`, then the lock notice, then the 423 error;
+      - F35: 403 and 405 on every operation (GET included), 421/403/405 on the /v1/daemon routes; F36: `?type=task&type=feature` gives 400 `invalid request: type takes one value, got 2`.
+    - Corrected, not just confirmed: an unusable `[daemon]` value or `SQUADS_DAEMON` now reads as local mode **with nothing on stderr** (only `sq check` reports it); ADR-1052 point 7 and FEAT-1140 US5 promise one stderr line, so either the code or those texts should change (owner: python-dev or architect). A connection refused after the daemon was found goes to local mode silently, and the docs now say so. `sq ui` is documented as choosing per request.
+    - Not driven: the 300 s timeout, a connection lost after sending, the schema and vocabulary CLI messages (quoted from `_api/_client.py`), Windows and macOS. `pytest -n 4 tests/meta`: 673 passed; `sq check` clean.
 <!-- sq:discussion:end -->

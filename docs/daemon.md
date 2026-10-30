@@ -24,9 +24,12 @@ Remote mode applies when the daemon is enabled (it is by default, see
 [Settings](#settings)). Local mode applies when it is disabled, and when a daemon cannot be started
 (see [When the daemon cannot be used](#when-the-daemon-cannot-be-used)).
 
-These commands never start or contact a daemon, whatever the settings: `sq --help`, `sq --version`,
-shell completion, `sq docs`, `sq migrate help`, `sq migrate chlog`, `sq init`, `sq adopt` and
-`sq daemon`. `sq ui` follows the same rule as the other commands.
+The mode is chosen at the first operation a command calls, so a command that calls none never
+starts or contacts a daemon, whatever the settings: `sq --help`, `sq --version`, shell completion,
+`sq docs`, `sq migrate help` and `sq migrate chlog`. Neither do `sq init` and `sq adopt`, which
+create a squad and always run locally, nor `sq daemon`, which talks to the daemon itself. `sq ui`
+chooses again for each request it makes, by the same rule, so a daemon that stops or retires while
+it is open is found or started again at its next request, or local mode is used.
 
 ### What differs between the modes
 
@@ -51,7 +54,14 @@ The output is the same; the timing and Ctrl-C are not.
   operations wait for as long as they take: `sq migrate up`, `sq migrate repad`,
   `sq migrate rename-type`, `sq migrate rename-status`, `sq migrate rename-field`,
   `sq migrate rename-kind`, `sq repair`, `sq renumber` and `sq import`. After 10 seconds they print
-  `waiting for the daemon (<operation>)…` on stderr, so a long run is not taken for a hang. When
+  a line on stderr naming the operation, so a long run is not taken for a hang:
+
+  ```
+  waiting for the daemon (squad.repair)…
+  warning: waiting for the index lock <path>…
+  ```
+
+  (the second line is a notice from the operation, printed when the answer arrives). When
   the 300 seconds pass, the command prints the message above with the duration
   (`… after 300 s; the operation may still complete. …`) and exits `1`.
 - **Nothing is sent twice.** If the connection is lost after the request was sent, the command
@@ -59,8 +69,8 @@ The output is the same; the timing and Ctrl-C are not.
   was sent (…); the operation may still complete. …`) and exits `1`. It never runs the operation
   again, in either mode, because the first attempt may have been applied.
 
-A connection that cannot be made at all (nothing was sent) is handled like a daemon that cannot be
-started: the command runs in local mode.
+A daemon that was found but cannot be connected to when the command sends its request (nothing
+was sent) gives way to local mode, with nothing printed.
 
 Prompts, such as the confirmation before a removal, are asked in your own terminal in both modes.
 
@@ -99,8 +109,8 @@ configuration. `sq override` and `sq migrate up`, which write those files, retir
 
 **An unusable setting means local mode.** A value of the wrong type (`enabled = "yes"`), an
 `idle_timeout_minutes` that is negative or not a whole number, a `[daemon]` that is not a table, or
-a `SQUADS_DAEMON` other than `on` or `off` puts every command in local mode, with one line on stderr
-naming the problem. `sq check` reports the same problems, and also an unknown key in the table,
+a `SQUADS_DAEMON` other than `on` or `off` puts every command in local mode. The command itself
+prints nothing about it; `sq check` reports the problem, and also an unknown key in the table,
 which is otherwise ignored:
 
 ```
@@ -200,10 +210,10 @@ the code keeps answering with the old code until it exits. Set `enabled = false`
 If a daemon cannot be started, because the process cannot be spawned, it reports a failure, it
 does not answer within 5 seconds, or the runtime directory is unusable (missing and impossible to
 create, owned by another user, open to other users, or a path too long for a socket), the command
-runs in local mode and prints one line on stderr:
+runs in local mode and prints one line on stderr. For a runtime directory open to other users:
 
 ```
-warning: the daemon could not be used (<reason>); running locally. Set SQUADS_DAEMON=off or `enabled = false` under [daemon] in .squads.toml to stop trying.
+warning: the daemon could not be used (/run/user/1000/squads is accessible to other users (mode 0755)); running locally. Set SQUADS_DAEMON=off or `enabled = false` under [daemon] in .squads.toml to stop trying.
 ```
 
 The next command tries again. A daemon that refuses to start for a reason in the squad itself,
@@ -212,7 +222,7 @@ same problem in local mode.
 
 A daemon that is retiring answers a command without running it, and the command runs in local
 mode with nothing printed. This is the only case where a command is handed to local mode after
-reaching the daemon.
+its request reached the daemon.
 
 ## Client and daemon versions
 

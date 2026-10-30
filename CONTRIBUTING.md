@@ -206,8 +206,10 @@ application through `tests/_daemon_harness.py` (`serve`), calls it with `http.cl
 whole response, and carries no `covers` marker.
 
 **Keep the daemon off in a checkout you are changing.** A daemon serves the code it started with,
-so after a change it keeps answering with the old code until it exits. Export `SQUADS_DAEMON=off`
-in your shell, or run `sq daemon stop` after each change.
+so after a change it keeps answering with the old code until it exits. This repository's
+`.squads.toml` sets `enabled = false` under `[daemon]`, so commands on its own squad run in local
+mode; `SQUADS_DAEMON=on` tries the daemon for one shell without committing a setting. In a scratch
+squad of your own, export `SQUADS_DAEMON=off`, or run `sq daemon stop` after each change.
 
 `tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
 fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:

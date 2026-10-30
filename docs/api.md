@@ -31,7 +31,10 @@ Over a TCP listener a request must meet the admission rules in [Admission](#admi
 
 `GET /v1/openapi.json` returns an OpenAPI 3.1 document describing every operation the daemon
 serves: its method and path, its path and query parameters, its request body, its result schema,
-the response headers it sends, and the error body of each status it can answer with. Generate a
+the response headers it sends, and the error body of each status it can answer with, the
+admission refusals (`421`, `403`, on every operation since the Windows CLI port refuses even a
+`GET` that carries an `Origin`) and `405` with its `Allow` header included. `GET /v1/daemon` and
+`POST /v1/daemon/stop` are in it too. Generate a
 client's types from it. Its `info.version` is the squad's schema version, which is the value to
 send in `Squads-Schema` (see [Compatibility](#compatibility)).
 
@@ -80,8 +83,9 @@ The OpenAPI document lists every route. The grammar behind them:
 
 - **Parameters.** Fields that are not in the path go in the query string for a `GET`, and in a
   UTF-8 JSON body for every other method. A `GET` takes only flat values; a list parameter repeats
-  its key: `?badge=priority=high&badge=severity=major`. A field the operation does not declare is
-  refused with `400 invalid`.
+  its key: `?badge=priority=high&badge=severity=major`. A parameter that takes one value is refused
+  when repeated (`400 invalid`, `invalid request: type takes one value, got 2`), and so is a field
+  the operation does not declare (`invalid request: unknown field(s) colour`).
 - **File content travels as text.** Where a command takes `--file`, `-` or an import file, the
   client reads it and sends its text in the request. The daemon never reads a path a client names.
 
