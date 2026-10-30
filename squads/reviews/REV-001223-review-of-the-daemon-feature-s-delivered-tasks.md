@@ -3,7 +3,7 @@ id: REV-1223
 sequence_id: 1223
 type: review
 title: Review of the daemon feature's delivered tasks
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-1140
@@ -361,7 +361,7 @@ subentities:
   severity: low
 - local_id: F66
   title: CHANGELOG and docs/daemon.md describe the pre-shim remote mode
-  status: Fixed
+  status: Verified
   assignee: tech-writer
   severity: medium
 - local_id: F67
@@ -371,11 +371,11 @@ subentities:
   severity: info
 - local_id: F68
   title: Ctrl-C prompt test races the local prompt's two writes; red on macOS
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T23:41:05Z'
+updated_at: '2026-10-30T23:45:33Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1938,6 +1938,12 @@ The 0.19 release is not cut yet, so the entry and the guide can be rewritten as 
     @tech-writer, all three are text only.
 - [2026-10-30T23:41:05Z] `tech-writer` Theo Writer:
   - Fixed in 1e2394f9, each verified on a scratch copy: the waiting line is shown as `waiting for the daemon (squad.repair)…` (the operation name) in docs/daemon.md and the CHANGELOG; a running daemon that cannot be connected to now reads as the "could not be used (the daemon did not answer)" warning after up to 5 s (socket at mode 000 reproduced it), and is gone from the nothing-printed list; the CHANGELOG states the local rerun when the daemon is lost between a prompt and its answer. @reviewer
+- [2026-10-30T23:44:43Z] `reviewer` Paul Reviewer:
+  - Verified on c23a3448 (~/.cache/rev1223g, scratch squad, the copy's sq):
+    - With WAIT_NOTICE_AFTER lowered to 0.01 in the copy, a served `sq repair` printed `waiting for the daemon (squad.repair)…`, as docs/daemon.md and the CHANGELOG now show.
+    - With a live daemon's socket at mode 000, `sq list` took 6.2 s and printed the `the daemon could not be used (the daemon did not answer)` warning, as the new docs paragraph says. "Up to 5 seconds" is the identity wait; spawning the start probe accounts for the rest.
+    - The CHANGELOG fallback sentence now carries the prompt-rerun exception.
+    - No `(repair)` or "naming the command" wording is left. The remaining "nothing printed" cases (an unreadable file or `-C`, a retiring daemon) are true.
 <!-- sq:finding:F66:discussion:end -->
 <!-- sq:finding:F66:end -->
 
@@ -1980,6 +1986,8 @@ Fix: wait for the whole prompt, `b"[y/N]: "`, before sending Ctrl-C, so `input` 
 <!-- sq:finding:F68:discussion -->
 - [2026-10-30T23:39:46Z] `manager` Catherine Manager:
   - Fixed in fd0d4d61 (cherry-pick of the shim dev's e2f333ef): the test waits for the whole prompt including its trailing space before sending Ctrl-C, and strips the terminal's own ^C echo from both outputs. CI run 41145415746 checks macOS.
+- [2026-10-30T23:44:40Z] `reviewer` Paul Reviewer:
+  - Verified on c23a3448 (archive copy under ~/.cache/rev1223g). The test now waits for `[y/N]: ` and removes the terminal's `^C` echo before comparing, so it no longer depends on when the echo lands. It passed 5 of 5 runs here. Putting the shim's old `Aborted!` handler back still turns it red (`[y/N]: \r\nAborted!` against `[y/N]: Aborted.`), so removing the echo does not hide a real difference. CI run 41145415746 on fd0d4d61 is all green, `cross-process (macos-latest)` included.
 <!-- sq:finding:F68:discussion:end -->
 <!-- sq:finding:F68:end -->
 <!-- sq:findings:end -->
@@ -2170,4 +2178,11 @@ Fix: wait for the whole prompt, `b"[y/N]: "`, before sending Ctrl-C, so `input` 
     - TASK-1266: changes requested on F66 (three text fixes, listed on the finding).
     
     REV-1223 stays ChangesRequested. F66 and F68 block it; every other finding on the review (F1-F67) is Verified or Noted. @tech-writer F66. @python-dev F68. @manager
+- [2026-10-30T23:44:50Z] `reviewer` Paul Reviewer:
+  - F66 and F68 verified on c23a3448 (archive copy under ~/.cache/rev1223g). Every fix was planted back or run live; no daemon was started on this repository, and none is left running. CI run 41145415746 on fd0d4d61 is all green.
+    - TASK-1264: approved. F57-F65, F67 and F68 are Verified.
+    - TASK-1266: approved. F66 is Verified.
+    - REV-1223: every finding F1-F68 is Verified or Noted, so the review moves to Approved. @manager
+- [2026-10-30T23:45:33Z] `manager` Catherine Manager:
+  - The reviewer's approval stands: the operator delegated the overnight loop on ADR-1261 to the manager (2026-10-30), and the manager confirms it.
 <!-- sq:discussion:end -->

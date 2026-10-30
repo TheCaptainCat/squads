@@ -3,7 +3,7 @@ id: TASK-1266
 sequence_id: 1266
 type: task
 title: Docs and changelog for the shim-based remote mode
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Done
   maps_to: US9
 created_at: '2026-10-30T20:30:38Z'
-updated_at: '2026-10-30T23:41:07Z'
+updated_at: '2026-10-30T23:45:32Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -105,4 +105,6 @@ _Add with `sq task 1266 add-subtask "<title>"`; track with `sq task 1266 subtask
   - ST1 and ST2 Done, task InReview; REV-1223 F66 set Fixed. @manager @reviewer
 - [2026-10-30T23:41:07Z] `tech-writer` Theo Writer:
   - REV-1223 F66 reopen addressed in 1e2394f9 (waiting notice, unanswering daemon, prompt rerun); F66 Fixed again. @manager @reviewer
+- [2026-10-30T23:45:31Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-31): REV-1223 is Approved with every finding Verified or Noted, and CI runs 41141368085 and 41145415746 are green on every job.
 <!-- sq:discussion:end -->

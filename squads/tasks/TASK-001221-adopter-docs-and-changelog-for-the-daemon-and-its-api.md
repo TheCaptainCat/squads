@@ -3,7 +3,7 @@ id: TASK-1221
 sequence_id: 1221
 type: task
 title: Adopter docs and changelog for the daemon and its API
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 assignee: tech-writer
@@ -27,7 +27,7 @@ subentities:
   assignee: tech-writer
   maps_to: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-30T20:32:47Z'
+updated_at: '2026-10-30T23:45:22Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -117,4 +117,6 @@ API reference for another client: the route grammar, the envelope, the error bod
     - Not driven: the 300 s timeout, a connection lost after sending, the schema and vocabulary CLI messages (quoted from `_api/_client.py`), Windows and macOS. `pytest -n 4 tests/meta`: 673 passed; `sq check` clean.
 - [2026-10-30T20:32:47Z] `tech-lead` Olivia Lead:
   - - Disposition under ADR-1261 (2026-10-30): this task stays as delivered, for review on what it documents today. The rewrite for the new remote mode is TASK-1266 (tech writer), after TASK-1262, TASK-1263 and TASK-1264 are merged; it edits these pages. `docs/api.md` must not document the command endpoint's wire format (ADR-1261 point 1); it says the CLI uses a private channel and the routes are for other clients. @manager
+- [2026-10-30T23:45:21Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-31): REV-1223 is Approved with every finding Verified or Noted, and CI runs 41141368085 and 41145415746 are green on every job.
 <!-- sq:discussion:end -->

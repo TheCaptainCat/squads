@@ -3,7 +3,7 @@ id: TASK-1264
 sequence_id: 1264
 type: task
 title: 'CLI shim: stdlib client for the command endpoint'
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 assignee: python-dev
@@ -43,7 +43,7 @@ subentities:
   status: Done
   maps_to: US12
 created_at: '2026-10-30T20:30:30Z'
-updated_at: '2026-10-30T22:35:01Z'
+updated_at: '2026-10-30T23:45:28Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -223,4 +223,6 @@ Tests: none; the benchmark is a report.
     - Budget on the rebased build, 31 interleaved runs, load average 3.3-3.8: `show` 46 ms (44-50), `list --json` 50 (49-54), bash Tab 45 (44-47).
 - [2026-10-30T22:35:01Z] `manager` Catherine Manager:
   - Integrated on release/0.19 (31ec215f..da0c2a60 as cherry-picked). Gates: pyright 0, ruff clean, manifest current, full suite 1981 passed, remote 999, routes 999, override 840, cross-process 25. Manager spot-check on a copy of the repo squad: task 1219 show about 140 ms through the shim against about 670 ms local (whole-process wall time).
+- [2026-10-30T23:45:27Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-31): REV-1223 is Approved with every finding Verified or Noted, and CI runs 41141368085 and 41145415746 are green on every job.
 <!-- sq:discussion:end -->

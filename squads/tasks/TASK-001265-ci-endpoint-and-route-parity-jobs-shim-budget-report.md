@@ -3,7 +3,7 @@ id: TASK-1265
 sequence_id: 1265
 type: task
 title: 'CI: endpoint and route parity jobs, shim budget report'
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -23,7 +23,7 @@ subentities:
   status: Done
   maps_to: US12
 created_at: '2026-10-30T20:30:37Z'
-updated_at: '2026-10-30T23:43:20Z'
+updated_at: '2026-10-30T23:45:30Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -98,4 +98,6 @@ The `client-budget` job runs the updated `scripts/bench_remote_client.py` and wr
   - First all-green run with the route-parity job and the shim: https://github.com/TheCaptainCat/squads/actions/runs/41141368085 (e06928aa). Timings: test windows 7m47s, macOS 3m38s, ubuntu 2m8s; remote-mode windows 2m54s, macOS 1m32s, ubuntu 1m34s; remote-mode-override 1m34s; route-parity 1m22s; cross-process windows 1m35s, macOS 1m34s, ubuntu 1m24s; client-budget 0m22s.
 - [2026-10-30T23:43:15Z] `devops` Hugo Ops:
   - CI record. Run 1 https://github.com/TheCaptainCat/squads/actions/runs/41141368085 (e06928aa), run 2 https://github.com/TheCaptainCat/squads/actions/runs/41145415746 (fd0d4d61): all 14 jobs green in both. Minutes run1/run2: test ubuntu 2.1/2.1, macos 3.6/2.6, windows 7.8/6.3 (bound 15); remote-mode ubuntu 1.6/1.4, macos 1.5/2.6, windows 2.9/3.2; remote-mode-override 1.6/1.5; route-parity 1.4/1.5; cross-process ubuntu 1.4/1.2, macos 1.6/1.6, windows 1.6/1.7; override-squad 1.1/1.1; lint 0.5/0.4; client-budget 0.4/0.5. Every job well under its 10 min bound. Client-budget (ms, 31 runs, median p25-p75, budget 100): run1 show 35 35-35, list --json 36 36-36, bash completion 34 34-34; run2 show 53 53-54, list --json 55 55-56, completion 53 53-53; all ok. The step writes to the job summary via GITHUB_STEP_SUMMARY and the job has continue-on-error, so it stays a report. No workflow change needed. Note: the second form is list --json rather than task show --json; flagging in case the task text should be read as show --json.
+- [2026-10-30T23:45:29Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-31): REV-1223 is Approved with every finding Verified or Noted, and CI runs 41141368085 and 41145415746 are green on every job.
 <!-- sq:discussion:end -->

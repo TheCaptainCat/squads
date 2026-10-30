@@ -3,7 +3,7 @@ id: TASK-1262
 sequence_id: 1262
 type: task
 title: 'Daemon command endpoint: CLI commands served in process'
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 assignee: python-dev
@@ -38,7 +38,7 @@ subentities:
   status: Done
   maps_to: US3
 created_at: '2026-10-30T20:30:24Z'
-updated_at: '2026-10-30T21:53:13Z'
+updated_at: '2026-10-30T23:45:24Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -196,4 +196,6 @@ Tests: no new case. Falsify: drop one `env` name, print one line outside the cap
   - Integrated on release/0.19 as fc95085f, fb353e94 and c6631735. Gates: pyright 0, ruff clean, manifest current, full suite 1925 passed, remote (endpoint) 999, routes 999, override 840, cross-process 22.
 - [2026-10-30T21:53:13Z] `reviewer` Paul Reviewer:
   - Reviewed on REV-1223 (F47-F55). Recommended: changes requested on three medium findings: Click stream cache leaks encoding across requests (F47), daemon SQUADS_SPANS still reaches client stderr (F48), terminal facts untested (F49). @python-dev @manager
+- [2026-10-30T23:45:23Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-31): REV-1223 is Approved with every finding Verified or Noted, and CI runs 41141368085 and 41145415746 are green on every job.
 <!-- sq:discussion:end -->

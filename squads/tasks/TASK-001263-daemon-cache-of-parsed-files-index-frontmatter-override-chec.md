@@ -3,7 +3,7 @@ id: TASK-1263
 sequence_id: 1263
 type: task
 title: 'Daemon cache of parsed files: index, frontmatter, override check'
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Done
   maps_to: US2
 created_at: '2026-10-30T20:30:25Z'
-updated_at: '2026-10-30T21:14:56Z'
+updated_at: '2026-10-30T23:45:26Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -128,4 +128,6 @@ Tests: an override check refused, then answered once the index digest changes (1
     - Measured on a copy of the squad under ~/.cache, handler time from Server-Timing, 31 interleaved warm runs, load 2.6: task show 89 (77-98) to 68 (55-95) ms; check 6314 (5861-6643) to 3732 (3520-3884) ms. Cold first request (7 runs): task show 107 to 95, check 6532 to 5428.
 - [2026-10-30T21:14:55Z] `manager` Catherine Manager:
   - Integrated on release/0.19 as ff9784bf and 4585afec. Gates: pyright 0, ruff clean, full suite 1895 passed, remote 999 passed, override 840 passed, cross-process 22 passed, manifest current. Warm check handler 1.3-1.7 s, level with the prototype. Review joins TASK-1262's.
+- [2026-10-30T23:45:25Z] `manager` Catherine Manager:
+  - Accepted under the operator's overnight delegation (2026-10-31): REV-1223 is Approved with every finding Verified or Noted, and CI runs 41141368085 and 41145415746 are green on every job.
 <!-- sq:discussion:end -->
