@@ -170,7 +170,9 @@ BUNDLED = Profile(
     retype_to_initial="Open",
     retype_to_folder="bugs",
     retype_targets="bug, contract, decision, epic, feature, guide, milestone, review, task",
-    all_types="bug, contract, decision, epic, feature, guide, milestone, operator, review, role, skill, task",
+    all_types=(
+        "bug, contract, decision, epic, feature, guide, milestone, operator, review, role, skill, task"
+    ),
     needs_parent=(),
     initial="Draft",
     moved="Ready",
