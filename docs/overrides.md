@@ -973,7 +973,7 @@ the pattern to literal text and character classes, with no repetition nested ins
 | `item_title_max` | a create or retitle over the number | a title of `n` characters or fewer |
 | `external_id_not_in_title` | a create or retitle that matches | a title that does not match |
 | `description_present` | a create without `--desc`, and `update --desc ""` | `--desc` on create, `update --desc` after |
-| `assignee_present` | a move to a live status with nobody assigned | `update --assignee` first, or `update --status <S> --assignee <slug>` in one command |
+| `assignee_present` | a move to a live status with nobody assigned | `update --assignee` first, or `update --status <status> --assignee <slug>` in one command |
 | `blocked_has_blocker` | a move to a blocked status with no dependency edge | `ref add` of a dependency edge before the move |
 | `ref_rule_target_typed` | a create with a misdirected `--ref` | `ref rm` of the edge |
 

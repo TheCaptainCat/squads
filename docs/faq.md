@@ -136,7 +136,7 @@ field on anything that is not a role.
 
 ### Where are the timestamps? Can I keep history when migrating?
 `created_at`/`updated_at` are in each item's frontmatter; comment entries carry their own dated line.
-During a migration, the global **`--at <ISO>`** option forges the time for a command so the imported
+During a migration, the global **`--at when`** option forges the time for a command so the imported
 history looks real — see [adoption.md](adoption.md).
 
 ### How do I work on several projects / move a squad?
@@ -169,7 +169,7 @@ If you control the branch that will yield to main (or the destination branch), r
 git show main:squads/.squads.json | jq .counter    # → let's say it's 287
 
 # 2. Shift this branch's IDs into a reserved block above that counter:
-sq renumber --from <N> --onto 287
+sq renumber --from <n> --onto 287
 #  N = your branch's counter at the merge-base (e.g., 280, or base_counter + 1)
 ```
 

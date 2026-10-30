@@ -444,7 +444,7 @@ project override under `.overrides/templates/` must use the same relative path:
 ## 10. Time & determinism (`_clock.py`)
 
 All timestamps come from `_clock.now()` — never `datetime.now()` directly — so tests can freeze it
-and the **`--at WHEN`** global option can forge it. `set_now(dt)` overrides `now()` for one CLI
+and the **`--at when`** global option can forge it. `set_now(dt)` overrides `now()` for one CLI
 invocation (parsed by `parse_iso`), which is how a migration preserves historical dates across
 `create`/`status`/`comment`/… (see [adoption.md](adoption.md)).
 

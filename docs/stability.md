@@ -565,7 +565,7 @@ everywhere else:
 ```bash
 sq role 2 show           # item-first: type, number, verb
 sq role 2 regen          # regenerate
-sq role 2 status <S>     # transition status
+sq role 2 status <status>  # transition status
 sq role 2 set-default    # move the default-role designation here
 sq role 2 update --title "Chief Lead"   # rename; the slug never changes
 sq role 2 comment -m "…" --as manager  # and `comments`, `show --comments`

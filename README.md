@@ -198,7 +198,7 @@ generated files are withdrawn, and the transition is refused where the generated
 survive it. See [docs/roles.md](docs/roles.md#retiring-a-roster-entry).
 
 Types can declare custom lifecycles via `<squad-dir>/.overrides/workflow.toml`.
-`sq <type> <n> status <S>` validates transitions against the active spec; use `--force` to override
+`sq <type> <n> status <status>` validates transitions against the active spec; use `--force` to override
 a transition the lifecycle disallows. `sq workflow` prints the lifecycles of whatever spec your
 project is actually running, diagrams included.
 
@@ -289,7 +289,7 @@ code. `CONTRIBUTING.md` has the rest, with the reasoning.
 - `sq migrate up|help|chlog|rename-type|rename-status|repad` — bring a squad to the current schema, read the migration changelog, bulk-rename a type or status, or widen the ID padding. See [docs/migration.md](docs/migration.md).
 - `sq ui` — the terminal browser (needs the `tui` extra) · `sq docs [--rich]` — the full docs, offline
 - `-C PATH` (global, before the command) — run as if `sq` was started in PATH: it walks up from PATH to `.squads.toml`, so PATH can be the project directory or any folder inside it. Repeatable; a relative PATH is taken against the previous `-C`. It goes before the command and before `--help`/`--version`; after them it is ignored
-- `--at WHEN` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
+- `--at when` (global) — forge timestamps (ISO 8601, UTC) for this command, to preserve history when migrating
 
 Items are addressed by `<type> <number>` (bare `35`, padded `000035`, or full `TASK-<n>`; the
 type word validates). Create with `sq create`; operate with `sq <type> <n> <verb>`. Every item-type
@@ -297,10 +297,10 @@ command has short aliases — `e f t b d c m r g`, plus `feat`/`dec`/`prd`/`mile
 works exactly like the canonical spelling.
 
 **Items**
-- `sq create epic|feature|task|bug|decision|contract|milestone|review|guide <title> --author <slug> [--parent ID] [--desc] [--label] [--ref ID] [--assignee] [--priority CODE] [--<field> CODE] [--<attribute> VALUE] [-m "body"|--file] [--json]` — one `--<field>` option per field the type declares (a bug's `--severity`, or a field an override adds), where `CODE` is from the field's collection (`--help` lists them); a field left out stores its declared default, so a new bug gets `severity: medium`. One `--<attribute>` option per `str`, `list` or `date` attribute the type declares, named after its key with dashes: a milestone's `--target-date`, a review's `--target-ref`, a guide's `--tech` and `--tags`. A value is checked as `update --set` checks it; a list option is repeatable and splits on commas
+- `sq create epic|feature|task|bug|decision|contract|milestone|review|guide <title> --author <slug> [--parent id] [--desc] [--label] [--ref id] [--assignee] [--priority code] [--<field> code] [--<attribute> value] [-m "body"|--file] [--json]` — one `--<field>` option per field the type declares (a bug's `--severity`, or a field an override adds), where `code` is from the field's collection (`--help` lists them); a field left out stores its declared default, so a new bug gets `severity: medium`. One `--<attribute>` option per `str`, `list` or `date` attribute the type declares, named after its key with dashes: a milestone's `--target-date`, a review's `--target-ref`, a guide's `--tech` and `--tags`. A value is checked as `update --set` checks it; a list option is repeatable and splits on commas
 - `sq list [--type|--status|--category|--parent|--label|--assignee|--priority|--min-priority|--badge|--min-badge|--sort] [--all] [--json|--compact]` · `sq tree [root_id] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents; `list --compact` prints one line per item (ID, status, title cut to the terminal width)
-- `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <ID>` shows any item by ID or bare number, whatever its type
-- `sq <type> <n> body [-m "…"|--file PATH] [--append]` · `sq <type> <n> comments` — read the discussion back on its own; each comment shows its short hash
+- `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <id>` shows any item by ID or bare number, whatever its type
+- `sq <type> <n> body [-m "…"|--file path] [--append]` · `sq <type> <n> comments` — read the discussion back on its own; each comment shows its short hash
 - `sq <type> <n> comment <hash> show|edit|remove` — work on one comment by 4 or more leading characters of its hash, on items, sub-entities, roles, skills and operators; only the comment's author (`--as`) can edit or remove it
 - `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]` — `--set` writes a badge field or an attribute the type declares, checked before anything is written ([attributes](docs/overrides.md#attributes-the-keys-a-type-stores))
 - `sq <type> <n> status <status> [--force]` · `sq <type> <n> comment -m "…" --as <slug>` — `--as` is required: a role slug, or `op-<slug>` for a human operator (`squads`, the slug of sq's own entries, is refused)
@@ -317,24 +317,24 @@ works exactly like the canonical spelling.
 - `sq feature <n> add-story "…" [--assignee] [-m|--file]` · `sq feature <n> stories`
 - `sq task <n> add-subtask "…" [--story USn] [--assignee] [-m|--file]` · `sq task <n> subtasks`
 - `sq review <n> add-finding "…" [--severity] [--assignee] [-m|--file]` · `sq review <n> findings`
-- `sq <type> <n> <kind> <k> show|update|body|comment` — `update` sets `--title`/`--status`/`--assignee` (+ a subtask's `--story`, a finding's `--severity` and `--deferred-to <ID>`)
+- `sq <type> <n> <kind> <k> show|update|body|comment` — `update` sets `--title`/`--status`/`--assignee` (+ a subtask's `--story`, a finding's `--severity` and `--deferred-to <id>`)
 
 `add-<kind>` **scaffolds an empty block**; set its body with the nested `… <kind> <k> body` (or pass
 `-m`/`--file` to `add-<kind>`). `sq` owns the body, metadata (status/assignee/severity/story), and
 discussion — all written through commands.
 
 **Cross-linking**
-- `sq <type> <n> ref add TARGET [--kind KIND]` · `sq <type> <n> ref rm TARGET` — `--kind` takes any kind the active workflow spec declares (`sq workflow ref-kinds` lists them; omit it for the declared default). The two dependency kinds are the two spellings of one edge (which end holds it differs; both feed `sq blocked`), and the supersession kind is what `sq check` looks for on a superseded record
+- `sq <type> <n> ref add <target> [--kind kind]` · `sq <type> <n> ref rm <target>` — `--kind` takes any kind the active workflow spec declares (`sq workflow ref-kinds` lists them; omit it for the declared default). The two dependency kinds are the two spellings of one edge (which end holds it differs; both feed `sq blocked`), and the supersession kind is what `sq check` looks for on a superseded record
 - `sq <type> <n> refs [--out|--in|--all] [--json]` (forward edges stored; backrefs computed)
-- `sq graph <ID> [--depth N] [--kind K] [--direction out|in|both] [--all] [--format dot|mermaid|mermaid-md] [--json]` — the ref neighbourhood around one item
+- `sq graph <id> [--depth n] [--kind k] [--direction out|in|both] [--all] [--format dot|mermaid|mermaid-md] [--json]` — the ref neighbourhood around one item
 
 **Agents** — like items, roster entries are addressed first, then verbed: `sq role <slug> show`
 - `sq role catalog [--json]` — the roles available to activate, plus every activated role the catalog does not declare, each with its origin (`system` or `project`) · `sq role list [--json]` — the roles this squad has actually activated
-- `sq role activate <slug> [--pronouns <text>]` · `sq role activate [<slug>] --from <template> [--tech <t>]` — build a role from a role template · `sq role add <slug> --name … (--file <toml> | --job-title … --desc … --mission …)` — a custom role that stores its own definition · `sq role <slug|id|n> show [--comments]|regen|set-default|update [--title <name>] [--pronouns <text>] [--model <m>] [--job-title|--desc|--mission|--capabilities|--color|--can-spawn|--file]|body|comment|comments|remove --purge|status <S> [--force] [--unlink]|view` — `remove` (also `rm`) requires `--purge` and deletes the entry's file; without it, it exits `1` and names `remove --purge` and `status Archived`. `update --title` renames the role, a bundled one included; the slug never changes. The definition options of `update` apply to a role created with `sq role add`; on a catalog or template role they are refused, naming the override file. A role slug is never `operator`, `squads`, `op-…` or a verb of `sq role` (`activate`, `add`, `catalog`, `list`)
+- `sq role activate <slug> [--pronouns <text>]` · `sq role activate [<slug>] --from <template> [--tech <t>]` — build a role from a role template · `sq role add <slug> --name … (--file <toml> | --job-title … --desc … --mission …)` — a custom role that stores its own definition · `sq role <slug|id|n> show [--comments]|regen|set-default|update [--title <name>] [--pronouns <text>] [--model <m>] [--job-title|--desc|--mission|--capabilities|--color|--can-spawn|--file]|body|comment|comments|remove --purge|status <status> [--force] [--unlink]|view` — `remove` (also `rm`) requires `--purge` and deletes the entry's file; without it, it exits `1` and names `remove --purge` and `status Archived`. `update --title` renames the role, a bundled one included; the slug never changes. The definition options of `update` apply to a role created with `sq role add`; on a catalog or template role they are refused, naming the override file. A role slug is never `operator`, `squads`, `op-…` or a verb of `sq role` (`activate`, `add`, `catalog`, `list`)
 - `sq role <slug|id|n> set-default` — move the default-role designation here, clearing the previous holder; refuses a role that isn't live
 - `sq dev add --tech <t> [--name] [--model] [--slug] [--pronouns]` · `sq dev list` — stack-specific developers, built from the `dev` role template (`sq dev add` is `sq role activate --from dev`)
-- `sq operator add "<name>" [--slug] [--pronouns <text>]` · `sq operator list` · `sq operator <slug|id|n> show [--comments]|update [--title <name>] [--pronouns <text>]|body|comment|comments|remove --purge|status <S> [--force] [--unlink]` — register **humans**; an operator slug is `op-` followed by lowercase letters, digits and hyphens (`op-<first>` by default, and `--slug` outside that form is refused); assignable and can author items/comments
-- `sq skill add <name> [--desc|--when-to-use|--allowed-tools|--operator-invocable]` · `sq skill <slug|id|n> show [--comments]|body|update [--title|--desc|--when-to-use|--operator-invocable]|comment|comments|regen|remove --purge|link-role <role>|unlink-role <role>|status <S> [--force] [--unlink]` — a skill slug is never `add`, and a skill cannot author or be assigned work; on a generated skill, `update` refuses `--title`, `--desc` and `--when-to-use` and accepts `--operator-invocable`
+- `sq operator add "<name>" [--slug] [--pronouns <text>]` · `sq operator list` · `sq operator <slug|id|n> show [--comments]|update [--title <name>] [--pronouns <text>]|body|comment|comments|remove --purge|status <status> [--force] [--unlink]` — register **humans**; an operator slug is `op-` followed by lowercase letters, digits and hyphens (`op-<first>` by default, and `--slug` outside that form is refused); assignable and can author items/comments
+- `sq skill add <name> [--desc|--when-to-use|--allowed-tools|--operator-invocable]` · `sq skill <slug|id|n> show [--comments]|body|update [--title|--desc|--when-to-use|--operator-invocable]|comment|comments|regen|remove --purge|link-role <role>|unlink-role <role>|status <status> [--force] [--unlink]` — a skill slug is never `add`, and a skill cannot author or be assigned work; on a generated skill, `update` refuses `--title`, `--desc` and `--when-to-use` and accepts `--operator-invocable`
 - Archiving a roster entry **retires** it: its generated files are withdrawn, the transition is refused where the generated config couldn't survive it, and `--unlink` severs a severable dependency so the ordinary check can pass — see [docs/roles.md](docs/roles.md#retiring-a-roster-entry)
 - `sq create guide <title> --author <slug> [--tech] [--tags]` — tech/tag-labelled guides, taking the shared `sq create` options too; list them with `sq list --type guide`
 - `sq memory <role> list|search|show|add|forget` — a role's committed notebook: facts it learned and should carry into the next session
@@ -343,7 +343,7 @@ discussion — all written through commands.
 **Maintenance**
 - `sq check` — lint markers, dangling parent/ref IDs, invalid status, index drift
 - `sq repair [--renumber]` — rebuild the index from frontmatter, **and rewrite item files** on the same pass: it removes what squads computes on every read and canonicalises legacy ref encodings, so run it on a clean working tree. Files that share a number or an id are refused before rebuilding, naming `--renumber` when it can resolve them; it resolves merged ID collisions ([how](docs/faq.md#handling-id-collisions)). `sq adopt`, `sq renumber` and the rebuild ending `sq migrate up` reach the same sweep — [what it writes](docs/faq.md#does-sq-repair-change-my-files)
-- `sq renumber --from N (--onto M | --by K)` — shift this branch's IDs clear of another branch's range before a merge; `--from` is the lowest local sequence number to shift
+- `sq renumber --from n (--onto m | --by k)` — shift this branch's IDs clear of another branch's range before a merge; `--from` is the lowest local sequence number to shift
 - `sq reflog [--item|--actor|--op|--since|--tail|--tree] [--json]` — the chronological log of every mutating `sq` command
 
 ---

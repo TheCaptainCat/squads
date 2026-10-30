@@ -332,9 +332,9 @@ replace it on purpose.
 
 | Sub-entity | Lives on | Add / transition | Lifecycle |
 |------------|----------|------------------|-----------|
-| **subtask** | task | `sq task <n> add-subtask "…" [--story USn]` · `sq task <n> subtask <k> update --status <S>` | `Todo → InProgress → Done`, or `Todo → Done` directly (+ Blocked, Cancelled) |
-| **user story** | feature | `sq feature <n> add-story "…"` · `sq feature <n> story <k> update --status <S>` | `Todo → InProgress → Done`, or `Todo → Done` directly (+ Blocked, Cancelled) |
-| **finding** | review | `sq review <n> add-finding "…" --severity high` · `sq review <n> finding <k> update --status <S>` | `Open → Fixed → Verified` (+ WontFix, Noted, Deferred) |
+| **subtask** | task | `sq task <n> add-subtask "…" [--story USn]` · `sq task <n> subtask <k> update --status <status>` | `Todo → InProgress → Done`, or `Todo → Done` directly (+ Blocked, Cancelled) |
+| **user story** | feature | `sq feature <n> add-story "…"` · `sq feature <n> story <k> update --status <status>` | `Todo → InProgress → Done`, or `Todo → Done` directly (+ Blocked, Cancelled) |
+| **finding** | review | `sq review <n> add-finding "…" --severity high` · `sq review <n> finding <k> update --status <status>` | `Open → Fixed → Verified` (+ WontFix, Noted, Deferred) |
 
 `sq <type> <n> <kind> <k> update` is the one metadata entry point for a sub-entity — `--title`,
 `--status` (+`--force`), `--assignee`/`--clear-assignee`, plus an option per field the kind
@@ -366,7 +366,7 @@ Noted    → { Deferred }
   names that item:
 
   ```bash
-  sq review <n> finding <k> update --status Deferred --deferred-to <ID>
+  sq review <n> finding <k> update --status Deferred --deferred-to <id>
   ```
 
 Both are settled, so neither counts as open work. A noted finding can still be deferred when its
@@ -385,7 +385,7 @@ The rules for the carrier pointer:
 - On a finding already `Deferred`, `--deferred-to` alone moves the pointer to another item. On a
   finding in any other status it is refused, and a kind whose lifecycle reaches no deferred
   status (a story, a subtask) has no `--deferred-to` option.
-- `sq review <n> add-finding "…" --status Deferred --deferred-to <ID>` adds a finding already
+- `sq review <n> add-finding "…" --status Deferred --deferred-to <id>` adds a finding already
   deferred.
 - Moving the finding out of `Deferred` clears the pointer; the discussion keeps the history.
 - Retyping or renumbering the carrier updates the pointer. Removing the carrier is refused unless
