@@ -133,7 +133,7 @@ subentities:
 - local_id: F25
   title: Reserving daemon breaks an adopter type or alias of that name; no migration
     note says so
-  status: Open
+  status: Fixed
   assignee: tech-writer
   severity: low
 - local_id: F26
@@ -144,7 +144,7 @@ subentities:
 - local_id: F27
   title: Admission types misdirected/forbidden are absent from the error table and
     the OpenAPI document
-  status: Open
+  status: Fixed
   assignee: architect
   severity: info
 - local_id: F28
@@ -159,7 +159,7 @@ subentities:
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T07:31:35Z'
+updated_at: '2026-10-30T07:35:33Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -794,6 +794,8 @@ Neither the 0.19 Migration section of CHANGELOG nor docs/migration.md says so. R
 #### Discussion
 
 <!-- sq:finding:F25:discussion -->
+- [2026-10-30T07:35:26Z] `tech-writer` Theo Writer:
+  - Fixed in the working tree (uncommitted). Driven on a scratch squad with the dev tree: an alias `daemon` is refused with `item 'bug': alias 'daemon' shadows the built-in `sq daemon` command — rename or drop the alias`, and a type `daemon` with `item 'daemon': shadows the built-in `sq daemon` command — rename the type …`. `sq migrate up` stops on both. The CHANGELOG 0.19.0 Migration section (in its order line and in a new bullet) and the docs/migration.md 0.19 runbook now give the remedy: edit the alias out of the override, or move a type that has items with `sq migrate rename-type daemon <new_type>` while the older release still runs, then upgrade.
 <!-- sq:finding:F25:discussion:end -->
 <!-- sq:finding:F25:end -->
 
@@ -822,6 +824,14 @@ The admission refusals answer `421 misdirected` and `403 forbidden` in the error
 #### Discussion
 
 <!-- sq:finding:F27:discussion -->
+- [2026-10-30T07:35:04Z] `architect` Robert Architect:
+  - Recorded in ADR-1225 section 3 (amended in place 2026-10-30): `421 misdirected` and `403 forbidden` are rows of the error table, with when each applies per listener; the refusals bullet fixes the body and the check order. Code for the dev (TASK-1218):
+    
+    - `_api/_errors.py`: add `("misdirected", 421)` and `("forbidden", 403)` to `HTTP_STATUS`, and name both types as constants that `_daemon/_admission.py` uses instead of its literals (its status argument can then come from `http_status`).
+    - `_daemon/_openapi.py`: declare 421 and 403 with the error envelope on every operation, since admission runs ahead of every route (403 applies only to non-`GET` ones, so declare 403 on those).
+    - `HttpApi` (TASK-1219): both map to a `SquadsError` with the body's message, exit 1, no retry and no fall back.
+    
+    @reviewer F27 Fixed, verify against section 3.
 <!-- sq:finding:F27:discussion:end -->
 <!-- sq:finding:F27:end -->
 
@@ -921,4 +931,6 @@ Built and untested by design (ADR-1052 point 11, plan): idle exit (a mutation th
     - Not a finding: `sq daemon run` starts even with `enabled = false` or an unusable setting. It is the by-hand diagnostic entry, and the switch governs the CLI's own spawns (TASK-1219).
     - Not run: Windows and macOS (F29).
     - @python-dev F19-F24, F26, F28 and F29. @tech-writer F25. @architect F27.
+- [2026-10-30T07:35:33Z] `manager` Catherine Manager:
+  - Ruling (operator delegation, 2026-10-30): HEAD is a safe method and is admitted like GET on every listener; ADR-1052 point 5 is amended to say so, and the lane B dev applies it with F22.
 <!-- sq:discussion:end -->

@@ -15,7 +15,7 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-30T07:05:02Z'
+updated_at: '2026-10-30T07:35:03Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -117,11 +117,13 @@ The removal preview is a read, so it is a `GET`, on a sub-resource named for wha
 | 409 | `changed_since_read` | an `If-Match` that differs from the addressed item's current ETag; nothing has run |
 | 423 | `locked` | `IndexLockTimeoutError` |
 | 400 | `invalid` | any other `SquadsError` |
+| 421 | `misdirected` | admission, before routing, on a TCP listener: a `Host` that is not exactly `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` for the port the request arrived on, or a port that is not one of the daemon's listeners |
+| 403 | `forbidden` | admission, before routing: an `Origin` on the CLI port; on the browser port, a method other than `GET` whose `Origin` is missing or is not `http://<host>` of that listener; on any listener, the Unix socket included, a method other than `GET` without `Content-Type: application/json` or without `Squads-Client: 1` |
 | 500 | `internal` | an exception that is not a `SquadsError`. Its traceback goes to the daemon log, and the message says to read it. |
 
 - **A request no route takes** is answered by the router with the same body. A path no route serves answers `404 not_found` (`no such route`). A method the path lacks answers `405` with type `invalid` and an `Allow` header naming every method the table serves at that path (and `HEAD` beside a `GET`), as HTTP requires. 405 is the one status outside the table: the request named no operation, so no exception maps to it.
 
-- **Refusals before running.** `503 {"not_executed": "retiring"}` is the only answer after which the client sends the call again: to `LocalApi` when the endpoint has a local mode, otherwise once more to the re-resolved endpoint (section 5; ADR-1052, points 2 and 13). The `needs_terminal` reason goes, because prompts run in the CLI between calls. The `other_squad` reason goes too: the CLI resolves the squad before it chooses an endpoint, reaches the daemon by that squad's key, and checks the daemon's identity over TCP (ADR-1052, point 8). The admission refusals, 421 and 403, are unchanged.
+- **Refusals before running.** `503 {"not_executed": "retiring"}` is the only answer after which the client sends the call again: to `LocalApi` when the endpoint has a local mode, otherwise once more to the re-resolved endpoint (section 5; ADR-1052, points 2 and 13). The `needs_terminal` reason goes, because prompts run in the CLI between calls. The `other_squad` reason goes too: the CLI resolves the squad before it chooses an endpoint, reaches the daemon by that squad's key, and checks the daemon's identity over TCP (ADR-1052, point 8). The admission refusals keep ADR-1052's rules (point 5) and answer with the error body of this section, types `misdirected` and `forbidden` in the table above, with empty `warnings` and no `details`. The checks run in the table's order: `Host`, then `Origin`, then `Content-Type`, then `Squads-Client`; the first that fails answers. Nothing is routed, so neither ever carries an operation's notice, and the client never retries one.
 
 #### Client and server compatibility
 
@@ -497,4 +499,9 @@ Board changes that follow acceptance, for their owners:
     - Section 3, ETags: the tag is the SHA-256 of the item file's text as `_aio.read_text` returns it (LF line ends), one reader for read, compare and write. The route decides which answers carry it: every operation addressing one item under `/v1/items/{id}` or a roster `{addr}`, plus the creates, `DELETE` included; none when the addressed file is gone. It is not a cache validator (`If-None-Match` not honoured).
     - Section 6: the OpenAPI document declares `ETag` from the same predicate and covers every routed operation. No `httpx`, test dependencies included.
     - @tech-lead the code changes are listed on REV-1223 F18.
+- [2026-10-30T07:35:03Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 for REV-1223 F27 (board rule 6). Status unchanged.
+    
+    - Section 3, error table: two admission rows. `421 misdirected` is a `Host` that does not name the TCP listener the request arrived on. `403 forbidden` is an `Origin` on the CLI port, a non-`GET` on the browser port without its own `Origin`, or a non-`GET` on any listener without `Content-Type: application/json` or `Squads-Client: 1`.
+    - Section 3, refusals bullet: admission keeps ADR-1052 point 5's rules and answers with the error body (empty `warnings`, no `details`), checks in order `Host`, `Origin`, `Content-Type`, `Squads-Client`. Nothing is routed and the client never retries.
 <!-- sq:discussion:end -->
