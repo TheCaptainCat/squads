@@ -30,7 +30,7 @@ subentities:
   status: Done
   story: US7
 created_at: '2026-10-29T19:55:13Z'
-updated_at: '2026-10-29T23:36:37Z'
+updated_at: '2026-10-29T23:56:14Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -114,4 +114,6 @@ _Add with `sq task 1258 add-subtask "<title>"`; track with `sq task 1258 subtask
     - overrides.md: a new "Sub-entity kinds" section (all keys, including `label` and `heading` with their defaults, mapping and target kind, stored spellings), derived options and the collision refusals under Collections, the badge column, the renamed validator, `subentity_kind_mismatch`, new rows in the load-refusal table, and alias reuse.
     - workflow.md: the "Renaming a badge field" and "Renaming a sub-entity kind" sections, alias resolution, and the derived options. adoption.md: one `add-<kind>` row plus the refusal example. CHANGELOG 0.19.0: a Migration section, Added entries, BREAKING entries first under Changed (with What to do), and two Fixed entries.
     - Two things in delivered behaviour look wrong (not doc issues): (1) the Click unknown-option suggestion now prints `No such option: --sorx ('(Possible options: --json, --sort)',)`, where 0.17.0 prints `(Possible options: --json, --sort)`; (2) on a bundled type, an override's kind `label` does not reach the option help (`--story` help still says `Story` with `label = "Need"`), although the table header and the show line do use it.
+- [2026-10-29T23:56:14Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1259 (fifth pass): F29 (medium, subentity_kind_mismatch now runs by default) and F30 are for this task. The BREAKING entries and stability tiers hold when driven.
 <!-- sq:discussion:end -->

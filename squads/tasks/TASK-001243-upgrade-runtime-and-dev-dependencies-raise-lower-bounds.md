@@ -3,7 +3,7 @@ id: TASK-1243
 sequence_id: 1243
 type: task
 title: Upgrade runtime and dev dependencies, raise lower bounds
-status: Ready
+status: InReview
 parent: FEAT-1242
 author: tech-lead
 priority: high
@@ -15,34 +15,34 @@ description: Lock typer 0.27, filelock 4, pydantic 2.14, anyio 4.15, ruff 0.17, 
 subentities:
 - local_id: ST1
   title: 'typer 0.27: help tree and usage errors match what adopters see'
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST2
   title: 'filelock 4: index lock tests, release on process death'
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST3
   title: pydantic 2.14 and anyio 4.15 locked, suite green
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Runtime lower bounds raised to the tested versions
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST5
   title: ruff 0.17, pyright, pytest locked; gates clean
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST6
   title: Report adopter-visible changes for the changelog
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST7
   title: Surface test for the unknown-option suggestion (BUG-1192)
-  status: Todo
+  status: Done
   story: US1
 created_at: '2026-10-29T16:23:49Z'
-updated_at: '2026-10-29T23:44:31Z'
+updated_at: '2026-10-30T00:05:39Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -238,4 +238,26 @@ An unknown option on a command prints the suggestion as plain text (No such opti
   - Planned 2026-10-29: one task, six subtasks (ST1-ST4, ST6 on US1; ST5 on US2), left Draft. Versions measured with uv lock --upgrade --dry-run; typer, filelock and ruff changes probed under both versions. The released 0.18.0 uv tool on the reference host already resolves typer 0.27.3, filelock 4.2.4, pydantic 2.14.1, anyio 4.15.1. Expected new tests: 4 (index lock). TASK-1218 now depends on this task.
 - [2026-10-29T16:42:45Z] `op-pierre` Pierre Chat:
   - 2026-10-29: accept the new messages and usage text the upgraded dependencies print (typer 0.27 included); no metavar= workarounds to keep the old wording. List each change for the changelog. This task also carries the BUG-1192 surface test.
+- [2026-10-30T00:05:33Z] `python-dev` Elias Python:
+  - @manager Handback for TASK-1243. Branch worktree-agent-aa7a974cd9f4254e2 (worktree .claude/worktrees/agent-aa7a974cd9f4254e2), rebased on origin/release/0.19: 8ef0e05e (lock + bounds + ruff excludes), 741e9335 (index lock), ced7f061 (typer 0.27 surface tests + BUG-1192 test).
+    
+    Gates: pyright 0/0/0, ruff check and format clean, uv lock --check, gen_template_manifest --check, pytest -n 4 tests 1778 passed, pytest --squad override tests/cli 794 passed 182 skipped.
+    
+    Versions (old bound -> new bound = locked): typer 0.12 -> 0.27.3; filelock 3.13 -> 4.2.4; pydantic 2.6 -> 2.14.2 (2.14.2 / core 2.50.2 was latest at lock time, not 2.14.1); jinja2 3.1 -> 3.1.6; rich 13.7 -> 15.0.0; pyyaml 6.0 -> 6.0.3; anyio 4 -> 4.15.1; babel 2.18 -> 2.18.0; textual 0.29.0 -> 8.2.8; dev: pytest 8.0 -> 9.2.0, pytest-cov 5.0 -> 7.1.0, freezegun 1.4 -> 1.5.5, ruff 0.6 -> 0.17.3, pyright 1.1.380 -> 1.1.414, anyio[trio] 4.14.0 -> 4.15.1 (trio 0.34.0); pytest-xdist 3.8.0 and vulture 2.16 unchanged. Transitives: python-dateutil 3.0.0 (freezegun suite green), tzdata added, uc-micro-py removed.
+    
+    Changelog report (adopter-visible):
+    - Usage lines print braced argument names: `sq create task [OPTIONS] TITLE` -> `{title}`, `sq task [OPTIONS] N COMMAND` -> `{N} COMMAND`, `sq memory ROLE add [OPTIONS] FACT` -> `sq memory {role} add [OPTIONS] {fact}`; an optional argument prints lower case in brackets, `[ROOT_ID]` -> `[root_id]`.
+    - A missing argument names the parameter in lower case: `Missing argument 'TITLE'.` -> `Missing argument 'title'.` (same for file, fact, query, name, slug, n); arguments with an explicit metavar keep their case (`{STATUS}`, `{ID}`, `{LOCAL-ID}`, `{WIDTH}`).
+    - Integer errors: `'x' is not a valid integer.` -> `'x' is not a valid int.`
+    - Unknown option suggestion prints as plain text: `No such option: --slug ('(Possible options: --as)',)` -> `No such option: --slug (Possible options: --as)` (BUG-1192).
+    - `--help` option type column: `TEXT` -> `<str>`, `INTEGER` -> `<int>`; the Arguments panel lists the argument name then its type (`title <str>`, `N <str>`); the group argument line `num N` -> `N <str>`; the help screen ends with a blank line.
+    - Index lock: `.squads.json.lock` now stays on disk after every write on all platforms (filelock 3 removed it on release); it stays gitignored by `sq init`. `sq` no longer falls back to a marker-file lock where the OS lock is unavailable: it fails instead. Exit codes unchanged (usage errors 2).
+    - Minimum versions raised as in the table: an adopter pinning older typer, filelock, pydantic, anyio, rich or textual can no longer install.
+    - No pydantic 2.14 or anyio 4.15 message change reached the CLI surface (suite green with no edits for them).
+    
+    Subtasks: ST1 tests/cli, tests/meta covers markers and expected text updated to the live typer 0.27 names (arguments without a metavar are now declared lower case); ST2 `FileLock(..., fallback_to_soft=False, preserve_lock_file=True)` in `_index/_store.py`, 4 tests in `tests/cli/test_index_lock.py`, migrate snapshot helper ignores the lock file; ST3 suite green on pydantic 2.14.2, anyio 4.15.1 (trio 0.34.0), dateutil 3.0.0; ST4 bounds; ST5 ruff 0.17.3 excludes `squads/` and `docs/backends.md` (signature sketches kept as written), preview note re-measured at 0.17.3 (0 findings with preview on and off), CI runs locked tools only; ST6 this comment; ST7 `test_post_names_the_options_close_to_an_unknown_one_as_plain_text` in tests/cli/test_board.py, plus the existing unknown-option assertions now pin the plain text.
+    
+    Falsification: lock acquire/release made a no-op -> concurrent-writers, waiting-notice and timeout tests red (killed-holder test passes then, as it should); removing the stderr print -> the waiting-notice test red; not killing the holder -> the killed-holder test red (command waits 10s, exits 1); all restored and green. BUG-1192 test green on typer 0.27.3, red on `--with typer==0.26.7` (also the other unknown-option assertions).
+    
+    Notes: the lock tests need the 10s timeout once (about 13s for the file). Case 1 uses four child `sq create` processes; case 4 kills the holder with Popen.kill (SIGKILL; TerminateProcess on Windows). Not run on macOS or Windows. VS Code client untouched; `sq check` result below.
 <!-- sq:discussion:end -->

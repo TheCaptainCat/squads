@@ -41,7 +41,7 @@ subentities:
   status: Todo
   story: US6
 created_at: '2026-10-29T19:55:11Z'
-updated_at: '2026-10-29T23:24:13Z'
+updated_at: '2026-10-29T23:56:13Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -221,4 +221,6 @@ This repository's squad migrates to 0.19 with the runner, and `sq check` is clea
     - YAML: loads with PyYAML, jobs = lint, test, override-squad. actionlint is not installed here, so no lint beyond the parse.
     - Required checks: `gh api .../branches/main/protection` returns 404 "Branch not protected", and the workflow header says main has no required checks. Nothing to update today. If checks are ever made required, add `override-squad` (and `test (os)` entries) and read the header caveat about paths-ignore leaving required jobs pending.
     - Note for later: ADR-1172 also expects a remote-mode run and a cross-process set as CI jobs; neither exists in test.yml yet, so they are not part of this review.
+- [2026-10-29T23:56:13Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1259 (fifth pass): F31, F32 and F33 are for this task, F34 is for the operator. ST1 to ST5 hold otherwise; the derived covers markers were driven both ways.
 <!-- sq:discussion:end -->

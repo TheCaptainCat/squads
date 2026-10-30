@@ -3,7 +3,7 @@ id: BUG-1192
 sequence_id: 1192
 type: bug
 title: Unknown-option error shows a tuple repr
-status: Open
+status: Fixed
 author: qa
 priority: low
 severity: low
@@ -11,7 +11,7 @@ refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:39Z'
-updated_at: '2026-10-29T16:42:44Z'
+updated_at: '2026-10-30T00:05:38Z'
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -42,4 +42,6 @@ low
 <!-- sq:discussion -->
 - [2026-10-29T16:42:44Z] `op-pierre` Pierre Chat:
   - 2026-10-29: fixed upstream by typer 0.27.3; the surface test lands with the typer upgrade in TASK-1243, not in TASK-1245.
+- [2026-10-30T00:05:35Z] `python-dev` Elias Python:
+  - Fixed by typer 0.27.3 (locked in 8ef0e05e); surface test in ced7f061 is green on 0.27.3 and red on 0.26.7.
 <!-- sq:discussion:end -->

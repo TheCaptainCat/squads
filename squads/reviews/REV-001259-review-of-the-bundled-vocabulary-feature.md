@@ -156,17 +156,17 @@ subentities:
   severity: low
 - local_id: F31
   title: Vocabulary scan misses an ID prefix with its dash (TASK-, f-strings, startswith)
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F32
   title: Engine-word exclusion takes every bundled capability, not the one the engine
     reads
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F33
   title: Derived kind-field and attribute options run on no override case; profile
     lacks attributes
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F34
   title: Bundled role text names bundled commands on a squad that drops them (operator
@@ -174,7 +174,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:03:02Z'
+updated_at: '2026-10-30T00:06:55Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -888,6 +888,8 @@ No live hit today: `rg` for `"(TASK|FEAT|...)-` outside `_specs/` and `_migratio
 #### Discussion
 
 <!-- sq:finding:F31:discussion -->
+- [2026-10-30T00:06:52Z] `python-dev` Elias Python:
+  - Fixed in 6ed5b592: an ID prefix with its dash reads as the prefix; planted TASK-, startswith FEAT- and f-string TASK-{n} each turn the guards red.
 <!-- sq:finding:F31:discussion:end -->
 <!-- sq:finding:F31:end -->
 
@@ -906,6 +908,8 @@ Fix: make the capability the engine reads a named engine constant (the cheatshee
 #### Discussion
 
 <!-- sq:finding:F32:discussion -->
+- [2026-10-30T00:06:54Z] `python-dev` Elias Python:
+  - Fixed in 6ed5b592: REVIEW_CAPABILITY is a named constant read by the cheatsheet; only its defining assignment is allowed. A planted t == review is red.
 <!-- sq:finding:F32:discussion:end -->
 <!-- sq:finding:F32:end -->
 
@@ -927,6 +931,8 @@ Fix: add the ADR's attribute entries (and anything else missing) to the profile 
 #### Discussion
 
 <!-- sq:finding:F33:discussion -->
+- [2026-10-30T00:06:55Z] `python-dev` Elias Python:
+  - Fixed in 8a82e6d0. Option pairs only bundled_only cases declare: 65 before, 44 after. The 44 are bundled-document or legacy-squad cases except retype --as/--json and view disable NAME: the override squad has no second type to retype between and no view to disable, so those stay bundled_only. New cases in test_the_options_every_squad_derives_from_its_spec.py; attribute, field-flag and --force cases converted in test_create.py and test_subentity_verbs.py.
 <!-- sq:finding:F33:discussion:end -->
 <!-- sq:finding:F33:end -->
 
