@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-10-30T19:13:27Z'
+updated_at: '2026-10-30T19:22:45Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -41,7 +41,7 @@ The operator set a new direction for the CLI's remote mode on 2026-10-30 (FEAT-1
 
 - `argv`: the arguments after `sq`, as JSON strings; undecodable POSIX bytes travel as lone surrogates and round-trip.
 - `cwd`: the client's absolute starting directory. `-C` stays in `argv`; the shim has already resolved it to reach this daemon (point 4).
-- `env`: the values of a fixed list, absent ones left out: `SQUADS_SESSION_ID`, `SQUADS_PARENT_SESSION_ID`, `SQUADS_SPANS`, `NO_COLOR`, `FORCE_COLOR`, `CLICOLOR_FORCE`, `TTY_COMPATIBLE`, `TTY_INTERACTIVE`, `COLUMNS`, `LINES`, `TERM`, `COLORTERM`. The list is one literal in the shim's module; a variable outside it does not exist for a served command.
+- `env`: the values of a fixed list, absent ones left out: `SQUADS_SESSION_ID`, `SQUADS_PARENT_SESSION_ID`, `SQUADS_SPANS`, `NO_COLOR`, `FORCE_COLOR`, `CLICOLOR_FORCE`, `TTY_COMPATIBLE`, `TTY_INTERACTIVE`, `COLUMNS`, `LINES`, `TERM`, `COLORTERM`, and the shell-completion variables of bash, zsh and fish: `_SQ_COMPLETE`, `_SQUADS_COMPLETE`, `COMP_WORDS`, `COMP_CWORD`, `_TYPER_COMPLETE_ARGS`, `_TYPER_COMPLETE_WORD_TO_COMPLETE`, `_TYPER_COMPLETE_FISH_ACTION`. The list is one literal in the shim's module; a variable outside it does not exist for a served command.
 - `terminal`: for each of stdin, stdout and stderr, whether it is a terminal and its encoding; the terminal's size; on Windows, whether the console has virtual-terminal processing on.
 - `attachments`: client files the command line names (point 3).
 - `answers`: the user's answers to earlier prompts of this command (point 5); empty on the first send.
@@ -58,7 +58,7 @@ A `503 {"not_executed": "retiring"}` stays the only refusal after which the shim
 - **The Typer app is built once, at daemon start-up.** It needs no cache keyed on the vocabulary: any edit to `.squads.toml` or `.overrides/` retires the daemon (ADR-1052, point 13), so the app never outlives the vocabulary it was built from.
 - **The API inside a served command is the daemon's own `LocalApi`,** bound on the request's `RequestContext` before the root callback runs. It reuses the normal-mode service composed at start-up and, per call, the steps of ADR-1225 section 7 that apply in process: the schema grant, the composition mode, the read scope. No fork, no subprocess, no HTTP call to itself. `select_api` refuses to run inside a served command, and a `tests/meta` guard holds that the endpoint's modules import neither `squads._cli._remote`, `http.client` nor `subprocess`.
 - **The squad is the daemon's.** A served command never walks up from `cwd` or reads any path the client names; `cwd` seeds `start_dir`, which spells paths in messages (ADR-1225 section 9). Client files arrive as attachments. ADR-1052 point 6 holds: a caller of a TCP listener reaches the squad and nothing else.
-- **Rendering happens in the daemon.** Each request gets its own consoles, built from `terminal` and handed `env` as Rich's `_environ`, so colour, width, box characters and wrapping are decided as the client's own process would. At start-up the daemon replaces `sys.stdin`, `sys.stdout` and `sys.stderr` with proxies that write to the current request's capture and read from its answers, and fall back to the daemon's log outside a request; `print()`, Click and Rich then need no change. Every environment read under `_cli`, `_actor` and the root callback goes through one accessor backed by the request's `env` (`os.environ` in local mode); a `tests/meta` guard forbids `os.environ` and `os.getenv` elsewhere in those modules.
+- **Rendering happens in the daemon.** Each request gets its own consoles, built from `terminal`, so colour, width, box characters and wrapping are decided as the client's own process would. At start-up the daemon replaces `sys.stdin`, `sys.stdout` and `sys.stderr` with proxies that write to the current request's capture and read from its answers, and fall back to the daemon's log outside a request. It replaces `os.environ` the same way: inside a served command, a name on the fixed list reads the request's `env` (absent when the client did not send it), and every other name reads the daemon's own. `print()`, Click, Typer's completion, Rich and `actor.session_from_env()` then need no change. A `tests/meta` guard holds that no `squads` module reads an environment variable at import time, where the proxy cannot reach it.
 - **Notices raised inside an operation** (ADR-1225 section 3) print through the sink the root callback sets, which in a served command is the request's stderr capture; they land in the output in the order local mode prints them.
 - **Execution is serial.** A served command runs on a worker thread (the server's loop cannot run `asyncio.run`) and holds the daemon's one serial lock (ADR-1225 section 7) for its whole run, parse to render, so writes order against route requests as they do today. Nothing in the design above relies on that lock: consoles, context, stdio proxies and Click's stack are per request or per thread, so concurrent served commands remain ADR-1052's change condition, at the cost of the worker pool.
 
@@ -77,11 +77,11 @@ The shim, in order:
 
 1. Answers a bare `--version`, as today.
 2. Reads `-C`/`--dir` from `argv` with the CLI's own hoisting rule; a `tests/meta` table test holds the shim's extraction equal to the root callback's over every accepted spelling.
-3. Runs locally, without contacting a daemon, when the first command token is in the **local-only table**: `init`, `adopt`, `daemon`, `ui`, and shell completion (Click's completion variable set). A `tests/meta` guard holds the table to the registered root commands and to the operations marked `local_only`.
+3. Runs locally, without contacting a daemon, when the first command token is in the **local-only table**: `init`, `adopt`, `daemon` and `ui`. A `tests/meta` guard holds the table to the registered root commands and to the operations marked `local_only`.
 4. Resolves the `Endpoint` (ADR-1052, point 9). No squad, the daemon off, or `SQUADS_DAEMON=off`: local.
 5. Connects, starting the daemon if none is live (ADR-1052, point 11), reads attachments, sends, and writes the answer: each chunk to its stream, through the CLI's Windows UTF-8-with-replacement stream setup, then exits with the code.
 
-`--help`, `docs` and `migrate help` are served like any command: the daemon renders them from the vocabulary it holds, which is the checkout's.
+`--help`, `docs`, `migrate help` and shell completion are served like any command: the daemon answers them from the Typer app and vocabulary it holds, which are the checkout's, and a completion that cannot reach a daemon before sending falls back locally. A Tab press therefore never rebuilds the spec-derived command tree in the client.
 
 ### 5. Prompts: two phases, nothing written before the answer
 
@@ -122,14 +122,14 @@ Rules:
 
 - **Endpoint parity:** the mode-parity run of `tests/cli` goes through the command endpoint: the harness sends each case's `argv` to the daemon application served on a thread against the copied squad and asserts the same exit code and whole output. Its jobs are ADR-1172's four (bundled squad on Linux, macOS and native Windows, override squad on Linux).
 - **Route parity:** `tests/cli` run once more with an `HttpApi` handed to the root callback, on Linux only, so every operation stays covered over HTTP although the CLI no longer selects it.
-- **Endpoint tests** under rules 4-6, without `covers` markers: each answer kind; ordered chunks; an unattached name; stdin attached under `-`; a prompt answered, refused, invalid, and a changed screen between phases; a prompt reached after a write, refused; the browser port refusing the endpoint.
+- **Endpoint tests** under rules 4-6, without `covers` markers: each answer kind; a completion request for bash, zsh and fish answering local mode's candidates; ordered chunks; an unattached name; stdin attached under `-`; a prompt answered, refused, invalid, and a changed screen between phases; a prompt reached after a write, refused; the browser port refusing the endpoint.
 - **Cross-process set**, added members: the shim falling back on a refused connection; the daemon killed between the two phases of a prompt, the shim asking again locally with nothing written; the local-only table never contacting a daemon. Implicit start, no replay, Ctrl-C and the Windows detached spawn stay members.
-- **Guards:** the shim's import set; the file-argument table; the local-only table; `-C` extraction; no self call from the endpoint; environment reads through the accessor.
+- **Guards:** the shim's import set; the file-argument table; the local-only table; `-C` extraction; no self call from the endpoint; no environment read at import time.
 - **Cache:** an in-process test per level, a file changed between two requests with the same size and timestamp, read back current.
 
 ### 10. Prototype
 
-A measured prototype in a worktree: the shim, the endpoint and both cache levels, for `task show` and `list --json`, plus `check` with the frontmatter cache, on this repository's squad against local mode, 31 interleaved runs. It records the shim's overhead, the daemon's handler time and the cold start; the shim's budget is set from it.
+A measured prototype in a worktree: the shim, the endpoint and both cache levels, for `task show`, `list --json` and a Tab completion of `sq task <n> ` in bash, plus `check` with the frontmatter cache, on this repository's squad against local mode, 31 interleaved runs. It records the shim's overhead, the daemon's handler time and the cold start; the shim's budget is set from it.
 
 ## Amendments to ADR-1052, ADR-1224 and ADR-1225
 
@@ -140,7 +140,7 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
 - Context: the 2026-10-28 reversal gains the 2026-10-30 direction: a private command endpoint for the CLI beside the resource routes.
 - Point 1: `POST /v1/commands` returns as this decision's point 1, on the CLI listener only.
 - Point 6: the browser port never serves the endpoint; attachments keep TCP callers away from the owner's other files.
-- Point 9: the remote client is the shim (this decision, point 4), not the CLI calling `HttpApi`; the local-only list becomes the shim's table; the forwarder's file-argument table returns as point 3.
+- Point 9: the remote client is the shim (this decision, point 4), not the CLI calling `HttpApi`; the local-only list becomes the shim's table (`init`, `adopt`, `daemon`, `ui`), and shell completion, `--help` and the package-data commands are served; the forwarder's file-argument table returns as point 3.
 - Point 10: the shim writes the received output in chunk order through the Windows stream setup; fallback per point 6; prompts per point 5.
 - Point 11: the 5 s start bound is kept with its reason.
 - Point 12: "no squad data is kept between requests" becomes "only the parsed-file cache of point 7, keyed by content and never a source of truth". The change condition "an index snapshot kept across commands" is met by it and is removed. `needs_terminal` returns, two-phase.
@@ -155,7 +155,7 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
 **ADR-1225**
 
 - Context and section 4: "the command endpoint" is no longer the rejected alternative for the CLI; it is rejected only as the public API, which stays the routes.
-- Section 5, "Choosing between the HTTP and the local call": applies to the TUI only; the CLI follows this decision's points 4 and 6. "The forwarder in `squads.__main__` goes" is reversed. Parity: as this decision's point 9.
+- Section 5, "Choosing between the HTTP and the local call": applies to the TUI only; the CLI follows this decision's points 4 and 6, so `docs`, `migrate help`, `migrate chlog`, `--help` and completion are served rather than kept off the daemon. "The forwarder in `squads.__main__` goes" is reversed. Parity: as this decision's point 9.
 - Section 5, "What the client reads": the CLI client reads only what endpoint resolution reads; the vocabulary hash is sent by the TUI and hosted clients, not the CLI.
 - Section 5, "The client budget": replaced by the shim's budget, set from the prototype on the reference host; the levers stay for local mode; the import guard becomes the shim's.
 - Section 7: a served command runs inside the serial lock on a worker thread (point 2).
@@ -181,7 +181,8 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
 - **Keep the CLI on `HttpApi` and trim its imports further.** Measured at 311-337 ms against a 275 ms budget after the `_ops` split, with the remaining levers estimated at 30-45 ms together: still about 0.3 s, against a 13 ms interpreter.
 - **Cache keyed by `(inode, mtime_ns, size)`, validated by a stat walk per request.** 2-6 ms against 39-59 ms for read and hash, but it misses a same-size rewrite within one timestamp tick or onto a reused inode, and its cost on NTFS and APFS is unmeasured. The read is already paid wherever a file is parsed, so content keys cost only the hash. Kept as the change condition below.
 - **The shim waiting for nothing: start the daemon and run the first command locally.** Saves about 0.5 s once per idle period, but needs a failed-start record between invocations to avoid spawning on every command.
-- **Patching `os.environ` and the standard streams per request.** Correct only under serial execution, and leaves the daemon's own logging racing the request; the proxies and the accessor cost the same and do not tie the design to the lock.
+- **Patching `os.environ` and the standard streams per request.** Correct only under serial execution, and leaves the daemon's own logging racing the request; context-routed proxies installed once cost the same and do not tie the design to the lock.
+- **Shell completion in the client.** Each Tab press would import the CLI and rebuild the spec-derived Typer app, about 0.7 s, which is the cost the shim exists to avoid.
 - **Serving the endpoint on the browser port.** It would give the web front a second protocol and expose argv-level access to pages.
 
 ### What would change this decision
@@ -189,13 +190,6 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
 - The hash dominates a corpus-wide read on some host: an `(inode, mtime_ns, size)` pre-check in front of the read.
 - Served commands queue behind each other measurably: the worker pool.
 - A hosted squad (FEAT-33): the endpoint is private to one installation, so a hosted squad's CLI uses the routes and the vocabulary hash, as ADR-1225 decides.
-
-## Open questions for the operator
-
-1. **Completion:** local (about 0.7 s per Tab press, as today) or served (it reads Click's completion variables, which would join the env list)? Recommendation: local now; serve it if the prototype shows the shim works.
-2. **Route parity job:** keep one Linux job running `tests/cli` through `HttpApi`, or rely on the route tests alone now that the CLI no longer drives the routes? Recommendation: keep it.
-3. **Cache key:** content digest (this decision) or the stat key the 2026-10-30 direction named?
-4. **"editor"** in the local-only list of the direction names no command in the tree; is it the VS Code extension, which shells out to `sq` and would be served like any caller?
 <!-- sq:body:end -->
 
 ## Discussion
@@ -213,4 +207,12 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
     - "editor" in the local-only list matches no command; asked as question 4.
 - [2026-10-30T19:13:27Z] `architect` Robert Architect:
   - @op-pierre four questions at the end of the body (completion local or served, the Linux route-parity job, the cache key, what "editor" names). Next step is the measured `task show` prototype in a worktree (section 10); the shim's budget for TASK-1219 ST8 is set from it.
+- [2026-10-30T19:21:21Z] `op-pierre` Pierre Chat:
+  - Answers to the open questions (2026-10-30):
+    1. Completion is served by the daemon, by the same rule as any command (start one if needed, local fallback before sending). Local completion would rebuild the whole spec-derived Typer app on every Tab press, which is what the shim exists to avoid. Add the completion environment variables to the fixed env list.
+    2. Keep one Linux job that runs tests/cli through HttpApi: the TUI and the web front depend on the routes.
+    3. Cache key: the content digest, as the ADR decides.
+    4. "editor" is dropped from the local-only list; it names no command.
+- [2026-10-30T19:22:45Z] `architect` Robert Architect:
+  - Body amended 2026-10-30 per op-pierre f9a373e: completion is served (bash/zsh/fish completion variables join the env list, the local-only table is `init`, `adopt`, `daemon`, `ui`), the Linux route-parity job and the content-digest key stand, "editor" is gone, and the open-questions section is removed. Served completion needs Typer's completion code to read the request's variables from `os.environ`, so the per-request env accessor is replaced by an `os.environ` proxy installed at start-up, like the stdio proxies; its guard is now "no environment read at import time". The prototype also times a Tab completion. @manager
 <!-- sq:discussion:end -->
