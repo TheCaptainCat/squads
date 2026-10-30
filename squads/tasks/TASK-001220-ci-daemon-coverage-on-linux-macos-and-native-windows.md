@@ -28,7 +28,7 @@ subentities:
   status: Todo
   story: US12
 created_at: '2026-10-28T14:08:43Z'
-updated_at: '2026-10-30T00:33:00Z'
+updated_at: '2026-10-30T00:44:18Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -38,9 +38,8 @@ Make the daemon's cross-platform promise visible in CI: the cross-process set, t
 ## What it builds
 
 - **The pattern to follow** is the `override-squad` job already in `.github/workflows/test.yml`: a job of its own, the same checkout (`fetch-depth: 0`), `setup-python`, `setup-uv` and `uv sync --frozen --all-extras` steps, and one `pytest` line whose option selects the run (`--squad override tests/cli` there). The new jobs differ only in that line and in their matrix.
-- **Cross-process job on the three runners.** Exactly the members ADR-1172 "The cross-process set" names (implicit start, discovery, fall back, no replay, Ctrl-C, detached spawn on Windows), written in TASK-1219 (lane C), running the real `sq` console script on `ubuntu-latest`, `macos-latest` and `windows-latest`, selected by the opt-in option TASK-1219 adds; the ordinary `test` job's plain `uv run pytest` does not collect them.
-- **Remote-mode job per OS.** The surface suite rerun with `HttpApi` against the daemon's application served in-process (TASK-1219 ST6, ADR-1225 section 5), selected by the mode option beside `--squad`, under ADR-1172's time bound: 10 minutes, 15 on Windows. Whether the Windows job runs `tests/cli` like the others or the full suite, as ADR-1172's time-bound sentence reads, is open with the architect (FEAT-1140 discussion); the job takes whichever is settled.
-- **Remote mode on the override squad**, if the operator rules for it (FEAT-1140 discussion): one more job on `ubuntu-latest`, like `override-squad`, running both options at once (`--squad override` and remote mode) on `tests/cli`. The bundled squad has no workflow override, so without this job no CI run sends a vocabulary hash over a present override or carries a custom field, kind or flat attribute over the wire.
+- **Cross-process set.** The `cross-process` job already exists (three OS, `uv run pytest -n0 tests/cross_process`, the index lock cases), and the ordinary `test` job already passes `--ignore=tests/cross_process`. The daemon's members ADR-1172 names (implicit start, discovery, fall back, no replay, Ctrl-C, detached spawn on Windows), written by TASK-1219 lane C in `tests/cross_process/`, join it with no new job. Its Windows timeout (15 minutes today) comes down to ADR-1172's 10, since it does not run the full suite.
+- **Four remote-mode jobs** (ADR-1172 "Mode parity" and "Time bound", amended 2026-10-30): `tests/cli` in remote mode on the bundled squad on `ubuntu-latest`, `macos-latest` and `windows-latest`, and with `--squad override` on `ubuntu-latest`, each with `timeout-minutes: 10`, Windows included. The 15-minute bound stays only for the Windows `test` job that runs the full suite. The override job is the only run whose vocabulary hash covers a present workflow override and that sends custom fields, kinds and attributes over the wire.
 - **Client-budget report.** The benchmark script of TASK-1219 ST8 runs on one runner and its numbers are published as a job summary; it never fails the build, because runner timings spread too widely to gate on (ADR-1225 section 5). The budget's import guard runs with `tests/meta` in the ordinary jobs.
 - **No stray daemons.** Every job, the existing `test` and `override-squad` included, sets `SQUADS_DAEMON=off` at job level except where a test turns it on; a post-test step fails the job if any `squads daemon run` process outlives the test step, printing its runtime-directory log.
 - `starlette` and `uvicorn` are ordinary dependencies, so the install step needs no extra; check the lock resolves on all three runners.
@@ -73,7 +72,7 @@ _Add with `sq task 1220 add-subtask "<title>"`; track with `sq task 1220 subtask
 ### ST1 — Cross-process and parity jobs on the three-OS matrix
 
 <!-- sq:subtask:ST1:body -->
-A cross-process job on `ubuntu-latest`, `macos-latest` and `windows-latest` in `.github/workflows/test.yml`, running exactly the members ADR-1172 "The cross-process set" names (implicit start, discovery, fall back, no replay, Ctrl-C, detached spawn on Windows), written in TASK-1219 and selected by its opt-in option; a remote-mode job per OS rerunning the surface suite with `HttpApi` against the in-process application (TASK-1219 ST6); and, if the operator rules for it, remote mode on the override squad on `ubuntu-latest`. Each follows the `override-squad` job's shape, with its own `pytest` line. Show that the Windows jobs collect the Windows-only cases with no silent skip.
+Four remote-mode jobs in `.github/workflows/test.yml`, each in the `override-squad` job's shape with its own `pytest` line and `timeout-minutes: 10`: `tests/cli` in remote mode on the bundled squad on `ubuntu-latest`, `macos-latest` and `windows-latest`, and with `--squad override` on `ubuntu-latest` (TASK-1219 ST6). The daemon's cross-process members join the existing `cross-process` job through `tests/cross_process/`; its Windows timeout comes down from 15 to 10 minutes (ADR-1172 "Time bound"). Show that the Windows jobs collect the Windows-only cases with no silent skip.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
@@ -86,7 +85,7 @@ A cross-process job on `ubuntu-latest`, `macos-latest` and `windows-latest` in `
 ### ST2 — Leaked-daemon check and bounded wall time
 
 <!-- sq:subtask:ST2:body -->
-Job-level `SQUADS_DAEMON=off` plus a post-test step that fails when a `squads daemon run` process survives, printing its log; prove it with a deliberate leak on a throwaway branch. Every job, the existing `test` and `override-squad` jobs and the remote-mode and cross-process jobs included, under ADR-1172's time bound (10 minutes; 15 on Windows); report two runs per OS, dispatched by hand on the release branch.
+Job-level `SQUADS_DAEMON=off` plus a post-test step that fails when a `squads daemon run` process survives, printing its log; prove it with a deliberate leak on a throwaway branch. Every job, the existing `test` and `override-squad` jobs and the remote-mode and cross-process jobs included, under ADR-1172's time bound (10 minutes on every OS, 15 only for the Windows `test` job that runs the full suite); report two runs per OS, dispatched by hand on the release branch.
 <!-- sq:subtask:ST2:body:end -->
 
 #### Discussion
@@ -114,4 +113,6 @@ The benchmark script of TASK-1219 ST8 run on one runner as a report: the human a
 <!-- sq:discussion -->
 - [2026-10-30T00:33:00Z] `tech-lead` Olivia Lead:
   - Brought up to date (2026-10-30): the new jobs follow the `override-squad` job pattern. Added remote mode on the override squad (pending the operator) and the Windows remote-run scope (pending the architect); both are on FEAT-1140. The existing jobs get `SQUADS_DAEMON=off` and the leak check. Timing runs are dispatched by hand on the release branch. Still 0 new tests.
+- [2026-10-30T00:44:18Z] `tech-lead` Olivia Lead:
+  - Folded the 2026-10-30 rulings: four remote-mode `tests/cli` jobs (bundled on ubuntu, macOS and Windows; override on ubuntu), each at 10 min. The existing `cross-process` job takes the daemon members, and its Windows timeout drops from 15 to 10 min per ADR-1172.
 <!-- sq:discussion:end -->
