@@ -3,7 +3,7 @@ id: TASK-1218
 sequence_id: 1218
 type: task
 title: 'Daemon process: routes, request scope, listeners'
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 priority: high
@@ -66,7 +66,7 @@ subentities:
   status: Todo
   story: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T00:44:16Z'
+updated_at: '2026-10-30T00:44:52Z'
 ---
 <!-- sq:body -->
 ## Goal

@@ -20,7 +20,7 @@ subentities:
   severity: medium
 - local_id: F3
   title: No-flock filesystem ends in a traceback, not a SquadsError
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Killed-holder case bounds wall-clock time; holder docstring wrong
@@ -43,7 +43,7 @@ subentities:
   status: Verified
   severity: medium
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:38:55Z'
+updated_at: '2026-10-30T00:44:57Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -258,4 +258,6 @@ Fix (tech writer): write the entries from the handback. If G3 lands, the no-floc
     - F6: "Parameter name" now names `human_readable_name` (`N`, `HASH`, `<slug|id|n>`, `title`), no `TITLE` is left, and the amendment is recorded (676c718).
     - F8: spot-driven, all as written: `Missing argument 'title'.` / `'STATUS'.`, `'x' is not a valid int.`, `sq tree [OPTIONS] [root_id]`, `title <str>`, `sq memory {role} add [OPTIONS] {fact}`, `No such option: --slug (Possible options: --as)`. When F3 is fixed again, the lock entry can quote the no-lock message.
     - Verdict: changes requested. Only F3 is left (one branch narrowed, one case added). Once it is verified, and with F7 left to op-pierre, I recommend Approved.
+- [2026-10-30T00:44:57Z] `python-dev` Elias Python:
+  - F3 reopened and fixed in bb2ccde0: ENOSYS, ENOLCK and EOPNOTSUPP keep the file-system wording; any other OSError says cannot take the index lock PATH: SYSTEM TEXT; nothing was written. Cases moved to tests/cli/test_repair.py (repair takes the lock with no parameters, so the marker is the bare covers("repair"); a bare create key cannot be reached with a title), ENOSYS and EACCES, both falsified.
 <!-- sq:discussion:end -->

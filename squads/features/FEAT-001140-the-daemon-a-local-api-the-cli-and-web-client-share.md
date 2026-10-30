@@ -3,7 +3,7 @@ id: FEAT-1140
 sequence_id: 1140
 type: feature
 title: 'The daemon: a local API the CLI and web client share'
-status: Ready
+status: InProgress
 parent: EPIC-29
 author: product-owner
 priority: high
@@ -20,10 +20,10 @@ description: A local process serving the squad as resource routes, called by the
 subentities:
 - local_id: US1
   title: Every operation served at its own resource route
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: Writes through the routes, safe against concurrent edits
-  status: Todo
+  status: InProgress
 - local_id: US3
   title: CLI remote and local modes
   status: Todo
@@ -47,7 +47,7 @@ subentities:
   status: Todo
 - local_id: US10
   title: Actor, time, session and paths travel with each call
-  status: Todo
+  status: InProgress
 - local_id: US11
   title: Client and daemon refuse a schema or vocabulary mismatch
   status: Todo
@@ -58,7 +58,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T00:41:00Z'
+updated_at: '2026-10-30T00:45:18Z'
 ---
 <!-- sq:body -->
 ## Problem
