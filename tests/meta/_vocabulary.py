@@ -102,10 +102,31 @@ def source_files(root: Path, *suffixes: str) -> Iterator[Path]:
             yield path
 
 
-def _is_command(node: ast.AST) -> bool:
+def _registered_names(tree: ast.AST) -> set[str]:
+    """The names of functions registered as `app.command("x")(fn)`, bare or wrapped."""
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Call)
+            and isinstance(node.func.func, ast.Attribute)
+            and node.func.func.attr in ("command", "callback")
+        ):
+            for argument in node.args:
+                inner = argument
+                while isinstance(inner, ast.Call) and inner.args:
+                    inner = inner.args[0]
+                if isinstance(inner, ast.Name):
+                    names.add(inner.id)
+    return names
+
+
+def _is_command(node: ast.AST, registered: set[str]) -> bool:
     """Whether *node* is a function registered as a command or group callback, whose docstring
-    Typer prints as `--help`."""
-    return isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and any(
+    Typer prints as `--help`: decorated, or applied to the result of `app.command(...)`."""
+    if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+        return False
+    return node.name in registered or any(
         isinstance(d, ast.Call)
         and isinstance(d.func, ast.Attribute)
         and d.func.attr in ("command", "callback")
@@ -115,6 +136,7 @@ def _is_command(node: ast.AST) -> bool:
 
 def _docstring_ids(tree: ast.AST) -> set[int]:
     """The docstrings that are developer prose: every one but those of commands."""
+    registered = _registered_names(tree)
     ids: set[int] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
@@ -122,7 +144,7 @@ def _docstring_ids(tree: ast.AST) -> set[int]:
             if (
                 isinstance(first, ast.Expr)
                 and isinstance(first.value, ast.Constant)
-                and not _is_command(node)
+                and not _is_command(node, registered)
             ):
                 ids.add(id(first.value))
     return ids

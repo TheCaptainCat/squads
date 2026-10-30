@@ -1034,58 +1034,11 @@ async def test_body_refuses_an_actor_no_roster_entry_has(populated_project, invo
 
 
 @pytest.mark.covers("<type> retype", "NEW-TYPE")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_project, invoke) -> None:
-    loose = await _create_task(invoke)
-    out = await _ran(invoke, [P.ref, str(loose), "retype", "bug"])
-    assert out == (
-        0,
-        f"retyped {P.ref_prefix}-{loose} → BUG-{loose}  bugs/BUG-00000{loose}-loose-end.md\n"
-        "  status reset: Draft → Open (workflows differ)\n",
-    )
-    moved = await _show(invoke, loose, "bug")
-    assert (moved["id"], moved["status"]) == (f"BUG-{loose}", "Open")
-
-
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project, invoke) -> None:
-    assert await _ran(invoke, [P.ref, str(TASK), "retype", "bug"]) == (
-        1,
-        f"error: cannot retype {P.ref_prefix}-3: it has sub-entities. "
-        "Clear or move all sub-entities first, then retype.\n",
-    )
-
-
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
 async def test_retype_refuses_the_type_the_item_already_has(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     assert await _ran(invoke, [P.ref, str(loose), "retype", P.ref]) == (
         1,
         f"error: {P.ref_prefix}-{loose} is already of type {P.ref}\n",
-    )
-
-
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
-    loose = await _create_task(invoke)
-    assert await _ran(invoke, [P.ref, str(loose), "retype", "role"]) == (
-        1,
-        "error: cannot retype to 'role'; valid targets: "
-        f"bug, contract, decision, epic, {P.host}, guide, milestone, {P.third}, {P.ref}\n",
-    )
-
-
-@pytest.mark.covers("<type> retype", "NEW-TYPE")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_refuses_a_type_the_spec_does_not_declare(populated_project, invoke) -> None:
-    loose = await _create_task(invoke)
-    assert await _ran(invoke, [P.ref, str(loose), "retype", P.target_kind]) == (
-        1,
-        f"error: unknown type '{P.target_kind}' (one of: bug, contract, decision, epic, {P.host}, "
-        f"guide, "
-        f"milestone, operator, {P.third}, role, skill, {P.ref})\n",
     )
 
 
@@ -1343,6 +1296,9 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 
 
 @pytest.mark.covers("<type> view add", "name")
+@pytest.mark.bundled_only(
+    "an override cannot declare a view over its own transform without shipping a template, so no view is placeable on this squad"
+)
 async def test_view_add_places_the_declared_view_in_the_body(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
     assert out == (0, f"{P.ref_prefix}-3: view milestone_rollup placed in sq:body\n")
@@ -1361,6 +1317,9 @@ async def test_view_add_refuses_a_name_no_view_declares(populated_project, invok
 
 
 @pytest.mark.covers("<type> view disable", "name")
+@pytest.mark.bundled_only(
+    "an override cannot declare a view over its own transform without shipping a template, so no view is placeable on this squad"
+)
 async def test_view_disable_stops_showing_the_view(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
     out = await _ran(invoke, [P.ref, str(TASK), "view", "disable", "milestone_rollup"])
@@ -1369,6 +1328,9 @@ async def test_view_disable_stops_showing_the_view(populated_project, invoke) ->
 
 
 @pytest.mark.covers("<type> view add", "--as")
+@pytest.mark.bundled_only(
+    "an override cannot declare a view over its own transform without shipping a template, so no view is placeable on this squad"
+)
 async def test_view_add_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup", "--as", "manager"])
     assert await _actors(invoke, f"{P.ref_prefix}-{TASK}", "view") == ["manager"]
@@ -1381,6 +1343,9 @@ async def test_view_add_refuses_an_actor_no_roster_entry_has(populated_project, 
 
 
 @pytest.mark.covers("<type> view disable", "--as")
+@pytest.mark.bundled_only(
+    "an override cannot declare a view over its own transform without shipping a template, so no view is placeable on this squad"
+)
 async def test_view_disable_attributes_the_edit_to_the_named_slug(
     populated_project, invoke
 ) -> None:

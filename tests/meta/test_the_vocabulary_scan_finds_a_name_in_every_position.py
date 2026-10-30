@@ -143,3 +143,20 @@ def test_a_command_docstring_is_help_text_and_any_other_docstring_is_prose(tmp_p
 
     assert prefix in _found(tmp_path / "command", vocabulary.TYPE)
     assert _found(tmp_path / "plain", vocabulary.TYPE) == []
+
+
+def test_a_function_registered_by_calling_command_on_it_is_a_command(tmp_path: Path) -> None:
+    prefix = _a_prefix()
+    help_text = f'"""Show it.\n\n    Pass `{prefix}-<n>`.\n    """'
+    forms = {
+        "bare": 'app.command("x")(show)',
+        "wrapped": 'app.command("x")(handle_errors(show))',
+        "hidden": 'app.command("x", hidden=True)(show)',
+    }
+    for where, registration in forms.items():
+        _plant(
+            tmp_path / where,
+            "_a.py",
+            f"def show() -> None:\n    {help_text}\n\n\n{registration}\n",
+        )
+        assert prefix in _found(tmp_path / where, vocabulary.TYPE), f"{where} not read as help"

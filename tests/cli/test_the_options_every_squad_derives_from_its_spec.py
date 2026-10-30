@@ -79,13 +79,25 @@ async def test_update_refuses_a_value_the_field_does_not_declare(populated_proje
 
 
 @pytest.mark.covers("<type> add-<kind>", "--json")
-async def test_add_json_prints_the_entry_that_was_added(populated_project, invoke) -> None:
-    printed = json.loads(
+async def test_add_json_prints_where_the_body_region_was_written(populated_project, invoke) -> None:
+    payload = json.loads(
         await _ok(invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--json"])
     )
-    assert printed["local_id"] == f"{P.third_kind_prefix}3"
-    assert printed["region"] == f"{P.third_kind}:{P.third_kind_prefix}3:body"
-    assert printed["display"]["item"] == THIRD_ID
+    path = payload.pop("path")
+    assert path.endswith(f"{P.third_folder}/{THIRD_ID.replace('-', '-00000')}-{P.third_slug}.md")
+    start, end = P.third_add_lines
+    assert payload == {
+        "local_id": f"{P.third_kind_prefix}3",
+        "region": f"{P.third_kind}:{P.third_kind_prefix}3:body",
+        "start_line": start,
+        "end_line": end,
+        "display": {
+            "item": THIRD_ID,
+            "body_command": (
+                f'sq {P.third} {REVIEW} {P.third_kind} {P.third_kind_prefix}3 body -m "…"'
+            ),
+        },
+    }
 
 
 @pytest.mark.covers("<type> <kind> update", "--json")
@@ -215,11 +227,12 @@ async def test_retype_json_prints_the_item_under_its_new_type(populated_project,
         f"{P.retype_to_prefix}-{number}",
         P.retype_to_initial,
     )
-    assert (printed["old_id"], printed["old_status"], printed["status_reset"]) == (
-        f"{P.retype_from_prefix}-{number}",
-        P.retype_from_initial,
-        True,
-    )
+    assert (
+        printed["old_id"],
+        printed["old_status"],
+        printed["status_reset"],
+        printed["rewritten"],
+    ) == (f"{P.retype_from_prefix}-{number}", P.retype_from_initial, True, [])
 
 
 @pytest.mark.covers("<type> <kind> update", "--<field>")
@@ -228,3 +241,47 @@ async def test_update_accepts_the_value_in_any_case(populated_project, invoke) -
     await _ok(invoke, [*args, P.third_other_value.upper()])
     stored = (await _entry(invoke, 2))["badges"][P.third_field]
     assert stored.lower() == P.third_other_value.lower()
+
+
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
+async def test_retype_reclassifies_the_item_and_keeps_its_number(populated_project, invoke) -> None:
+    number = await _loose(invoke)
+    out = await _ran(invoke, [P.retype_from, str(number), "retype", P.retype_to])
+    assert out == (
+        0,
+        f"retyped {P.retype_from_prefix}-{number} → {P.retype_to_prefix}-{number}  "
+        f"{P.retype_to_folder}/{P.retype_to_prefix}-{number:06d}-loose-end.md\n"
+        f"  status reset: {P.retype_from_initial} → {P.retype_to_initial} (workflows differ)\n",
+    )
+    moved = json.loads(await _ok(invoke, [P.retype_to, str(number), "show", "--json"]))
+    assert (moved["id"], moved["status"]) == (
+        f"{P.retype_to_prefix}-{number}",
+        P.retype_to_initial,
+    )
+
+
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
+async def test_retype_refuses_an_item_that_holds_sub_entities(populated_project, invoke) -> None:
+    assert await _ran(invoke, [P.ref, str(TASK), "retype", P.retype_to]) == (
+        1,
+        f"error: cannot retype {P.ref_prefix}-3: it has sub-entities. "
+        "Clear or move all sub-entities first, then retype.\n",
+    )
+
+
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
+async def test_retype_refuses_a_roster_type(populated_project, invoke) -> None:
+    number = await _loose(invoke)
+    assert await _ran(invoke, [P.retype_from, str(number), "retype", "role"]) == (
+        1,
+        f"error: cannot retype to 'role'; valid targets: {P.retype_targets}\n",
+    )
+
+
+@pytest.mark.covers("<type> retype", "NEW-TYPE")
+async def test_retype_refuses_a_type_the_spec_does_not_declare(populated_project, invoke) -> None:
+    number = await _loose(invoke)
+    assert await _ran(invoke, [P.retype_from, str(number), "retype", P.target_kind]) == (
+        1,
+        f"error: unknown type '{P.target_kind}' (one of: {P.all_types})\n",
+    )

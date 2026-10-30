@@ -10,10 +10,7 @@ subentity_kinds = ["outcome", "action"]
 lifecycles = ["work", "adr", "agent", "subentity", "step"]
 collections = ["urgency", "impact", "size"]
 ref_kinds = ["related", "blocks", "depends-on", "scopes", "replaces"]
-views = [
-  "role_definition", "squads_skill", "greeting_skill", "memory_skill", "item_skill",
-  "milestone_rollup",
-]
+views = ["role_definition", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
 
 [lifecycles.step]
 initial = "Todo"
@@ -50,10 +47,6 @@ badges = [
   { code = "m", label = "M", emoji = "⚪" },
   { code = "l", label = "L", emoji = "⚪" },
 ]
-
-# The one view an item can carry: the bundled roll-up, over this squad ref kind.
-[views.milestone_rollup]
-source = { kind = "ref", name = "scopes" }
 
 [ref_kinds.replaces]
 label = "Replaces"

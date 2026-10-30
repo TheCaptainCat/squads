@@ -42,6 +42,7 @@ class Profile:
     third_prefix: str
     third_folder: str
     third_title: str
+    third_slug: str
     #: The kind the reference type hosts and its local prefix, plural and heading.
     kind: str
     kind_prefix: str
@@ -56,6 +57,8 @@ class Profile:
     third_kind_plural: str
     third_field: str
     third_value: str
+    #: Where the body region of a third kind's third entry sits in its item file.
+    third_add_lines: tuple[int, int]
     third_codes: str
     third_other_value: str
     #: A badge field of the reference type, a value of it, another value, and an unset marker.
@@ -79,6 +82,10 @@ class Profile:
     retype_to: str
     retype_to_prefix: str
     retype_to_initial: str
+    retype_to_folder: str
+    #: The non-roster types, and every type, as a refusal lists them.
+    retype_targets: str
+    all_types: str
     #: The types that cannot be created without a parent.
     needs_parent: tuple[str, ...]
     #: The status a reference item moves to from its initial status, and its initial status.
@@ -128,6 +135,7 @@ BUNDLED = Profile(
     third_prefix="REV",
     third_folder="reviews",
     third_title="Review the query parser",
+    third_slug="review-the-query-parser",
     kind="subtask",
     kind_prefix="ST",
     kind_plural="subtasks",
@@ -139,6 +147,7 @@ BUNDLED = Profile(
     third_kind_plural="findings",
     third_field="severity",
     third_value="High",
+    third_add_lines=(67, 69),
     third_codes="critical, high, medium, low, info",
     third_other_value="Low",
     badge="priority",
@@ -159,6 +168,9 @@ BUNDLED = Profile(
     retype_to="bug",
     retype_to_prefix="BUG",
     retype_to_initial="Open",
+    retype_to_folder="bugs",
+    retype_targets="bug, contract, decision, epic, feature, guide, milestone, review, task",
+    all_types="bug, contract, decision, epic, feature, guide, milestone, operator, review, role, skill, task",
     needs_parent=(),
     initial="Draft",
     moved="Ready",
@@ -186,6 +198,7 @@ OVERRIDE = Profile(
     third_prefix="JOB",
     third_folder="jobs",
     third_title="Review the query parser",
+    third_slug="review-the-query-parser",
     kind="action",
     kind_prefix="AC",
     kind_plural="actions",
@@ -197,6 +210,7 @@ OVERRIDE = Profile(
     third_kind_plural="actions",
     third_field="impact",
     third_value="large",
+    third_add_lines=(68, 70),
     third_codes="large, small",
     third_other_value="small",
     badge="work_size",
@@ -217,6 +231,9 @@ OVERRIDE = Profile(
     retype_to="initiative",
     retype_to_prefix="INI",
     retype_to_initial="Draft",
+    retype_to_folder="initiatives",
+    retype_targets="initiative, job, record",
+    all_types="initiative, job, operator, record, role, skill",
     needs_parent=("job",),
     initial="Draft",
     moved="Ready",
