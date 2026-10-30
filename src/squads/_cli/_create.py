@@ -19,7 +19,6 @@ from squads._api import _ops as ops
 from squads._api._dto._item_writes import ItemCreateRequest
 from squads._cli import _calls as calls
 from squads._cli._common import console, resolve_body_optional
-from squads._cli._render._writes import render_created
 from squads._errors import SquadsError
 from squads._models._attributes import AttributeSpec
 from squads._workflow import bundled_spec
@@ -36,6 +35,8 @@ def _check_parent_option(parent: str | None) -> None:
 
 def _create(request: ItemCreateRequest, json_out: bool) -> None:
     """Make the one create call, then print the created item."""
+    from squads._cli._render._writes import render_created
+
     response = calls.call(ops.ITEMS_CREATE, request)
     if json_out:
         calls.print_json(ops.ITEMS_CREATE, response)

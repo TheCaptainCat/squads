@@ -232,6 +232,7 @@ _board -> _models top
 _board -> _paths top
 _board -> _sections top
 _cli -> _actor top
+_cli -> _api local
 _cli -> _api top
 _cli -> _badges top
 _cli -> _clock local

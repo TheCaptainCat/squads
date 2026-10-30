@@ -26,6 +26,9 @@ _FORBIDDEN = (
     "h11",
     "click",
     "rich.markdown",
+    "rich.panel",
+    "rich.table",
+    "rich.tree",
     "textual",
 )
 

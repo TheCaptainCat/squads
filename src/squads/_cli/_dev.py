@@ -5,10 +5,8 @@ import typer
 import squads._cli._common as common
 import squads._cli._role as role_cli
 from squads._api import _ops as ops
-from squads._api._dto._roles import DeveloperListRequest, RoleActivateRequest
 from squads._cli import _calls as calls
 from squads._cli._common import console
-from squads._cli._render._roster import render_developer_list
 from squads._cli._roster import json_option
 from squads._roles._models import DEV_TEMPLATE_NAME
 
@@ -34,6 +32,8 @@ def dev_add(
 
     Exactly `sq role activate [<slug>] --from dev --tech <t>`.
     """
+    from squads._api._dto._roles import RoleActivateRequest
+
     request = RoleActivateRequest(
         slug=slug,
         name=name,
@@ -54,6 +54,9 @@ def dev_list(
     ),
 ):
     """List the live developer roles."""
+    from squads._api._dto._roles import DeveloperListRequest
+    from squads._cli._render._roster import render_developer_list
+
     response = calls.call(ops.DEVELOPERS_LIST, DeveloperListRequest())
     if json_out:
         calls.print_json(ops.DEVELOPERS_LIST, response)

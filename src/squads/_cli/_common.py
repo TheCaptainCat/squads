@@ -18,7 +18,6 @@ import typer.core
 import typer.main
 from pydantic import BaseModel
 from rich.console import Console
-from rich.panel import Panel
 from rich.text import Text
 
 from squads import _actor as actor
@@ -34,16 +33,11 @@ from squads._api._dto._comment_writes import (
     CommentRequest,
     CommentSelection,
     CommentShown,
-    RosterCommentAddRequest,
-    RosterCommentEditRequest,
-    RosterCommentRequest,
 )
 from squads._api._dto._comments import Comments, CommentsRequest
-from squads._api._dto._roster import RosterAddress
 from squads._cli._markup import escape_markup
 from squads._cli._render import _comments as comment_render
 from squads._cli._render import _writes as write_render
-from squads._cli._render._style import intent_style
 from squads._context import get_context
 from squads._endpoint import ChangeDirError, change_directory
 from squads._errors import (
@@ -656,6 +650,8 @@ def e(value: object) -> str:
 def status_style(status: str, spec: WorkflowSpec) -> str:
     """The concrete `rich` style for *status*: its role's colour intent, uncoloured when this
     build does not know the intent."""
+    from squads._cli._render._style import intent_style
+
     return intent_style(spec.role_for(status).color)
 
 
@@ -697,6 +693,7 @@ def _render_comments_styled(
 ) -> None:
     """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
     from rich.markdown import Markdown
+    from rich.panel import Panel
 
     for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
         title = (
@@ -1396,6 +1393,13 @@ def roster_comments(
 ) -> CommentHost:
     """A roster entry's discussion, from its kind's operations (listing, add, show, edit, removal,
     remove) and the address its group parsed."""
+    from squads._api._dto._comment_writes import (
+        RosterCommentAddRequest,
+        RosterCommentEditRequest,
+        RosterCommentRequest,
+    )
+    from squads._api._dto._roster import RosterAddress
+
     listing, add, show, edit, removal, remove = kind_ops
     return CommentHost(
         add=add,

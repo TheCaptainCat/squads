@@ -16,20 +16,6 @@ import typer
 import squads._cli._common as common
 import squads._cli._field_options as field_options
 from squads._api import _ops as ops
-from squads._api._dto._check import CheckRequest, SyncRequest
-from squads._api._dto._graph import GraphRequest
-from squads._api._dto._items import ItemListRequest, ItemShowRequest
-from squads._api._dto._package import DocIndex
-from squads._api._dto._queues import BlockedRequest, InboxRequest, MineRequest, WorkloadRequest
-from squads._api._dto._reflog import ReflogRequest
-from squads._api._dto._search import SearchRequest
-from squads._api._dto._squad import (
-    AdoptRequest,
-    InitRequest,
-    RenumberRequest,
-    RepairRequest,
-)
-from squads._api._dto._tree import TreeRequest
 from squads._cli import _calls as calls
 from squads._cli import app
 from squads._cli._common import (
@@ -43,15 +29,6 @@ from squads._cli._common import (
     parse_type,
     print_json_clean,
 )
-from squads._cli._render._check import render_check, render_sync
-from squads._cli._render._graph import render_graph, render_graph_text
-from squads._cli._render._items import render_list, render_show
-from squads._cli._render._package import render_doc, render_doc_index
-from squads._cli._render._queues import render_blocked, render_inbox, render_mine, render_workload
-from squads._cli._render._reflog import render_reflog, render_reflog_tree
-from squads._cli._render._search import render_search
-from squads._cli._render._squad import render_adopt, render_init, render_renumber, render_repair
-from squads._cli._render._tree import render_tree
 from squads._context import get_context
 from squads._errors import SquadsError
 from squads._index._reflog import REFLOG_OPS
@@ -199,6 +176,9 @@ def init(  # noqa: PLR0913 — one parameter per init option
 ):
     """Initialize squads in the current directory."""
     # Parse --backend flags (repeatable; "none" sentinel → sq-only squad).
+    from squads._api._dto._squad import InitRequest
+    from squads._cli._render._squad import render_init
+
     active_backends = _parse_backend_option(backend)
 
     # Parse --name slug=Full Name flags.
@@ -312,6 +292,9 @@ def adopt(
     ),
 ):
     """Adopt an existing squad folder and index the items already in it."""
+    from squads._api._dto._squad import AdoptRequest
+    from squads._cli._render._squad import render_adopt
+
     request = AdoptRequest(
         squad_dir=squad_dir,
         backends=_parse_backend_option(backend),
@@ -373,6 +356,9 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     hides once retired. Filters combine: an item is listed only when it matches
     every one given.
     """
+    from squads._api._dto._items import ItemListRequest
+    from squads._cli._render._items import render_list
+
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
     badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
@@ -449,6 +435,9 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     absent from the tree while `sq list` still returned it; the anchor is a tiebreak, since
     every member is an equally good root.
     """
+    from squads._api._dto._tree import TreeRequest
+    from squads._cli._render._tree import render_tree
+
     badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
     if sort is not None:
         sort = parse_badge_field(sort, ordered=True)
@@ -496,6 +485,9 @@ def repair(
 
     Exit codes: 1 a file was unreadable or refs need checking. See sq docs faq.
     """
+    from squads._api._dto._squad import RepairRequest
+    from squads._cli._render._squad import render_repair
+
     response = calls.call(ops.REPAIR, RepairRequest(renumber=renumber))
     report = response.data
     if json_out:
@@ -536,6 +528,9 @@ def renumber(
     Read the other branch's counter (for `--onto`) with:
       git show <mainref>:squads/.squads.json | jq .counter
     """
+    from squads._api._dto._squad import RenumberRequest
+    from squads._cli._render._squad import render_renumber
+
     if (onto is None) == (by is None):
         raise typer.BadParameter("provide exactly one of --onto or --by")
     response = calls.call(ops.RENUMBER, RenumberRequest(from_seq=from_seq, onto=onto, by=by))
@@ -556,6 +551,9 @@ def inbox(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
+    from squads._api._dto._queues import InboxRequest
+    from squads._cli._render._queues import render_inbox
+
     response = calls.call(ops.INBOX, InboxRequest(slug=role))
     if json_out:
         calls.print_json(ops.INBOX, response)
@@ -584,6 +582,9 @@ def search(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
+    from squads._api._dto._search import SearchRequest
+    from squads._cli._render._search import render_search
+
     request = SearchRequest(
         q=text,
         type=parse_type(type) if type else None,
@@ -606,6 +607,9 @@ def blocked(
     ),
 ):
     """Show open items that wait on another open item."""
+    from squads._api._dto._queues import BlockedRequest
+    from squads._cli._render._queues import render_blocked
+
     response = calls.call(ops.BLOCKED, BlockedRequest())
     if json_out:
         calls.print_json(ops.BLOCKED, response)
@@ -653,6 +657,9 @@ def graph(
     can rename.
     Fields: sq docs stability
     """
+    from squads._api._dto._graph import GraphRequest
+    from squads._cli._render._graph import render_graph, render_graph_text
+
     valid_formats = ("dot", "mermaid", "mermaid-md")
     if format_ and format_ not in valid_formats:
         raise SquadsError(f"invalid --format {format_!r}; expected one of {valid_formats}")
@@ -681,6 +688,9 @@ def workload(
 
     Items and sub-entities are counted separately.
     """
+    from squads._api._dto._queues import WorkloadRequest
+    from squads._cli._render._queues import render_workload
+
     response = calls.call(ops.WORKLOAD, WorkloadRequest())
     if json_out:
         calls.print_json(ops.WORKLOAD, response)
@@ -698,6 +708,9 @@ def mine(
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List the items assigned to someone, directly or through a sub-entity."""
+    from squads._api._dto._queues import MineRequest
+    from squads._cli._render._queues import render_mine
+
     response = calls.call(ops.MINE, MineRequest(slug=role, all=all_))
     if json_out:
         calls.print_json(ops.MINE, response)
@@ -715,6 +728,9 @@ def sync(
     ),
 ):
     """Regenerate tool-owned managed files to the current squads version."""
+    from squads._api._dto._check import SyncRequest
+    from squads._cli._render._check import render_sync
+
     response = calls.call(ops.SYNC, SyncRequest())
     if json_out:
         calls.print_json(ops.SYNC, response)
@@ -736,6 +752,8 @@ def docs(
 ):
     """Print the squads documentation in the terminal, offline."""
     from squads import _docfiles
+    from squads._api._dto._package import DocIndex
+    from squads._cli._render._package import render_doc, render_doc_index
 
     found = _docfiles.doc_index() if name is None else _docfiles.doc(name)
     if json_out:
@@ -795,6 +813,8 @@ def reflog(
     status changes. A squad with no log yet prints nothing rather than an error.
     """
     from squads import _clock as clock
+    from squads._api._dto._reflog import ReflogRequest
+    from squads._cli._render._reflog import render_reflog, render_reflog_tree
 
     since_ts: str | None = None
     if since:
@@ -837,6 +857,9 @@ def show_any(
     full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
 ):
     """Show any item by ID or number, whatever its type."""
+    from squads._api._dto._items import ItemShowRequest
+    from squads._cli._render._items import render_show
+
     response = calls.call(ops.ITEM_SHOW, ItemShowRequest(id=item_id))
     if json_out:
         calls.print_json(ops.ITEM_SHOW, response)
@@ -861,6 +884,9 @@ def check(
     A broken workflow or playbook override is reported as an issue, and the other
     checks still run.
     """
+    from squads._api._dto._check import CheckRequest
+    from squads._cli._render._check import render_check
+
     response = calls.call(ops.CHECK, CheckRequest())
     if json_out:
         calls.print_json(ops.CHECK, response)
