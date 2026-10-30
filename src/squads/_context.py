@@ -13,7 +13,7 @@ fields are added with a default, so existing call sites and fields are untouched
 """
 
 import hashlib
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -104,6 +104,21 @@ class Preconditions:
 
 
 @dataclass(frozen=True)
+class ServedCommand:
+    """What a command the daemon runs takes from its request in place of the client's machine."""
+
+    #: The bytes of each client file the command line names, by the argument as written.
+    attachments: Mapping[str, bytes]
+    stdin_encoding: str
+    columns: int | None
+    lines: int | None
+    #: Whether a Windows client's console has virtual-terminal processing; ``None`` elsewhere.
+    windows_vt: bool | None
+    #: Marks that the output so far is what the user has seen and the next write is the prompt.
+    begin_prompt: Callable[[], None]
+
+
+@dataclass(frozen=True)
 class RequestContext:
     """The ambient values for one request/invocation. Every field defaults to "unset"."""
 
@@ -136,6 +151,10 @@ class RequestContext:
     preconditions: Preconditions | None = None
     #: The daemon's cache of parsed files; ``None`` in every other process.
     parse_cache: ParseCache | None = None
+
+    #: Set on a command the daemon runs for its client; ``None`` for a command run by this
+    #: process for itself.
+    served: ServedCommand | None = None
 
 
 _DEFAULT_CONTEXT = RequestContext()

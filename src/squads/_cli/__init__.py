@@ -360,7 +360,11 @@ def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> 
     prior = get_context()
     session_id, parent_session_id = actor.session_from_env()
     client_cwd = common.effective_dir(change_dir)
-    active_spec, spec_error = common.bind_active_spec(client_cwd)
+    if prior.served is None:
+        active_spec, spec_error = common.bind_active_spec(client_cwd)
+    else:
+        # The daemon resolved the squad's spec when it composed the context this command runs in.
+        active_spec, spec_error = prior.active_spec, prior.spec_error
     bind_context(
         RequestContext(
             clock_override=_resolve_clock_override(at, prior),
@@ -375,6 +379,7 @@ def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> 
             consoles=common.build_consoles(),
             api=calls.invocation_api(prior.api, client_cwd),
             notices=NoticeLog(sink=common.print_notice),
+            served=prior.served,
         )
     )
     common.mark_root_callback_ran(ctx)
@@ -481,21 +486,32 @@ def _exit_code(code: object) -> int:
     return 1
 
 
-def _run_in_scope(args: list[str]) -> int:
+def _run_in_scope(args: list[str], prog_name: str | None, command: _click.Command | None) -> int:
+    hoisted = _hoist_global_options(args)
     try:
-        app(args=_hoist_global_options(args))
+        if command is None:
+            app(args=hoisted, prog_name=prog_name)
+        else:
+            command(args=hoisted, prog_name=prog_name)
     except SystemExit as exc:
         return _exit_code(exc.code)
     return 0
 
 
-def run(argv: Sequence[str]) -> int:
+def run(
+    argv: Sequence[str],
+    *,
+    prog_name: str | None = None,
+    command: _click.Command | None = None,
+) -> int:
     """Run one command line (the arguments after ``sq``) and return its exit code.
 
     The command runs in a copy of the current context, so nothing it binds (clock, actor,
-    index read, consoles) is visible to the next call.
+    index read, consoles) is visible to the next call. *prog_name* is the name the usage text and
+    the shell completion variable derive from; *command* is a command tree built beforehand, in
+    place of building the application's on each call.
     """
-    return contextvars.copy_context().run(_run_in_scope, list(argv))
+    return contextvars.copy_context().run(_run_in_scope, list(argv), prog_name, command)
 
 
 def main() -> None:

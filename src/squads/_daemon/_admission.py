@@ -16,6 +16,9 @@ from squads._api._errors import FORBIDDEN, HTTP_STATUS, MISDIRECTED, ErrorBody, 
 CLI = "cli"
 BROWSER = "browser"
 
+#: Where the CLI of this installation sends a command line; the browser listener has no such route.
+COMMANDS_PATH = "/v1/commands"
+
 #: The header every non-``GET`` request carries, which a cross-origin page cannot send without a
 #: preflight that fails.
 CLIENT_HEADER = b"squads-client"
@@ -60,6 +63,15 @@ def _headers(scope: Scope) -> dict[bytes, bytes]:
     return found
 
 
+def _write_refusal(headers: dict[bytes, bytes]) -> Response | None:
+    """The answer refusing a write that lacks the headers a cross-origin page cannot send."""
+    if not _is_json(headers.get(b"content-type")):
+        return _refusal(FORBIDDEN, "a write needs Content-Type: application/json")
+    if headers.get(CLIENT_HEADER) != b"1":
+        return _refusal(FORBIDDEN, "a write needs the header Squads-Client: 1")
+    return None
+
+
 def _is_json(content_type: bytes | None) -> bool:
     if content_type is None:
         return False
@@ -91,6 +103,8 @@ class Admission:
                 f"[::1]:{port}",
             ):
                 return _refusal(MISDIRECTED, "the Host header does not name this listener")
+            if kind == BROWSER and scope["path"] == COMMANDS_PATH:
+                return _refusal("not_found", "no such route")
             if kind == CLI and origin is not None:
                 return _refusal(FORBIDDEN, "this listener refuses a request that has an Origin")
             if (
@@ -100,10 +114,7 @@ class Admission:
             ):
                 return _refusal(FORBIDDEN, "a write needs an Origin equal to this listener's")
         if isinstance(port, int) and method not in ("GET", "HEAD"):
-            if not _is_json(headers.get(b"content-type")):
-                return _refusal(FORBIDDEN, "a write needs Content-Type: application/json")
-            if headers.get(CLIENT_HEADER) != b"1":
-                return _refusal(FORBIDDEN, "a write needs the header Squads-Client: 1")
+            return _write_refusal(headers)
         return None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

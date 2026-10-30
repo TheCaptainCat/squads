@@ -430,10 +430,24 @@ class RequestScope:
             parse_cache=self._parse_cache,
         )
 
+    def command_context(self, start_dir: Path) -> RequestContext:
+        """The context a CLI command run for a client starts from: the daemon's squad and spec,
+        paths spelled from *start_dir*, and the preconditions of no request."""
+        return RequestContext(
+            active_spec=self._spec,
+            client_cwd=self._root,
+            spec_error=self._spec_refusal(),
+            start_dir=start_dir,
+        )
+
     async def _bound[T](
-        self, meta: RequestMetadata, call: Callable[[], Awaitable[T]], conditional: bool
+        self,
+        meta: RequestMetadata,
+        call: Callable[[], Awaitable[T]],
+        conditional: bool,
+        context: Callable[[], RequestContext] | None,
     ) -> Answered[T]:
-        ctx = self._context(meta, conditional=conditional)
+        ctx = context() if context is not None else self._context(meta, conditional=conditional)
         bind_context(ctx)
         started = time.perf_counter()
         value = await call()
@@ -447,18 +461,19 @@ class RequestScope:
         *,
         conditional: bool = False,
         gate: Callable[[], None] | None = None,
+        context: Callable[[], RequestContext] | None = None,
     ) -> Answered[T]:
-        """Run *call* in the scope of a request declaring *meta*. *gate* runs when the request's
-        turn comes, after the lock is taken and before anything else, and may refuse it by
-        raising. The call runs to completion once it has started, even if the caller stops
-        waiting."""
+        """Run *call* in the scope of a request declaring *meta*, or of the context *context*
+        builds when its turn comes. *gate* runs when the request's turn comes, after the lock is
+        taken and before anything else, and may refuse it by raising. The call runs to completion
+        once it has started, even if the caller stops waiting."""
 
         async def serial() -> Answered[T]:
             async with self._lock:
                 if gate is not None:
                     gate()
                 return await asyncio.create_task(
-                    self._bound(meta, call, conditional), context=contextvars.Context()
+                    self._bound(meta, call, conditional, context), context=contextvars.Context()
                 )
 
         return await asyncio.shield(asyncio.ensure_future(serial()))

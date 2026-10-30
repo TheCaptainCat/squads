@@ -144,7 +144,10 @@ def session_api(prior: Api | None, client_cwd: Path | None = None) -> Api:
 
 
 def select_api(client_cwd: Path | None = None) -> Api:
-    """The API an invocation started in *client_cwd* calls."""
+    """The API an invocation started in *client_cwd* calls. A command the daemon serves is handed
+    the daemon's own, so it never selects one."""
+    if get_context().served is not None:
+        raise RuntimeError("a command the daemon serves calls the daemon's own API")
     return SelectedApi(client_cwd)
 
 

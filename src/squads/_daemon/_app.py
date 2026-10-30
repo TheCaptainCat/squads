@@ -2,10 +2,13 @@
 the answers they share."""
 
 import functools
+import json
 import logging
 from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import Any
 
+import typer._click as _click  # underscore is upstream's own private module path, not ours
 from pydantic import BaseModel
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -26,6 +29,8 @@ from squads._api._http import RequestMetadata, request_metadata
 from squads._api._ops import CONDITIONAL_WRITES, ROUTED_OPERATIONS
 from squads._api._response import Response as Envelope
 from squads._api._vocabulary import VocabularyHash
+from squads._daemon._admission import COMMANDS_PATH
+from squads._daemon._commands import Commands, Session, parse_request
 from squads._daemon._openapi import build_document
 from squads._daemon._request import request_dto
 from squads._daemon._state import DaemonState, RetirementCheck, never_retiring
@@ -66,12 +71,19 @@ class Application:
     """The state the daemon's routes share: the squad's documents, the request scope, the
     operation API and the vocabulary the daemon serves."""
 
-    def __init__(self, state: DaemonState, retirement_check: RetirementCheck) -> None:
+    def __init__(
+        self,
+        state: DaemonState,
+        retirement_check: RetirementCheck,
+        command: _click.Command | None = None,
+        clock: Callable[[], datetime | None] = lambda: None,
+    ) -> None:
         self.state = state
         self.retiring = retirement_check
         self.vocabulary: VocabularyHash = state.sources.vocabulary()
         self.scope = RequestScope(state.root, state.squad_dir, state.sources, state.parse_cache)
         self.api = LocalApi(sources=lambda _squad_dir: state.sources)
+        self.commands = Commands(self.scope, command, clock)
 
     def identity(self) -> DaemonIdentity:
         state = self.state
@@ -157,6 +169,34 @@ def _operation_endpoint(
     return endpoint
 
 
+def _commands_route(app: Application) -> Route:
+    """``POST /v1/commands``: a CLI command line run in this process. It is private to the CLI of
+    this installation, so it is no operation and the OpenAPI document does not describe it."""
+
+    async def commands(request: Request) -> Response:
+        meta = RequestMetadata()
+        try:
+            session = Session(parse_request(await request.body()), app.api)
+            answered = await app.scope.run(
+                meta,
+                lambda: app.commands.run(session),
+                gate=app.gate(meta),
+                context=lambda: app.commands.context(session),
+            )
+        except Retiring:
+            return app.retire()
+        except Exception as exc:  # every failure has an answer
+            return _failure(exc)
+        # The standard library writes the answer: a lone surrogate in the output is escaped, where
+        # the model serializer refuses it.
+        return _json(
+            json.dumps(answered.value).encode(),
+            headers={"Server-Timing": f"handler;dur={answered.handler_ms:.1f}"},
+        )
+
+    return Route(COMMANDS_PATH, commands, methods=["POST"], name="commands")
+
+
 def _daemon_routes(app: Application) -> list[BaseRoute]:
     async def identity(_request: Request) -> Response:  # noqa: RUF029 — an endpoint is async
         return _json(app.identity().model_dump_json().encode())
@@ -192,6 +232,7 @@ def _served() -> list[tuple[str, str]]:
         ("GET", "/v1/daemon"),
         ("POST", "/v1/daemon/stop"),
         ("GET", "/v1/openapi.json"),
+        ("POST", COMMANDS_PATH),
     ]
 
 
@@ -220,15 +261,23 @@ async def _http_error(request: Request, exc: Exception) -> Response:  # noqa: RU
     return _json(body.model_dump_json(exclude_none=True).encode(), exc.status_code, headers)
 
 
-def build_app(state: DaemonState, retirement_check: RetirementCheck = never_retiring) -> Starlette:
+def build_app(
+    state: DaemonState,
+    retirement_check: RetirementCheck = never_retiring,
+    *,
+    command: _click.Command | None = None,
+    clock: Callable[[], datetime | None] = lambda: None,
+) -> Starlette:
     """The Starlette application serving the squad *state* describes: every operation at its
-    route, the daemon's identity and stop, and the OpenAPI document. *retirement_check* says
-    whether the daemon's configuration changed; a request that finds it so is answered
-    ``retiring``."""
-    app = Application(state, retirement_check)
+    route, the command endpoint, the daemon's identity and stop, and the OpenAPI document.
+    *retirement_check* says whether the daemon's configuration changed; a request that finds it so
+    is answered ``retiring``. A harness passes the *command* tree to serve in place of the CLI's
+    and the *clock* its commands run on; the daemon passes neither."""
+    app = Application(state, retirement_check, command, clock)
     routes: list[BaseRoute] = [
         Route(op.route[1], _operation_endpoint(app, op), methods=[op.route[0]], name=op.name)
         for op in ROUTED_OPERATIONS
     ]
     routes += _daemon_routes(app)
+    routes.append(_commands_route(app))
     return Starlette(routes=routes, exception_handlers={HTTPException: _http_error})

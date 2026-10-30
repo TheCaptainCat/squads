@@ -5,6 +5,7 @@ import copy
 import functools
 import io
 import json
+import os
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -38,7 +39,7 @@ from squads._api._dto._comments import Comments, CommentsRequest
 from squads._cli._markup import escape_markup
 from squads._cli._render import _comments as comment_render
 from squads._cli._render import _writes as write_render
-from squads._context import get_context
+from squads._context import ServedCommand, get_context
 from squads._endpoint import ChangeDirError, change_directory
 from squads._errors import (
     ClientInterruptedError,
@@ -59,9 +60,33 @@ from squads._workflow import CATEGORIES, bundled_spec
 from squads._workflow._models import WorkflowSpec
 
 
+def _dimension(name: str, terminal: int | None, fallback: int) -> int:
+    """A console dimension as Rich reads one: the exported variable *name*, else the terminal's
+    size, else *fallback*."""
+    raw = os.environ.get(name)
+    chosen = int(raw) if raw is not None and raw.isdigit() else terminal
+    return chosen or fallback
+
+
+def build_console(*, stderr: bool) -> Console:
+    """A console for the standard stream it names. A served command's is sized and featured as
+    its client's terminal is, not as the daemon's."""
+    served = get_context().served
+    if served is None:
+        return Console(stderr=stderr)
+    legacy = None if served.windows_vt is None else not served.windows_vt
+    console = Console(stderr=stderr, legacy_windows=legacy)
+    if not console.is_dumb_terminal:
+        console.size = (
+            _dimension("COLUMNS", served.columns, 80),
+            _dimension("LINES", served.lines, 25),
+        )
+    return console
+
+
 def build_consoles() -> tuple[Console, Console]:
     """The stdout and stderr consoles of one invocation."""
-    return Console(), Console(stderr=True)
+    return build_console(stderr=False), build_console(stderr=True)
 
 
 class _ConsoleHandle:
@@ -78,7 +103,7 @@ class _ConsoleHandle:
         if ctx.consoles is not None:
             target = ctx.consoles[1 if self._stderr else 0]
         else:
-            target = Console(stderr=self._stderr)
+            target = build_console(stderr=self._stderr)
         return getattr(target, name)
 
 
@@ -140,7 +165,10 @@ def effective_dir(values: Sequence[str]) -> Path:
     as ``chdir`` would (an absolute value replaces what came before, an empty one changes
     nothing, a link is followed before a ``..``). Raises :class:`ChangeDirError` for a
     component that is missing, not a directory, or not searchable. A request that carries its
-    own starting directory begins there instead of at the process directory."""
+    own starting directory begins there instead of at the process directory. A command the
+    daemon serves has the daemon's squad and reads no path its client names."""
+    if get_context().served is not None:
+        return get_context().client_cwd or process_dir()
     start = get_context().start_dir
     return change_directory(start if start is not None else process_dir(), values)
 
@@ -248,7 +276,7 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
     to the answering surfaces, :func:`get_active_spec` and ``compose_service``.
     """
     try:
-        if ctx is None or _root_callback_ran(ctx):
+        if ctx is None or _root_callback_ran(ctx) or get_context().served is not None:
             active = get_context().active_spec
             if active is not None:
                 return active
@@ -446,8 +474,8 @@ def _pending_spec_error(ctx: Any) -> str | None:
     from squads._context import get_context
 
     bound = get_context()
-    if ctx is None or _root_callback_ran(ctx):
-        return bound.spec_error  # the callback ran: its verdict is the whole answer
+    if ctx is None or _root_callback_ran(ctx) or bound.served is not None:
+        return bound.spec_error  # the callback ran, or the daemon bound it: that is the answer
     try:
         _spec, error = bind_active_spec(root_effective_dir(ctx))
     except Exception:  # pylint: disable=broad-except
@@ -736,11 +764,25 @@ def not_text_refusal(exc: UnicodeDecodeError, file: str, what: str) -> SquadsErr
     )
 
 
+def _attachment(served: ServedCommand, file: str) -> bytes:
+    """The bytes the request carries for *file*; a name it does not carry is a defect in the
+    client's list of file arguments, not a user's mistake."""
+    try:
+        return served.attachments[file]
+    except KeyError:
+        raise LookupError(f"the request carries no attachment named {file!r}") from None
+
+
 def read_client_text(file: str, *, what: str = "file") -> str:
     """The text of *file* as the command line names it: ``-`` is stdin, anything else a path
-    under the client's directory, read as UTF-8. Every failure is a :class:`SquadsError` naming
-    *file*."""
+    under the client's directory, read as UTF-8. A command the daemon serves reads both from the
+    request's attachments. Every failure is a :class:`SquadsError` naming *file*."""
     try:
+        served = get_context().served
+        if served is not None:
+            return _decode(
+                _attachment(served, file), served.stdin_encoding if file == "-" else "utf-8"
+            )
         if file == "-":
             return sys.stdin.read()
         return _decode(client_path(file).read_bytes(), "utf-8")
@@ -1437,6 +1479,9 @@ def resolve_local_id(token: str, kind: str) -> str:
 def confirm(text: str, *, json_out: bool) -> None:
     """Ask *text* and abort unless the answer is yes. Under ``--json`` the prompt goes to stderr
     and the answer is read from stdin directly, so stdout carries the document alone."""
+    served = get_context().served
+    if served is not None:
+        served.begin_prompt()
     if not json_out:
         typer.confirm(text, abort=True)
         return
