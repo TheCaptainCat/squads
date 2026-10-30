@@ -267,7 +267,22 @@ error: this squad's workflow override could not be loaded, so `sq migrate up` ca
 Correct the file, then re-run `sq migrate up`.
 ```
 
-The migration never renames them for you, since `sq migrate` never rewrites an override. Commit
+**Before upgrading, rename a type or an alias named `daemon`.** `daemon` is a command of `sq` in
+0.19, so a type or an alias of that name in `.overrides/workflow.toml` is refused at load, and
+every command stops, `sq migrate up` included:
+
+```text
+- item 'bug': alias 'daemon' shadows the built-in `sq daemon` command — rename or drop the alias
+- item 'daemon': shadows the built-in `sq daemon` command — rename the type (its whole per-type verb surface, `sq <type> <n> <verb>`, becomes unreachable behind the built-in)
+```
+
+An alias needs only an edit to the override. A type that already has items has to move while the
+older release still runs, because 0.19 cannot load the override that declares it: declare the new
+type in the override, run `sq migrate rename-type daemon <new_type>` (see
+[workflow.md § "Renaming existing types and statuses"](workflow.md#renaming-existing-types-and-statuses)),
+drop `daemon` from the override, commit, then upgrade.
+
+The migration renames none of these for you, since `sq migrate` never rewrites an override. Commit
 the edited override, then run the step once per squad, read its manual steps, and regenerate the
 managed files:
 
