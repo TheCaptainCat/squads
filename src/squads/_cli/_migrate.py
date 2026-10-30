@@ -4,10 +4,10 @@
 - `sq migrate help`                        the migration changelog index (every shipped migration)
 - `sq migrate chlog vA..vB`                the complete manual steps for migrating across a
                                             release range
-- `sq migrate rename-type OLD NEW`         bulk-rename every OLD-type item to NEW type
-- `sq migrate rename-status TYPE OLD NEW`  bulk-move every TYPE item at OLD status to NEW status
-- `sq migrate rename-field OLD NEW`        move the values stored under key OLD to key NEW
-- `sq migrate rename-kind OLD NEW`         bring the stored spellings of kind OLD to kind NEW
+- `sq migrate rename-type old new`         bulk-rename every old-type item to new type
+- `sq migrate rename-status type old new`  bulk-move every type item at old status to new status
+- `sq migrate rename-field old new`        move the values stored under key old to key new
+- `sq migrate rename-kind old new`         bring the stored spellings of kind old to kind new
 """
 
 import typer
@@ -167,7 +167,7 @@ def migrate_rename_status(
 ):
     """Relabel a status on every item of one type, without a transition.
 
-    NEW_STATUS must already be in TYPE's lifecycle. Run `sq check` afterwards.
+    NEW_STATUS must already be in the type's lifecycle. Run `sq check` afterwards.
     """
     request = RenameStatusRequest(type=item_type, old_status=old_status, new_status=new_status)
     response = calls.call(ops.RENAME_STATUS, request)
@@ -193,11 +193,11 @@ def migrate_rename_field(
         False, "--json", help="Print one JSON object: how many items and entries were moved."
     ),
 ):
-    """Move the values stored under key OLD to key NEW.
+    """Move the values stored under key old to key new.
 
     Covers items and sub-entity entries, or only the given --type and --kind
-    scopes. Refuses, changing nothing, when a holder does not declare NEW,
-    already holds it, or holds a value NEW does not accept. Run `sq check`
+    scopes. Refuses, changing nothing, when a holder does not declare new,
+    already holds it, or holds a value new does not accept. Run `sq check`
     afterwards.
     """
     request = RenameFieldRequest(old=old, new=new, types=types, kinds=kinds)
@@ -218,10 +218,10 @@ def migrate_rename_kind(
         False, "--json", help="Print one JSON object: how many items were rewritten."
     ),
 ):
-    """Bring the stored spellings of kind OLD to the declaration of kind NEW.
+    """Bring the stored spellings of kind old to the declaration of kind new.
 
     Rewrites block markers, the container marker, local ids and mappings. Refuses,
-    changing nothing, when NEW is undeclared, a type does not host it, an item
+    changing nothing, when new is undeclared, a type does not host it, an item
     mixes prefixes or a marker pair is missing. Run `sq check` afterwards.
     """
     request = RenameKindRequest(old=old, new=new)

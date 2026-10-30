@@ -22,7 +22,7 @@ pytestmark = pytest.mark.anyio
 
 UNKNOWN_SLUG = "error: unknown slug 'ghost'; valid slugs: manager\n"
 NO_AS = "error: --as is required: the actor's slug\n"
-NO_TEXT = "error: provide the comment via -m (repeatable) or --file PATH ('-' for stdin)\n"
+NO_TEXT = "error: provide the comment via -m (repeatable) or --file path ('-' for stdin)\n"
 BOTH = "error: provide the comment via -m or --file, not both\n"
 NOT_A_HASH = (
     "error: {token!r} is not a comment hash (4 or more hex characters); "
@@ -206,7 +206,7 @@ async def test_comment_refuses_message_before_the_verb(populated_project, invoke
     out = await _ran(invoke, [P.ref, str(TASK), "comment", "--as", "manager", short, "show"])
     assert out == (
         2,
-        "error: -m, --file and --as go after the verb: comment HASH edit -m TEXT --as SLUG\n",
+        "error: -m, --file and --as go after the verb: comment hash edit -m text --as slug\n",
     )
 
 
@@ -604,7 +604,7 @@ async def test_comment_json_prints_the_added_comment(populated_project, invoke) 
 async def test_comment_refuses_json_before_a_verb(populated_project, invoke) -> None:
     short = await _post(invoke, "Findable")
     out = await _ran(invoke, [P.ref, str(TASK), "comment", "--json", short, "show"])
-    assert out == (2, "error: --json goes after the verb: comment HASH show --json\n")
+    assert out == (2, "error: --json goes after the verb: comment hash show --json\n")
 
 
 @pytest.mark.covers("<host> comment remove", "--json")

@@ -951,7 +951,7 @@ async def test_body_sets_each_message_as_a_paragraph(populated_project, invoke) 
 async def test_body_refuses_a_call_with_no_text(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "body"]) == (
         1,
-        "error: provide the body via -m (repeatable) or --file PATH ('-' for stdin)\n",
+        "error: provide the body via -m (repeatable) or --file path ('-' for stdin)\n",
     )
 
 

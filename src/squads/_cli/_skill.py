@@ -243,7 +243,7 @@ def skill_link_role(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill and the role's id."),
 ) -> None:
-    """Scope this skill to ROLE and update that role's pointer at once.
+    """Scope this skill to the role and update that role's pointer at once.
 
     Prefer this to adding the scoping ref by hand, which writes the same ref but
     leaves the role's pointer stale until the next `sq sync`.
@@ -267,7 +267,7 @@ def skill_unlink_role(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill and the role's id."),
 ) -> None:
-    """Unscope this skill from ROLE and update that role's pointer at once."""
+    """Unscope this skill from the role and update that role's pointer at once."""
     common.declare_actor(as_)
     request = SkillRoleRequest(addr=address_of(ctx), role=role)
     response = calls.call(ops.SKILL_UNLINK_ROLE, request)

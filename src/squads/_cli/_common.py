@@ -557,7 +557,7 @@ ROLE_DELTA_FILE_HELP = (
 )
 
 
-def file_option(help: str = FILE_HELP, metavar: str | None = None) -> Any:
+def file_option(help: str = FILE_HELP, metavar: str = "path") -> Any:
     return typer.Option(None, "--file", help=help, metavar=metavar)
 
 
@@ -804,7 +804,7 @@ def resolve_body_optional(messages: list[str] | None, file: str | None) -> str |
 def resolve_body(messages: list[str] | None, file: str | None) -> str:
     body = resolve_body_optional(messages, file)
     if body is None:
-        raise SquadsError("provide the body via -m (repeatable) or --file PATH ('-' for stdin)")
+        raise SquadsError("provide the body via -m (repeatable) or --file path ('-' for stdin)")
     return body
 
 
@@ -825,7 +825,7 @@ def resolve_comment_messages(messages: list[str] | None, file: str | None) -> li
         return [content]
     if messages:
         return messages
-    raise SquadsError("provide the comment via -m (repeatable) or --file PATH ('-' for stdin)")
+    raise SquadsError("provide the comment via -m (repeatable) or --file path ('-' for stdin)")
 
 
 #: ``click.Context.meta`` key for the documents this invocation has read, by squad directory (see
@@ -1217,12 +1217,12 @@ def _register_comment_append(comment_app: typer.Typer, host: CommentHost) -> Non
         """Add a comment to the discussion, or act on one by its hash.
 
         Add:
-          comment -m TEXT [-m TEXT ...] --as SLUG
-          comment --file PATH --as SLUG
+          comment -m text [-m text ...] --as slug
+          comment --file path --as slug
         By hash:
-          comment HASH show|edit|remove
+          comment hash show|edit|remove
 
-        HASH is any 4 or more leading hex characters. -m, --file and --as go after
+        hash is any 4 or more leading hex characters. -m, --file and --as go after
         the verb. Only a comment's author can edit or remove it.
         """
         from squads._cli import _calls as calls  # _calls imports this module
@@ -1231,13 +1231,13 @@ def _register_comment_append(comment_app: typer.Typer, host: CommentHost) -> Non
             if message or file or as_:
                 err_console.print(
                     "[red]error:[/red] -m, --file and --as go after the verb: "
-                    "comment HASH edit -m TEXT --as SLUG",
+                    "comment hash edit -m text --as slug",
                     soft_wrap=True,
                 )
                 raise typer.Exit(2)
             if json_out:
                 err_console.print(
-                    "[red]error:[/red] --json goes after the verb: comment HASH show --json",
+                    "[red]error:[/red] --json goes after the verb: comment hash show --json",
                     soft_wrap=True,
                 )
                 raise typer.Exit(2)

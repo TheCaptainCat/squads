@@ -97,7 +97,7 @@ async def test_post_needs_a_message_or_a_file(project, invoke) -> None:
     result = await invoke(["board", "post", "--as", "manager"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: provide the body via -m (repeatable) or --file PATH ('-' for stdin)\n",
+        "error: provide the body via -m (repeatable) or --file path ('-' for stdin)\n",
     )
 
 

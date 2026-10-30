@@ -1,4 +1,4 @@
-"""`sq create <type> TITLE …` — one command per item type, sharing one implementation.
+"""`sq create <type> <title> …` — one command per item type, sharing one implementation.
 
 Built-in types are registered statically at import time; custom types declared in
 ``.overrides/workflow.toml`` are dispatched lazily by ``_CustomCreateGroup``, which resolves the
@@ -138,7 +138,7 @@ def _given_attributes(ctx: typer.Context) -> dict[str, str | list[str]]:
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
-    """Build a Click command for ``sq create <item_type_str> TITLE …``, for ``_CustomCreateGroup``.
+    """Build a Click command for ``sq create <item_type_str> <title> …``, for the custom group.
 
     Registers the function in a temporary Typer app, converts it to a Click group and extracts
     the named subcommand, so ``incident`` is a leaf command rather than another group.

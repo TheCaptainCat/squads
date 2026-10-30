@@ -1,7 +1,7 @@
 """`sq operator …` — register the humans (operators) who work on the project.
 
 Grammar:
-  sq operator add <name> [--slug SLUG]  — register a human operator
+  sq operator add <name> [--slug slug]  — register a human operator
   sq operator <slug|id|n> show           — show an operator's metadata panel
   sq operator <slug|id|n> status <S>     — transition the operator's status
   sq operator <slug|id|n> remove --purge — delete an operator (or set status Archived)
