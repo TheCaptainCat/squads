@@ -8,6 +8,7 @@ own.
 
 import json
 import subprocess
+from collections.abc import Iterator
 
 import pytest
 
@@ -30,10 +31,12 @@ def remote(project: SquadPaths, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 @pytest.fixture
-def endpoint(project: SquadPaths, daemon_runtime) -> Endpoint:
+def endpoint(project: SquadPaths, daemon_runtime) -> Iterator[Endpoint]:
+    """The endpoint of the scratch squad; any daemon a case started is stopped at the end."""
     found = endpoint_for(project.root)
     assert found is not None
-    return found
+    yield found
+    run(sq_command(project, "daemon", "stop"))
 
 
 def test_an_unusable_runtime_directory_runs_the_command_locally_and_the_next_tries_again(

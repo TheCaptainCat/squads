@@ -9,6 +9,7 @@ import json
 import pathlib
 import subprocess
 import sys
+from collections.abc import Iterator
 
 import pytest
 
@@ -85,10 +86,12 @@ def remote(project: SquadPaths, *args: str, setting: str | None = None):
 
 
 @pytest.fixture
-def endpoint(project: SquadPaths, daemon_runtime) -> Endpoint:
+def endpoint(project: SquadPaths, daemon_runtime) -> Iterator[Endpoint]:
+    """The endpoint of the scratch squad; any daemon a case started is stopped at the end."""
     found = endpoint_for(project.root)
     assert found is not None
-    return found
+    yield found
+    run(sq_command(project, "daemon", "stop"))
 
 
 def test_an_unusable_squads_daemon_is_said_once_and_the_command_runs_locally(project) -> None:
