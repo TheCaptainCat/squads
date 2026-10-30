@@ -8613,7 +8613,7 @@
         {
           "local_id": "US3",
           "title": "CLI remote and local modes",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -8622,7 +8622,7 @@
         {
           "local_id": "US4",
           "title": "Daemon lifecycle and discovery",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -8712,7 +8712,7 @@
       ],
       "path": "features/FEAT-001140-the-daemon-a-local-api-the-cli-and-web-client-share.md",
       "created_at": "2026-10-25T10:47:24Z",
-      "updated_at": "2026-10-30T00:45:18Z",
+      "updated_at": "2026-10-30T07:20:40Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -33479,7 +33479,7 @@
       "type": "task",
       "title": "CLI remote mode: HttpApi, selection and fall back",
       "slug": "cli-remote-mode-httpapi-selection-and-fall-back",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Root callback picks HttpApi or LocalApi; implicit start, conditional fall back, timeouts, schema and vocabulary headers, client budget and guard, parity run, the TUI as a daemon client",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -33577,7 +33577,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-30T00:44:17Z",
+      "updated_at": "2026-10-30T07:20:38Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

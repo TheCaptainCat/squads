@@ -25,10 +25,10 @@ subentities:
   status: InProgress
 - local_id: US3
   title: CLI remote and local modes
-  status: Todo
+  status: InProgress
 - local_id: US4
   title: Daemon lifecycle and discovery
-  status: Todo
+  status: InProgress
 - local_id: US5
   title: Daemon settings in .squads.toml
   status: Todo
@@ -57,7 +57,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T00:45:18Z'
+updated_at: '2026-10-30T07:20:40Z'
 priority: high
 ---
 <!-- sq:body -->

@@ -3,7 +3,7 @@ id: TASK-1219
 sequence_id: 1219
 type: task
 title: 'CLI remote mode: HttpApi, selection and fall back'
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -53,7 +53,7 @@ subentities:
   status: Todo
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T00:44:17Z'
+updated_at: '2026-10-30T07:20:38Z'
 priority: high
 ---
 <!-- sq:body -->
