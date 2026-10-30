@@ -218,11 +218,11 @@ subentities:
   severity: medium
 - local_id: F41
   title: Switched-off session test leaks a daemon when it fails
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T09:46:52Z'
+updated_at: '2026-10-30T09:51:29Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
