@@ -3,6 +3,9 @@ chunks and an exit code, or with a prompt it stopped at."""
 
 import base64
 import json
+import os
+import subprocess
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -328,6 +331,44 @@ def test_a_directory_the_client_names_with_c_is_never_read(
         200,
         {"kind": "done", "output": [["stdout", "[]\n"]], "exit_code": 0},
     )
+
+
+def test_help_is_laid_out_for_the_clients_terminal_as_local_mode_lays_it_out(
+    project: SquadPaths, serve, tmp_path: Path
+) -> None:
+    client = {
+        "FORCE_COLOR": "1",
+        "COLUMNS": "60",
+        "TERM": "xterm-256color",
+        "COLORTERM": "truecolor",
+    }
+    plain = {k: v for k, v in os.environ.items() if k != "_TYPER_FORCE_DISABLE_TERMINAL"}
+    local = subprocess.run(
+        [str(Path(sys.executable).parent / "sq"), "--help"],
+        env={**plain, **client, "SQUADS_DAEMON": "off"},
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "\x1b[" in local.stdout
+
+    reply = post_commands(serve(project), command_body(["--help"], env=client))
+
+    assert (reply.status, reply.json()) == (
+        200,
+        {"kind": "done", "output": [["stdout", local.stdout]], "exit_code": 0},
+    )
+
+
+def test_a_served_command_reads_through_the_daemons_parse_cache(project: SquadPaths, serve) -> None:
+    daemon = serve(project)
+    assert daemon.state.parse_cache.item_files() == frozenset()
+
+    reply = post_commands(daemon, command_body(["check", "--json"]))
+
+    assert reply.status == 200
+    assert daemon.state.parse_cache.item_files() != frozenset()
 
 
 def test_an_argument_that_is_not_text_reaches_the_command_as_a_lone_surrogate(

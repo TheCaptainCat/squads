@@ -433,11 +433,14 @@ class RequestScope:
     def command_context(self, start_dir: Path) -> RequestContext:
         """The context a CLI command run for a client starts from: the daemon's squad and spec,
         paths spelled from *start_dir*, and the preconditions of no request."""
+        # The override check below reads through the daemon's parse cache.
+        bind_context(RequestContext(parse_cache=self._parse_cache))
         return RequestContext(
             active_spec=self._spec,
             client_cwd=self._root,
             spec_error=self._spec_refusal(),
             start_dir=start_dir,
+            parse_cache=self._parse_cache,
         )
 
     async def _bound[T](
