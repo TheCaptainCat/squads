@@ -46,10 +46,11 @@ class HttpApi:
 
     *local* makes the API that runs an operation the daemon never serves, and the call the daemon
     declined because its configuration changed or could not be reached, when the endpoint has a
-    local mode.
+    local mode. *restart* starts the daemon again when nothing answers at connect time, and says
+    whether one now serves; it is asked once per call, before anything is sent.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913 — the caller's keyword-only hooks, each one thing
         self,
         *,
         connect: Connect,
@@ -60,6 +61,7 @@ class HttpApi:
         local: Callable[[], Api] | None,
         waiting: Callable[[str], None] | None = None,
         resolve: Callable[[], tuple[Connect, str]] | None = None,
+        restart: Callable[[], bool] | None = None,
     ) -> None:
         self._connect = connect
         self._endpoint = endpoint
@@ -69,6 +71,7 @@ class HttpApi:
         self._local = local
         self._waiting = waiting
         self._resolve = resolve
+        self._restart = restart
         #: Whether the last call was declined by a daemon whose configuration had changed.
         self.declined = False
         #: The handler time the daemon reported for the last call, in milliseconds.
@@ -96,13 +99,21 @@ class HttpApi:
     ) -> Response[Res] | None:
         """The daemon's answer, or ``None`` when the call is to run locally. A refusal, a lost
         connection and a timeout raise."""
+        self.declined = False
         if op.local_only:
             return None
         method, target, body = encode_request(op, req)
         sent = self._request_headers(method, body)
         retried = False
+        restarted = False
         while True:
             conn = self._open()
+            if conn is None and self._restart is not None and not restarted:
+                # Nothing was sent, so a daemon that has gone is started again and asked once.
+                restarted = True
+                if self._restart():
+                    continue
+                return self._unreachable("no daemon is listening")
             if conn is None:
                 return self._unreachable("no daemon is listening")
             try:

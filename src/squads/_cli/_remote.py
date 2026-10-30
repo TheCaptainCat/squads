@@ -77,8 +77,18 @@ def build_http_api(
             endpoint_name(fresh),
         )
 
+    def restart() -> bool:
+        """The daemon is gone (stopped, idle, retired): start it again, or say why not."""
+        from squads._daemon_start import ensure, failure_line
+
+        reason = ensure(endpoint)
+        if reason is not None:
+            common.err_console.print(common.e(failure_line(reason)), soft_wrap=True)
+        return reason is None
+
     return HttpApi(
         connect=connect,
+        restart=restart if endpoint.local_mode else None,
         endpoint=endpoint_name(endpoint),
         headers=lambda: context_headers(with_client_dir=endpoint.local_mode),
         resolve=None if endpoint.local_mode else resolve,

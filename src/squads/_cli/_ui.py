@@ -24,7 +24,11 @@ def ui() -> None:
     ctx = get_context()
 
     def selector() -> Api:
-        return ctx.api or select_api(ctx.client_cwd)
+        api = ctx.api or select_api(ctx.client_cwd)
+        reselect = getattr(api, "reselect", None)
+        if reselect is not None:
+            reselect()
+        return api
 
     import asyncio
 

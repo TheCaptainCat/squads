@@ -31,6 +31,15 @@ class SelectedApi:
     def __init__(self, client_cwd: Path | None) -> None:
         self._client_cwd = client_cwd
         self._chosen: Api | None = None
+        #: Whether this process answers because a daemon could not be had, rather than by choice.
+        self._by_default = False
+
+    def reselect(self) -> None:
+        """Forget a choice of this process that was made for want of a daemon, so the next call
+        looks for one again: a long session does not stay local once a daemon can be started."""
+        if self._by_default:
+            self._chosen = None
+            self._by_default = False
 
     @property
     def handler_ms(self) -> float | None:
@@ -46,13 +55,19 @@ class SelectedApi:
         from squads._endpoint import endpoint_for
 
         endpoint = endpoint_for(self._client_cwd or common.process_dir())
-        if endpoint is None or not endpoint.enabled:
+        if endpoint is None:
+            return local_api()
+        if not endpoint.enabled:
+            # An unusable setting, unlike a switch that is off, is said once, then local mode.
+            for problem in endpoint.problems:
+                common.err_console.print(common.e(f"warning: {problem}"), soft_wrap=True)
             return local_api()
         from squads._daemon_start import ensure, failure_line
 
         reason = ensure(endpoint)
         if reason is not None:
             common.err_console.print(common.e(failure_line(reason)), soft_wrap=True)
+            self._by_default = True
             return local_api()
         from squads._cli._remote import build_http_api
 

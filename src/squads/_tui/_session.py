@@ -60,7 +60,8 @@ class Session:
         response = await api.call(op, req)
         if getattr(api, "declined", False) and self._catalogs is not None:
             # The daemon the session was talking to retired: the vocabulary may have changed with
-            # it, and the next call reaches a daemon on the new configuration.
+            # it, so the catalogs are read again. The next call finds no daemon at the old
+            # address and starts one on the new configuration.
             await self.load_catalogs()
         return response
 

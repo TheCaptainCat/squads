@@ -278,14 +278,18 @@ async def test_a_daemon_timeout_that_is_not_a_whole_number_of_minutes_is_a_warni
 
     edit_config(project, "idle_timeout_minutes = 5", "idle_timeout_minutes = -5")
 
-    assert await check_json() == (
+    message = (
+        "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
+        "52560000, got -5; every command runs in local mode until it is fixed"
+    )
+    # the setting is unusable, so the command line says so as well
+    assert await check_json(stderr=f"warning: {message}\n") == (
         [
             issue(
                 "daemon_config_valid",
                 "warn",
                 ".squads.toml",
-                "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
-                "52560000, got -5; every command runs in local mode until it is fixed",
+                message,
             )
         ],
         0,
@@ -306,14 +310,18 @@ async def test_a_daemon_timeout_too_long_to_schedule_is_a_warning(
 
     edit_config(project, "idle_timeout_minutes = 52560000", "idle_timeout_minutes = 52560001")
 
-    assert await check_json() == (
+    message = (
+        "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
+        "52560000, got 52560001; every command runs in local mode until it is fixed"
+    )
+    # the setting is unusable, so the command line says so as well
+    assert await check_json(stderr=f"warning: {message}\n") == (
         [
             issue(
                 "daemon_config_valid",
                 "warn",
                 ".squads.toml",
-                "[daemon] idle_timeout_minutes must be a whole number of minutes from 0 to "
-                "52560000, got 52560001; every command runs in local mode until it is fixed",
+                message,
             )
         ],
         0,
@@ -352,14 +360,18 @@ async def test_a_squads_daemon_value_that_is_not_on_or_off_is_a_warning(
 
     monkeypatch.setenv("SQUADS_DAEMON", "maybe")
 
-    assert await check_json() == (
+    message = (
+        "SQUADS_DAEMON must be on or off, got 'maybe'; every command runs in local "
+        "mode until it is fixed"
+    )
+    # the setting is unusable, so the command line says so as well
+    assert await check_json(stderr=f"warning: {message}\n") == (
         [
             issue(
                 "daemon_config_valid",
                 "warn",
                 "SQUADS_DAEMON",
-                "SQUADS_DAEMON must be on or off, got 'maybe'; every command runs in local "
-                "mode until it is fixed",
+                message,
             )
         ],
         0,
