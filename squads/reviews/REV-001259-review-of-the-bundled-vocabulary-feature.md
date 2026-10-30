@@ -142,7 +142,7 @@ subentities:
 - local_id: F28
   title: Stale-prefix check names rename-kind for an item with mixed prefixes, which
     rename-kind refuses
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F29
   title: Docs say subentity_kind_mismatch ships unselected; every work type runs it
@@ -175,26 +175,26 @@ subentities:
   severity: info
 - local_id: F35
   title: New show --full and --raw cases assert what plain show prints
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F36
   title: Both-squad cases sit beside bundled-only copies of the same pairs
-  status: Fixed
+  status: Open
   severity: low
 - local_id: F37
   title: Retype runs on the override squad; view disable needs a fixture view
-  status: Fixed
+  status: Open
   severity: low
 - local_id: F38
   title: Vocabulary guards skip command docstrings, which are adopter help
-  status: Fixed
+  status: Open
   severity: low
 - local_id: F39
   title: Bundled spec comments and playbook notes keep the old side-state order
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:38:32Z'
+updated_at: '2026-10-30T00:53:51Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -844,6 +844,8 @@ Fix (pick one): `add-<kind>` (and import `add-<kind>`/`add-sub`) refuses while t
 <!-- sq:finding:F28:discussion -->
 - [2026-10-30T00:03:02Z] `architect` Robert Architect:
   - Remedy folded into ADR-1250 section 6 (comment 29e8b04): rename-kind rewrites every local id of the kind to the declared prefix, number kept, and refuses only on a collision naming both ids. Needed with it: next_local_id allocates past the highest number of any entry on the item, whatever its prefix, so the F28 path yields GO2, not GO1, and the named command works. @manager ready for the TASK-1255 dev.
+- [2026-10-30T00:52:42Z] `reviewer` Paul Reviewer:
+  - - Verified at 8e8abce4, driven on a scratch squad with the override fixture: with OC1, OC2 stored and the prefix changed to GO, `add-outcome` allocates GO3; `sq check` names `sq migrate rename-kind outcome outcome`, which brings OC1, OC2 to GO1, GO2 (exit 0, check clean). With GO1 and OC1 hand-placed on one item it refuses: "INI-2: GO1 and OC1 would both become GO1", exit 1.
 <!-- sq:finding:F28:discussion:end -->
 <!-- sq:finding:F28:end -->
 
@@ -999,6 +1001,8 @@ Fix: assert what the option adds, for instance the `=== ST1 —` pane heading th
 #### Discussion
 
 <!-- sq:finding:F35:discussion -->
+- [2026-10-30T00:52:44Z] `reviewer` Paul Reviewer:
+  - - Verified in 553908ee. Falsified on a scratch export, both squads: dropping `--full` from either show call, `--raw` from the bare show, or `--raw` from the operator show turns its case red in the test body (FAILED, not only the covers teardown); restored, all green.
 <!-- sq:finding:F35:discussion:end -->
 <!-- sq:finding:F35:end -->
 
@@ -1017,6 +1021,10 @@ ADR-1172 "Time bound": review checks for duplicated cases. The bundled copies th
 #### Discussion
 
 <!-- sq:finding:F36:discussion -->
+- [2026-10-30T00:52:48Z] `reviewer` Paul Reviewer:
+  - - Reopened. The duplicates are gone, but three pins went with them. The dropped `test_add_json_prints_where_the_body_region_was_written` was the only test asserting `path`, `start_line` and `end_line` of `add-<kind> --json`; the new case checks `local_id`, `region` and `display.item` only. Driven on a scratch export: with `start_line` +1, `end_line` 0 and `path` "x" in `SubentityAdded`, tests/cli passes on both squads (bundled 979 passed; override 821 passed, 158 skipped). `rg start_line tests` finds nothing (it found the old case at 28999c46). Read: retype's `rewritten` key is no longer asserted either.
+    - `display.body_command` and sub-entity `nothing_to_clear` are still held: the same mutation of those turns 8 cases red.
+    - Fix: assert `path` (name), `start_line`/`end_line` (each sits inside the item file around the new block) and `rewritten == []` in the both-squad cases.
 <!-- sq:finding:F36:discussion:end -->
 <!-- sq:finding:F36:end -->
 
@@ -1035,6 +1043,11 @@ Fix: add the retype pair and an item view to the profile and fixture, and run th
 #### Discussion
 
 <!-- sq:finding:F37:discussion -->
+- [2026-10-30T00:52:50Z] `reviewer` Paul Reviewer:
+  - - Retype --as/--json: verified; the three cases run on both squads (override 14 passed, 4 skipped for retype/view).
+    - Reopened for the view half. The fixture's `milestone_rollup` is not fixture vocabulary. (1) The name is the bundled view's, which names a bundled type; it only renders because the override shares that name and inherits the bundled `transform` through the merge. (2) `scopes` is the bundled roster ref kind with `role = "preload"` (skill to role), not the fixture's own. The fixture comment ("over this squad ref kind") says otherwise. (3) The profile has no view name: the meta check and every view case spell "milestone_rollup". Driven: it places, renders and disables on INI-2 with an INI-3 scopes member.
+    - Constraint, driven: an override may not name `squads._view_transforms` (load refused), and a view with a name of its own needs a template (`view add` refused without one). So the fix is a fixture-declared membership ref kind as the source, plus a fixture-own view name with an override template under the fixture, and the name in the profile. Or keep the bundled name, record why in the fixture comment, and put it in the profile.
+    - Also: the four `retype NEW-TYPE` cases in test_item_verbs.py (reclassify, sub-entities, roster, undeclared) still carry "retype moves between the bundled types and names them", which the new profile pair disproves. Convert them through `retype_from`/`retype_to`, or give each a reason that holds.
 <!-- sq:finding:F37:discussion:end -->
 <!-- sq:finding:F37:end -->
 
@@ -1054,6 +1067,10 @@ Fix: scan the docstrings of the functions registered as commands (or every docst
 #### Discussion
 
 <!-- sq:finding:F38:discussion -->
+- [2026-10-30T00:52:52Z] `reviewer` Paul Reviewer:
+  - - The four help texts read well in `--help` at 80 columns (retype, list, reflog, skill link-role, rendered on a scratch squad). The help-rule meta check passes. Falsified: without the `_is_command` exclusion, the new scanner case goes red.
+    - Reopened: the filter only recognises decorated commands. Six registrations are imperative, as `app.command("x")(fn)`: `add-<kind>` and the sub-entity `update` in _items.py, and the roster `body`, `remove`, `rm` and `status` in _roster.py. The three roster functions carry adopter help docstrings. Driven: a probe registered as `app.command("x")(verb)`, with a docstring holding a TASK prefix written with its dash, leaves the item-type guard green; the decorated form turns it red. No live hit today. Fix: also treat a function as a command when a `.command(...)` or `.callback(...)` call result is applied to it, and add that form to the scanner test.
+    - Nit, outside what the scanner can see: the reworded `sq list` help keeps "a records item such as a decision". That is a bundled type name in bare prose on any squad.
 <!-- sq:finding:F38:discussion:end -->
 <!-- sq:finding:F38:end -->
 
@@ -1073,6 +1090,8 @@ Fix: bring the comments and strings to the printed order. Whether the playbook's
 #### Discussion
 
 <!-- sq:finding:F39:discussion -->
+- [2026-10-30T00:52:46Z] `reviewer` Paul Reviewer:
+  - - Verified in 4dacea09: the workflow.toml comments and the four playbook `lifecycle` strings match what `sq workflow` prints on a bundled scratch squad, `(+ Cancelled, Blocked)` and `(+ WontFix, Cancelled, Blocked)`. The 0.19.0 manifest entries for playbook.toml and workflow.toml equal the files' sha256.
 <!-- sq:finding:F39:discussion:end -->
 <!-- sq:finding:F39:end -->
 <!-- sq:findings:end -->
@@ -1164,4 +1183,10 @@ Fix: bring the comments and strings to the printed order. Whether the playbook's
   - Verdict: changes requested. F28 (in flight) and F34 (operator) are untouched. @manager route F35-F37 to the TASK-1256 dev, F38 to the same dev after F28 lands (it rewrites two help texts), F39 to the TASK-1256 dev or @tech-writer.
 - [2026-10-30T00:38:32Z] `python-dev` Elias Python:
   - F35 to F39 fixed in 6c17c1e3, f1b2ced0 and 4abb3c47. Bundled 1788 passed; override tests/cli 825 passed, 158 skipped.
+- [2026-10-30T00:53:04Z] `reviewer` Paul Reviewer:
+  - - Seventh round, at 8e8abce4. Verified: F28 (driven: allocation past the highest number, rename-kind over mixed prefixes, the collision refusal), F35 (each option falsified on both squads) and F39 (orders match `sq workflow`; manifest current).
+    - Reopened, all low: F36 (`add-<kind> --json` `path`, `start_line`, `end_line` now asserted by no test; a mutation leaves tests/cli green on both squads), F37 (the fixture view is the bundled `milestone_rollup` over the bundled roster `scopes` kind, and the profile has no view name; four `retype NEW-TYPE` cases keep a reason the profile disproves), F38 (the docstring scan misses commands registered imperatively: add-<kind>, sub-entity update, roster body/remove/rm/status).
+    - Verdict: changes requested. F34 stays for op-pierre. Once F36-F38 are fixed and verified, every other finding is Verified and I would recommend Approved. @manager route F36-F38 to the TASK-1256 dev.
+- [2026-10-30T00:53:51Z] `manager` Catherine Manager:
+  - Ruling on F37 (view half): the override fixture drops the borrowed milestone_rollup view; `view add`/`view disable` stay bundled_only with the true reason (an override cannot declare a view over its own transform without a template, which is not this feature). The four retype NEW-TYPE cases move to the profile retype pair. F36: restore assertions on add-<kind> --json path/start_line/end_line and retype rewritten in the both-squad cases. F38: recognise app.command("x")(fn) registrations too. Routed to the TASK-1256 dev.
 <!-- sq:discussion:end -->
