@@ -57,10 +57,10 @@ The hierarchy is enforced: a **task**'s parent must be a **feature**, a **featur
 `sq task <n> ref add <bug> --kind fixes` (or `--kind addresses` for a review). Purely-technical tasks
 have no parent.
 
-### "<type> cannot move <X> → <Y>"
+### "<type> cannot move <from> → <to>"
 Each type has a status machine (see [workflow.md](workflow.md)). The transition you asked for isn't
 allowed from the current state. Move through the valid path, or override with
-`sq <type> <n> status <Y> --force` if you really mean it.
+`sq <type> <n> status <to> --force` if you really mean it.
 
 ### "subtask STn maps to story USn, missing from FEAT-…"
 A sub-entity maps to a sub-entity that doesn't exist in its item's parent: here a subtask names a
