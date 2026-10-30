@@ -62982,7 +62982,7 @@
         {
           "local_id": "F19",
           "title": "SIGTERM kills the daemon before its cleanup: all four runtime files stay",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -62993,7 +62993,7 @@
         {
           "local_id": "F20",
           "title": "daemon status and stop report none running when the identity call fails, while the lock is held",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63004,7 +63004,7 @@
         {
           "local_id": "F21",
           "title": "Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon answers 500",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63015,7 +63015,7 @@
         {
           "local_id": "F22",
           "title": "Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD refused as a write",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63026,7 +63026,7 @@
         {
           "local_id": "F23",
           "title": "Endpoint resolution unit tests and a substring migrate assertion break ADR-1172",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63037,7 +63037,7 @@
         {
           "local_id": "F24",
           "title": "The .squads.toml walk-up is duplicated in _paths and _endpoint despite the one-place rule",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63059,7 +63059,7 @@
         {
           "local_id": "F26",
           "title": "Lock released before its file is unlinked lets two daemons hold one key",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63081,7 +63081,7 @@
         {
           "local_id": "F28",
           "title": "daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63092,7 +63092,7 @@
         {
           "local_id": "F29",
           "title": "Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE, runtime-dir ACL",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63103,7 +63103,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T07:36:32Z",
+      "updated_at": "2026-10-30T07:57:28Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

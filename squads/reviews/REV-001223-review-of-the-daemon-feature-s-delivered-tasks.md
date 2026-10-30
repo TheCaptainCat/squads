@@ -98,36 +98,36 @@ subentities:
   severity: info
 - local_id: F19
   title: 'SIGTERM kills the daemon before its cleanup: all four runtime files stay'
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F20
   title: daemon status and stop report none running when the identity call fails,
     while the lock is held
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F21
   title: Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon
     answers 500
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F22
   title: Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD
     refused as a write
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F23
   title: Endpoint resolution unit tests and a substring migrate assertion break ADR-1172
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F24
   title: The .squads.toml walk-up is duplicated in _paths and _endpoint despite the
     one-place rule
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F25
@@ -138,7 +138,7 @@ subentities:
   severity: low
 - local_id: F26
   title: Lock released before its file is unlinked lets two daemons hold one key
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F27
@@ -149,17 +149,17 @@ subentities:
   severity: info
 - local_id: F28
   title: daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: info
 - local_id: F29
   title: 'Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE,
     runtime-dir ACL'
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T07:36:32Z'
+updated_at: '2026-10-30T07:57:28Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -935,4 +935,17 @@ Built and untested by design (ADR-1052 point 11, plan): idle exit (a mutation th
     - @python-dev F19-F24, F26, F28 and F29. @tech-writer F25. @architect F27.
 - [2026-10-30T07:35:33Z] `manager` Catherine Manager:
   - Ruling (operator delegation, 2026-10-30): HEAD is a safe method and is admitted like GET on every listener; ADR-1052 point 5 is amended to say so, and the lane B dev applies it with F22.
+- [2026-10-30T07:57:28Z] `python-dev` Elias Python:
+  - - @reviewer @manager F19-F24, F26, F28, F29 are Fixed in fd1a592b (branch worktree-agent-a2e4036496471d197, rebased on release/0.19 1c84a90e). F25 (writer) and the F27 text (architect) are untouched; the F27 code is in the same commit.
+    - F19: a `uvicorn.Server` subclass handles SIGINT/SIGTERM without re-raising, so cleanup runs; cross-process case sends SIGTERM and finds all four files gone (red with plain uvicorn).
+    - F20: `status`/`stop` tell "nothing answers and the lock is free" (none running) from "the lock is held and nothing answers" (error, exit 1, names the lock and pid). Two surface cases.
+    - F21: `idle_timeout_minutes` is bounded at 52560000 (a hundred years) in `parse_daemon`, so `sq check` reports it and local mode applies. The reported idle deadline is now last request end + timeout, stable between calls.
+    - F22 and HEAD: Content-Type and `Squads-Client` apply on TCP listeners only, as ADR-1052 point 5 reads (the socket is owner-only); HEAD is admitted like GET on every listener. Tests: socket write without the headers reaches the route (400 invalid); HEAD on the browser port answers 200; both red when reverted.
+    - F23: the endpoint-resolution unit file is gone; a link-to-project case runs through `sq -C <link> daemon status --json`; the migrate case asserts the whole regenerated file. Settings-to-mode and key-per-installation are built, untested here (fall back member; not observable in-process).
+    - F24: `_paths` uses `_endpoint.find_config`; the endpoint takes `squad_dir` by the rule `SquadsConfig` validates (non-empty string, default `squads`), anything else disables the daemon so local mode reports the config. `_paths` keeps the unresolved path, the endpoint the real path for the key.
+    - F26: on POSIX the lock file is unlinked while still held, then released; Windows keeps release-then-unlink (a held file cannot be unlinked). The race itself is not testable.
+    - F28: a daemon refuses to start with an unusable `SQUADS_DAEMON` (`error: SQUADS_DAEMON must be on or off, got …`), so a remote `sq check` never reports a variable that is not the caller's; documented in the rule's docstring. One surface case.
+    - F29 (not runnable here): `SO_EXCLUSIVEADDRUSE` on loopback sockets and a ctypes owner check of the runtime directory in `_windows_owner.py` (an unreadable owner gives no answer, never a refusal) are written and unrun on Windows; the report handle, the macOS `$TMPDIR` path and the 103-byte limit stay unrun.
+    - F27 code: `MISDIRECTED`/`FORBIDDEN` constants and `(…, 421)`, `(…, 403)` in `HTTP_STATUS`, used by admission; the OpenAPI document declares 421 on every operation and 403 on every write. One route test.
+    - Gates green after the rebase: pyright, ruff, format, pytest 1875 passed, `--squad override tests/cli` 839 passed, `--api-mode remote tests/cli` 997 passed, cross_process 10 passed, template manifest.
 <!-- sq:discussion:end -->
