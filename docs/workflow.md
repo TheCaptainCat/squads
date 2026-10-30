@@ -1598,8 +1598,8 @@ old one. A type's `prefix` and `folder` in particular are refused outright while
 items, because they are how squads finds those items on disk. To move an existing corpus onto
 different vocabulary, use the on-demand **data migration commands**:
 
-- **`sq migrate rename-type OLD_TYPE NEW_TYPE`** — bulk-rename every item of type `OLD_TYPE` to
-  `NEW_TYPE`. Both types must already exist in the active spec (as non-roster types). The command
+- **`sq migrate rename-type old_type new_type`** — bulk-rename every item of type `old_type` to
+  `new_type`. Both types must already exist in the active spec (as non-roster types). The command
   rewrites every affected item's ID, folder, and all references (parent, refs, inline mentions) to
   use the new prefix and location. Logged to the reflog; run `sq check` after.
 
@@ -1607,18 +1607,18 @@ different vocabulary, use the on-demand **data migration commands**:
   sq migrate rename-type task job         # every TASK-<n> becomes JOB-<n> (if both exist in the spec)
   ```
 
-- **`sq migrate rename-status TYPE OLD_STATUS NEW_STATUS`** — bulk-move every item of `TYPE` at
-  `OLD_STATUS` to `NEW_STATUS`. This is a relabel, not a workflow transition — items simply change
-  their status value without moving through the state machine. `NEW_STATUS` must already be a member
-  of `TYPE`'s lifecycle. Scoped per-type. Logged to the reflog; run `sq check` after.
+- **`sq migrate rename-status type old_status new_status`** — bulk-move every item of `type` at
+  `old_status` to `new_status`. This is a relabel, not a workflow transition — items simply change
+  their status value without moving through the state machine. `new_status` must already be a member
+  of `type`'s lifecycle. Scoped per-type. Logged to the reflog; run `sq check` after.
 
   ```bash
   sq migrate rename-status task Blocked Waiting   # every task at Blocked → Waiting
   ```
 
-- **`sq migrate rename-field OLD NEW [--type TYPE]... [--kind KIND]...`** — see
+- **`sq migrate rename-field old new [--type type]... [--kind kind]...`** — see
   [Renaming a badge field](#renaming-a-badge-field-sq-migrate-rename-field) below.
-- **`sq migrate rename-kind OLD NEW`** — see
+- **`sq migrate rename-kind old new`** — see
   [Renaming a sub-entity kind](#renaming-a-sub-entity-kind-sq-migrate-rename-kind) below.
 
 These are **audited data rewrites** — atomic, designed to preserve referential integrity, and
@@ -1645,7 +1645,7 @@ sq migrate rename-field risk impact --type incident   # the top-level key of eve
 sq migrate rename-field risk impact                   # every item and every sub-entity entry
 ```
 
-`OLD` and `NEW` are stored keys. With no scope it moves the key on every holder, items and
+`old` and `new` are stored keys. With no scope it moves the key on every holder, items and
 sub-entity entries alike. `--type` limits it to the top-level key of items of that type, `--kind`
 to the entries of that kind; both repeat, and the scope is the union of what they name. It moves
 every value in one transaction, writes a `rename-field` reflog line and a system comment on each
@@ -1654,10 +1654,10 @@ prints how many items and entries it moved (`--json`: `{old, new, items, entries
 exit `1` and nothing written:
 
 - a scope name the active spec does not declare (`--kind 'nope' is not a sub-entity kind the active spec declares`);
-- a holder in scope whose type or kind does not declare `NEW`
+- a holder in scope whose type or kind does not declare `new`
   (`cannot rename field 'impact' to 'urgency': AC1 of JOB-9: 'action' does not declare 'urgency' (limit the move with --type or --kind)`);
-- a holder that already holds `NEW`, or a value that is not a badge code of `NEW`'s collection;
-- `OLD` equal to `NEW`.
+- a holder that already holds `new`, or a value that is not a badge code of `new`'s collection;
+- `old` equal to `new`.
 
 Each `frontmatter_key_undeclared` finding names the command already scoped to the holder it
 reports, so running it moves what the finding reports and nothing else.
@@ -1675,14 +1675,14 @@ warn JOB-9: block marker of AC1 carries kind 'action', not 'step'; `sq migrate r
 warn INI-8: OC1 does not start with prefix 'GO' of kind 'outcome'; `sq migrate rename-kind outcome outcome` brings it to the declaration
 ```
 
-`sq migrate rename-kind OLD NEW` brings the stored spellings of kind `OLD` to the active
-declaration of kind `NEW`, in one transaction. `NEW` is a kind the active spec declares; `OLD` is
-the name the block markers carry, and equals `NEW` when only the plural or the local prefix
-changed. On every item that carries `OLD` blocks, it rewrites the block markers, the container
+`sq migrate rename-kind old new` brings the stored spellings of kind `old` to the active
+declaration of kind `new`, in one transaction. `new` is a kind the active spec declares; `old` is
+the name the block markers carry, and equals `new` when only the plural or the local prefix
+changed. On every item that carries `old` blocks, it rewrites the block markers, the container
 marker and each local id (its number kept), and on every entry that maps to the kind it rewrites
 `maps_to` the same way. It writes a `rename-kind` reflog line and a system comment on each item it
-changes. It refuses, writing nothing, when `NEW` is not declared, when an item that carries `OLD`
-has a type that does not host `NEW`, when one item's entries carry more than one prefix, or when a
+changes. It refuses, writing nothing, when `new` is not declared, when an item that carries `old`
+has a type that does not host `new`, when one item's entries carry more than one prefix, or when a
 marker pair is missing. When nothing differs it changes nothing, so it is safe to run again.
 Discussion text and reflog entries keep the spellings they recorded.
 
