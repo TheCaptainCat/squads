@@ -3,9 +3,10 @@ id: TASK-1264
 sequence_id: 1264
 type: task
 title: 'CLI shim: stdlib client for the command endpoint'
-status: Ready
+status: InProgress
 parent: FEAT-1140
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-1261:implements
 - TASK-1262:depends-on
@@ -42,7 +43,7 @@ subentities:
   status: Todo
   maps_to: US12
 created_at: '2026-10-30T20:30:30Z'
-updated_at: '2026-10-30T21:36:25Z'
+updated_at: '2026-10-30T21:42:40Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -199,4 +200,6 @@ Tests: none; the benchmark is a report.
 <!-- sq:discussion -->
 - [2026-10-30T21:25:11Z] `python-dev` Elias Python:
   - The shim must strip SQUADS_SPANS (and not forward SQUADS_DAEMON) from the environment it spawns the daemon with. A served command reads any name outside the sent list from the daemon own environment, so a daemon started under SQUADS_SPANS prints span lines into every served command stderr. The shim prints its own spans and the handler time (Server-Timing) itself.
+- [2026-10-30T21:42:40Z] `python-dev` Elias Python:
+  - Starting. Two decisions the ADR leaves open, both taken to keep the lean path lean: (1) squads.__version__ is read through importlib.metadata today, which the shim path may not import, so it becomes a literal in squads/__init__.py kept equal to pyproject by scripts/bump_version.py and a tests/meta guard; (2) the typed _endpoint classes (dataclasses/NamedTuple) become plain slot classes in the same module.
 <!-- sq:discussion:end -->

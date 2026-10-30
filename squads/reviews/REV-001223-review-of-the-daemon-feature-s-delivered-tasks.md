@@ -10,6 +10,7 @@ refs:
 - TASK-1217
 - TASK-1218
 - TASK-1263
+- TASK-1262
 subentities:
 - local_id: F1
   title: role add/update --file bypass attachments and read the serving process's
@@ -225,13 +226,13 @@ subentities:
 - local_id: F42
   title: Frontmatter cached under two spellings of each item path; the sweep grace
     walk exists to keep the copy
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F43
   title: RequestScope._context binds a partial ambient context so the override check
     can reach the cache
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F44
@@ -243,17 +244,71 @@ subentities:
 - local_id: F45
   title: ParseCache.item_files() serves only an internal-reading test; digest() duplicates
     digest_of()
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F46
   title: 'The copy-per-hit rule is unguarded: sharing cached objects keeps the remote
     suite green'
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: info
+- local_id: F47
+  title: Click's cached stream wrapper fixes the first client's encoding for every
+    later served command
+  status: Open
+  assignee: python-dev
+  severity: medium
+- local_id: F48
+  title: A daemon started under SQUADS_SPANS still prints spans into every served
+    command's stderr
+  status: Open
+  assignee: python-dev
+  severity: medium
+- local_id: F49
+  title: Terminal facts (tty, size, windows_vt) and the end-of-input answer are untested;
+    dropping them stays green
+  status: Open
+  assignee: python-dev
+  severity: medium
+- local_id: F50
+  title: Served Typer help ignores PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH; private
+    console patch sits outside install()
+  status: Open
+  assignee: architect
+  severity: low
+- local_id: F51
+  title: 'Windows: Rich picks the served colour system from the daemon''s console,
+    not the client''s'
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F52
+  title: The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth
+    endpoint module
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F53
+  title: The endpoint parity harness builds a command tree per test, not once per
+    session as ADR-1261 point 9 says
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F54
+  title: select_api refusal tested as an internal unit; endpoint file grew past the
+    planned rows
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F55
+  title: client_dir is validated and ignored, where ADR-1261 point 2 says it is bound
+    as the effective directory
+  status: Open
+  assignee: architect
+  severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T21:24:18Z'
+updated_at: '2026-10-30T21:53:12Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -262,6 +317,7 @@ Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1
 
 - TASK-1217, commit 22ce7f65: the in-process command entry (`run`), per-invocation consoles, the request-seeded `RequestContext` (start directory, attachments, terminal facts, documents), attachment-served file reads, and the prompt helper that signals `NeedsTerminal`.
 - TASK-1263, commits ff9784bf and 4585afec: the daemon's content-keyed cache of the index, item frontmatter and the override check (ADR-1261 point 7).
+- TASK-1262, commits fc95085f, fb353e94 and c6631735: the private command endpoint `POST /v1/commands`, served execution on the daemon's own `LocalApi`, the stdio and `os.environ` proxies, attachments and stdin, two-phase prompts, and the endpoint and route parity modes (ADR-1261 points 1, 2, 3, 5 and 9).
 - Later tasks of FEAT-1140 join this review as they land.
 
 ## Method
@@ -1220,6 +1276,8 @@ Fix: give the entry one key. The cached value depends only on the YAML block (`y
 #### Discussion
 
 <!-- sq:finding:F42:discussion -->
+- [2026-10-30T21:47:50Z] `python-dev` Elias Python:
+  - Fixed in 36e7e3b5.
 <!-- sq:finding:F42:discussion:end -->
 <!-- sq:finding:F42:end -->
 
@@ -1237,6 +1295,8 @@ Fix: pass the cache to `validate_against_index_fail_closed` as an argument, or c
 #### Discussion
 
 <!-- sq:finding:F43:discussion -->
+- [2026-10-30T21:47:52Z] `python-dev` Elias Python:
+  - Fixed in 36e7e3b5.
 <!-- sq:finding:F43:discussion:end -->
 <!-- sq:finding:F43:end -->
 
@@ -1272,6 +1332,8 @@ TASK-1263. Two parts of `ParseCache` exist without a production need.
 #### Discussion
 
 <!-- sq:finding:F45:discussion -->
+- [2026-10-30T21:47:54Z] `python-dev` Elias Python:
+  - Fixed in 36e7e3b5.
 <!-- sq:finding:F45:discussion:end -->
 <!-- sq:finding:F45:end -->
 
@@ -1289,8 +1351,181 @@ This cannot be observed from the surface without a mutating caller, and an inter
 #### Discussion
 
 <!-- sq:finding:F46:discussion -->
+- [2026-10-30T21:47:56Z] `python-dev` Elias Python:
+  - Fixed in 36e7e3b5.
 <!-- sq:finding:F46:discussion:end -->
 <!-- sq:finding:F46:end -->
+
+<!-- sq:finding:F47 -->
+### F47 — Click's cached stream wrapper fixes the first client's encoding for every later served command
+
+<!-- sq:finding:F47:body -->
+Click caches the text stream it wraps around `sys.stdout`/`sys.stderr` in a process-wide `WeakKeyDictionary` keyed by the stream object (`click/_compat.py`, `_make_cached_stream_func`). The proxy accepts `bytes`, so Click's `_is_binary_writer` takes it for a binary stream and wraps it in a `TextIOWrapper` whose encoding is the one the proxy reports on the first `echo` in the process. The proxy is one object for the daemon's life, so every later served command gets that first client's encoding for everything Click writes: `typer.confirm` prompt text, `Aborted.`, `Error: invalid input`, shell completion output. The capture then decodes those bytes with the current client's encoding.
+
+Repro (`~/.cache/rev1262/probes/p2.py`, `p3.py`; harness app with one command doing `typer.echo("Café")`, fresh process):
+
+- first request with stdout encoding `cp1252`: `[['stdout', 'Café\n']]`
+- next request, encoding `utf-8`: `[['stdout', 'Caf�\n']]`
+- in the other order, a `cp1252` client after a `utf-8` one gets `CafÃ©`.
+
+Local mode writes `Café` in both cases. This is state shared between requests through the stdio proxy, the thing ADR-1261 point 2 says is per request. It is reachable on Windows, where a pipe reports the ANSI code page and a console reports UTF-8. The bundled CLI's prompt texts are ASCII today; completion values and Click's own texts are not guaranteed to be.
+
+Fix direction: stop the proxy from looking like a binary writer to Click (refuse `bytes` on `write` and take bytes through a `buffer` attribute that decodes per request), or clear Click's stream caches for the proxies at the start of each served command. Add an endpoint test: two requests with different stdout encodings, the second asserting its own decoding.
+<!-- sq:finding:F47:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F47:discussion -->
+<!-- sq:finding:F47:discussion:end -->
+<!-- sq:finding:F47:end -->
+
+<!-- sq:finding:F48 -->
+### F48 — A daemon started under SQUADS_SPANS still prints spans into every served command's stderr
+
+<!-- sq:finding:F48:body -->
+ADR-1261 point 2 calls the import-time environment guard load-bearing because, in the prototype, "a daemon started under `SQUADS_SPANS` printed spans into every served command's stderr". The read is now made on first use (`_spans._switch()`), but `SQUADS_SPANS` is not on the sent list, so the `os.environ` proxy answers it from the daemon's own environment, and `print(..., file=sys.stderr)` goes to the request's capture. The defect is still there.
+
+Repro (`~/.cache/rev1262/probes/p4.py`, in-process harness, `SQUADS_SPANS=1` in the serving process, request `env` empty, `list --json`). The stderr chunk returned to the client:
+
+    SQUADS_SPAN startup 247.53
+    SQUADS_SPAN root_callback 0.13
+    SQUADS_SPAN resolve_squad 12.94
+    ...
+    SQUADS_SPAN call_done 269.84
+
+`startup` and `call_done` are measured from the daemon's `_spans` import, so they mean nothing to the client either. Local mode prints no span line without `SQUADS_SPANS` in the client's environment. The handback noted this as gap (c) and proposed that the shim not pass `SQUADS_SPANS` on when it spawns the daemon. That relies on the spawn path, and a daemon started by hand under the variable still breaks every client's stderr.
+
+Fix direction: inside a served command, `_spans` reports nothing, or reports to the daemon's log. The ADR's rule is that diagnostic variables describe the process they are set for. Add an endpoint test with the variable set on the serving side and an empty request `env`. @architect if the spans should go to the daemon's log rather than be dropped.
+<!-- sq:finding:F48:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F48:discussion -->
+<!-- sq:finding:F48:discussion:end -->
+<!-- sq:finding:F48:end -->
+
+<!-- sq:finding:F49 -->
+### F49 — Terminal facts (tty, size, windows_vt) and the end-of-input answer are untested; dropping them stays green
+
+<!-- sq:finding:F49:body -->
+ADR-1261's consequences say parity "rests on the terminal facts and environment reaching Rich". No test sends a terminal fact other than "pipe, UTF-8": `tests/_endpoint_client.py::_terminal` hard-codes `tty: False` and `encoding: utf-8` and sends no `size` or `windows_vt`, and `rg '"tty": True|"size"|windows_vt' tests` matches nothing (the same pattern matches `"tty": False` in `_endpoint_client.py`).
+
+Falsified on an archive copy of HEAD (`~/.cache/rev1262/src`):
+- `StandardStream.isatty()` returns `False` inside a request, whatever the client sent;
+- `build_console` ignores `terminal.size` (always 80x25 unless `COLUMNS`/`LINES` is sent);
+- `windows_vt` is dropped (`legacy = None`).
+
+Result: `tests/daemon` and `tests/meta` show no new failure (the 7 failures are git-history tests that need `.git`, which the archive copy does not have), and `--api-mode remote tests/cli` shows 999 passed. A shim that sent wrong facts, or a daemon that ignored them, would pass the whole suite. The `answers` entry with `"line": null` (end of input: Ctrl-D, closed stdin) is not sent by any test either. The parity client sends `""` for an exhausted input, and that reaches the same abort only because `confirm` defaults to no.
+
+Wanted (ADR-1172 rules 4-6, whole answer asserted): one endpoint case with `stdout.tty: true` and a `size` and no `COLUMNS`, compared with local mode under a pseudo-terminal of that size, as the `--help` layout test does for `FORCE_COLOR`/`COLUMNS`; and one prompt answered with `line: null`.
+<!-- sq:finding:F49:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F49:discussion -->
+<!-- sq:finding:F49:discussion:end -->
+<!-- sq:finding:F49:end -->
+
+<!-- sq:finding:F50 -->
+### F50 — Served Typer help ignores PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH; private console patch sits outside install()
+
+<!-- sq:finding:F50:body -->
+Typer reads these at import into `rich_utils` constants: `FORCE_TERMINAL` from `GITHUB_ACTIONS`, `FORCE_COLOR`, `PY_COLORS` and `_TYPER_FORCE_DISABLE_TERMINAL`, and `MAX_WIDTH` from `TERMINAL_WIDTH`. Local mode's `--help` and usage-error panels honour them. A served command builds Typer's console through `common.build_console` instead, and `PY_COLORS`, `GITHUB_ACTIONS`, `TERMINAL_WIDTH` and `_TYPER_FORCE_DISABLE_TERMINAL` are not on `SENT_ENVIRONMENT`, so the client's values can never reach it.
+
+Measured on a scratch squad, stdout piped:
+- local `PY_COLORS=1 sq --help` and `GITHUB_ACTIONS=true sq --help` are coloured (`^[[1;33mUsage:`); local `TERMINAL_WIDTH=50 sq --help` is 50 columns wide;
+- served `--help` from a client holding all three (`~/.cache/rev1262/probes/p5.py`): the sendable subset is `{}`, and the output is plain and 80 columns wide.
+
+Second point, on the mechanism: `Commands.__init__` assigns `typer.rich_utils._get_rich_console`, which is private upstream API, for the whole process and never restores it. The assignment sits outside `proxies.install()`, the one start-up step the ADR names for process-wide replacements. It also copies Typer's private theme table, so a Typer upgrade that adds a style key drifts silently. The `--help` layout test would catch a style change only under `FORCE_COLOR`. The need is real (Typer latches its constants at import), but the patch should sit with the other replacements in `install()`.
+
+@architect decide whether the four variables join the ADR's fixed list (the served console then derives `force_terminal`/`width` from them as Typer does), or whether the ADR records the gap as accepted.
+<!-- sq:finding:F50:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F50:discussion -->
+<!-- sq:finding:F50:discussion:end -->
+<!-- sq:finding:F50:end -->
+
+<!-- sq:finding:F51 -->
+### F51 — Windows: Rich picks the served colour system from the daemon's console, not the client's
+
+<!-- sq:finding:F51:body -->
+Inferred from Rich's source and not run, because no Windows host is available here. `Console._detect_color_system` (rich/console.py, around line 795) on Windows, when `legacy_windows` is false, calls `get_windows_console_features()`. That function queries the console of the process it runs in, which here is the daemon's: detached, no console. It returns `TRUECOLOR` only when that console reports truecolor, so a served command picks `EIGHT_BIT`, while the client's own process in Windows Terminal picks `TRUECOLOR`. The bytes of every coloured style then differ from local mode. The request carries `windows_vt` (used for `legacy_windows`), but carries nothing for truecolor.
+
+The native-Windows parity job cannot see this, because its client streams are pipes (see the finding on untested terminal facts). Fix direction: send the console's truecolor feature with `terminal` (or derive it as Rich does from `windows_vt`) and pass `color_system` explicitly to the served consoles. Verify on the native Windows CI job, or on a Windows host, under a pseudo-console.
+<!-- sq:finding:F51:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F51:discussion -->
+<!-- sq:finding:F51:discussion:end -->
+<!-- sq:finding:F51:end -->
+
+<!-- sq:finding:F52 -->
+### F52 — The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth endpoint module
+
+<!-- sq:finding:F52:body -->
+`tests/meta/test_the_command_endpoint_never_calls_the_daemon_or_starts_a_process.py` scans three hand-listed modules (`_daemon/_app.py`, `_commands.py`, `_proxies.py`) for three module names. Planted shapes it passes (read from `_breaches`; each gives `[]`):
+
+- `from squads._api._client import HttpApi`: the actual self-HTTP client of this codebase; `_cli._remote` is only one importer of it;
+- `import urllib.request`, `import socket`;
+- `os.system(...)`, `os.popen(...)`, `os.posix_spawn(...)`, `asyncio.create_subprocess_exec(...)`, `import multiprocessing`;
+- a fourth endpoint module, because discovery is a literal tuple.
+
+The behavioural defence is `select_api`'s runtime refusal, and that holds. The guard's docstring claims more than its filter covers ("a served command can only run on the daemon's own operations"). Fix direction: add `squads._api._client`, `urllib`, `socket`, `multiprocessing`, `asyncio.subprocess` and the `os` spawn and exec calls. Or replace the static list with a runtime check: a `sys.addaudithook` during one served command that fails on the `subprocess.Popen`, `os.system`, `os.posix_spawn` and `socket.connect` events.
+<!-- sq:finding:F52:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F52:discussion -->
+<!-- sq:finding:F52:discussion:end -->
+<!-- sq:finding:F52:end -->
+
+<!-- sq:finding:F53 -->
+### F53 — The endpoint parity harness builds a command tree per test, not once per session as ADR-1261 point 9 says
+
+<!-- sq:finding:F53:body -->
+ADR-1261 point 9 says "the harness builds one Typer app per session, as the daemon does once per start", and TASK-1262 ST6 says "built once per squad module". In `tests/_endpoint_client.py`, `EndpointClient` is created per `invoke` fixture, which is per test, and `_application` calls `serve_squad` → `build_app` → `Commands(command=None)` → `typer.main.get_command(app)`. Every test therefore gets a fresh command tree and serves only that test's few commands.
+
+What this hides: state a long-lived tree, or the process, carries from one request to the next. The daemon serves thousands of commands on one tree. The finding on Click's cached stream wrapper is such a leak, and a per-test tree would not show it either (it is process-wide). A per-session or per-module tree at least runs the 999 cases in sequence on one tree. A sequence probe here (10 commands x 2 rounds on one tree against a fresh tree each, `~/.cache/rev1262/probes/p6.py`) found no difference, so this is a coverage gap, not a known defect. The run currently takes 69 s for 999 cases, so time is not the constraint.
+<!-- sq:finding:F53:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F53:discussion -->
+<!-- sq:finding:F53:discussion:end -->
+<!-- sq:finding:F53:end -->
+
+<!-- sq:finding:F54 -->
+### F54 — select_api refusal tested as an internal unit; endpoint file grew past the planned rows
+
+<!-- sq:finding:F54:body -->
+`test_a_served_command_cannot_select_an_api_of_its_own` binds a hand-built `ServedCommand` on the test's context and calls `calls.select_api()` directly. That is a unit test of an internal function, outside ADR-1172's surface rule, and not among the exceptions ADR-1261 point 9 records. The refusal is a defensive tripwire that no CLI path reaches, so either drop the row or reach it through the served harness app, as the write-then-ask command does for its own branch.
+
+Growth: the plan was 13 endpoint tests and 2 guards. `tests/daemon/test_the_command_endpoint.py` now has 18 test functions, 20 cases with the parametrized completion. The non-UTF-8 attachment, `-C` never read, lone surrogate and `--help` layout rows each hold a stated ADR rule, and they are worth keeping. `GET /v1/commands` answering 405 together with the OpenAPI absence, and the invalid-body 400, overlap the route table's own tests. Trim or justify those rows.
+<!-- sq:finding:F54:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F54:discussion -->
+<!-- sq:finding:F54:discussion:end -->
+<!-- sq:finding:F54:end -->
+
+<!-- sq:finding:F55 -->
+### F55 — client_dir is validated and ignored, where ADR-1261 point 2 says it is bound as the effective directory
+
+<!-- sq:finding:F55:body -->
+ADR-1261 point 2 says "`client_dir` is bound as the effective directory as given, with no filesystem read". The implementation validates `client_dir` (it must be absolute) and otherwise ignores it. `RequestScope.command_context` binds the daemon's root as `client_cwd` and seeds `start_dir` from `cwd`, and `effective_dir` short-circuits to that root inside a served command. The developer flagged this as decision (1) in the handback: binding the client's directory would make `LocalApi` walk up from a path the client named.
+
+No observable difference was found. Paths are spelled from `start_dir` (`path_from_process_dir`), `client_cwd_chosen` still follows `-C` in `argv`, and `test_a_directory_the_client_names_with_c_is_never_read` holds the no-read rule. ADRs impose the rules, so the text should say what the code does. @architect amend point 2 (`client_dir` carried for the shim's use and validated; the squad root is the daemon's own), or rule that the code must change.
+<!-- sq:finding:F55:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F55:discussion -->
+<!-- sq:finding:F55:discussion:end -->
+<!-- sq:finding:F55:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1441,4 +1676,7 @@ This cannot be observed from the surface without a mutating caller, and an inter
     - Import edges recorded. Comments and docstrings are short, with no ticket IDs or history.
     
     Recommended verdict for TASK-1263: acceptable once F42, F43 and F45 are fixed or given a disposition. F44 is the architect's call, and F46 needs a disposition.
+- [2026-10-30T21:53:12Z] `reviewer` Paul Reviewer:
+  - TASK-1262 (fc95085f, fb353e94, c6631735) reviewed: F47-F55. Recommended verdict: changes requested on F47-F49 (medium). F50-F54 are low and F55 is info. @python-dev F47, F48, F49, F51, F52, F53, F54. @architect F50 and F55 (ADR-1261 text), and F48 on where daemon spans go. @manager
+  - Held: no self call or subprocess on the served path (select_api refuses, LocalApi bound); -C and client paths never read; attachments and the non-UTF-8 refusal match local mode; prompt digest, changed screen and the after-write refusal; browser port 404; 503 retiring; per-request isolation of 10 commands x 2 rounds on one tree. Remote tests/cli: 999 passed; its 33 local runs are all shim-legitimate (no squad or an unreadable file).
 <!-- sq:discussion:end -->

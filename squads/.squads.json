@@ -62785,7 +62785,8 @@
         "FEAT-1140",
         "TASK-1217",
         "TASK-1218",
-        "TASK-1263"
+        "TASK-1263",
+        "TASK-1262"
       ],
       "subentities": [
         {
@@ -63242,7 +63243,7 @@
         {
           "local_id": "F42",
           "title": "Frontmatter cached under two spellings of each item path; the sweep grace walk exists to keep the copy",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63253,7 +63254,7 @@
         {
           "local_id": "F43",
           "title": "RequestScope._context binds a partial ambient context so the override check can reach the cache",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63275,7 +63276,7 @@
         {
           "local_id": "F45",
           "title": "ParseCache.item_files() serves only an internal-reading test; digest() duplicates digest_of()",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63286,8 +63287,107 @@
         {
           "local_id": "F46",
           "title": "The copy-per-hit rule is unguarded: sharing cached objects keeps the remote suite green",
+          "status": "Fixed",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        },
+        {
+          "local_id": "F47",
+          "title": "Click's cached stream wrapper fixes the first client's encoding for every later served command",
           "status": "Open",
           "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F48",
+          "title": "A daemon started under SQUADS_SPANS still prints spans into every served command's stderr",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F49",
+          "title": "Terminal facts (tty, size, windows_vt) and the end-of-input answer are untested; dropping them stays green",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F50",
+          "title": "Served Typer help ignores PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH; private console patch sits outside install()",
+          "status": "Open",
+          "assignee": "architect",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F51",
+          "title": "Windows: Rich picks the served colour system from the daemon's console, not the client's",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F52",
+          "title": "The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth endpoint module",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F53",
+          "title": "The endpoint parity harness builds a command tree per test, not once per session as ADR-1261 point 9 says",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F54",
+          "title": "select_api refusal tested as an internal unit; endpoint file grew past the planned rows",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F55",
+          "title": "client_dir is validated and ignored, where ADR-1261 point 2 says it is bound as the effective directory",
+          "status": "Open",
+          "assignee": "architect",
           "maps_to": null,
           "deferred_to": null,
           "attributes": {
@@ -63297,7 +63397,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T21:24:18Z",
+      "updated_at": "2026-10-30T21:53:12Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65714,7 +65814,7 @@
       ],
       "path": "tasks/TASK-001262-daemon-command-endpoint-cli-commands-served-in-process.md",
       "created_at": "2026-10-30T20:30:24Z",
-      "updated_at": "2026-10-30T21:36:24Z",
+      "updated_at": "2026-10-30T21:53:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -65782,11 +65882,11 @@
       "type": "task",
       "title": "CLI shim: stdlib client for the command endpoint",
       "slug": "cli-shim-stdlib-client-for-the-command-endpoint",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "squads.__main__ becomes a stdlib shim: lean endpoint path, local-only and file-argument tables, prompts, fall back before sending, Windows transport, CLI off HttpApi, the 100 ms budget",
       "parent": "FEAT-1140",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "labels": [],
       "refs": [
         "ADR-1261:implements",
@@ -65859,7 +65959,7 @@
       ],
       "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
       "created_at": "2026-10-30T20:30:30Z",
-      "updated_at": "2026-10-30T21:36:25Z",
+      "updated_at": "2026-10-30T21:42:40Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
