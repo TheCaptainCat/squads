@@ -55,6 +55,7 @@ from squads._specload import (
     OverrideMessages,
     OverrideReadError,
     SpecDocument,
+    bundled_bytes,
     bundled_raw,
     bundled_text,
     load_override,
@@ -484,6 +485,11 @@ _DOCUMENT = SpecDocument(
     messages=WORKFLOW_OVERRIDE_MESSAGES,
     check_override=_check_override_refusals,
 )
+
+
+def bundled_workflow_bytes() -> bytes:
+    """The packaged ``workflow.toml``'s bytes, the read the bundled spec is parsed from."""
+    return bundled_bytes(_DOCUMENT)
 
 
 def _bundled_raw() -> RawMapping:

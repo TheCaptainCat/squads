@@ -2,11 +2,14 @@
 resolved against an item, and the override lint."""
 
 import asyncio
+import hashlib
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from squads._paths import SquadPaths
 from tests._helpers import create_item, make_service
 from tests._readable import init_readable, lines
 from tests._squads import paths_of
@@ -674,6 +677,12 @@ GREETING_SKILL_SOURCE = {
 }
 
 
+def _etag(project: SquadPaths, source: dict[str, Any]) -> str:
+    """The strong ETag of the item file a view source was read from."""
+    data = (project.squad_dir / source["path"]).read_bytes()
+    return f'"{hashlib.sha256(data).hexdigest()}"'
+
+
 @pytest.mark.covers("workflow view", "--json")
 @pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
@@ -682,7 +691,9 @@ async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
     role = await printed(invoke, ["workflow", "view", "role_definition", "ROLE-1", "--json"])
     assert role == json_text(MANAGER_ROLE_SOURCE)
     skill = await printed(invoke, ["workflow", "view", "greeting_skill", "SKILL-2", "--json"])
-    assert skill == json_text(GREETING_SKILL_SOURCE)
+    assert skill == json_text(
+        {**GREETING_SKILL_SOURCE, "etag": _etag(seeded_project, GREETING_SKILL_SOURCE)}
+    )
 
 
 # --- the override squad and the grammar an override spells ------------------------------------

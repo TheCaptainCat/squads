@@ -24,6 +24,7 @@ from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
+from squads._context import etag_of, get_context
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
@@ -870,6 +871,7 @@ class ServiceCore:
             body=body,
             fields=fields,
         )
+        self._address(item, replace=True)
         item_type = item.type
         # ``agents/role.md.j2`` is only the file scaffold: a `sq:body` seeding the
         # ``sq:view:role_definition`` tag. The definition renders at read time
@@ -1023,10 +1025,39 @@ class ServiceCore:
         """
         held = self.store.held_item_files()
         if held is None:
-            return await read_item_text(path, item.id)
-        if path in held.texts:
+            text = await read_item_text(path, item.id)
+        elif path in held.texts:
             return held.texts[path]
-        return await read_item_text(held.disk_path(path), item.id)
+        else:
+            text = await read_item_text(held.disk_path(path), item.id)
+        pre = get_context().preconditions
+        if pre is not None:
+            pre.note_read(item.sequence_id, text)
+        return text
+
+    def _address(self, item: Item, *, replace: bool = False) -> None:
+        """Make *item* the one the request's conditional-request state follows: its ``If-Match``
+        is compared against the item's file, and its ETag is the one the answer carries. The
+        first item a request addresses is the route's, unless *replace* says another is."""
+        pre = get_context().preconditions
+        if pre is None:
+            return
+        sequence = item.sequence_id
+
+        async def read(db: SquadsDB) -> tuple[str, str | None]:
+            current = db.items.get(sequence)
+            if current is None:
+                return item.id, None
+            try:
+                return current.id, await _aio.read_text(item_file(self.paths, current))
+            except FileNotFoundError:
+                return current.id, None
+
+        pre.address(sequence, read, replace=replace)
+
+    async def item_etag(self, item: Item) -> str:
+        """The ETag of *item*'s file as it stands."""
+        return etag_of(await self._read_item_file(item, item_file(self.paths, item)))
 
     async def _write_item_file(self, path: Path, text: str) -> None:
         """Write *text* to the existing item file at *path*, or hold it for the flush of

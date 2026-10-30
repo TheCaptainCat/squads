@@ -144,6 +144,18 @@ def seeded_project(copy_squad) -> SquadPaths:
 
 
 @pytest.fixture
+def serve():
+    """Serve a squad's daemon application on a thread, as `serve(paths)`; every one is stopped at
+    the end of the test."""
+    from contextlib import ExitStack
+
+    from tests._daemon_harness import serve_squad
+
+    with ExitStack() as stack:
+        yield lambda paths, **kw: stack.enter_context(serve_squad(paths, **kw))
+
+
+@pytest.fixture
 def svc(project):
     """A `Service` over the `project` squad."""
     return make_service(project)

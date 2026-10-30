@@ -12,7 +12,8 @@ accessors below; nothing below ``compose_service`` reads the ``ContextVar`` dire
 fields are added with a default, so existing call sites and fields are untouched.
 """
 
-from collections.abc import Callable
+import hashlib
+from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
     from rich.console import Console
 
     from squads._api._api import Api
+    from squads._models._index import SquadsDB
 
     # _context sits below _clock/_actor; _workflow._models and _spec_documents sit above them,
     # and a runtime import here would cycle back to this module mid-init, so they are type-only.
@@ -48,6 +50,57 @@ class NoticeLog:
     def notices(self) -> tuple[str, ...]:
         """Every notice recorded so far."""
         return tuple(self._notices)
+
+
+def etag_of(text: str) -> str:
+    """The strong ETag of an item file's *text*: the SHA-256 of its UTF-8 bytes with every line end
+    a line feed, in quotes."""
+    data = text.replace("\r\n", "\n").encode("utf-8")
+    return f'"{hashlib.sha256(data).hexdigest()}"'
+
+
+#: Reads the addressed item's file text as an index (the transaction's, when one is open) places
+#: it: the item's id and its text, ``None`` when the item or its file is gone.
+type AddressedReader = Callable[[SquadsDB], Awaitable[tuple[str, str | None]]]
+
+
+def if_match_allows(header: str, etag: str | None) -> bool:
+    """Whether an ``If-Match`` *header* admits an item whose ETag is *etag* (``None`` when it is
+    gone): ``*`` admits any item that exists, and a list of strong tags admits its members."""
+    if etag is None:
+        return False
+    tags = [tag.strip() for tag in header.split(",")]
+    return "*" in tags or etag in tags
+
+
+class Preconditions:
+    """The conditional-request state of one request: the ETag its ``If-Match`` names, how to read
+    the item it addresses, and the ETag that item has when the operation is done."""
+
+    def __init__(self, if_match: str | None = None) -> None:
+        self.if_match = if_match
+        #: The ETag of the addressed item once an operation read or wrote it.
+        self.etag: str | None = None
+        #: How to read the addressed item, set by the operation as it resolves the address.
+        self.reader: AddressedReader | None = None
+        #: The sequence number of the addressed item.
+        self.sequence: int | None = None
+        #: Whether the ``If-Match`` has been compared; it is compared once, in the first
+        #: transaction that opens after the address is known.
+        self.compared = False
+
+    def address(self, sequence: int, reader: AddressedReader, *, replace: bool = False) -> None:
+        """Make the item numbered *sequence*, read by *reader*, the addressed one, unless one is
+        already set and *replace* is not."""
+        if self.reader is None or replace:
+            self.sequence = sequence
+            self.reader = reader
+
+    def note_read(self, sequence: int, text: str) -> None:
+        """Take the ETag of the addressed item from *text* it was read as, unless one is already
+        known: the first read of a request is the one its answer is built from."""
+        if sequence == self.sequence and self.etag is None:
+            self.etag = etag_of(text)
 
 
 @dataclass(frozen=True)
@@ -79,6 +132,8 @@ class RequestContext:
     #: The notices raised while the request's operation runs; ``LocalApi`` adds them to the
     #: response's ``warnings``.
     notices: NoticeLog | None = None
+    #: The ``If-Match`` a write compares and the ETag it leaves; ``None`` outside a daemon request.
+    preconditions: Preconditions | None = None
 
 
 _DEFAULT_CONTEXT = RequestContext()

@@ -9,6 +9,8 @@ class SquadsError(Exception):
     refused call would have answered with, which the caller prints before the error."""
 
     warnings: tuple[str, ...] = ()
+    #: Facts a refusal adds to its message on the wire; ``None`` when it has none.
+    details: dict[str, str] | None = None
 
 
 class NotInitializedError(SquadsError):
@@ -128,3 +130,32 @@ class IndexLockTimeoutError(SquadsError):
             "nothing was written, retry the command"
         )
         self.lock_path = lock_path
+
+
+class ChangedSinceReadError(SquadsError):
+    """A write's ``If-Match`` names an ETag the addressed item no longer has."""
+
+    def __init__(self, item_id: str) -> None:
+        super().__init__(
+            f"{item_id} changed since it was read; nothing was written. Read it again and re-run."
+        )
+        self.item_id = item_id
+
+
+class SchemaMismatchError(SquadsError):
+    """The client's schema version is not the daemon's; nothing ran."""
+
+    def __init__(self, client: str, daemon: str) -> None:
+        super().__init__(
+            f"the client speaks schema v{client} and this squad is served at schema v{daemon}"
+        )
+        self.details = {"client": client, "daemon": daemon}
+
+
+class VocabularyMismatchError(SquadsError):
+    """The client's workflow vocabulary is not the daemon's; nothing ran. ``details`` maps each
+    document to the digest the daemon holds."""
+
+    def __init__(self, digests: dict[str, str]) -> None:
+        super().__init__("the client's workflow vocabulary differs from the squad's")
+        self.details = dict(digests)

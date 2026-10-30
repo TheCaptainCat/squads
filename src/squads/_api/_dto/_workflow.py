@@ -233,6 +233,7 @@ class ItemShowWithSpec(ItemShow):
         "badges",
         "spec",
         "display",
+        "etag",
     )
 
     spec: SpecIdentity

@@ -58,10 +58,12 @@ class LocalApi:
     def _service(
         self, mode: Mode, paths: SquadPaths | None, unresolved: SquadsError | None
     ) -> Service:
-        cached = self._services.get(mode) if paths is not None else None
+        ctx = get_context()
+        # A request whose spec was refused composes its own service: a kept one was built for a
+        # spec that was not.
+        cached = self._services.get(mode) if paths is not None and ctx.spec_error is None else None
         if cached is not None:
             return cached
-        ctx = get_context()
         with spans.span("compose"):
             svc = compose_service(
                 paths,

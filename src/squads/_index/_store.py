@@ -72,8 +72,9 @@ from filelock import FileLock, Timeout
 from pydantic import ValidationError
 
 from squads import _aio
-from squads._context import record_notice
+from squads._context import etag_of, get_context, if_match_allows, record_notice
 from squads._errors import (
+    ChangedSinceReadError,
     IndexLockTimeoutError,
     IndexLockUnavailableError,
     SquadsError,
@@ -475,6 +476,7 @@ class IndexStore:
                     # publishes, so there is no separate pre-lock load to discard. Always
                     # the disk, never the read scope — see the docstring above.
                     ctx = _TransactionCtx(db=await self._read_from_disk(validate_vocab=True))
+                    await self._compare_if_match(ctx.db)
                     token = _active_transaction.set(_ActiveTransaction(store=self, ctx=ctx))
                     yield ctx.db
                     await self._atomic_write(ctx.db)
@@ -498,6 +500,7 @@ class IndexStore:
                                 )
                         except Exception as exc:  # never fail a committed mutation
                             record_notice(f"reflog append failed: {exc}")
+                    await self._record_etag(ctx.db)
                 finally:
                     # Unconditional, commit or raise: drop any snapshot this store filed so a later
                     # read in the invocation cannot see pre-mutation state. On the raise path it
@@ -512,6 +515,31 @@ class IndexStore:
                     await _aio.to_thread(self._lock.release)  # Layer 3 released first
             finally:
                 await _aio.to_thread(self._proc_mutex.release)  # Layer 2; Layer 1 by async-with
+
+    @staticmethod
+    async def _compare_if_match(db: SquadsDB) -> None:
+        """Refuse, before anything is written, a write whose ``If-Match`` the addressed item's
+        file no longer matches. It runs once per request, under the lock and after the re-read."""
+        pre = get_context().preconditions
+        if pre is None or pre.if_match is None or pre.reader is None or pre.compared:
+            return
+        pre.compared = True
+        item_id, text = await pre.reader(db)
+        if not if_match_allows(pre.if_match, None if text is None else etag_of(text)):
+            raise ChangedSinceReadError(item_id)
+
+    @staticmethod
+    async def _record_etag(db: SquadsDB) -> None:
+        """Record the addressed item's ETag from the bytes its file holds as the transaction
+        ends, still under the lock; ``None`` when the item is gone."""
+        pre = get_context().preconditions
+        if pre is None or pre.reader is None:
+            return
+        try:
+            _, text = await pre.reader(db)
+        except Exception:  # never fail a committed mutation
+            return
+        pre.etag = None if text is None else etag_of(text)
 
     def log(self, op: str, target: str, delta: dict[str, Any]) -> None:
         """Buffer a reflog entry on the active transaction context so it is emitted after the

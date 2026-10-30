@@ -5,14 +5,20 @@
 concern mixin under ``_services/``.
 """
 
-from collections.abc import Callable, Sequence
+import asyncio
+import contextvars
+import time
+from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from squads import _aio
+from squads import _aio, _clock
 from squads._api._api import Mode
+from squads._api._http import RequestMetadata
 from squads._backends._base import AgentBackend
 from squads._backends._registry import get_backend
+from squads._context import NoticeLog, Preconditions, RequestContext, bind_context
 from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsError
 from squads._index._store import IndexStore
 from squads._language import DEFAULT_WORKING_LANGUAGE
@@ -338,6 +344,104 @@ def _compose_first_of(
         except SquadsError:
             continue
     return _compose(paths, rungs[-1], resolved_spec, sources, refusal=refusal)
+
+
+@dataclass(frozen=True)
+class Answered[T]:
+    """What a request scope hands back: the handler's value, the ETag of the item it addressed
+    (``None`` when it addressed none or removed it) and the handler's own run time in
+    milliseconds, which excludes the time the request spent waiting its turn."""
+
+    value: T
+    etag: str | None
+    handler_ms: float
+
+
+class RequestScope:
+    """The daemon's scope for one request: it runs a handler in a fresh ``contextvars.Context`` on
+    a ``RequestContext`` bound from the request's headers and the documents loaded at start-up,
+    one request at a time, in arrival order. It redirects no stream, sets no environment
+    variable, builds no console and reads neither the process's directory nor its environment for
+    a value a header carries."""
+
+    def __init__(self, root: Path, squad_dir: Path, sources: SpecSources) -> None:
+        self._root = root
+        self._squad_dir = squad_dir
+        self._lock = asyncio.Lock()
+        self._spec: WorkflowSpec | None = None
+        self._startup_refusal: str | None = None
+        try:
+            self._spec = sources.workflow()
+        except (SquadsError, OSError, ValueError) as exc:  # fmt: skip
+            self._startup_refusal = spec_refusal(squad_dir / WORKFLOW_OVERRIDE_FILENAME, exc)
+
+    def _spec_refusal(self) -> str | None:
+        """The refusal a workflow override that fails its check against the live index is read
+        with, as the CLI's root callback finds it; ``None`` when there is none."""
+        if self._startup_refusal is not None or self._spec is None:
+            return self._startup_refusal
+        override = self._squad_dir / WORKFLOW_OVERRIDE_FILENAME
+        if not override_present(override):
+            return None
+        try:
+            validate_against_index_fail_closed(self._spec, self._squad_dir, bundled=bundled_spec())
+        except Exception as exc:  # any failure of the check is the refusal's text
+            return spec_refusal(override, exc)
+        return None
+
+    def _context(self, meta: RequestMetadata, *, conditional: bool) -> RequestContext:
+        """The context for a request declaring *meta*; *conditional* says whether its
+        ``If-Match`` is compared."""
+        at = None
+        if meta.at is not None:
+            try:
+                at = _clock.parse_iso(meta.at)
+            except ValueError:
+                raise SquadsError(
+                    f"invalid Squads-At timestamp {meta.at!r} "
+                    "(use ISO 8601, e.g. 2024-01-15 or 2024-01-15T09:30:00Z)"
+                ) from None
+        start = self._root
+        if meta.client_dir is not None:
+            start = Path(meta.client_dir)
+            if not start.is_absolute():
+                raise SquadsError(f"Squads-Client-Dir must be an absolute path, got {start}")
+        return RequestContext(
+            clock_override=at,
+            actor_override=meta.actor,
+            session_id=meta.session_id,
+            parent_session_id=meta.parent_session_id,
+            active_spec=self._spec,
+            client_cwd=self._root,
+            spec_error=self._spec_refusal(),
+            start_dir=start,
+            notices=NoticeLog(),
+            preconditions=Preconditions(meta.if_match if conditional else None),
+        )
+
+    async def _bound[T](
+        self, meta: RequestMetadata, call: Callable[[], Awaitable[T]], conditional: bool
+    ) -> Answered[T]:
+        ctx = self._context(meta, conditional=conditional)
+        bind_context(ctx)
+        started = time.perf_counter()
+        value = await call()
+        elapsed = (time.perf_counter() - started) * 1000
+        return Answered(value, ctx.preconditions.etag if ctx.preconditions else None, elapsed)
+
+    async def run[T](
+        self, meta: RequestMetadata, call: Callable[[], Awaitable[T]], *, conditional: bool = False
+    ) -> Answered[T]:
+        """Run *call* in the scope of a request declaring *meta*. The call runs to completion
+        once it has started, even if the caller stops waiting."""
+
+        async def serial() -> Answered[T]:
+            async with self._lock:
+                return await asyncio.create_task(
+                    self._bound(meta, call, conditional), context=contextvars.Context()
+                )
+
+        return await asyncio.shield(asyncio.ensure_future(serial()))
 
 
 def _init_time_spec(sources: SpecSources) -> WorkflowSpec:

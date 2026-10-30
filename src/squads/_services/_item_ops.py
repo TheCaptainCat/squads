@@ -60,7 +60,9 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         not of the type the address expects, when it names one."""
         if address.type is None:
             item_id = await self.resolve_any_id(address.address or address.id)
-            return await self.get(item_id)
+            found = await self.get(item_id)
+            self._address(found)
+            return found
         seq, given_prefix = parse_item_token(address.id)
         prefix = prefix_for(address.type, self.spec)
         item = (await self.store.load()).get(str(seq))
@@ -73,6 +75,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         elif item.type != address.type:
             shown = typed.strip()
         else:
+            self._address(item)
             return item.model_copy(deep=True)
         raise SquadsError(f"{shown} is {item.id} ({item.type}), not of type {address.type}")
 
@@ -88,6 +91,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         its body fails to render; the tag of the view *keep_view* names stays unexpanded in the
         displayed body."""
         item = await self.addressed_item(req)
+        etag = await self.item_etag(item)
         warnings = await self._duplicate_warnings(item)
         names = await self.display_names()
         kind = self.spec.item_subentity_kind(item.type)
@@ -112,6 +116,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
                     "discussion": discussion,
                     "badges": resolve_badges(self.spec, item.type, item.badge_value),
                     "display": show_display(item, kind, expanded.text, self.spec, names),
+                    "etag": etag,
                 }
             )
         return Response(data=shown, warnings=[*warnings, *expanded.warnings])

@@ -141,6 +141,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         item = await self.roster_item(kind, token)
         if item is None:
             raise ItemNotFoundError(f"no {kind} with slug, ID, or number {addr!r}{missing}")
+        self._address(item)
         return item
 
     async def _live_role(self, addr: str) -> Item:

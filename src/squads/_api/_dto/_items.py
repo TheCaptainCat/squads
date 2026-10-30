@@ -207,6 +207,7 @@ class ItemShow(ItemRow):
         "discussion",
         "badges",
         "display",
+        "etag",
     )
 
     subentities: list[Subentity | SubentityRow]  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -214,6 +215,8 @@ class ItemShow(ItemRow):
     views: dict[str, JsonValue]
     discussion: list[Comment]
     display: ItemShowDisplay  # pyright: ignore[reportIncompatibleVariableOverride]
+    #: The strong ETag of the item's file as the show read it; provisional.
+    etag: str
 
 
 class ItemList(DTO):

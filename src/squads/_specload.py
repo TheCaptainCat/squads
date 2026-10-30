@@ -76,8 +76,10 @@ class MergedOverride:
     override: RawMapping
 
 
+@functools.cache
 def bundled_bytes(document: SpecDocument) -> bytes:
-    """The packaged file's bytes."""
+    """The packaged file's bytes, read once per process: the parse and the vocabulary hash take
+    them from this one read."""
     try:
         pkg = importlib.resources.files("squads._specs")
         return (pkg / document.bundled_file).read_bytes()

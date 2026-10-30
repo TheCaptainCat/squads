@@ -848,6 +848,47 @@ ADOPT = Operation(
 )
 
 
+#: The writes that compare the request's ``If-Match`` with the addressed item's ETag: the item-level
+#: writes of items and roster entries, and the sub-entity writes, whose state is the item's. A
+#: creation addresses no existing item, the corpus-wide writes address none, and a comment's own
+#: hash is its precondition.
+CONDITIONAL_WRITES: frozenset[str] = frozenset(
+    op.name
+    for op in (
+        ITEM_STATUS,
+        ITEM_UPDATE,
+        ITEM_BODY,
+        ITEM_RETYPE,
+        ITEM_REMOVE,
+        ITEM_REF_ADD,
+        ITEM_REF_RM,
+        ITEM_VIEW_ADD,
+        ITEM_VIEW_DISABLE,
+        SUBENTITY_ADD,
+        SUBENTITY_UPDATE,
+        SUBENTITY_BODY,
+        SUBENTITY_REMOVE,
+        ROLE_UPDATE,
+        ROLE_BODY,
+        ROLE_STATUS,
+        ROLE_REMOVE,
+        ROLE_VIEW_ADD,
+        ROLE_VIEW_DISABLE,
+        SKILL_UPDATE,
+        SKILL_BODY,
+        SKILL_STATUS,
+        SKILL_REMOVE,
+        SKILL_REF_ADD,
+        SKILL_REF_RM,
+        SKILL_VIEW_ADD,
+        SKILL_VIEW_DISABLE,
+        OPERATOR_UPDATE,
+        OPERATOR_BODY,
+        OPERATOR_STATUS,
+        OPERATOR_REMOVE,
+    )
+)
+
 OPERATIONS: tuple[Operation[Any, Any], ...] = (
     # --- items
     ITEMS_LIST,

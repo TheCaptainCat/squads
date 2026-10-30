@@ -1,7 +1,9 @@
 """`sq show`: the item addressed by number or full ID in the rendered, raw, JSON, full and
 comment forms."""
 
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -44,6 +46,11 @@ PARSER_COMMENT = [
 @pytest.fixture
 def readable(copy_squad):
     return copy_squad("readable", init_readable)
+
+
+def _etag(path: Path) -> str:
+    """The strong ETag of the item file at *path*: the SHA-256 of its bytes, quoted."""
+    return f'"{hashlib.sha256(path.read_bytes()).hexdigest()}"'
 
 
 async def _show(invoke, *args: str) -> tuple[int, list[str]]:
@@ -152,6 +159,7 @@ async def test_json_prints_the_item_as_one_object(readable, invoke) -> None:
         "## Decision\n\n## Consequences"
     )
     # Compared as text, so the key order is held as well as the content.
+    expected_path = "adrs/ADR-000005-pick-an-index.md"
     expected = {
         "sequence_id": 5,
         "type": "decision",
@@ -184,6 +192,7 @@ async def test_json_prints_the_item_as_one_object(readable, invoke) -> None:
             "summary": None,
             "attributes": [],
         },
+        "etag": _etag(readable.squad_dir / expected_path),
     }
     assert result.output == json.dumps(expected, indent=2) + "\n"
 
@@ -235,6 +244,7 @@ async def test_json_prints_the_notices_on_stderr_and_only_the_object_on_stdout(
             "summary": None,
             "attributes": [],
         },
+        "etag": _etag(project.squad_dir / f"{P.ref_folder}/{P.ref_prefix}-000002-parse.md"),
     }
     assert (result.exit_code, result.stdout, result.stderr) == (
         0,
