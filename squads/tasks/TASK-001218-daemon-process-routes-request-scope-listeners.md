@@ -3,7 +3,7 @@ id: TASK-1218
 sequence_id: 1218
 type: task
 title: 'Daemon process: routes, request scope, listeners'
-status: Ready
+status: InProgress
 parent: FEAT-1140
 author: tech-lead
 priority: high
@@ -59,14 +59,14 @@ subentities:
   story: US1
 - local_id: ST11
   title: Starlette and uvicorn at their locked lower bounds
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST12
   title: Operation notices travel in warnings, nothing below the CLI prints
   status: Todo
   story: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T00:44:52Z'
+updated_at: '2026-10-30T00:46:03Z'
 ---
 <!-- sq:body -->
 ## Goal
