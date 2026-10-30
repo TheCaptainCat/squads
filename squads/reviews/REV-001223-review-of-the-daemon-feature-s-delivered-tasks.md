@@ -185,16 +185,16 @@ subentities:
   severity: low
 - local_id: F35
   title: OpenAPI document omits 403 on GETs, the daemon routes' refusals and 405
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F36
   title: A repeated single-value query key silently keeps its last value
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T08:21:23Z'
+updated_at: '2026-10-30T08:34:10Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
