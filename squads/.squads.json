@@ -33340,7 +33340,7 @@
       "type": "task",
       "title": "Daemon process: routes, request scope, listeners",
       "slug": "daemon-process-routes-request-scope-listeners",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Starlette on uvicorn serving the operation table as /v1 routes: envelope and errors, OpenAPI, request scope, ETags, schema and vocabulary checks, settings, lifecycle, admission",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -33357,7 +33357,7 @@
         {
           "local_id": "ST1",
           "title": "[daemon] table, SQUADS_DAEMON and the check rule",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US5",
           "deferred_to": null,
@@ -33366,7 +33366,7 @@
         {
           "local_id": "ST2",
           "title": "Shared endpoint resolution, key and runtime directory",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US4",
           "deferred_to": null,
@@ -33393,7 +33393,7 @@
         {
           "local_id": "ST5",
           "title": "Lifecycle, retirement and sq daemon commands",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US4",
           "deferred_to": null,
@@ -33402,7 +33402,7 @@
         {
           "local_id": "ST6",
           "title": "Listeners on uvicorn and the admission middleware",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US6",
           "deferred_to": null,
@@ -33411,7 +33411,7 @@
         {
           "local_id": "ST7",
           "title": "Browser listener, off by default",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US7",
           "deferred_to": null,
@@ -33465,7 +33465,7 @@
       ],
       "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-30T06:36:20Z",
+      "updated_at": "2026-10-30T07:16:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

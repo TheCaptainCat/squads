@@ -3,7 +3,7 @@ id: TASK-1218
 sequence_id: 1218
 type: task
 title: 'Daemon process: routes, request scope, listeners'
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -18,11 +18,11 @@ description: 'Starlette on uvicorn serving the operation table as /v1 routes: en
 subentities:
 - local_id: ST1
   title: '[daemon] table, SQUADS_DAEMON and the check rule'
-  status: Todo
+  status: Done
   maps_to: US5
 - local_id: ST2
   title: Shared endpoint resolution, key and runtime directory
-  status: Todo
+  status: Done
   maps_to: US4
 - local_id: ST3
   title: 'Starlette app: routes from the table, envelope, errors'
@@ -34,15 +34,15 @@ subentities:
   maps_to: US2
 - local_id: ST5
   title: Lifecycle, retirement and sq daemon commands
-  status: Todo
+  status: Done
   maps_to: US4
 - local_id: ST6
   title: Listeners on uvicorn and the admission middleware
-  status: Todo
+  status: Done
   maps_to: US6
 - local_id: ST7
   title: Browser listener, off by default
-  status: Todo
+  status: Done
   maps_to: US7
 - local_id: ST8
   title: Request scope and metadata headers
@@ -65,7 +65,7 @@ subentities:
   status: Done
   maps_to: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T06:36:20Z'
+updated_at: '2026-10-30T07:16:23Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -345,4 +345,11 @@ Tests: the guard (1); the expected waiting lines in `tests/cross_process/test_th
     - Seams for lane B: `squads._daemon._app.build_app(state, retirement_check=never_retiring)`; `DaemonState` in `_daemon/_state.py` (pid, version, root, squad_dir, started_at, sources, listeners, idle_deadline, stop); `retirement_check() -> bool` and `state.stop()` is called after a `503 retiring` and after `POST /v1/daemon/stop`. Test harness: `tests/_daemon_harness.py` (`serve_squad`, fixture `serve`).
     - Choices to confirm: init/adopt (local_only) answer 400 on the daemon; Squads-Client-Dir must be absolute and is read as UTF-8 bytes carried in Latin-1; ETag is the SHA-256 of the LF-normalised file text; `ErrorDetail` gained `warnings` and an optional `details` (schema and vocabulary mismatch); `CONDITIONAL_WRITES` in `_api/_ops.py` lists the If-Match writes; the show DTO gained `etag`.
     - Gates green: pyright, ruff, format, template manifest, pytest 1815 passed, override squad tests/cli 822 passed, cross_process 4 passed.
+- [2026-10-30T07:16:22Z] `python-dev` Elias Python:
+  - - @manager Lane B is done: commit 850acd43 on branch worktree-agent-a2e4036496471d197 (worktree .claude/worktrees/agent-a2e4036496471d197), on release/0.19 9f01c537. ST1, ST2, ST5, ST6, ST7 Done.
+    - Modules: `_endpoint.py` (stdlib resolution, `[daemon]` parser, `SQUADS_DAEMON`, key, runtime dir, `-C` stepping now used by `effective_dir`), `_daemon_link.py` (stdlib client: identity, stop, wait), `_daemon/_lifecycle.py` (lock, fingerprint retirement, idle exit, start report), `_listeners.py`, `_admission.py`, `_cli/_daemon.py` (`status`, `stop`, hidden `run --report-fd`).
+    - Seam facts for TASK-1219: start report is one line on the pipe, `ready` or `error: <why>` (`error: already running` when the lock is held), then closed; on Windows `--report-fd` is an inheritable handle value. Runtime files per key: `.sock`, `.json` (pid, version, squad_dir, listeners), `.lock`, `.log`. Stale-file cleanup and the spawn are not in this lane. `sq daemon status --json` is `{"running": bool, "daemon": identity|null}`; `stop --json` is `{"was_running": bool}`.
+    - Choices to confirm: admission refusals are 421 `misdirected` (Host) and 403 `forbidden`, in the error envelope; `Host` and `Origin` are checked on TCP listeners only, Content-Type and `Squads-Client` on all; an unknown `[daemon]` key is reported and ignored, any other unusable value (or `SQUADS_DAEMON`) disables the daemon and the finding says so; the check rule is `daemon_config_valid` (warn, always on); `run` is exempted by name in the no-file-writes CLI guard (it keeps runtime files, not squad data).
+    - Gates green: pyright, ruff, format, pytest 1854 passed, override squad tests/cli 835 passed, cross_process 4 passed, template manifest. Each test group was shown red against a deliberate break (17 breaks).
+    - Not run on Windows or macOS: the TCP CLI port path, `msvcrt.open_osfhandle` report handle, the Windows `Origin` negative (skipped by platform), macOS runtime directory and 103-byte socket limit. Idle exit and crash leftovers are built, untested.
 <!-- sq:discussion:end -->
