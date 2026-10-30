@@ -3,7 +3,7 @@ id: TASK-1220
 sequence_id: 1220
 type: task
 title: 'CI: daemon coverage on Linux, macOS and native Windows'
-status: Ready
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -16,18 +16,18 @@ description: Cross-process set, mode-parity run and budget report on the three-O
 subentities:
 - local_id: ST1
   title: Cross-process and parity jobs on the three-OS matrix
-  status: Todo
+  status: Done
   maps_to: US6
 - local_id: ST2
   title: Leaked-daemon check and bounded wall time
-  status: Todo
+  status: Done
   maps_to: US6
 - local_id: ST3
   title: Client-budget report job
-  status: Todo
+  status: Done
   maps_to: US12
 created_at: '2026-10-28T14:08:43Z'
-updated_at: '2026-10-30T08:01:27Z'
+updated_at: '2026-10-30T08:03:28Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -115,4 +115,12 @@ The benchmark script of TASK-1219 ST8 run on one runner as a report: the human a
   - Brought up to date (2026-10-30): the new jobs follow the `override-squad` job pattern. Added remote mode on the override squad (pending the operator) and the Windows remote-run scope (pending the architect); both are on FEAT-1140. The existing jobs get `SQUADS_DAEMON=off` and the leak check. Timing runs are dispatched by hand on the release branch. Still 0 new tests.
 - [2026-10-30T00:44:18Z] `tech-lead` Olivia Lead:
   - Folded the 2026-10-30 rulings: four remote-mode `tests/cli` jobs (bundled on ubuntu, macOS and Windows; override on ubuntu), each at 10 min. The existing `cross-process` job takes the daemon members, and its Windows timeout drops from 15 to 10 min per ADR-1172.
+- [2026-10-30T08:03:16Z] `devops` Hugo Ops:
+  - @manager `.github/workflows/test.yml` is edited in the working tree (not committed); no other file changed.
+    - Jobs: `remote-mode` (matrix ubuntu, windows, macos; `pytest -rs --api-mode remote tests/cli`, 10 min on all three), `remote-mode-override` (ubuntu, `--api-mode remote --squad override tests/cli`, 10 min), `client-budget` (ubuntu, `continue-on-error`, runs `scripts/bench_remote_client.py` on a copy of the repo squad, medians to `$GITHUB_STEP_SUMMARY`, never gates). `cross-process` keeps its three-OS matrix; its Windows timeout was already 10, so no change, and `-rs` lists the skips. The Windows `test` job keeps 15 minutes.
+    - `SQUADS_DAEMON=off` at job level on `test`, `override-squad`, `remote-mode`, `remote-mode-override`. Left unset on `cross-process` (its members start daemons) and `client-budget` (it needs one).
+    - Leak check: a final `if: always()` step on every job except lint. It lists processes (`ps` or PowerShell `Get-CimInstance Win32_Process`) ending in `daemon run`, plus `*.json`/`*.sock` in the runtime directory from `squads._endpoint.runtime_directory` (it prints the `*.log` files too), and fails if either is found. Checked locally on Linux: it exits 0 on a clean box and 1 with a live daemon, naming the process and files.
+    - Local counts: `tests/cli` collects 997 tests in each of local, remote and remote-override mode. `scripts/bench_remote_client.py` exists only in a worktree, not on release/0.19 yet, so `client-budget` fails (harmlessly) until TASK-1219 ST8 merges.
+    - Not done: the throwaway-branch deliberate-leak proof, the Windows collected-ID check and the two timing runs per OS. They need CI.
+    - Timing on release/0.19: push and PR triggers are main-only, so push the branch and run `gh workflow run test.yml --ref release/0.19`, or use Actions > test > Run workflow with the branch chosen. Do it twice, then read each job's duration with `gh run view <id> --json jobs`.
 <!-- sq:discussion:end -->
