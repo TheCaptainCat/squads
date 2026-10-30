@@ -3,7 +3,7 @@ id: TASK-1220
 sequence_id: 1220
 type: task
 title: 'CI: daemon coverage on Linux, macOS and native Windows'
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -27,7 +27,7 @@ subentities:
   status: Todo
   maps_to: US12
 created_at: '2026-10-28T14:08:43Z'
-updated_at: '2026-10-30T00:44:18Z'
+updated_at: '2026-10-30T08:01:27Z'
 priority: high
 ---
 <!-- sq:body -->

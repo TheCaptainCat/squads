@@ -15,7 +15,7 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-30T07:36:31Z'
+updated_at: '2026-10-30T08:01:27Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -118,7 +118,7 @@ The removal preview is a read, so it is a `GET`, on a sub-resource named for wha
 | 423 | `locked` | `IndexLockTimeoutError` |
 | 400 | `invalid` | any other `SquadsError` |
 | 421 | `misdirected` | admission, before routing, on a TCP listener: a `Host` that is not exactly `127.0.0.1:<port>`, `localhost:<port>` or `[::1]:<port>` for the port the request arrived on, or a port that is not one of the daemon's listeners |
-| 403 | `forbidden` | admission, before routing: an `Origin` on the CLI port; on the browser port, a method other than `GET` or `HEAD` whose `Origin` is missing or is not `http://<host>` of that listener; on any listener, the Unix socket included, a method other than `GET` or `HEAD` without `Content-Type: application/json` or without `Squads-Client: 1` |
+| 403 | `forbidden` | admission, before routing, on a TCP listener: an `Origin` on the CLI port; on the browser port, a method other than `GET` or `HEAD` whose `Origin` is missing or is not `http://<host>` of that listener; on either port, a method other than `GET` or `HEAD` without `Content-Type: application/json` or without `Squads-Client: 1`. The Unix socket is owner-only (`0600` in a `0700` directory), so it applies none of these checks; clients still send both headers on it, so one request works on any listener. |
 | 500 | `internal` | an exception that is not a `SquadsError`. Its traceback goes to the daemon log, and the message says to read it. |
 
 - **A request no route takes** is answered by the router with the same body. A path no route serves answers `404 not_found` (`no such route`). A method the path lacks answers `405` with type `invalid` and an `Allow` header naming every method the table serves at that path (and `HEAD` beside a `GET`), as HTTP requires. 405 is the one status outside the table: the request named no operation, so no exception maps to it.
