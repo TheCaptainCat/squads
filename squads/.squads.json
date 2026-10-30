@@ -33577,7 +33577,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-30T09:19:39Z",
+      "updated_at": "2026-10-30T09:46:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -63202,7 +63202,7 @@
         {
           "local_id": "F39",
           "title": "A session restarts a daemon from its first endpoint, ignoring enabled = false set since",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63213,18 +63213,29 @@
         {
           "local_id": "F40",
           "title": "A session retries a failed daemon start on every call: one line and up to 6 s each",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
           "attributes": {
             "severity": "medium"
           }
+        },
+        {
+          "local_id": "F41",
+          "title": "Switched-off session test leaks a daemon when it fails",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
         }
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T09:31:16Z",
+      "updated_at": "2026-10-30T09:46:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

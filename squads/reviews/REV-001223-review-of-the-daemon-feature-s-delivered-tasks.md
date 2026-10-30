@@ -207,17 +207,22 @@ subentities:
 - local_id: F39
   title: A session restarts a daemon from its first endpoint, ignoring enabled = false
     set since
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: medium
 - local_id: F40
   title: 'A session retries a failed daemon start on every call: one line and up to
     6 s each'
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: medium
+- local_id: F41
+  title: Switched-off session test leaks a daemon when it fails
+  status: Open
+  assignee: python-dev
+  severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T09:31:16Z'
+updated_at: '2026-10-30T09:46:52Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1149,6 +1154,23 @@ Fix direction: retry at most once per interval (for example 30 s) or only when t
 <!-- sq:finding:F40:discussion -->
 <!-- sq:finding:F40:discussion:end -->
 <!-- sq:finding:F40:end -->
+
+<!-- sq:finding:F41 -->
+### F41 — Switched-off session test leaks a daemon when it fails
+
+<!-- sq:finding:F41:body -->
+`test_a_daemon_switched_off_mid_session_is_not_started_again` (tests/cross_process/test_a_daemon_that_goes_away_and_unusable_settings.py) has no `finally` that stops the daemon, unlike its siblings (`..._is_started_again_for_the_next_call` and `..._finds_one_once_it_can_be_started`). The session's first call starts a daemon. When the regression this test guards comes back, the session starts a second daemon, the test fails, and that daemon is left running. Its squad and runtime directory are tmp_path directories that pytest then deletes, so `sq daemon stop` can no longer reach it, and it runs until its idle exit.
+
+Observed: with `_restart` mutated to skip the enabled check, the test went red as it should, and it left `python -m squads -C .../test_a_daemon_switched_off_mid0 daemon run` (pid 2855059) running after the run. Its directories were already gone.
+
+Fix: wrap the body in `try: … finally: run(sq_command(project, "daemon", "stop"))`, as the sibling tests do.
+<!-- sq:finding:F41:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F41:discussion -->
+<!-- sq:finding:F41:discussion:end -->
+<!-- sq:finding:F41:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1273,4 +1295,17 @@ Fix direction: retry at most once per interval (for example 30 s) or only when t
       - The new import-edge row `_cli -> _api local` matches the moved DTO imports.
       - A note for ST8, not a finding: the imports moved into `_cmd_*`/`_register_*` still run whenever the item app is built. `task 2 show` in remote mode still loads every item renderer and every DTO module (the latter through `_api._ops`), so those moves save nothing on item commands.
     - Recommended: TASK-1219 not yet. F39 and F40 are open against ST9, and ST8 (client budget) is still waiting for the operator. `sq daemon status` is clean on every scratch squad. @manager
+- [2026-10-30T09:46:52Z] `reviewer` Paul Reviewer:
+  - - F39 and F40 Verified at 801d7b13 (origin/release/0.19). Driven with the real `sq ui` path (Textual app replaced by a stub that calls `Session.call`) on a scratch squad that has its own runtime directory.
+      - F39: `[daemon] enabled = false` appended mid-session. The open daemon retires, the 4 calls after it answer locally, nothing goes to stderr, and `sq daemon status` says none is running afterwards. With `enabled = "yes"`: one `warning:` line over 4 calls, no daemon. Turning the switch off, then on again mid-session starts a daemon on the next call (0.5 s).
+      - F40, failed start at open (runtime directory 0755): 1 line, not 5. Every call takes 0.00 s. Fixing the directory within 30 s keeps the session local without a line. After 31 s the next call finds a new daemon.
+      - F40, start that times out (lock held by another process): `sq ui` opens in 6.4 s (28.5 s before the fix). 1 line. The next 3 calls take 0.00 s. After 31 s, one call takes 5.5 s and prints nothing (the reason is already said). That is one stall per 30 s, as the fix direction allows; there is no stall per keypress.
+      - F40, daemon stopped mid-session and the restart impossible: 1 line over 3 calls.
+      - The two test gaps are now red. Each mutation turns exactly one case red: reselect removed from `session_api` (the recover case), `self.declined = False` removed from `_attempt` (`test_the_declined_flag`), `_restart` skipping the enabled check (the switched-off case), the back-off removed (the not-straight-away case), and a line said on every failure (the said-once case). 9 cases, 9 green on the unmutated tree.
+    - Windows test fixes (801d7b13), checked on Linux only. The Windows verdict comes from CI.
+      - The 39 cases of tests/cross_process plus the three touched test modules pass. `uv lock --check` is clean.
+      - The fake daemon's identity body and loopback branch are not used on Linux, where the identity is the socket. The CTRL_C helper and `CREATE_NEW_CONSOLE` (`0` off Windows) are inert here. With the platform `skipif` gone, the Ctrl-C cases still run on Linux. The path expectations are built with `Path` and are equal on POSIX. The file put where the runtime directory belongs is rejected by `runtime_dir_problem`, and the 0755 mode case is still covered by the session cases.
+      - pytest-timeout: a sleeping probe test with `-o timeout=3` under `-n 2` is reported as "worker 'gw0' crashed while running …::test_hangs_forever", so the hung test is named. The stack dump appears only under `-n0`. Under xdist it is lost with the worker's stderr. The pyproject comment "with every thread's stack in the log" is therefore true only for a serial run. This is a note, not a finding; a fix is to say "named (the stacks print with -n0)".
+    - New: F41 (low). The switched-off test leaks a daemon when it fails (observed under mutation). Add the try/finally stop that its siblings have. @python-dev
+    - Recommended: every REV-1223 finding is Verified except F41. TASK-1219 can be accepted once F41 is fixed, or accepted now with F41 left on the review, because F41 is test hygiene and changes no behaviour. ST8 (client budget) stays the operator's call. Scratch daemons stopped, and the /tmp symlink removed. One daemon left by the mutation run (pid 2855059, its directories deleted by pytest) cannot be stopped with `sq daemon stop`, and killing it was refused here. It idle-exits by about 11:14. @manager
 <!-- sq:discussion:end -->

@@ -53,7 +53,7 @@ subentities:
   status: Done
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T09:19:39Z'
+updated_at: '2026-10-30T09:46:53Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -326,4 +326,6 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
   - @manager REV-1223 F38 (medium): ST9 is marked Done but its re-selection after a retirement or a refused connection is not built, so the TUI stays local after a daemon exit (driven). Not ready to accept until F38 is fixed or ST9 is narrowed. ST8 is still open.
 - [2026-10-30T09:19:39Z] `reviewer` Paul Reviewer:
   - ST9: REV-1223 F39 (switch turned off mid-session still restarts a daemon) and F40 (failed start retried on every call) are open against it; F37 and F38 are Verified. Not ready to accept yet; ST8 still waits on the operator. @manager
+- [2026-10-30T09:46:53Z] `reviewer` Paul Reviewer:
+  - REV-1223: F39 and F40 Verified at 801d7b13; new F41 (low, test hygiene only). Recommended accepted except ST8 (operator call), F41 fixable after. @manager
 <!-- sq:discussion:end -->
