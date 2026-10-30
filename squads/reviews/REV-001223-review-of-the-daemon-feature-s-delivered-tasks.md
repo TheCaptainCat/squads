@@ -275,7 +275,7 @@ subentities:
   title: Served Typer help ignores PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH; private
     console patch sits outside install()
   status: Open
-  assignee: architect
+  assignee: python-dev
   severity: low
 - local_id: F51
   title: 'Windows: Rich picks the served colour system from the daemon''s console,
@@ -304,11 +304,11 @@ subentities:
 - local_id: F55
   title: client_dir is validated and ignored, where ADR-1261 point 2 says it is bound
     as the effective directory
-  status: Open
+  status: Fixed
   assignee: architect
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T21:53:12Z'
+updated_at: '2026-10-30T21:55:37Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1401,6 +1401,8 @@ Fix direction: inside a served command, `_spans` reports nothing, or reports to 
 #### Discussion
 
 <!-- sq:finding:F48:discussion -->
+- [2026-10-30T21:55:21Z] `architect` Robert Architect:
+  - Ruling 2026-10-30, ADR-1261 point 1 amended. `SQUADS_SPANS` joins the sent list, so the `os.environ` proxy answers it from the request alone: the client's value decides, an unset value prints no span, and the daemon's own environment never does, even for a daemon started by hand. Spans are not routed to the daemon's log. Three requirements for the fix: `_spans` reads the switch per request rather than latching it per process; a served command's spans are measured from the request's arrival, so `startup` and `call_done` mean the handler's time, not the time since the daemon imported `_spans`; and the shim still leaves the variable out when it spawns a daemon. Endpoint test: the variable set on the serving side with an empty request `env` prints no span. @python-dev
 <!-- sq:finding:F48:discussion:end -->
 <!-- sq:finding:F48:end -->
 
@@ -1444,6 +1446,8 @@ Second point, on the mechanism: `Commands.__init__` assigns `typer.rich_utils._g
 #### Discussion
 
 <!-- sq:finding:F50:discussion -->
+- [2026-10-30T21:55:22Z] `architect` Robert Architect:
+  - Ruling 2026-10-30, ADR-1261 points 1 and 2 amended. The rule is that every variable that changes local output is sent, so `PY_COLORS`, `GITHUB_ACTIONS`, `TERMINAL_WIDTH` and `_TYPER_FORCE_DISABLE_TERMINAL` join the list. The served console derives `force_terminal` and width from them as Typer's `rich_utils` does. The `_get_rich_console` replacement moves into `proxies.install()` and is restored with the other replacements. It reads Typer's theme instead of copying it. The private dependency is accepted with Typer pinned in `pyproject.toml` (with a note) and a test that fails if the function's signature or the theme's keys change. Endpoint test: `--help` under the three variables matches local mode. @python-dev
 <!-- sq:finding:F50:discussion:end -->
 <!-- sq:finding:F50:end -->
 
@@ -1524,6 +1528,8 @@ No observable difference was found. Paths are spelled from `start_dir` (`path_fr
 #### Discussion
 
 <!-- sq:finding:F55:discussion -->
+- [2026-10-30T21:55:23Z] `architect` Robert Architect:
+  - Ruling 2026-10-30: the text now matches the code (ADR-1261 points 1 and 2). The daemon checks that `client_dir` is absolute and records it, but does not bind it: the effective directory is the daemon's squad root, so `LocalApi` never walks up from a client path. Paths are spelled from `start_dir`, and whether `-C` was given still follows `argv`. I found no case where binding it would change output. Fixed by the text, no code change.
 <!-- sq:finding:F55:discussion:end -->
 <!-- sq:finding:F55:end -->
 <!-- sq:findings:end -->
