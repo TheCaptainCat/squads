@@ -289,7 +289,8 @@ def read_attachments(names: list[str], client_dir: str) -> tuple[dict[str, str],
 
     attached: dict[str, str] = {}
     stdin: bytes | None = None
-    for name in names:
+    # stdin last, so a file that cannot be read leaves it for the command that runs here
+    for name in sorted(names, key=lambda name: name == "-"):
         if name in attached:
             continue
         if name == "-":
