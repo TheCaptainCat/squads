@@ -179,22 +179,22 @@ subentities:
   severity: medium
 - local_id: F36
   title: Both-squad cases sit beside bundled-only copies of the same pairs
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F37
   title: Retype runs on the override squad; view disable needs a fixture view
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F38
   title: Vocabulary guards skip command docstrings, which are adopter help
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F39
   title: Bundled spec comments and playbook notes keep the old side-state order
   status: Verified
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:53:51Z'
+updated_at: '2026-10-30T06:29:23Z'
 ---
 <!-- sq:body -->
 ## Scope

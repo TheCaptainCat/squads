@@ -66917,7 +66917,7 @@
         {
           "local_id": "F36",
           "title": "Both-squad cases sit beside bundled-only copies of the same pairs",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66927,7 +66927,7 @@
         {
           "local_id": "F37",
           "title": "Retype runs on the override squad; view disable needs a fixture view",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66937,7 +66937,7 @@
         {
           "local_id": "F38",
           "title": "Vocabulary guards skip command docstrings, which are adopter help",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66957,7 +66957,7 @@
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-30T00:53:51Z",
+      "updated_at": "2026-10-30T06:29:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -67066,7 +67066,7 @@
         {
           "local_id": "F9",
           "title": "Lock error message claims nothing was written; sq init has",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -67076,7 +67076,7 @@
         {
           "local_id": "F10",
           "title": "Cross-process CI job gets 15 min on Windows; ADR-1172 says 10",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -67086,7 +67086,7 @@
       ],
       "path": "reviews/REV-001260-review-of-the-dependency-upgrade.md",
       "created_at": "2026-10-30T00:20:29Z",
-      "updated_at": "2026-10-30T00:57:38Z",
+      "updated_at": "2026-10-30T06:29:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

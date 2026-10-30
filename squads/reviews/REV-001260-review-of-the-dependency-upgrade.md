@@ -44,14 +44,14 @@ subentities:
   severity: medium
 - local_id: F9
   title: Lock error message claims nothing was written; sq init has
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F10
   title: Cross-process CI job gets 15 min on Windows; ADR-1172 says 10
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:57:38Z'
+updated_at: '2026-10-30T06:29:25Z'
 ---
 <!-- sq:body -->
 ## Scope
