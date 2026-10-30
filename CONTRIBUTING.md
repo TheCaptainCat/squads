@@ -212,6 +212,14 @@ so after a change it keeps answering with the old code until it exits. This repo
 mode; `SQUADS_DAEMON=on` tries the daemon for one shell without committing a setting. In a scratch
 squad of your own, export `SQUADS_DAEMON=off`, or run `sq daemon stop` after each change.
 
+**The client budget.** In remote mode `sq` is the shim in `src/squads/_shim.py`: on its way to a
+running daemon it imports only the standard library, `squads._endpoint` and its own module, and to
+start one it adds `squads._daemon_start` and `squads._daemon_link` (a `tests/meta` guard holds both
+sets). `scripts/bench_remote_client.py` measures what it costs: the wall time of a command minus the
+handler time the daemon reports, median of 31 interleaved runs. The release criterion is at most
+100 ms for `sq task <n> show` on the GitHub-hosted Linux runner, where the `client-budget` CI job
+reports it without failing the build.
+
 `tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
 fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:
 

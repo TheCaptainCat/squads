@@ -1,47 +1,95 @@
 # The daemon
 
-squads can keep one long-lived process per squad, the **daemon**, that serves the squad over a
-local HTTP API. The CLI uses it to answer commands without rebuilding everything on every
-invocation, and any other client (the terminal browser, a script, a web front) can call the same
-API. This page covers how the CLI uses the daemon, how to configure and inspect it, what it keeps
-on your machine, and who can reach it. The API itself is described in [api.md](api.md).
+squads can keep one long-lived process per squad, the **daemon**, that runs the squad's commands
+and serves the squad over a local HTTP API. The CLI hands it each command line, so a command skips
+the start-up work a fresh process repeats every time, and any other client (the terminal browser,
+a script, a web front) calls the same operations through the API. This page covers how the CLI uses
+the daemon, how to configure and inspect it, what it keeps on your machine, and who can reach it.
+The API itself is described in [api.md](api.md).
 
 ## Remote mode and local mode
 
 Each `sq` command runs in one of two modes, chosen once when it starts:
 
-- **Remote mode.** The command is answered by the squad's daemon. If none is running, the command
-  starts one and waits for it. Later commands find the same daemon.
-- **Local mode.** The command reads and writes the squad files itself, in its own process, as
-  squads always has.
+- **Remote mode.** `sq` sends the command line to the squad's daemon, which parses it, runs it and
+  renders its output, then prints what the daemon sends back and exits with its exit code. If no
+  daemon is running, the command starts one and waits for it. Later commands find the same daemon.
+- **Local mode.** The command runs in your own process, reading and writing the squad files
+  itself.
 
-The CLI parses your command line and prints the result in your own process in both modes, so the
-output and the exit code are the same, `--json` included. A write made in one mode is visible to a
-command in the other mode straight away: the daemon keeps nothing about the squad between two
-requests, and it takes the same file lock as a local command.
+Both modes run the same code, so the output and the exit code are the same, `--json` included. The
+daemon renders for your terminal: `sq` sends whether each of its standard streams is a terminal,
+their encodings and the terminal's size, and the environment variables listed under
+[The environment of a command](#the-environment-of-a-command). A write made in one mode is visible
+to a command in the other mode straight away: both take the same file lock, and the daemon reads
+the files again for every command (see [What the daemon keeps between commands](#what-the-daemon-keeps-between-commands)).
 
 Remote mode applies when the daemon is enabled (it is by default, see
-[Settings](#settings)). Local mode applies when it is disabled, and when a daemon cannot be started
-(see [When the daemon cannot be used](#when-the-daemon-cannot-be-used)).
+[Settings](#settings)). Local mode applies when it is disabled, when the command is not inside a
+squad, and when a daemon cannot be used (see
+[When the daemon cannot be used](#when-the-daemon-cannot-be-used)).
 
-The mode is chosen at the first operation a command calls, so a command that calls none never
-starts or contacts a daemon, whatever the settings: `sq --help`, `sq --version`, shell completion,
-`sq docs`, `sq migrate help` and `sq migrate chlog`. Neither do `sq init` and `sq adopt`, which
-create a squad and always run locally, nor `sq daemon`, which talks to the daemon itself. `sq ui`
-chooses again for each request it makes, by the same rule, so a daemon that stops or retires while
-it is open is found or started again at its next request, or local mode is used.
+Every command goes to the daemon, `sq --help`, `sq docs`, `sq migrate help`, `sq migrate chlog`
+and shell completion included, and starts one if none is running. These always run locally and
+never start or contact a daemon:
+
+- `sq --version` on its own;
+- `sq init` and `sq adopt`, which create a squad;
+- `sq daemon`, which talks to the daemon itself;
+- `sq ui`, the terminal browser, which runs in your terminal and chooses for each request it makes,
+  by the rules on this page, whether to call the daemon's API or answer in its own process, so a
+  daemon that stops or retires while it is open is found or started again at its next request;
+- `sq --install-completion` and `sq --show-completion`, which act on your own shell.
+
+### Files a command reads, and prompts
+
+The daemon never reads a path you name. When a command takes a file, `sq` reads it on your side and
+sends its content with the command line: the value of `--file` on any command, `-` (standard input)
+as that value, and the file `sq import` takes. A file that cannot be read makes the command run in
+local mode, which reports it as it always does:
+
+```
+error: cannot read file '../notes.md': No such file or directory
+```
+
+Prompts, such as the confirmation before a removal, are asked in your own terminal. The daemon
+stops at the prompt before the command has written anything, `sq` shows what the command printed
+and the question, reads your answer, and sends the command again with it. The daemon runs the
+command again from the start and applies your answer only if the command shows the same screen
+again: if what you were asked about changed in between (a comment edited by someone else, for
+example), you are asked again with the new screen. If the daemon stops between the question and
+your answer, nothing has been written, so the command runs in local mode from the start and asks
+you again.
+
+### The environment of a command
+
+A command run by the daemon sees your values of these environment variables, and no other
+variable from your shell:
+
+- `SQUADS_SESSION_ID` and `SQUADS_PARENT_SESSION_ID`, which the reflog records;
+- `SQUADS_SPANS`, the timing switch: the daemon prints the command's spans only when you set it;
+- the variables that change how output is rendered: `NO_COLOR`, `FORCE_COLOR`, `CLICOLOR_FORCE`,
+  `PY_COLORS`, `GITHUB_ACTIONS`, `TTY_COMPATIBLE`, `TTY_INTERACTIVE`, `COLUMNS`, `LINES`,
+  `TERMINAL_WIDTH`, `_TYPER_FORCE_DISABLE_TERMINAL`, `TERM` and `COLORTERM`;
+- the shell-completion variables of bash, zsh and fish: `_SQ_COMPLETE`, `_SQUADS_COMPLETE`,
+  `COMP_WORDS`, `COMP_CWORD`, `_TYPER_COMPLETE_ARGS`, `_TYPER_COMPLETE_WORD_TO_COMPLETE` and
+  `_TYPER_COMPLETE_FISH_ACTION`.
+
+`SQUADS_DAEMON` acts on your side only: it chooses the mode before anything is sent (see
+[Settings](#settings)).
 
 ### What differs between the modes
 
 The output is the same; the timing and Ctrl-C are not.
 
-- **Output arrives when the operation ends.** A remote command prints nothing until the daemon
-  answers. A notice raised while the operation runs, such as
-  `warning: waiting for the index lock <path>…`, is printed when the answer arrives, before the
-  result. In local mode it is printed as it happens. The lines are the same.
-- **Ctrl-C ends the wait, not the operation.** In remote mode, Ctrl-C stops the command waiting for
-  the daemon. An operation the daemon has already started runs to completion, so a write may still
-  be applied. The command prints
+- **Output arrives when the command ends.** A remote command prints nothing until the daemon
+  answers, then prints everything the command wrote, stdout and stderr in the order it wrote them.
+  A notice raised while the command runs, such as `warning: waiting for the index lock <path>…`,
+  is printed then, before the result. In local mode it is printed as it happens. The lines are the
+  same.
+- **Ctrl-C ends the wait, not the command.** In remote mode, Ctrl-C stops `sq` waiting for the
+  daemon. A command the daemon has already started runs to completion, so a write may still be
+  applied. `sq` prints
 
   ```
   error: no answer from the squad served at <endpoint>; the operation may still complete. Check its result before running it again.
@@ -51,28 +99,23 @@ The output is the same; the timing and Ctrl-C are not.
   again. In local mode, Ctrl-C ends the process.
 - **Timeouts.** A remote command waits at most 5 seconds to connect to the daemon, and at most 300
   seconds for its answer, including any time spent queued behind another request. The corpus-wide
-  operations wait for as long as they take: `sq migrate up`, `sq migrate repad`,
+  commands wait for as long as they take: `sq migrate up`, `sq migrate repad`,
   `sq migrate rename-type`, `sq migrate rename-status`, `sq migrate rename-field`,
   `sq migrate rename-kind`, `sq repair`, `sq renumber` and `sq import`. After 10 seconds they print
-  a line on stderr naming the operation, so a long run is not taken for a hang:
+  a line on stderr naming the command, so a long run is not taken for a hang:
 
   ```
-  waiting for the daemon (squad.repair)…
+  waiting for the daemon (repair)…
   warning: waiting for the index lock <path>…
   ```
 
-  (the second line is a notice from the operation, printed when the answer arrives). When
-  the 300 seconds pass, the command prints the message above with the duration
+  (the second line is the command's own notice, printed when the answer arrives). When the 300
+  seconds pass, `sq` prints the message above with the duration
   (`… after 300 s; the operation may still complete. …`) and exits `1`.
-- **Nothing is sent twice.** If the connection is lost after the request was sent, the command
-  reports it (`error: the connection to the squad served at <endpoint> was lost after the request
-  was sent; the operation may still complete. …`) and exits `1`. It never runs the operation
-  again, in either mode, because the first attempt may have been applied.
-
-A daemon that was found but cannot be connected to when the command sends its request (nothing
-was sent) gives way to local mode, with nothing printed.
-
-Prompts, such as the confirmation before a removal, are asked in your own terminal in both modes.
+- **Nothing is sent twice.** If the connection is lost after the command was sent, `sq` reports it
+  (`error: the connection to the squad served at <endpoint> was lost after the request was sent;
+  the operation may still complete. …`) and exits `1`. It never runs the command again, in either
+  mode, because the first attempt may have been applied.
 
 ## Settings
 
@@ -109,9 +152,14 @@ configuration. `sq override` and `sq migrate up`, which write those files, retir
 
 **An unusable setting means local mode.** A value of the wrong type (`enabled = "yes"`), an
 `idle_timeout_minutes` that is negative or not a whole number, a `[daemon]` that is not a table, or
-a `SQUADS_DAEMON` other than `on` or `off` puts every command in local mode. The command itself
-prints nothing about it; `sq check` reports the problem, and also an unknown key in the table,
-which is otherwise ignored:
+a `SQUADS_DAEMON` other than `on` or `off` puts every command in local mode. A command that
+would otherwise go to the daemon prints the problem on stderr, then runs:
+
+```
+warning: SQUADS_DAEMON must be on or off, got 'maybe'; every command runs in local mode until it is fixed
+```
+
+`sq check` reports it too, and also an unknown key in the table, which is otherwise ignored:
 
 ```
 warn .squads.toml: [daemon] enabled must be true or false, got 'yes'; every command runs in local mode until it is fixed
@@ -167,8 +215,20 @@ command starts a fresh one.
   [Settings](#settings).
 - **Stale files.** A daemon that was killed leaves files behind. The next command notices that
   nothing answers on them and removes them before it starts a new daemon.
-- **One request at a time.** The daemon runs operations one after the other, in the order they
-  arrive. A command sent while a long migration runs waits for it.
+- **One request at a time.** The daemon runs commands and API requests one after the other, in
+  the order they arrive. A command sent while a long migration runs waits for it.
+
+## What the daemon keeps between commands
+
+The daemon builds its command tree and loads the squad's configuration once, when it starts; a
+change to that configuration retires it (see [Settings](#settings)). Between commands it also keeps
+the result of parsing the squad's files: the index (`.squads.json`), the frontmatter of each item
+file, and the check of the workflow override against the index. Each entry is keyed by the content
+of the file it came from. Every command still reads the files, and reuses a kept result only when
+the content it has just read is the content that result was parsed from. An edit made outside the
+daemon, by a local-mode command, `git`, an editor or another tool, is therefore seen by the very
+next command, whatever the file's timestamps say. Nothing kept is a source of truth: the files are,
+and a write reads them again under the file lock.
 
 ## What the daemon keeps on your machine
 
@@ -197,8 +257,8 @@ daemon for that squad starts, which replaces it. When a request fails with an in
 message says the traceback is in this log.
 
 **Dependencies.** Installing squads also installs the daemon's HTTP server, `starlette` and
-`uvicorn`, which bring `h11` and `click`. Only the daemon loads them; a command in either mode does
-not.
+`uvicorn`, which bring `h11` and `click`. Only the daemon loads them: neither `sq` sending a
+command to the daemon nor a command run in local mode does.
 
 **A development install should keep the daemon off.** A daemon runs the code it started with. If
 you run squads from a source checkout (an editable install), a daemon started before you changed
@@ -206,6 +266,8 @@ the code keeps answering with the old code until it exits. Set `enabled = false`
 `[daemon]` table, or `SQUADS_DAEMON=off` in your shell, or run `sq daemon stop` after each change.
 
 ## When the daemon cannot be used
+
+A command falls back to local mode only before it has been sent, so nothing can run twice.
 
 If a daemon cannot be started, because the process cannot be spawned, it reports a failure, it
 does not answer within 5 seconds, or the runtime directory is unusable (missing and impossible to
@@ -220,36 +282,45 @@ The next command tries again. A daemon that refuses to start for a reason in the
 such as a workflow override that does not load, names that reason; the command then reports the
 same problem in local mode.
 
-A daemon that is retiring answers a command without running it, and the command runs in local
-mode with nothing printed. This is the only case where a command is handed to local mode after
-its request reached the daemon.
+A command also runs in local mode, with nothing printed, when:
+
+- a running daemon cannot be connected to, or the connection fails before the command has been
+  sent;
+- a file the command names cannot be read (see
+  [Files a command reads, and prompts](#files-a-command-reads-and-prompts)), or a `-C` directory
+  cannot be entered, so that local mode reports it;
+- the daemon is retiring: it answers without running the command, which then runs locally.
+
+Once the command has been sent, it is never run again: a lost connection, a timeout and Ctrl-C end
+with the error under [What differs between the modes](#what-differs-between-the-modes). The one
+exception is a prompt: when the daemon stops between the question and your answer, nothing has been
+written, and the command runs in local mode from the start.
 
 ## Client and daemon versions
 
-The CLI and its daemon come from the same installation, so they always agree. Another client, or
-a client reaching a squad served from another installation, must match the daemon on two counts,
-and is refused before anything runs when it does not:
+The CLI and the terminal browser only reach a daemon of their own installation (see
+[Lifecycle](#lifecycle)), which runs the same version and reads the same configuration. Another
+client of the API must match the daemon on two counts, and is refused before anything runs when it
+does not:
 
-- **The schema version.** A client and a daemon at different schema versions refuse each other.
-  The CLI prints one of two messages and exits `1`:
+- **The schema version.** A client and a daemon at different schema versions refuse each other
+  (`409 schema_mismatch`).
+- **The workflow vocabulary.** A client that parses commands with the squad's vocabulary sends its
+  hash; if its bundled `workflow.toml` or the project's `.overrides/workflow.toml` differ from the
+  ones the daemon loaded, the call is refused (`409 vocabulary_mismatch`).
 
-  ```
-  error: squads <version> speaks schema v<A>, and the squad served at <endpoint> runs schema v<B>. Install a squads release at schema v<B>, then re-run.
-  error: squads <version> speaks schema v<A>, and the squad served at <endpoint> runs schema v<B>. The squad's server must be upgraded and the squad migrated (sq migrate up) before this client can use it.
-  ```
+squads' own client of the API, which `sq ui` uses, words the refusals as follows:
 
-  The first means the client is behind; the second that it is ahead.
-- **The workflow vocabulary.** The CLI parses your command with the vocabulary of its own checkout:
-  its bundled `workflow.toml` and the project's `.overrides/workflow.toml`. If those differ from
-  the ones the daemon loaded, the call is refused:
+```
+error: squads <version> speaks schema v<A>, and the squad served at <endpoint> runs schema v<B>. Install a squads release at schema v<B>, then re-run.
+error: squads <version> speaks schema v<A>, and the squad served at <endpoint> runs schema v<B>. The squad's server must be upgraded and the squad migrated (sq migrate up) before this client can use it.
+error: this checkout's workflow vocabulary differs from the squad served at <endpoint> (<document> differs). Bring this checkout in line with the squad, by pulling its configuration or installing the squads version it runs, then re-run.
+```
 
-  ```
-  error: this checkout's workflow vocabulary differs from the squad served at <endpoint> (<document> differs). Bring this checkout in line with the squad, by pulling its configuration or installing the squads version it runs, then re-run.
-  ```
-
-Neither refusal falls back to local mode: a local run would answer with a vocabulary or a schema
-the squad does not hold. A result shape that changes incompatibly ships as a schema change, so the
-schema check also covers the API's result shapes; see [stability.md](stability.md#the-http-api).
+The first means the client is behind; the second that it is ahead. Neither refusal falls back to
+local mode: a local run would answer with a vocabulary or a schema the squad does not hold. A result
+shape that changes incompatibly ships as a schema change, so the schema check also covers the API's
+result shapes; see [api.md](api.md#compatibility) and [stability.md](stability.md#the-http-api).
 
 ## Security
 
@@ -263,6 +334,9 @@ depends on the platform and on the browser listener:
   through the daemon while it runs. Windows has no such socket, so the CLI reaches the daemon over
   a loopback TCP port, which any local user can connect to.
 - **Any platform with `browser = true`:** the same as Windows, through the browser listener.
+
+The command lines `sq` sends are taken on the CLI listener only. The browser listener serves the
+API and nothing else.
 
 This is how the daemon is designed, not a defect. If it does not suit a machine, keep the browser
 listener off and, on a shared Windows machine, the daemon disabled.

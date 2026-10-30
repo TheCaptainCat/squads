@@ -506,8 +506,8 @@ See [daemon.md § "Settings"](daemon.md#settings).
 - **An unknown key** is reported by `sq check` (`daemon_config_valid`, `warn`) and otherwise
   ignored, so a table written for a newer squads does not stop an older one.
 - **An unusable value** (a wrong type, a negative timeout, a `[daemon]` that is not a table) or an
-  unusable `SQUADS_DAEMON` puts every command in local mode, silently, and is reported by
-  `sq check`. It never changes what a command does, only where it runs.
+  unusable `SQUADS_DAEMON` puts every command in local mode, with the problem printed on stderr,
+  and is reported by `sq check`. It never changes what a command does, only where it runs.
 - **Takes effect** at the next command: a changed `.squads.toml` retires the running daemon.
 - **Written by** no command: `sq init` and `sq adopt` leave it out, and `sq migrate up` keeps its
   values.
@@ -1294,7 +1294,8 @@ its own. The two are versioned apart:
 
 Not part of the contract, and free to change in any release: the runtime directory's location and
 file names, the contents of `<key>.json` and `<key>.log`, how the daemon's key is derived, the
-`Server-Timing` header, the vocabulary hash's algorithm (compare it for equality only), and the
+private channel through which `sq` hands its command lines to the daemon, the `Server-Timing`
+header, the vocabulary hash's algorithm (compare it for equality only), and the
 order of the listeners `GET /v1/daemon` reports.
 
 ---

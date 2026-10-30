@@ -78,6 +78,13 @@ problem in the squad itself that the command then reports too. The next command 
 stop trying, turn the daemon off: `enabled = false` under `[daemon]` in `.squads.toml`, or
 `SQUADS_DAEMON=off` in your environment. See [daemon.md](daemon.md#when-the-daemon-cannot-be-used).
 
+### "warning: … every command runs in local mode until it is fixed"
+A value in the `[daemon]` table of `.squads.toml`, or the `SQUADS_DAEMON` variable, cannot be used,
+so the command ran in local mode: the result is correct, only slower. The line names the value; fix
+it (`enabled` and `browser` take `true` or `false`, `idle_timeout_minutes` a whole number of
+minutes, `SQUADS_DAEMON` `on` or `off`). `sq check` reports the same problem. See
+[daemon.md](daemon.md#settings).
+
 ### "no answer from the squad served at … the operation may still complete"
 A command in remote mode stopped waiting for the daemon: you pressed Ctrl-C (exit `130`), its
 answer took longer than 300 seconds (exit `1`), or the connection was lost after the request was
@@ -86,9 +93,10 @@ sent. The daemon may still have run the operation, so check its result (`show`, 
 [daemon.md](daemon.md#what-differs-between-the-modes).
 
 ### "… speaks schema v…, and the squad served at … runs schema v…" / "this checkout's workflow vocabulary differs from the squad served at …"
-The client and the daemon it reached disagree on the schema version or on the workflow vocabulary,
-and the call was refused before anything ran. The message names the remedy: install the squads
-release at the daemon's schema, upgrade and migrate the squad, or bring this checkout's
+The terminal browser (`sq ui`) and the daemon it reached disagree on the schema version or on the
+workflow vocabulary, and the call was refused before anything ran. Other `sq` commands never print
+these: `sq` hands them to a daemon of its own installation. The message names the remedy: install
+the squads release at the daemon's schema, upgrade and migrate the squad, or bring this checkout's
 `.overrides/workflow.toml` in line with the squad's. See
 [daemon.md](daemon.md#client-and-daemon-versions).
 

@@ -1,10 +1,14 @@
 # The squad API
 
-A running daemon (see [daemon.md](daemon.md)) serves the squad as an HTTP API. Every command of the
-CLI is one operation of this API, and the CLI in remote mode calls it exactly as any other client
-would: the terminal browser, a script, or a web front. This page is the reference for writing such
-a client. The exact routes, parameters and result schemas are in the OpenAPI document the daemon
-serves; this page explains the rules around them.
+A running daemon (see [daemon.md](daemon.md)) serves the squad as an HTTP API. Each operation a
+command of the CLI runs is served at its own route, and the API is how every client other than the
+CLI reaches the squad: the terminal browser (`sq ui`), a script, or a web front. This page is the
+reference for writing such a client. The exact routes, parameters and result schemas are in the
+OpenAPI document the daemon serves; this page explains the rules around them.
+
+The CLI itself does not call these routes. It hands its command lines to the daemon of its own
+installation through a private channel, which is not part of this API, may change in any release,
+and is not described here. A client of the squad uses the routes.
 
 ## Reaching the daemon
 
@@ -44,7 +48,8 @@ fields, sub-entity kinds and attributes) travels in the results, not in the sche
 
 ## Routes
 
-Every route is under `/v1`. Each command of the CLI is one operation at one route:
+Every route is under `/v1`. Each operation is at one route; the table names the command that runs
+the same operation:
 
 | Command | Route |
 |---|---|
@@ -86,8 +91,8 @@ The OpenAPI document lists every route. The grammar behind them:
   its key: `?badge=priority=high&badge=severity=major`. A parameter that takes one value is refused
   when repeated (`400 invalid`, `invalid request: type takes one value, got 2`), and so is a field
   the operation does not declare (`invalid request: unknown field(s) colour`).
-- **File content travels as text.** Where a command takes `--file`, `-` or an import file, the
-  client reads it and sends its text in the request. The daemon never reads a path a client names.
+- **File content travels as text.** Where a command takes `--file`, `-` or an import file, a
+  request carries the text itself. The daemon never reads a path a client names.
 
 ### Request headers
 
@@ -98,7 +103,7 @@ The OpenAPI document lists every route. The grammar behind them:
 | `Squads-Session-Id`, `Squads-Parent-Session-Id` | the caller's session ids, recorded in the reflog |
 | `Squads-Client-Dir` | an absolute path: paths in messages are spelled relative to it. Without it they are spelled from the squad's root. A relative path is refused with `400 invalid` |
 | `Squads-Schema` | the schema version the client was built for (the OpenAPI document's `info.version`); see [Compatibility](#compatibility) |
-| `Squads-Vocabulary` | the hash of the workflow vocabulary a client parsed its request with. The CLI sends it; a client that parses nothing leaves it out |
+| `Squads-Vocabulary` | the hash of the workflow vocabulary a client parsed its request with. The terminal browser sends it; a client that parses nothing leaves it out |
 | `If-Match` | the `ETag` of the item a write addresses, to refuse the write if the item changed; see [Item versions](#item-versions) |
 | `Squads-Client: 1` | required on every request that is not a `GET` or `HEAD` on a TCP listener; send it everywhere |
 
@@ -186,7 +191,7 @@ A request that fails answers with an error status and this body:
 One answer has another shape: `503` with `{"not_executed": "retiring"}`. The daemon's configuration
 changed since it started, so it declined the request without running any of it and is exiting.
 The request can be sent again to the next daemon, which the next `sq` command in remote mode
-starts (the CLI itself runs the declined call in local mode). It is the only answer after which a
+starts (`sq` itself runs a declined command in local mode). It is the only answer after which a
 request may be sent again: after any other failure, or a connection lost after sending, the
 operation may have run.
 
@@ -263,14 +268,14 @@ each other's shapes.
 
   A request without the header is answered. Rebuild the client against the daemon's document, or
   bring the squad to the client's schema with `sq migrate up` and a matching squads release.
-- **`Squads-Vocabulary`.** A client that parses commands with the squad's vocabulary, as the CLI
-  does, sends the hash of the vocabulary it used. On a difference the daemon answers
+- **`Squads-Vocabulary`.** A client that parses commands with the squad's vocabulary, as the
+  terminal browser does, sends the hash of the vocabulary it used. On a difference the daemon answers
   `409 vocabulary_mismatch` with one digest per document in `details` (`workflow.toml` and
   `.overrides/workflow.toml`), so the client can name the document that differs. `GET /v1/daemon`
   reports the same hash and digests. The remedy is a checkout carrying the squad's configuration,
   or the squads version the daemon runs.
 
-The CLI's messages for both refusals are in
+How squads' own client words both refusals is in
 [daemon.md](daemon.md#client-and-daemon-versions). Which shapes may change at all, and when, is
 [stability.md](stability.md#the-http-api)'s.
 
