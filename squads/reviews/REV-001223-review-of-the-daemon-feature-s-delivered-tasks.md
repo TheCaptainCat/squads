@@ -67,28 +67,28 @@ subentities:
 - local_id: F13
   title: Retirement and vocabulary checks run before a request queues, not before
     it runs
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 - local_id: F14
   title: Single-item reads of sub-entity lists, refs and roster entries answer no
     ETag
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F15
   title: skills link-role and unlink-role ignore If-Match
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F16
   title: GET-no-mutate case samples 12 of 53 GETs; two cases assert part of the response
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F17
   title: Stream guard misses indirect writers; the daemon logger writes a 500 to stderr
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F18
@@ -97,7 +97,7 @@ subentities:
   assignee: architect
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T07:05:25Z'
+updated_at: '2026-10-30T07:24:26Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
