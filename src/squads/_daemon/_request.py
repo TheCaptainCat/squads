@@ -22,14 +22,18 @@ def is_list(annotation: Any) -> bool:
 
 
 def _query_fields(op: Operation[Any, Any], request: Request) -> dict[str, Any]:
-    """The request's query string as fields: a repeated key is a list when its field is one."""
+    """The request's query string as fields: a repeated key is a list when its field is one and
+    is refused otherwise."""
     declared = op.request.model_fields
     fields: dict[str, Any] = {}
     for key in dict.fromkeys(request.query_params.keys()):
         if key in declared and is_list(declared[key].annotation):
             fields[key] = request.query_params.getlist(key)
         else:
-            fields[key] = request.query_params[key]
+            values = request.query_params.getlist(key)
+            if len(values) > 1:
+                raise SquadsError(f"invalid request: {key} takes one value, got {len(values)}")
+            fields[key] = values[0]
     return fields
 
 

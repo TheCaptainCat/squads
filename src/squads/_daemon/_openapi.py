@@ -46,7 +46,11 @@ _HEADERS: tuple[tuple[str, str], ...] = (
     ),
     (VOCABULARY_HEADER, "The hash of the workflow vocabulary the caller parsed its command with."),
     (SCHEMA_HEADER, "The schema version of the caller's package; this document's info.version."),
-    (CLIENT_HEADER, "Required with the value 1 on every request that is not a GET."),
+    (
+        CLIENT_HEADER,
+        "Required with the value 1 on every request that is not a GET or HEAD, on TCP listeners; "
+        "the Unix socket does not ask for it.",
+    ),
 )
 
 _ERROR_DESCRIPTIONS = (
@@ -56,8 +60,35 @@ _ERROR_DESCRIPTIONS = (
     (423, "locked: the index lock stayed held by another process."),
     (500, "internal: an unexpected failure; the daemon's log holds the traceback."),
     (421, "misdirected: the Host header does not name the listener; nothing ran."),
-    (403, "forbidden: the listener's admission rules refused a write; nothing ran."),
+    (
+        403,
+        "forbidden: the listener's admission rules refused the request; nothing ran. A write on a "
+        "TCP listener needs Content-Type: application/json and Squads-Client: 1 (and, on the "
+        "browser listener, its own Origin); the native Windows CLI port refuses any request that "
+        "carries an Origin, a GET included.",
+    ),
 )
+
+_NOT_ALLOWED = (
+    "invalid: the path does not serve the method; the Allow header names the methods it does."
+)
+
+
+def _admission_responses() -> dict[str, Any]:
+    """What a request can be answered before its route runs: the listener's refusals and the
+    router's 405."""
+    envelope = {"application/json": {"schema": {"$ref": _REF.format(model="ErrorBody")}}}
+    descriptions = dict(_ERROR_DESCRIPTIONS)
+    found: dict[str, Any] = {
+        str(status): {"description": descriptions[status], "content": envelope}
+        for status in (421, 403)
+    }
+    found["405"] = {
+        "description": _NOT_ALLOWED,
+        "headers": {"Allow": {"schema": {"type": "string"}}},
+        "content": envelope,
+    }
+    return found
 
 
 def _ref_name(ref: dict[str, Any]) -> str:
@@ -126,12 +157,11 @@ def _responses(op: Operation[Any, Any], answer: dict[str, Any]) -> dict[str, Any
     }
     statuses = sorted({status for _, status in HTTP_STATUS})
     for status in statuses:
-        if status == 403 and op.route[0] in ("GET", "HEAD"):
-            continue
         responses[str(status)] = {
             "description": dict(_ERROR_DESCRIPTIONS)[status],
             "content": {"application/json": {"schema": {"$ref": _REF.format(model="ErrorBody")}}},
         }
+    responses["405"] = _admission_responses()["405"]
     responses["503"] = {
         "description": "retiring: the daemon's configuration changed and nothing ran.",
         "content": {"application/json": {"schema": {"$ref": _REF.format(model="NotExecuted")}}},
@@ -201,7 +231,8 @@ def build_document(schema_version: str) -> dict[str, Any]:
                             "schema": {"$ref": _REF.format(model="DaemonIdentity")}
                         }
                     },
-                }
+                },
+                **_admission_responses(),
             },
         }
     }
@@ -217,7 +248,8 @@ def build_document(schema_version: str) -> dict[str, Any]:
                             "schema": {"$ref": _REF.format(model="DaemonStopping")}
                         }
                     },
-                }
+                },
+                **_admission_responses(),
             },
         }
     }
