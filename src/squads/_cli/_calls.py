@@ -1,8 +1,8 @@
 """How a command reaches its operation: the API an invocation selects, the call, and the
 notices and omissions a response carries."""
 
-import asyncio
 import json
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -22,24 +22,89 @@ def local_api() -> Api:
     return LocalApi(sources=common.invocation_sources)
 
 
-def select_api() -> Api:
-    """The API this invocation's commands call."""
-    return local_api()
+class SelectedApi:
+    """The API an invocation's commands call, chosen on the first call that needs one: the squad's
+    daemon, found or started, or this process when there is no squad, the daemon is off or it
+    could not be had (one line on stderr says why). A command that makes no call, or only a
+    local-only one, never contacts a daemon."""
+
+    def __init__(self, client_cwd: Path | None) -> None:
+        self._client_cwd = client_cwd
+        self._chosen: Api | None = None
+
+    @property
+    def handler_ms(self) -> float | None:
+        """The handler time the daemon reported for the last call, when it answered."""
+        return getattr(self._chosen, "handler_ms", None)
+
+    @property
+    def declined(self) -> bool:
+        """Whether the daemon declined the last call because its configuration changed."""
+        return bool(getattr(self._chosen, "declined", False))
+
+    def _choose(self) -> Api:
+        from squads._endpoint import endpoint_for
+
+        endpoint = endpoint_for(self._client_cwd or common.process_dir())
+        if endpoint is None or not endpoint.enabled:
+            return local_api()
+        from squads._daemon_start import ensure, failure_line
+
+        reason = ensure(endpoint)
+        if reason is not None:
+            common.err_console.print(common.e(failure_line(reason)), soft_wrap=True)
+            return local_api()
+        from squads._cli._remote import build_http_api
+
+        return build_http_api(endpoint, local=local_api)
+
+    async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
+        if op.local_only:
+            return await local_api().call(op, req)
+        if self._chosen is None:
+            self._chosen = self._choose()
+        return await self._chosen.call(op, req)
+
+    def call_sync[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
+        """:meth:`call` without an event loop when the chosen API needs none."""
+        if not op.local_only:
+            if self._chosen is None:
+                self._chosen = self._choose()
+            sync = getattr(self._chosen, "call_sync", None)
+            if sync is not None:
+                return sync(op, req)
+        import asyncio
+
+        return asyncio.run(self.call(op, req))
 
 
-def invocation_api(prior: Api | None) -> Api:
+def select_api(client_cwd: Path | None = None) -> Api:
+    """The API an invocation started in *client_cwd* calls."""
+    return SelectedApi(client_cwd)
+
+
+def invocation_api(prior: Api | None, client_cwd: Path | None = None) -> Api:
     """The API an invocation starts with: *prior* when the context it replaces already carries
     one (a harness hands the root callback its own), else the one selected."""
-    return prior if prior is not None else select_api()
+    return prior if prior is not None else select_api(client_cwd)
 
 
 def call[Req: BaseModel, Res](op: Operation[Req, Res], req: Req) -> Response[Res]:
     """Make the one call a command makes, through the invocation's API."""
     api = get_context().api
     if api is None:
-        api = select_api()
+        api = select_api(get_context().client_cwd)
     with spans.span("api_call"):
-        response = asyncio.run(api.call(op, req))
+        sync = getattr(api, "call_sync", None)
+        if sync is not None:
+            response = sync(op, req)
+        else:
+            import asyncio
+
+            response = asyncio.run(api.call(op, req))
+    handled = getattr(api, "handler_ms", None)
+    if handled is not None:
+        spans.value("handler", handled)
     spans.mark("call_done")
     return response
 

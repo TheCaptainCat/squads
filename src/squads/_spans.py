@@ -46,3 +46,9 @@ def mark(name: str) -> None:
     if not ENABLED:
         return
     print(f"SQUADS_SPAN {name} {(time.perf_counter() - _ORIGIN) * 1000:.2f}", file=sys.stderr)
+
+
+def value(name: str, milliseconds: float) -> None:
+    """Report a duration measured elsewhere (the daemon's handler time) under *name*."""
+    if ENABLED:
+        print(f"SQUADS_SPAN {name} {milliseconds:.2f}", file=sys.stderr)

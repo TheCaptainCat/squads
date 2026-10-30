@@ -52,7 +52,7 @@ def endpoint_name(endpoint: Endpoint) -> str:
 def build_http_api(
     endpoint: Endpoint,
     *,
-    local: Api | None,
+    local: Callable[[], Api] | None,
     vocabulary: Callable[[], VocabularyHash] | None = None,
 ) -> HttpApi:
     """The ``HttpApi`` of this invocation for the daemon of *endpoint*, falling back to *local*

@@ -1,7 +1,5 @@
 """`sq ui` — browse the squad in a full-screen terminal app (read-only)."""
 
-import asyncio
-
 from squads._api._api import Api
 from squads._cli import app
 from squads._cli._calls import select_api
@@ -23,10 +21,12 @@ def ui() -> None:
         ) from exc
     from squads._tui._app import SquadsApp, open_session
 
-    api = get_context().api or select_api()
+    ctx = get_context()
 
     def selector() -> Api:
-        return api
+        return ctx.api or select_api(ctx.client_cwd)
+
+    import asyncio
 
     session, opening = asyncio.run(open_session(selector))
     SquadsApp(session, opening).run()

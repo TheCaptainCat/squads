@@ -56,7 +56,13 @@ class Session:
         self._catalogs: Catalogs | None = None
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
-        return await self._select_api().call(op, req)
+        api = self._select_api()
+        response = await api.call(op, req)
+        if getattr(api, "declined", False) and self._catalogs is not None:
+            # The daemon the session was talking to retired: the vocabulary may have changed with
+            # it, and the next call reaches a daemon on the new configuration.
+            await self.load_catalogs()
+        return response
 
     async def load_catalogs(self) -> None:
         types = await self.call(ops.WORKFLOW_TYPES, CatalogRequest())

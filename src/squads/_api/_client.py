@@ -44,8 +44,9 @@ type Connect = Callable[[float], http.client.HTTPConnection | None]
 class HttpApi:
     """Runs each operation on the daemon over HTTP.
 
-    *local* runs an operation the daemon never serves, and the call the daemon declined because
-    its configuration changed or could not be reached, when the endpoint has a local mode.
+    *local* makes the API that runs an operation the daemon never serves, and the call the daemon
+    declined because its configuration changed or could not be reached, when the endpoint has a
+    local mode.
     """
 
     def __init__(
@@ -56,7 +57,7 @@ class HttpApi:
         headers: Callable[[], dict[str, str]],
         vocabulary: Callable[[], VocabularyHash],
         package_version: str,
-        local: Api | None,
+        local: Callable[[], Api] | None,
         waiting: Callable[[str], None] | None = None,
     ) -> None:
         self._connect = connect
@@ -66,18 +67,40 @@ class HttpApi:
         self._package_version = package_version
         self._local = local
         self._waiting = waiting
+        #: Whether the last call was declined by a daemon whose configuration had changed.
+        self.declined = False
+        #: The handler time the daemon reported for the last call, in milliseconds.
+        self.handler_ms: float | None = None
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
         """Send *op* with *req* and answer what the daemon answers. Nothing is sent twice: a
         connection lost after the request left is an error, and only a call the daemon declined
         before it ran, or that never reached a daemon, runs locally."""
+        answered = self._attempt(op, req)
+        return answered if answered is not None else await self._run_locally(op, req)
+
+    def call_sync[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
+        """:meth:`call` for a caller with no event loop, which a call to the daemon never needs;
+        only a call that runs locally starts one."""
+        answered = self._attempt(op, req)
+        if answered is not None:
+            return answered
+        import asyncio
+
+        return asyncio.run(self._run_locally(op, req))
+
+    def _attempt[Req: BaseModel, Res](
+        self, op: Operation[Req, Res], req: Req
+    ) -> Response[Res] | None:
+        """The daemon's answer, or ``None`` when the call is to run locally. A refusal, a lost
+        connection and a timeout raise."""
         if op.local_only:
-            return await self._run_locally(op, req)
+            return None
         method, target, body = encode_request(op, req)
         sent = self._request_headers(method, body)
         conn = self._open()
         if conn is None:
-            return await self._unreachable(op, req, "no daemon is listening")
+            return self._unreachable("no daemon is listening")
         try:
             status, answer = self._exchange(conn, op, method, target, body, sent)
         except OSError as exc:
@@ -85,7 +108,7 @@ class HttpApi:
         finally:
             conn.close()
         if is_retiring(status, answer):
-            return await self._declined(op, req)
+            return self._declined()
         if status != 200:
             raise self._refusal(status, answer)
         return parse_response(op, status, answer)
@@ -136,6 +159,7 @@ class HttpApi:
         try:
             conn.request(method, target, body=body, headers=headers)
             reply = conn.getresponse()
+            self.handler_ms = _handler_ms(reply.getheader("Server-Timing"))
             return reply.status, reply.read()
         except TimeoutError as exc:
             raise SquadsError(
@@ -205,26 +229,34 @@ class HttpApi:
     ) -> Response[Res]:
         if self._local is None:
             raise SquadsError(f"{op.name} runs locally and this client has no local mode")
-        return await self._local.call(op, req)
+        return await self._local().call(op, req)
 
-    async def _declined[Req: BaseModel, Res](
-        self, op: Operation[Req, Res], req: Req
-    ) -> Response[Res]:
-        """The daemon's configuration changed and nothing ran: run the call locally when the
-        squad is here, else say the server is restarting."""
-        if self._local is not None:
-            return await self._local.call(op, req)
-        raise SquadsError(
-            f"the squad served at {self._endpoint} is restarting; re-run the command in a moment."
-        )
+    def _declined(self) -> None:
+        """The daemon's configuration changed and nothing ran: the call runs locally when the squad
+        is here, else the server is restarting."""
+        self.declined = True
+        if self._local is None:
+            raise SquadsError(
+                f"the squad served at {self._endpoint} is restarting; "
+                "re-run the command in a moment."
+            )
 
-    async def _unreachable[Req: BaseModel, Res](
-        self, op: Operation[Req, Res], req: Req, cause: str
-    ) -> Response[Res]:
-        """Nothing was sent: run the call locally when the squad is here, else say why not."""
-        if self._local is not None:
-            return await self._local.call(op, req)
-        raise SquadsError(f"cannot reach the squad served at {self._endpoint}: {cause}.")
+    def _unreachable(self, cause: str) -> None:
+        """Nothing was sent: the call runs locally when the squad is here, else say why not."""
+        if self._local is None:
+            raise SquadsError(f"cannot reach the squad served at {self._endpoint}: {cause}.")
+
+
+def _handler_ms(header: str | None) -> float | None:
+    """The ``handler`` duration of a ``Server-Timing`` header."""
+    for entry in (header or "").split(","):
+        name, _, rest = entry.strip().partition(";")
+        if name == "handler" and rest.startswith("dur="):
+            try:
+                return float(rest[4:])
+            except ValueError:
+                return None
+    return None
 
 
 def _wire(value: str) -> str:

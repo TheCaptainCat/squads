@@ -11,12 +11,13 @@ process serving many squads does not keep one per squad forever; :func:`invalida
 evicts one.
 """
 
+import functools
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-from jinja2 import ChoiceLoader, Environment, FileSystemLoader, PackageLoader, StrictUndefined
-from jinja2.loaders import split_template_path
+if TYPE_CHECKING:
+    from jinja2 import Environment, FileSystemLoader
 
 from squads import _badges as badges
 from squads._errors import SquadsError
@@ -65,27 +66,37 @@ _ENV_CACHE_MAX_SIZE = 16
 _env_cache: dict[Path | None, Environment] = {}
 
 
-class _OverrideLoader(FileSystemLoader):
-    """The project's template overrides; a file at an override path that cannot be read or
-    decoded, a directory included, is refused with :class:`OverrideReadError`, not skipped."""
+@functools.cache
+def _override_loader_class() -> type[FileSystemLoader]:
+    """The loader of the project's template overrides, built when jinja2 is first needed."""
+    from jinja2 import FileSystemLoader
+    from jinja2.loaders import split_template_path
 
-    def get_source(
-        self, environment: Environment, template: str
-    ) -> tuple[str, str, Callable[[], bool]]:
-        for base in self.searchpath:
-            path = Path(base, *split_template_path(template))
-            if override_present(path):
-                read_override_text(path, TEMPLATE_OVERRIDE_MESSAGES)
-        return super().get_source(environment, template)
+    class OverrideLoader(FileSystemLoader):
+        """A file at an override path that cannot be read or decoded, a directory included, is
+        refused with :class:`OverrideReadError`, not skipped."""
+
+        def get_source(
+            self, environment: Environment, template: str
+        ) -> tuple[str, str, Callable[[], bool]]:
+            for base in self.searchpath:
+                path = Path(base, *split_template_path(template))
+                if override_present(path):
+                    read_override_text(path, TEMPLATE_OVERRIDE_MESSAGES)
+            return super().get_source(environment, template)
+
+    return OverrideLoader
 
 
 def _make_env(squad_dir: Path | None) -> Environment:
     """Build a Jinja2 Environment for *squad_dir* (or bundled-only when ``None``)."""
+    from jinja2 import ChoiceLoader, Environment, PackageLoader, StrictUndefined
+
     bundled = PackageLoader("squads._rendering", "templates")
     if squad_dir is not None:
         overrides_dir = squad_dir / TEMPLATES_OVERRIDE_DIR
         if overrides_dir.is_dir():
-            loader = ChoiceLoader([_OverrideLoader(str(overrides_dir)), bundled])
+            loader = ChoiceLoader([_override_loader_class()(str(overrides_dir)), bundled])
         else:
             loader = bundled
     else:

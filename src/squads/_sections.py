@@ -10,8 +10,6 @@ import re
 from collections.abc import Callable
 from typing import Any, cast
 
-import yaml
-
 from squads._errors import SquadsError
 from squads._models import _markers as markers
 
@@ -36,6 +34,8 @@ def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str
     m = _FRONTMATTER_RE.match(text)
     if not m:
         return {}, text
+    import yaml
+
     try:
         loaded = yaml.safe_load(m.group(1))
     except yaml.YAMLError as exc:
@@ -60,6 +60,8 @@ def strip_frontmatter(text: str) -> str:
 def join_frontmatter(data: dict[str, Any], body: str, *, eol: str = "\n") -> str:
     """The frontmatter block of *data* followed by *body*, with *eol* as the line terminator of
     the block (and of the separator added when *body* does not open with one)."""
+    import yaml
+
     front = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
     if eol != "\n":
         front = front.replace("\n", eol)

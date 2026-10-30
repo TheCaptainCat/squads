@@ -49,7 +49,6 @@ from squads._errors import SquadsError
 # `artifact_changed_since`) imports only `squads._util`, so loading it as a leaf never observes a
 # partially-initialised module. `_interactions/_loader.py` takes the same edge for the playbook's
 # stamp obligation.
-from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 from squads._specload import (
     OverrideFiles,
     OverrideMessages,
@@ -1390,6 +1389,7 @@ def workflow_stamp_finding(
             )
         return None
     from squads import __version__
+    from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 
     if stamp != __version__ and artifact_changed_since(WORKFLOW_KEY, stamp):
         return (
