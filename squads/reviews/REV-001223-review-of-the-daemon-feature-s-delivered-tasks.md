@@ -221,7 +221,7 @@ subentities:
   severity: medium
 - local_id: F41
   title: Switched-off session test leaks a daemon when it fails
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F42
@@ -245,7 +245,7 @@ subentities:
 - local_id: F45
   title: ParseCache.item_files() serves only an internal-reading test; digest() duplicates
     digest_of()
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F46
@@ -281,13 +281,13 @@ subentities:
 - local_id: F51
   title: 'Windows: Rich picks the served colour system from the daemon''s console,
     not the client''s'
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F52
   title: The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth
     endpoint module
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F53
@@ -311,66 +311,71 @@ subentities:
 - local_id: F56
   title: ADR-1261 says the Typer console replacement is restored; nothing restores
     it
-  status: Fixed
+  status: Verified
   assignee: architect
   severity: info
 - local_id: F57
   title: Windows identity probe deadlocked the shim and waited 300 s
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: high
 - local_id: F58
   title: Fallback on a retiring daemon's 503 is untested
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F59
   title: Shim import guard runs one command shape; prompt path unseen
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F60
   title: Ctrl-C at a served prompt prints different text than local mode
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F61
   title: Long-command detection stops at the first option; guard skips binding
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F62
   title: Waiting notice names the command path, not the operation
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F63
   title: Stdlib lock probe reads EACCES as free, unlike filelock
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F64
   title: Loopback-port test drives shim internals in process
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F65
   title: test_remote_refusals describes a CLI path that no longer exists
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F66
   title: CHANGELOG and docs/daemon.md describe the pre-shim remote mode
-  status: Fixed
+  status: Open
   assignee: tech-writer
   severity: medium
 - local_id: F67
   title: bump_version step 4 gives a stale reason for uv sync
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: info
+- local_id: F68
+  title: Ctrl-C prompt test races the local prompt's two writes; red on macOS
+  status: Fixed
+  assignee: python-dev
+  severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T23:15:38Z'
+updated_at: '2026-10-30T23:39:47Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1321,6 +1326,8 @@ Fix: wrap the body in `try: … finally: run(sq_command(project, "daemon", "stop
 #### Discussion
 
 <!-- sq:finding:F41:discussion -->
+- [2026-10-30T23:38:22Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32 (archive copy under ~/.cache/rev1223f). The module's `endpoint` fixture now runs `sq daemon stop` at teardown, so the switched-off case is covered without its own try/finally. Planting the regression (`_restart` without the `_usable` check) turns `test_a_daemon_switched_off_mid_session_is_not_started_again` red, and `pgrep -fa "daemon run"` afterwards shows no daemon left by the run.
 <!-- sq:finding:F41:discussion:end -->
 <!-- sq:finding:F41:end -->
 
@@ -1411,6 +1418,8 @@ TASK-1263. Two parts of `ParseCache` exist without a production need.
     Fix: drop the first, and move the second onto the served harness. Test-only, no source change.
 - [2026-10-30T22:34:38Z] `python-dev` Elias Python:
   - Fixed in 81cd8409 (redundant unit test dropped, sweep test on the served harness with a yaml.safe_load counter; test-only change).
+- [2026-10-30T23:38:25Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32 (~/.cache/rev1223f). The two `ParseCache` unit tests are gone, `item_files()` and `ParseCache.digest` have no reference left, and the sweep test runs through the served harness with a `yaml.safe_load` counter. Planting the grace walk (`current = self._scan - 1`) and, separately, making `end_scan` drop nothing each turn `test_a_file_the_next_corpus_walk_does_not_read_is_parsed_again_when_it_comes_back` red; 4 passed at HEAD.
 <!-- sq:finding:F45:discussion:end -->
 <!-- sq:finding:F45:end -->
 
@@ -1565,6 +1574,8 @@ The native-Windows parity job cannot see this, because its client streams are pi
     Fix: return "windows" when legacy, and update the docstring and that row. Side note: both F51 tests (the 5-row table and the direct `build_console` call) are unit tests of internals; acceptable only because Linux cannot reach this through the endpoint, so say so in the test docstring or keep one row per branch.
 - [2026-10-30T22:39:27Z] `python-dev` Elias Python:
   - - Fixed in 53a26c2d (TASK-1262 worktree, not pushed). A legacy Windows console now selects Rich's "windows" colour system (docstring and test row corrected). The served-path guard resolves import aliases and from-imports through an AST pass over the module's own bindings, covers pty and the loop's subprocess methods, and each spelling is planted once in the guard's table; its docstring claims only what it reads.
+- [2026-10-30T23:38:27Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. `windows_color_system` returns "windows" on a legacy console, matching rich/console.py:796-797, and "truecolor"/"256" otherwise, matching 798-803. Planting "standard" back on the legacy branch turns the `truecolor-True-True-windows` row red. The table keeps one row per branch, which answers the side note. The Windows jobs of CI run 41144025768 on 13bd2e32 are green.
 <!-- sq:finding:F51:discussion:end -->
 <!-- sq:finding:F51:end -->
 
@@ -1598,6 +1609,8 @@ The behavioural defence is `select_api`'s runtime refusal, and that holds. The g
     Fix: treat the forbidden calls as importable names too (`os.system` etc. count when imported with `from os import`), resolve `import os as o` aliases, and add `pty`. Alternatively, use the runtime `sys.addaudithook` check the finding proposed, which covers every spelling.
 - [2026-10-30T22:39:28Z] `python-dev` Elias Python:
   - - Fixed in 53a26c2d (TASK-1262 worktree, not pushed). A legacy Windows console now selects Rich's "windows" colour system (docstring and test row corrected). The served-path guard resolves import aliases and from-imports through an AST pass over the module's own bindings, covers pty and the loop's subprocess methods, and each spelling is planted once in the guard's table; its docstring claims only what it reads.
+- [2026-10-30T23:38:29Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. Every spelling from the reopen is in the guard's planted table and found: `from os import system`, `import os as o`, from-imported asyncio calls, loop `subprocess_exec`/`subprocess_shell`, `pty`. I also tried shapes outside the table: `from squads import _daemon_link`, `import squads._api._client as c`, `os.spawnv`, `from os import forkpty`, an aliased `asyncio.create_subprocess_shell` and `from asyncio import subprocess as sp`. All are caught. A real breach planted in `_daemon/_commands.py` (`import os as _o; _o.system("x")`) turns the guard red at that line. One residual gap, not blocking: `os.startfile` (Windows only, starts a process) is not in FORBIDDEN_CALLS. Adding "os.startfile" closes it.
 <!-- sq:finding:F52:discussion:end -->
 <!-- sq:finding:F52:end -->
 
@@ -1671,6 +1684,8 @@ No behaviour is at stake. The text should say what the code does: the replacemen
 <!-- sq:finding:F56:discussion -->
 - [2026-10-30T22:27:26Z] `architect` Robert Architect:
   - Fixed 2026-10-30 in ADR-1261 point 2 (text only): the replacements are installed once and never undone, and outside a served command each one passes through to the original it replaced. This matches proxies.install() and typer_console.
+- [2026-10-30T23:38:31Z] `reviewer` Paul Reviewer:
+  - Verified: ADR-1261 point 2 now says the replacements are installed once and never undone, and that outside a served command each one passes through to the original. That matches `proxies.install()` and `typer_console`.
 <!-- sq:finding:F56:discussion:end -->
 <!-- sq:finding:F56:end -->
 
@@ -1690,6 +1705,8 @@ Fixed in 6a06f0cd: the probe now runs before the command connection opens, bound
 <!-- sq:finding:F57:discussion -->
 - [2026-10-30T22:55:21Z] `reviewer` Paul Reviewer:
   - Fixed in 6a06f0cd (probe before the command connection, bounded by CONNECT_TIMEOUT). Read, not run here; Verified once the Windows CI job passes on it.
+- [2026-10-30T23:38:33Z] `reviewer` Paul Reviewer:
+  - Verified. CI run 41141368085 on e06928aa (which contains 6a06f0cd) is all green, `cross-process (windows-latest)`, `remote-mode (windows-latest)` and `test (windows-latest)` included. Run 41144025768 on 13bd2e32 (HEAD) is also green on all three Windows jobs, with the loopback cases now going through the real entry point. A Windows figure for the shim's overhead is still unreported. The `client-budget` job runs on Linux only.
 <!-- sq:finding:F57:discussion:end -->
 <!-- sq:finding:F57:end -->
 
@@ -1713,6 +1730,8 @@ Suggested: one cross-process member in which a daemon retires (edit `.squads.tom
 <!-- sq:finding:F58:discussion -->
 - [2026-10-30T23:15:20Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: cross-process member: a retiring daemon's 503 runs the command locally; red when the shim prints it.
+- [2026-10-30T23:38:36Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. Making `_retiring` return False turns `test_a_daemon_that_retires_runs_nothing_and_the_command_runs_locally` red.
 <!-- sq:finding:F58:discussion:end -->
 <!-- sq:finding:F58:end -->
 
@@ -1747,6 +1766,8 @@ Suggested: add a second shape to the live case that goes through a prompt and an
 <!-- sq:finding:F59:discussion -->
 - [2026-10-30T23:15:23Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: import guard runs a read, a stdin attachment, a confirmed prompt and a no-deadline command; a yaml import on the prompt path goes red; uncovered paths named in the docstring.
+- [2026-10-30T23:38:38Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. Planting `import yaml` at the start of `_read_line` (the prompt path, which used to pass) now turns `test_the_shim_on_the_way_to_a_live_daemon_loads_only_its_own_modules` red. The docstring names the paths the guard does not cover.
 <!-- sq:finding:F59:discussion:end -->
 <!-- sq:finding:F59:end -->
 
@@ -1769,6 +1790,10 @@ One way to fix it: on Ctrl-C at a prompt, send the end of input to the daemon as
 <!-- sq:finding:F60:discussion -->
 - [2026-10-30T23:15:25Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: Ctrl-C at a prompt is sent as end of input so the daemon renders the abort; a pty member holds the bytes equal to local mode.
+- [2026-10-30T23:34:17Z] `python-dev` Elias Python:
+  - Test made deterministic in e2f333ef: Ctrl-C is sent only after the whole prompt, trailing space included, has been read, and the terminal's own ^C echo is dropped from both outputs before they are compared (the echo can land either side of the program's last write on macOS). The shim writing its own abort text still goes red.
+- [2026-10-30T23:38:40Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. Restoring the old `Aborted!` handler in `_read_line` turns `test_ctrl_c_at_a_prompt_reads_as_it_does_locally` red, and the product behaviour is right. The test itself races, though: it is red on macOS at HEAD (CI run 41144025768). Filed separately as F68.
 <!-- sq:finding:F60:discussion:end -->
 <!-- sq:finding:F60:end -->
 
@@ -1789,6 +1814,8 @@ Suggested: skip the root value options (`--at`, `-C`) when collecting the words,
 <!-- sq:finding:F61:discussion -->
 - [2026-10-30T23:15:27Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: command words are read past --at/--dir; the guard binds each path to the operation its callback calls, red when two pairs swap.
+- [2026-10-30T23:38:42Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. `long_command` gives "squad.migrate" for `migrate --at 2024-01-01 up`. Putting the stop-at-first-option rule back turns `test_a_global_option_between_the_command_words_does_not_hide_a_long_command` red. Swapping the repair/renumber pairs in LONG_COMMANDS turns `test_every_long_command_is_paired_with_the_operation_its_callback_calls` red. The binding is read from `ops.X` names in each callback's source, so a long operation reached only through a helper would be missed on both sides. The docstring says "callback", so it states that scope.
 <!-- sq:finding:F61:discussion:end -->
 <!-- sq:finding:F61:end -->
 
@@ -1808,6 +1835,8 @@ Found by reading the code. Not seen live: a served `repair` on a copy of this sq
 <!-- sq:finding:F62:discussion -->
 - [2026-10-30T23:15:29Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: the notice names the operation, as in waiting for the daemon (squad.repair).
+- [2026-10-30T23:38:44Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32: `Session._post` builds the notice from the operation, so `long_command(["repair"], ...)` is "squad.repair" and the notice reads `waiting for the daemon (squad.repair)…`, as ADR-1225 section 3 specifies. No test pins the text, and the finding did not ask for one. The CHANGELOG and docs/daemon.md still print `(repair)` "naming the command". See F66.
 <!-- sq:finding:F62:discussion:end -->
 <!-- sq:finding:F62:end -->
 
@@ -1829,6 +1858,8 @@ Low: the runtime directory is normally tmpfs or a local disk that reports `EWOUL
 <!-- sq:finding:F63:discussion -->
 - [2026-10-30T23:15:32Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: EACCES, EAGAIN and EWOULDBLOCK read as held, as filelock does; a test makes flock answer each.
+- [2026-10-30T23:38:46Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. Going back to "only BlockingIOError is held" turns the EACCES row of `test_a_lock_that_the_system_denies_is_held` red; EAGAIN and EIO rows behave as stated. The test monkeypatches `fcntl.flock` and calls `lock_is_free` directly. It is a unit seam, accepted because no local filesystem answers EACCES, and its docstring says so.
 <!-- sq:finding:F63:discussion:end -->
 <!-- sq:finding:F63:end -->
 
@@ -1850,6 +1881,8 @@ Suggested: run the cases through the console script with a platform override for
 <!-- sq:finding:F64:discussion -->
 - [2026-10-30T23:15:34Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: the loopback cases run the real entry point in a process, resolving the endpoint for a platform with ports (the one seam, named in the file docstring).
+- [2026-10-30T23:38:48Z] `reviewer` Paul Reviewer:
+  - Verified on 13bd2e32. The loopback cases run the real `shim.main()` in a subprocess, with `endpoint_for` resolved for win32 as the one seam named in the docstring. No `Session`/`build_request`/`Fallback` reference is left in the file. The cases pass locally (17 passed in the shim test set), and the Windows CI jobs on HEAD are green.
 <!-- sq:finding:F64:discussion:end -->
 <!-- sq:finding:F64:end -->
 
@@ -1869,6 +1902,8 @@ Suggested: reword the docstring for the subject it now holds (an `HttpApi` clien
 <!-- sq:finding:F65:discussion -->
 - [2026-10-30T23:15:36Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: docstring reworded to an HttpApi client's refusal text, handed to the root callback as route parity does; kept, not retired.
+- [2026-10-30T23:38:50Z] `reviewer` Paul Reviewer:
+  - Verified: the docstring of tests/daemon/test_remote_refusals.py now describes an `HttpApi` client's refusal text, which the terminal UI shows, handed to the root callback as route parity does.
 <!-- sq:finding:F65:discussion:end -->
 <!-- sq:finding:F65:end -->
 
@@ -1895,6 +1930,12 @@ The 0.19 release is not cut yet, so the entry and the guide can be rewritten as 
 <!-- sq:finding:F66:discussion -->
 - [2026-10-30T23:08:13Z] `tech-writer` Theo Writer:
   - Fixed in 6c883c29 (TASK-1266): the CHANGELOG 0.19.0 daemon, [daemon] and HTTP API entries and docs/daemon.md now describe the daemon parsing and rendering, --help/completion/docs/migrate help served and starting a daemon, the command path in the waiting line, no vocabulary hash from the CLI, the warning line for an unusable setting, the always-local --install-completion/--show-completion, an unreadable file running locally, and the prompt-phase local rerun. @reviewer
+- [2026-10-30T23:38:55Z] `reviewer` Paul Reviewer:
+  - Reopened. I read the docs against 13bd2e32 and ran the documented behaviours on a scratch squad with the copy's sq, and most of it holds. These all match the code: `--help`, `docs`, `migrate help`, `migrate chlog` and completion each start a daemon; a bare `--version` and `--show-completion` do not; an unreadable `--file` runs locally with `error: cannot read file 'nope.md': No such file or directory`; `SQUADS_DAEMON=maybe` prints the documented warning; `SQUADS_SPANS` reaches the served command; `daemon status`/`stop` and their `--json` forms are right. The environment list equals SENT_ENVIRONMENT. Local mode imports none of starlette, uvicorn, h11 or click (only typer's vendored `typer._click`). The CHANGELOG timings reproduce on a copy of this squad: show 0.125 s against 0.69 s, `list --json` 0.15 against 0.59, check 1.76 against 7.25. No internal refs or process narration in the adopter docs. Three statements are false:
+    - The waiting notice. CHANGELOG 0.19.0 says the long commands print `waiting for the daemon (repair)…` "(the command)". docs/daemon.md § Timeouts says "a line on stderr naming the command" and shows `waiting for the daemon (repair)…`. Since F62 (438706d4) the shim prints the operation, `waiting for the daemon (squad.repair)…`, as ADR-1225 section 3 specifies. The docs were written before that fix.
+    - docs/daemon.md § "When the daemon cannot be used" says a command runs locally "with nothing printed" when "a running daemon cannot be connected to". Measured: with a live daemon and its socket made unconnectable (chmod 000), `sq list` took 6.0 s and printed `warning: the daemon could not be used (the daemon did not answer); running locally. …`. The shim calls `ensure` on any unsent failure, and `ensure` prints a line when it gets no daemon. Silence holds only when the restart succeeds and the second send fails again before leaving.
+    - CHANGELOG: "A command falls back to local mode only before it is sent, so nothing runs twice" leaves out the exception docs/daemon.md now states. When the daemon is lost between a prompt and its answer, the command reruns locally from the start.
+    @tech-writer, all three are text only.
 <!-- sq:finding:F66:discussion:end -->
 <!-- sq:finding:F66:end -->
 
@@ -1912,8 +1953,33 @@ Checked and fine: `set_init_version` rewrites the one `__version__ = "..."` line
 <!-- sq:finding:F67:discussion -->
 - [2026-10-30T23:15:38Z] `python-dev` Elias Python:
   - Fixed in a69a3b4b: step 4 reason reworded: the installed metadata and the lock follow the bump.
+- [2026-10-30T23:38:53Z] `reviewer` Paul Reviewer:
+  - Verified: step 4 of the docstring in scripts/bump_version.py now says the installed distribution's metadata and the lock follow the bump, which is true.
 <!-- sq:finding:F67:discussion:end -->
 <!-- sq:finding:F67:end -->
+
+<!-- sq:finding:F68 -->
+### F68 — Ctrl-C prompt test races the local prompt's two writes; red on macOS
+
+<!-- sq:finding:F68:body -->
+`test_ctrl_c_at_a_prompt_reads_as_it_does_locally` (tests/cross_process/test_the_shim_runs_a_command_here_when_nothing_has_run_on_a_daemon.py) is red on macOS at HEAD: CI run 41144025768, job `cross-process (macos-latest)`, the only failing job of that run.
+
+The diff:
+- local: `Remove this comment? [y/N]:^CAborted.`
+- served: `Remove this comment? [y/N]: ^CAborted.`
+
+The cause is in the test. Local mode's confirm (typer's vendored click termui) writes the prompt without its last character, then calls `input(" ")`, which writes the trailing space. The shim writes the whole prompt at once. The test sends Ctrl-C as soon as `PROMPT = b"[y/N]"` appears, which can land between the two local writes. On macOS the terminal echoes `^C` before the space is ever written. A person cannot hit that window, so this is not a parity defect. On Linux it passed 15 of 15 runs here.
+
+Fix: wait for the whole prompt, `b"[y/N]: "`, before sending Ctrl-C, so `input` is already reading in both modes. It is test-only, but it keeps CI red, so it must land before the cut.
+<!-- sq:finding:F68:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F68:discussion -->
+- [2026-10-30T23:39:46Z] `manager` Catherine Manager:
+  - Fixed in fd0d4d61 (cherry-pick of the shim dev's e2f333ef): the test waits for the whole prompt including its trailing space before sending Ctrl-C, and strips the terminal's own ^C echo from both outputs. CI run 41145415746 checks macOS.
+<!-- sq:finding:F68:discussion:end -->
+<!-- sq:finding:F68:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -2086,4 +2152,20 @@ Checked and fine: `set_init_version` rewrites the one `__version__ = "..."` line
     - Verdict: approve with fixes. Nothing high is open. F58-F65 and F67 go to @python-dev. F66 goes to @tech-writer and must land before the 0.19 cut.
 - [2026-10-30T23:05:29Z] `manager` Catherine Manager:
   - F57: CI run 41141368085 on e06928aa is all green, cross-process (windows-latest) included (1m35s), so the deadlock fix holds on Windows. @reviewer for verification.
+- [2026-10-30T23:39:12Z] `reviewer` Paul Reviewer:
+  - Final verification pass on 13bd2e32, run on an archive copy of HEAD under ~/.cache/rev1223f. For each fix I planted the old behaviour back and watched its test go red. Docs behaviours ran on a scratch squad with the copy's sq. No daemon was started on this repository, and none is left running.
+    
+    Gates: pyright, ruff and format are clean. `pytest -n 4 tests/meta tests/daemon tests/cross_process` gives 834 passed, 2 skipped and 7 failed; the 7 are the git-tag history tests, which fail because the copy has no tags. CI run 41144025768 on 13bd2e32 is green except `cross-process (macos-latest)` (F68).
+    
+    - Verified: F41, F45, F51, F52, F56, F57, F58, F59, F60, F61, F62, F63, F64, F65, F67.
+    - Reopened: F66. The waiting notice is documented as `(repair)`, "the command", but since F62 it prints `(squad.repair)`. "Nothing printed" is false for an unconnectable running daemon (measured: 6 s, then a warning line). The CHANGELOG fallback sentence leaves out the prompt-phase rerun.
+    - New: F68 (low, test-only). The Ctrl-C prompt test races the local prompt's two writes and is red on macOS CI. Fix: wait for the full prompt `[y/N]: `.
+    
+    Task verdicts:
+    - TASK-1263: approved. F42-F46 are all Verified.
+    - TASK-1262: approved. F47-F56 are all Verified.
+    - TASK-1264: approve once F68 lands. F57-F65 and F67 are Verified. F68 is in this task's own test and keeps CI red.
+    - TASK-1266: changes requested on F66 (three text fixes, listed on the finding).
+    
+    REV-1223 stays ChangesRequested. F66 and F68 block it; every other finding on the review (F1-F67) is Verified or Noted. @tech-writer F66. @python-dev F68. @manager
 <!-- sq:discussion:end -->
