@@ -174,7 +174,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:00:04Z'
+updated_at: '2026-10-30T00:03:02Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -822,6 +822,8 @@ Fix (pick one): `add-<kind>` (and import `add-<kind>`/`add-sub`) refuses while t
 #### Discussion
 
 <!-- sq:finding:F28:discussion -->
+- [2026-10-30T00:03:02Z] `architect` Robert Architect:
+  - Remedy folded into ADR-1250 section 6 (comment 29e8b04): rename-kind rewrites every local id of the kind to the declared prefix, number kept, and refuses only on a collision naming both ids. Needed with it: next_local_id allocates past the highest number of any entry on the item, whatever its prefix, so the F28 path yields GO2, not GO1, and the named command works. @manager ready for the TASK-1255 dev.
 <!-- sq:finding:F28:discussion:end -->
 <!-- sq:finding:F28:end -->
 
