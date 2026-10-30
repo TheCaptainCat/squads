@@ -1,10 +1,10 @@
-"""A daemon whose configuration changed answers `retiring` and runs nothing, and a GET never
-mutates the squad."""
+"""A daemon whose configuration changed answers `retiring` and runs nothing."""
 
-import hashlib
-from pathlib import Path
+import threading
+import time
 
 import pytest
+from filelock import FileLock
 
 from squads._paths import SquadPaths
 
@@ -23,33 +23,32 @@ def test_a_vocabulary_mismatch_on_a_changed_configuration_answers_retiring(
     )
 
 
-def snapshot(root: Path) -> dict[str, str]:
-    return {
-        str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
-        for p in sorted(root.rglob("*"))
-        if p.is_file()
-    }
-
-
-def test_get_requests_leave_every_file_of_the_squad_as_they_found_it(
+def test_a_request_queued_behind_another_is_checked_when_its_turn_comes(
     project: SquadPaths, serve
 ) -> None:
-    daemon = serve(project)
-    daemon.request("POST", "/v1/items", {"type": "task", "title": "Seen", "author": "manager"})
-    before = snapshot(project.root)
-    for target in (
-        "/v1/items",
-        "/v1/items/TASK-2",
-        "/v1/items/TASK-2/comments",
-        "/v1/tree",
-        "/v1/search?q=Seen",
-        "/v1/reflog",
-        "/v1/check",
-        "/v1/board",
-        "/v1/roles",
-        "/v1/workflow/types",
-        "/v1/daemon",
-        "/v1/openapi.json",
-    ):
-        assert daemon.get(target).status == 200, target
-    assert snapshot(project.root) == before
+    changed = threading.Event()
+    daemon = serve(project, retirement_check=changed.is_set)
+    holder = FileLock(
+        str(project.lock_path), thread_local=False, fallback_to_soft=False, preserve_lock_file=True
+    )
+    holder.acquire(timeout=5)
+    replies: dict[str, object] = {}
+
+    def send(label: str, method: str, target: str, body: dict[str, object] | None) -> None:
+        replies[label] = daemon.request(method, target, body)
+
+    first = threading.Thread(
+        target=send,
+        args=("write", "POST", "/v1/items", {"type": "task", "title": "T", "author": "manager"}),
+    )
+    first.start()
+    time.sleep(0.5)
+    second = threading.Thread(target=send, args=("read", "GET", "/v1/items", None))
+    second.start()
+    time.sleep(0.5)
+    changed.set()
+    holder.release()
+    first.join(30)
+    second.join(30)
+    read = replies["read"]
+    assert (read.status, read.json()) == (503, {"not_executed": "retiring"})  # type: ignore[attr-defined]

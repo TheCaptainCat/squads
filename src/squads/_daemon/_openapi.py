@@ -28,7 +28,7 @@ from squads._api._http import (
     SESSION_HEADER,
     VOCABULARY_HEADER,
 )
-from squads._api._ops import CONDITIONAL_WRITES, OPERATIONS
+from squads._api._ops import CONDITIONAL_WRITES, ROUTED_OPERATIONS, carries_etag
 from squads._api._response import Response
 from squads._daemon._request import is_list
 
@@ -82,7 +82,7 @@ def _parameters(
     for name, prop in properties.items():
         if name in path_fields:
             found.append({"name": name, "in": "path", "required": True, "schema": prop})
-        elif op.method == "GET":
+        elif op.route[0] == "GET":
             param: dict[str, Any] = {
                 "name": name,
                 "in": "query",
@@ -109,9 +109,10 @@ def _body(schema: dict[str, Any], path_fields: set[str]) -> dict[str, Any] | Non
 
 def _responses(op: Operation[Any, Any], answer: dict[str, Any]) -> dict[str, Any]:
     headers: dict[str, Any] = {"Server-Timing": {"schema": {"type": "string"}}}
-    if op.method != "DELETE":
+    if carries_etag(op):
         headers["ETag"] = {
-            "description": "The strong ETag of the item the operation addressed, when it did.",
+            "description": "The strong ETag of the item the operation addressed; absent when "
+            "that item's file is gone.",
             "schema": {"type": "string"},
         }
     responses: dict[str, Any] = {
@@ -138,7 +139,8 @@ def _operation(
     op: Operation[Any, Any], definitions: dict[str, Any], mapping: dict[Any, dict[str, Any]]
 ) -> dict[str, Any]:
     request_schema = definitions[_ref_name(mapping[(op.request, "validation")])]
-    path_fields = {part[1:-1] for part in op.path.split("/") if part.startswith("{")}
+    method, path = op.route
+    path_fields = {part[1:-1] for part in path.split("/") if part.startswith("{")}
     doc = (op.request.__doc__ or "").strip().split("\n\n")[0].replace("\n", " ")
     described: dict[str, Any] = {
         "operationId": op.name,
@@ -154,7 +156,7 @@ def _operation(
         ],
         "responses": _responses(op, mapping[(Response[op.response], "validation")]),
     }
-    if op.method != "GET":
+    if method != "GET":
         body = _body(request_schema, path_fields)
         if body is not None:
             described["requestBody"] = body
@@ -165,7 +167,7 @@ def build_document(schema_version: str) -> dict[str, Any]:
     """The OpenAPI document of every operation in the table, whose ``info.version`` is
     *schema_version*."""
     models: list[tuple[type[BaseModel], str]] = []
-    for op in OPERATIONS:
+    for op in ROUTED_OPERATIONS:
         models.append((op.request, "validation"))
         models.append((cast(type[BaseModel], Response[op.response]), "validation"))
     extra: tuple[type[BaseModel], ...] = (ErrorBody, DaemonIdentity, DaemonStopping)
@@ -180,8 +182,9 @@ def build_document(schema_version: str) -> dict[str, Any]:
         "required": ["not_executed"],
     }
     paths: dict[str, dict[str, Any]] = {}
-    for op in OPERATIONS:
-        paths.setdefault(op.path, {})[op.method.lower()] = _operation(op, definitions, mapping)
+    for op in ROUTED_OPERATIONS:
+        method, path = op.route
+        paths.setdefault(path, {})[method.lower()] = _operation(op, definitions, mapping)
     paths["/v1/daemon"] = {
         "get": {
             "operationId": "daemon.identity",

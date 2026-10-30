@@ -96,11 +96,12 @@ def encode_request(op: Operation[Any, Any], req: BaseModel) -> tuple[str, str, b
     def fill(match: re.Match[str]) -> str:
         return quote(str(fields.pop(match[1])), safe="")
 
-    target = _PATH_FIELD.sub(fill, op.path)
-    if op.method == "GET":
+    method, path = op.route
+    target = _PATH_FIELD.sub(fill, path)
+    if method == "GET":
         query = _query(fields)
-        return op.method, f"{target}?{query}" if query else target, None
-    return op.method, target, json.dumps(fields).encode("utf-8")
+        return method, f"{target}?{query}" if query else target, None
+    return method, target, json.dumps(fields).encode("utf-8")
 
 
 def parse_response[Res](op: Operation[Any, Res], status: int, body: bytes) -> Response[Res]:

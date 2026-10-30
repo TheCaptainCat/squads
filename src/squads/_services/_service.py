@@ -430,13 +430,22 @@ class RequestScope:
         return Answered(value, ctx.preconditions.etag if ctx.preconditions else None, elapsed)
 
     async def run[T](
-        self, meta: RequestMetadata, call: Callable[[], Awaitable[T]], *, conditional: bool = False
+        self,
+        meta: RequestMetadata,
+        call: Callable[[], Awaitable[T]],
+        *,
+        conditional: bool = False,
+        gate: Callable[[], None] | None = None,
     ) -> Answered[T]:
-        """Run *call* in the scope of a request declaring *meta*. The call runs to completion
-        once it has started, even if the caller stops waiting."""
+        """Run *call* in the scope of a request declaring *meta*. *gate* runs when the request's
+        turn comes, after the lock is taken and before anything else, and may refuse it by
+        raising. The call runs to completion once it has started, even if the caller stops
+        waiting."""
 
         async def serial() -> Answered[T]:
             async with self._lock:
+                if gate is not None:
+                    gate()
                 return await asyncio.create_task(
                     self._bound(meta, call, conditional), context=contextvars.Context()
                 )

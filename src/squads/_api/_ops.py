@@ -628,7 +628,7 @@ MEMORY_LIST = Operation(
 MEMORY_SEARCH = Operation(
     "memory.search",
     "GET",
-    "/v1/memory/{role}/search",
+    "/v1/search/memory/{role}",
     MemorySearchRequest,
     MemorySearch,
     json_field="items",
@@ -842,10 +842,8 @@ RENAME_KIND = Operation(
 IMPORT = Operation(
     "squad.import", "POST", "/v1/squad/import", ImportRequest, ImportReport, timeout=Timeout.LONG
 )
-INIT = Operation("squad.init", "POST", "/v1/squad/init", InitRequest, InitReport, local_only=True)
-ADOPT = Operation(
-    "squad.adopt", "POST", "/v1/squad/adopt", AdoptRequest, AdoptReport, local_only=True
-)
+INIT = Operation("squad.init", None, None, InitRequest, InitReport, local_only=True)
+ADOPT = Operation("squad.adopt", None, None, AdoptRequest, AdoptReport, local_only=True)
 
 
 #: The writes that compare the request's ``If-Match`` with the addressed item's ETag: the item-level
@@ -880,6 +878,8 @@ CONDITIONAL_WRITES: frozenset[str] = frozenset(
         SKILL_REMOVE,
         SKILL_REF_ADD,
         SKILL_REF_RM,
+        SKILL_LINK_ROLE,
+        SKILL_UNLINK_ROLE,
         SKILL_VIEW_ADD,
         SKILL_VIEW_DISABLE,
         OPERATOR_UPDATE,
@@ -1024,3 +1024,30 @@ OPERATIONS: tuple[Operation[Any, Any], ...] = (
     INIT,
     ADOPT,
 )
+
+#: The operations the daemon serves: every one that is not local-only.
+ROUTED_OPERATIONS: tuple[Operation[Any, Any], ...] = tuple(
+    op for op in OPERATIONS if not op.local_only
+)
+
+#: The creations that answer the ETag of the item they created or activated.
+_ETAG_CREATES: frozenset[str] = frozenset(
+    {"items.create", "roles.add", "roles.activate", "skills.add", "operators.add"}
+)
+
+_ETAG_PREFIXES: tuple[str, ...] = (
+    "/v1/items/{id}",
+    "/v1/roles/{addr}",
+    "/v1/skills/{addr}",
+    "/v1/operators/{addr}",
+)
+
+
+def carries_etag(op: Operation[Any, Any]) -> bool:
+    """Whether *op* answers the ETag of the item it addresses: every operation under an item or a
+    roster entry, with any method, and the creations. It is absent only when the item's file is
+    gone."""
+    if op.name in _ETAG_CREATES:
+        return True
+    path = op.path
+    return path is not None and any(path == p or path.startswith(p + "/") for p in _ETAG_PREFIXES)

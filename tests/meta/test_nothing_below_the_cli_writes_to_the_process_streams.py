@@ -22,12 +22,15 @@ class _Scan(ast.NodeVisitor):
     def __init__(self) -> None:
         self.hits: list[int] = []
         self._sys = {"sys"}
+        self._os = {"os"}
         self._bare = set[str]()
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             if alias.name == "sys":
                 self._sys.add(alias.asname or "sys")
+            elif alias.name == "os":
+                self._os.add(alias.asname or "os")
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == "sys":
@@ -47,6 +50,17 @@ class _Scan(ast.NodeVisitor):
             self.hits.append(node.lineno)
 
     def visit_Call(self, node: ast.Call) -> None:
+        func = node.func
+        if (
+            isinstance(func, ast.Attribute)
+            and func.attr == "write"
+            and isinstance(func.value, ast.Name)
+            and func.value.id in self._os
+        ) or (
+            (isinstance(func, ast.Name) and func.id == "Console")
+            or (isinstance(func, ast.Attribute) and func.attr == "Console")
+        ):
+            self.hits.append(node.lineno)
         if (
             isinstance(node.func, ast.Name)
             and node.func.id == "print"
@@ -90,12 +104,16 @@ _SHAPES = {
     "an aliased sys": "import sys as s\ndef f():\n    s.stderr.write('x')\n",
     "a bare stream": "from sys import stderr\ndef f():\n    stderr.write('x')\n",
     "a stream handed on": "import sys\ndef f(g):\n    g(sys.stdout)\n",
+    "os.write": "import os\ndef f():\n    os.write(2, b'x')\n",
+    "a rich console": "from rich.console import Console\ndef f():\n    Console(stderr=True)\n",
+    "a qualified console": "import rich.console\ndef f():\n    rich.console.Console()\n",
     "the original stream": "import sys\ndef f():\n    sys.__stderr__.write('x')\n",
 }
 
 _NOT_WRITES = {
     "a print to a buffer": "def f(buf):\n    print('x', file=buf)\n",
     "another sys name": "import sys\ndef f():\n    return sys.argv\n",
+    "os.write to a descriptor": "import os\ndef f(fd):\n    os.fsync(fd)\n",
     "an unrelated stderr": "def f(o):\n    return o.stderr\n",
 }
 

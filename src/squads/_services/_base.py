@@ -1055,6 +1055,19 @@ class ServiceCore:
 
         pre.address(sequence, read, replace=replace)
 
+    async def _address_and_read(self, item: Item) -> None:
+        """:meth:`_address` *item*, then read its file once, ahead of the handler's own reads, so
+        the ETag the answer carries is never newer than the data it was built from. A request
+        outside the daemon has no conditional-request state and reads nothing; a missing file is
+        the handler's to report."""
+        self._address(item)
+        if get_context().preconditions is None:
+            return
+        try:
+            await self._read_item_file(item, item_file(self.paths, item))
+        except SquadsError:
+            return
+
     async def item_etag(self, item: Item) -> str:
         """The ETag of *item*'s file as it stands."""
         return etag_of(await self._read_item_file(item, item_file(self.paths, item)))

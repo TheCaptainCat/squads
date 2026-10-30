@@ -50,12 +50,11 @@ def test_a_transition_the_lifecycle_refuses_answers_409_conflict(project, serve)
     daemon = serve(project)
     item_id = create_task(daemon, "Refused")
     reply = daemon.request("POST", f"/v1/items/{item_id}/status", {"status": "Done"})
-    assert reply.status == 409
-    assert reply.headers["content-type"] == JSON
-    body = reply.json()["error"]
-    assert (body["type"], body["warnings"], "details" in body) == ("conflict", [], False)
-    assert "Draft" in body["message"]
-    assert "Done" in body["message"]
+    assert whole(reply) == (
+        409,
+        JSON,
+        error("conflict", "task cannot move Draft → Done (use --force to override)"),
+    )
 
 
 def test_a_vocabulary_that_differs_answers_409_with_the_digests(project, serve) -> None:
@@ -193,16 +192,23 @@ def test_a_partial_read_answers_200_with_what_it_left_out(project: SquadPaths, s
     broken = board_folder(project) / "BOARD-broken.md"
     broken.write_bytes(b"\xff\xfe not text")
     reply = daemon.get("/v1/board")
-    body = reply.json()
-    assert (reply.status, reply.headers["content-type"], body["warnings"]) == (200, JSON, [])
-    assert [row["body"] for row in body["data"]["items"]] == ["A notice"]
-    assert body["omitted"] == [
+    notice = posted.json()["data"]["entry"]
+    assert whole(reply) == (
+        200,
+        JSON,
         {
-            "source": "board/BOARD-broken.md",
-            "message": f"{broken} is not valid UTF-8: byte 0xff at offset 0 — invalid start byte",
-            "code": "unreadable",
-        }
-    ]
+            "data": {"items": [{"n": 1, **notice}]},
+            "omitted": [
+                {
+                    "source": "board/BOARD-broken.md",
+                    "message": f"{broken} is not valid UTF-8: byte 0xff at offset 0 "
+                    "— invalid start byte",
+                    "code": "unreadable",
+                }
+            ],
+            "warnings": [],
+        },
+    )
 
 
 def test_a_route_the_table_does_not_hold_answers_404_not_found(project, serve) -> None:

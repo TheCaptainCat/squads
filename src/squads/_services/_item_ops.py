@@ -61,7 +61,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         if address.type is None:
             item_id = await self.resolve_any_id(address.address or address.id)
             found = await self.get(item_id)
-            self._address(found)
+            await self._address_and_read(found)
             return found
         seq, given_prefix = parse_item_token(address.id)
         prefix = prefix_for(address.type, self.spec)
@@ -75,7 +75,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         elif item.type != address.type:
             shown = typed.strip()
         else:
-            self._address(item)
+            await self._address_and_read(item)
             return item.model_copy(deep=True)
         raise SquadsError(f"{shown} is {item.id} ({item.type}), not of type {address.type}")
 

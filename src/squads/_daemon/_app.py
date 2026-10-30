@@ -12,7 +12,7 @@ from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.routing import BaseRoute, Route
+from starlette.routing import BaseRoute, Route, compile_path
 
 from squads._api._api import Operation
 from squads._api._dto._daemon import (
@@ -23,7 +23,7 @@ from squads._api._dto._daemon import (
 )
 from squads._api._errors import ErrorBody, ErrorDetail, error_body, error_message, http_status
 from squads._api._http import RequestMetadata, request_metadata
-from squads._api._ops import CONDITIONAL_WRITES, OPERATIONS
+from squads._api._ops import CONDITIONAL_WRITES, ROUTED_OPERATIONS
 from squads._api._response import Response as Envelope
 from squads._api._vocabulary import VocabularyHash
 from squads._daemon._openapi import build_document
@@ -35,6 +35,8 @@ from squads._services._local_api import LocalApi
 from squads._services._service import RequestScope
 
 _log = logging.getLogger("squads.daemon")
+# A handler of its own keeps logging's last resort from writing a traceback to stderr.
+_log.addHandler(logging.NullHandler())
 
 
 #: The answer to a request that arrived while the daemon's configuration had changed: nothing ran.
@@ -54,6 +56,10 @@ def _failure(exc: BaseException) -> Response:
         _log.error("unhandled error in a request", exc_info=exc)
         body = error_body(exc, "internal error; the traceback is in the daemon's log")
     return _json(body.model_dump_json(exclude_none=True).encode(), http_status(body.error.type))
+
+
+class Retiring(Exception):  # a signal, not a failure
+    """The daemon's configuration changed, so the request is declined before it runs."""
 
 
 class Application:
@@ -92,17 +98,27 @@ class Application:
             retiring_body(), status_code=503, background=BackgroundTask(self.state.stop)
         )
 
-    def check_client(self, meta: RequestMetadata) -> Response | None:
-        """The refusal of a request whose schema or vocabulary is not the daemon's, or ``None``.
-        The schema is checked first, then the configuration (a vocabulary that differs from a
-        daemon whose configuration changed is answered ``retiring``), then the vocabulary."""
+    @staticmethod
+    def check_schema(meta: RequestMetadata) -> Response | None:
+        """The refusal of a request whose schema is not the daemon's, or ``None``. It needs no
+        squad state, so it is answered on arrival, ahead of the queue."""
         if meta.schema is not None and meta.schema != SCHEMA_VERSION:
             return _failure(SchemaMismatchError(meta.schema, SCHEMA_VERSION))
-        if self.retiring():
-            return self.retire()
-        if meta.vocabulary is not None and meta.vocabulary != self.vocabulary.hash:
-            return _failure(VocabularyMismatchError(self.vocabulary.documents))
         return None
+
+    def gate(self, meta: RequestMetadata) -> Callable[[], None]:
+        """The check a request runs when its turn comes, before its handler: the daemon's
+        configuration must not have changed since it started (a vocabulary that differs from a
+        daemon whose configuration changed is answered ``retiring``), then the request's
+        vocabulary must be the daemon's."""
+
+        def check() -> None:
+            if self.retiring():
+                raise Retiring
+            if meta.vocabulary is not None and meta.vocabulary != self.vocabulary.hash:
+                raise VocabularyMismatchError(self.vocabulary.documents)
+
+        return check
 
 
 def _answer(envelope: Envelope[Any], etag: str | None, handler_ms: float) -> Response:
@@ -121,20 +137,19 @@ def _operation_endpoint(
 
     async def endpoint(request: Request) -> Response:
         meta = request_metadata(request.headers)
-        refused = app.check_client(meta)
+        refused = app.check_schema(meta)
         if refused is not None:
             return refused
-        if op.local_only:
-            return _failure(
-                SquadsError(
-                    f"{op.name} creates a squad in the directory it runs in, so it runs locally"
-                )
-            )
         try:
             req: BaseModel = await request_dto(op, request)
             answered = await app.scope.run(
-                meta, lambda: app.api.call(op, req), conditional=op.name in CONDITIONAL_WRITES
+                meta,
+                lambda: app.api.call(op, req),
+                conditional=op.name in CONDITIONAL_WRITES,
+                gate=app.gate(meta),
             )
+        except Retiring:
+            return app.retire()
         except Exception as exc:  # every failure has an answer
             return _failure(exc)
         return _answer(answered.value, answered.etag, answered.handler_ms)
@@ -169,13 +184,40 @@ def _daemon_routes(app: Application) -> list[BaseRoute]:
     ]
 
 
-async def _http_error(_request: Request, exc: Exception) -> Response:  # noqa: RUF029 — a handler is async
-    """A request no route took: the error body of an unknown route or a method it lacks."""
+def _served() -> list[tuple[str, str]]:
+    """Every method and path template the daemon serves."""
+    served = [(op.route[0], op.route[1]) for op in ROUTED_OPERATIONS]
+    return [
+        *served,
+        ("GET", "/v1/daemon"),
+        ("POST", "/v1/daemon/stop"),
+        ("GET", "/v1/openapi.json"),
+    ]
+
+
+def allowed_methods(path: str) -> list[str]:
+    """The methods the daemon serves at *path*, sorted, with ``HEAD`` beside ``GET``."""
+    methods: set[str] = set()
+    for method, template in _served():
+        regex, _, _ = compile_path(template)
+        if regex.match(path):
+            methods.add(method)
+            if method == "GET":
+                methods.add("HEAD")
+    return sorted(methods)
+
+
+async def _http_error(request: Request, exc: Exception) -> Response:  # noqa: RUF029 — a handler is async
+    """A request no route took: the error body of an unknown route or a method it lacks, which
+    names every method the path does serve."""
     assert isinstance(exc, HTTPException)
     kind = "not_found" if exc.status_code == 404 else "invalid"
     message = "no such route" if exc.status_code == 404 else "method not allowed on this route"
     body = ErrorBody(error=ErrorDetail(type=kind, message=message))
-    return _json(body.model_dump_json(exclude_none=True).encode(), exc.status_code)
+    headers = None
+    if exc.status_code == 405:
+        headers = {"Allow": ", ".join(allowed_methods(request.url.path))}
+    return _json(body.model_dump_json(exclude_none=True).encode(), exc.status_code, headers)
 
 
 def build_app(state: DaemonState, retirement_check: RetirementCheck = never_retiring) -> Starlette:
@@ -185,8 +227,8 @@ def build_app(state: DaemonState, retirement_check: RetirementCheck = never_reti
     ``retiring``."""
     app = Application(state, retirement_check)
     routes: list[BaseRoute] = [
-        Route(op.path, _operation_endpoint(app, op), methods=[op.method], name=op.name)
-        for op in OPERATIONS
+        Route(op.route[1], _operation_endpoint(app, op), methods=[op.route[0]], name=op.name)
+        for op in ROUTED_OPERATIONS
     ]
     routes += _daemon_routes(app)
     return Starlette(routes=routes, exception_handlers={HTTPException: _http_error})

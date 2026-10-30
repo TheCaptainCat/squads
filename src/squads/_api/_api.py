@@ -67,8 +67,10 @@ class Operation[Req: BaseModel, Res]:
     it runs."""
 
     name: str
-    method: Method
-    path: str
+    #: The route's method and path; a local-only operation has neither, since it is never
+    #: served.
+    method: Method | None
+    path: str | None
     request: type[Req]
     response: type[Res]
     mode: Mode = Mode.NORMAL
@@ -78,6 +80,18 @@ class Operation[Req: BaseModel, Res]:
     #: The field of ``data`` that ``--json`` prints, where the frozen document is not an object;
     #: ``None`` prints ``data`` whole.
     json_field: str | None = None
+
+    def __post_init__(self) -> None:
+        routed = self.method is not None and self.path is not None
+        if routed == self.local_only or (self.method is None) != (self.path is None):
+            raise ValueError(f"{self.name}: a route is declared exactly when it is not local-only")
+
+    @property
+    def route(self) -> tuple[Method, str]:
+        """The method and path of a routed operation."""
+        if self.method is None or self.path is None:
+            raise ValueError(f"{self.name} is local-only and has no route")
+        return self.method, self.path
 
 
 class Api(Protocol):
