@@ -11,6 +11,7 @@ refs:
 - TASK-1218
 - TASK-1263
 - TASK-1262
+- TASK-1264
 subentities:
 - local_id: F1
   title: role add/update --file bypass attachments and read the serving process's
@@ -313,8 +314,63 @@ subentities:
   status: Fixed
   assignee: architect
   severity: info
+- local_id: F57
+  title: Windows identity probe deadlocked the shim and waited 300 s
+  status: Fixed
+  assignee: python-dev
+  severity: high
+- local_id: F58
+  title: Fallback on a retiring daemon's 503 is untested
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F59
+  title: Shim import guard runs one command shape; prompt path unseen
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F60
+  title: Ctrl-C at a served prompt prints different text than local mode
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F61
+  title: Long-command detection stops at the first option; guard skips binding
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F62
+  title: Waiting notice names the command path, not the operation
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F63
+  title: Stdlib lock probe reads EACCES as free, unlike filelock
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F64
+  title: Loopback-port test drives shim internals in process
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F65
+  title: test_remote_refusals describes a CLI path that no longer exists
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F66
+  title: CHANGELOG and docs/daemon.md describe the pre-shim remote mode
+  status: Open
+  assignee: tech-writer
+  severity: medium
+- local_id: F67
+  title: bump_version step 4 gives a stale reason for uv sync
+  status: Open
+  assignee: python-dev
+  severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T22:39:29Z'
+updated_at: '2026-10-30T22:55:22Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -324,6 +380,7 @@ Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1
 - TASK-1217, commit 22ce7f65: the in-process command entry (`run`), per-invocation consoles, the request-seeded `RequestContext` (start directory, attachments, terminal facts, documents), attachment-served file reads, and the prompt helper that signals `NeedsTerminal`.
 - TASK-1263, commits ff9784bf and 4585afec: the daemon's content-keyed cache of the index, item frontmatter and the override check (ADR-1261 point 7).
 - TASK-1262, commits fc95085f, fb353e94 and c6631735: the private command endpoint `POST /v1/commands`, served execution on the daemon's own `LocalApi`, the stdio and `os.environ` proxies, attachments and stdin, two-phase prompts, and the endpoint and route parity modes (ADR-1261 points 1, 2, 3, 5 and 9).
+- TASK-1264, commits 09be06c5, 9f478fa7, b5e2bcc8, ad95fe16 and da0c2a60: the CLI as a standard-library shim sending the command line to the command endpoint, the local-only, file-argument and long-command tables and their guards, the lean `_endpoint` path and the `__version__` literal, prompts and fall back, the stdlib lock probe and daemon start, the Windows transport, the terminal UI's API selection moved out of the CLI, and the 100 ms client budget (ADR-1261 points 3-6, 8 and 10).
 - Later tasks of FEAT-1140 join this review as they land.
 
 ## Method
@@ -331,6 +388,7 @@ Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1
 - Local-mode parity: the parent commit's CLI and this commit's CLI run side by side on one scratch squad, under a pseudo-terminal and piped, across colour and width environments, compared byte for byte.
 - The seeded path: probes through `run(argv, seed=...)` for isolation sequences, attachments, terminal facts and prompts.
 - Tests: a sample of the new rows falsified against deliberate breakage.
+- Shim parity: the same command lines run with `SQUADS_DAEMON=off` and through the shim against copies of this repository's squad under `~/.cache`, piped and under a pseudo-terminal, reads on one copy and writes, prompts and `--file` reads on two copies compared output and resulting item state.
 <!-- sq:body:end -->
 
 ## Findings
@@ -1615,6 +1673,227 @@ No behaviour is at stake. The text should say what the code does: the replacemen
   - Fixed 2026-10-30 in ADR-1261 point 2 (text only): the replacements are installed once and never undone, and outside a served command each one passes through to the original it replaced. This matches proxies.install() and typer_console.
 <!-- sq:finding:F56:discussion:end -->
 <!-- sq:finding:F56:end -->
+
+<!-- sq:finding:F57 -->
+### F57 — Windows identity probe deadlocked the shim and waited 300 s
+
+<!-- sq:finding:F57:body -->
+On a loopback-port endpoint (native Windows), `_open` in `src/squads/_shim.py` at da0c2a60 opened the connection the command line travels on first, then asked the recorded port who answers (`_is_recorded_daemon`) on a second connection while the first one stayed open and idle. A daemon that serves one connection at a time waits on the idle one, so the identity request never gets an answer. The probe waited for it with `_receive(probe, ANSWER_TIMEOUT, None)`: 300 s, where `_daemon_link` bounds the same identity call to 5 s. When it failed, the shim fell back, tried a start (`ensure`), and probed again. So every Windows command could hang for about 10 minutes before it ran locally. A port reused by a listener that never answers had the same effect.
+
+Not run here (no Windows). Found by reading the code at da0c2a60; the Windows CI failures show it.
+
+Fixed in 6a06f0cd: the probe now runs before the command connection opens, bounded by `CONNECT_TIMEOUT`, and the loopback test gained a case for it. That diff reads correctly. What remains open: on Windows, every command pays for one more connection and HTTP round trip that the Linux-only budget run never measures. A Windows figure for the shim's overhead should be reported once CI can produce one.
+<!-- sq:finding:F57:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F57:discussion -->
+- [2026-10-30T22:55:21Z] `reviewer` Paul Reviewer:
+  - Fixed in 6a06f0cd (probe before the command connection, bounded by CONNECT_TIMEOUT). Read, not run here; Verified once the Windows CI job passes on it.
+<!-- sq:finding:F57:discussion:end -->
+<!-- sq:finding:F57:end -->
+
+<!-- sq:finding:F58 -->
+### F58 — Fallback on a retiring daemon's 503 is untested
+
+<!-- sq:finding:F58:body -->
+ADR-1261 point 6 lists four triggers for running the command locally before anything was sent. One is a `503 {"not_executed": ...}` answer from a retiring daemon. No test exercises the shim's handling of that answer.
+
+Falsification on an export of da0c2a60: I made `_retiring` in `src/squads/_shim.py` return `False` unconditionally, so the shim prints the 503 as an error and exits 1 instead of running locally. Then I ran `pytest tests/cross_process tests/daemon -n 4`: `116 passed, 2 skipped`. The mutant survives. The daemon side is covered (`tests/daemon/test_retirement.py` asserts the 503 body), but nothing checks what the shim does with it.
+
+For comparison, the no-replay rule is guarded. Turning `Lost` into `Fallback` reddens `test_fall_back_and_no_replay.py::test_a_connection_lost_after_the_request_was_sent_is_an_error_and_is_not_replayed`.
+
+The fallback on a reset before the request is fully written is also untested. It is harder to provoke. A fake listener that closes during the body read would do it.
+
+Suggested: one cross-process member in which a daemon retires (edit `.squads.toml` with the daemon running), then a command, asserting local output, exit 0 and nothing on stderr.
+<!-- sq:finding:F58:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F58:discussion -->
+<!-- sq:finding:F58:discussion:end -->
+<!-- sq:finding:F58:end -->
+
+<!-- sq:finding:F59 -->
+### F59 — Shim import guard runs one command shape; prompt path unseen
+
+<!-- sq:finding:F59:body -->
+`tests/meta/test_the_shim_loads_nothing_but_the_standard_library_and_its_own_modules.py` runs a single command shape, `list --json`, on the live path and on the cold-start path. It cannot see an import that only some other shape loads.
+
+Planted on an export of da0c2a60, guard run each time with `-n0`:
+
+- `import typing` at the top of `_shim.py`: red (`assert ['typing'] == []`). Good.
+- `import yaml` inside `read_attachments`: red. The function runs on every send, even with no file named.
+- `import yaml` at the start of `_read_line`, the prompt path: `3 passed`. Missed.
+
+Branches the guard never runs include:
+- the prompt loop (`_read_line`, the second send);
+- a long command (`Notice`);
+- the timeout and lost-connection errors (`SendFailed`);
+- the Ctrl-C handler;
+- a non-200 answer;
+- the stdin attachment and `_restore_stdin`;
+- every Windows-only branch (`_windows_vt`, `_windows_truecolor`, `select` polling, `msvcrt`).
+
+A third-party or `typing` import added to any of them passes the guard and costs the budget on that path.
+
+Suggested: add a second shape to the live case that goes through a prompt and an attachment, for example a `--file -` write followed by a confirmed `comment remove`. Name the paths the guard does not cover in its docstring.
+<!-- sq:finding:F59:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F59:discussion -->
+<!-- sq:finding:F59:discussion:end -->
+<!-- sq:finding:F59:end -->
+
+<!-- sq:finding:F60 -->
+### F60 — Ctrl-C at a served prompt prints different text than local mode
+
+<!-- sq:finding:F60:body -->
+Pressing Ctrl-C at a confirmation prompt gives different bytes in the two modes. Probe: `task 1264 comment <hash> remove --as reviewer` under a pseudo-terminal at 80 columns; Ctrl-C sent once the prompt shows; `SQUADS_DAEMON=off` on one copy of the squad, the shim on another.
+
+- local: `Remove this comment? [y/N]: ^C\x1b[31mAborted.\x1b[0m\r\n`, exit 1
+- shim: `Remove this comment? [y/N]: ^C\r\nAborted!\r\n`, exit 1
+
+The CLI's own abort handler prints a red `Aborted.` on the prompt line. `_read_line` in `src/squads/_shim.py` writes its own text, `"\nAborted!\n"`, which matches neither the CLI's wording nor its colour. The exit code agrees. The task's acceptance asks for output, error text and exit code to be byte-identical between the modes, and this is a reachable interactive path. The `--json` confirmation (prompt on stderr) has the same problem: the shim prints the same literal there.
+
+One way to fix it: on Ctrl-C at a prompt, send the end of input to the daemon as the answer, or have the daemon render the abort, so the CLI's own text is printed.
+<!-- sq:finding:F60:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F60:discussion -->
+<!-- sq:finding:F60:discussion:end -->
+<!-- sq:finding:F60:end -->
+
+<!-- sq:finding:F61 -->
+### F61 — Long-command detection stops at the first option; guard skips binding
+
+<!-- sq:finding:F61:body -->
+Two gaps in how the shim gives a command no answer deadline.
+
+1. **Detection stops at the first option.** `leading()` collects command words only up to the first option, and `long_command` matches against those words. Local mode hoists `--at` from anywhere (`_hoist_global_options`), so `sq migrate --at <t> up` is a valid local command line. The shim reads its words as `["migrate"]`, gives it the standard 300 s deadline, and after 300 s with no answer prints "the operation may still complete" and exits 1 while the migration keeps running. `migrate rename-*` behaves the same with an option placed before the verb. Found by reading the code; not run, because a migration under 300 s never shows it.
+2. **The guard checks two sets, not the binding.** `test_the_long_command_table_matches_the_operations_with_no_answer_deadline.py` holds the operation names equal to the `long` operations, and each path to some registered command. It does not check that a path is bound to the operation it is paired with. Two swapped pairs pass. So does a `long` operation reachable through a second command path that the table does not list. The handback states this limit; I am recording it because the table is the only thing that decides whether a corpus-wide write is cut off.
+
+Suggested: skip the root value options (`--at`, `-C`) when collecting the words, as `leading()` already does before the first word. Have the guard walk the command tree and resolve each command's bound operation through the binding table, then compare the set of `long` paths.
+<!-- sq:finding:F61:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F61:discussion -->
+<!-- sq:finding:F61:discussion:end -->
+<!-- sq:finding:F61:end -->
+
+<!-- sq:finding:F62 -->
+### F62 — Waiting notice names the command path, not the operation
+
+<!-- sq:finding:F62:body -->
+`Session._post` builds the waiting notice from the command path: `Notice(f"waiting for the daemon ({' '.join(self.long)})…")`, which prints `waiting for the daemon (repair)…` or `waiting for the daemon (migrate up)…`.
+
+ADR-1225 section 3 specifies `waiting for the daemon (<operation>)…`. The CHANGELOG 0.19.0 daemon entry and `docs/daemon.md` § Timeouts both print `waiting for the daemon (squad.repair)…` and say "naming the operation". `LONG_COMMANDS` already carries the operation name next to each path, so the shim can print the documented text without parsing anything.
+
+Found by reading the code. Not seen live: a served `repair` on a copy of this squad took 6.2 s, under the 10 s threshold.
+<!-- sq:finding:F62:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F62:discussion -->
+<!-- sq:finding:F62:discussion:end -->
+<!-- sq:finding:F62:end -->
+
+<!-- sq:finding:F63 -->
+### F63 — Stdlib lock probe reads EACCES as free, unlike filelock
+
+<!-- sq:finding:F63:body -->
+`lock_is_free` / `_take` in `src/squads/_daemon_link.py` treat only `BlockingIOError` from `fcntl.flock` as "held". Any other `OSError` returns `True`, meaning free. The installed `filelock` (4.2.4, `_unix.py`) classes `EACCES`, `EAGAIN` and `EWOULDBLOCK` as contention, with the comment "some filesystems report EACCES instead". On such a filesystem the daemon's `filelock` reads the lock as held, while the shim's probe reads the same lock as free. `ensure` then treats a live daemon whose socket refused a connection as dead, and `discard_stale` removes that daemon's files.
+
+ADR-1261 point 4 says the probe uses the primitives `filelock` uses "so the two interoperate". The primitive is shared, but the error classification is not.
+
+On Windows (reasoned, not run): `msvcrt.locking(fd, LK_NBLCK, 1)` locks byte 0 through `LockFile`, the same range `filelock`'s `LockFileEx` takes, so the two do see each other. Python's `open(..., "rb")` omits `FILE_SHARE_DELETE`, so while the probe holds its handle, a daemon releasing the lock cannot unlink the file. `filelock` tolerates that. Any `OSError` from `msvcrt.locking` is read as held, which is the opposite default from POSIX.
+
+Low: the runtime directory is normally tmpfs or a local disk that reports `EWOULDBLOCK`. The fix is small: treat `EACCES` as held, as `filelock` does.
+<!-- sq:finding:F63:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F63:discussion -->
+<!-- sq:finding:F63:discussion:end -->
+<!-- sq:finding:F63:end -->
+
+<!-- sq:finding:F64 -->
+### F64 — Loopback-port test drives shim internals in process
+
+<!-- sq:finding:F64:body -->
+`tests/daemon/test_the_shim_over_the_loopback_port.py` (added in 9f478fa7) drives the shim's internals in process: `shim.build_request(...)`, `shim.terminal_facts()`, `shim.Session(endpoint, request, None).run()`, and `pytest.raises(shim.Fallback)`. ADR-1172 counts unit calls into internals as findings (rules 3-5). Earlier findings of the same kind are F10, F23 and F54. TASK-1264 ST5 planned no new case: "the existing implicit-start, discovery and Windows detached-spawn members re-pointed at the shim".
+
+The subject, sending only to the recorded daemon over a loopback port, needs a port endpoint, which Linux never has, so a seam is understandable. But the seam is the shim's private classes and an exception type, so the test breaks on any refactor of `Session`. 6a06f0cd added a third case of the same shape.
+
+Also, `_is_recorded_daemon` carried `# pragma: no cover` at da0c2a60 even though this test runs it. 6a06f0cd removed the pragma.
+
+Suggested: run the cases through the console script with a platform override for endpoint resolution (the runtime-directory test hooks already pass `platform`). Or record the exception in ADR-1172, as ADR-1261 section 9 does for the write-then-confirm fixture.
+<!-- sq:finding:F64:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F64:discussion -->
+<!-- sq:finding:F64:discussion:end -->
+<!-- sq:finding:F64:end -->
+
+<!-- sq:finding:F65 -->
+### F65 — test_remote_refusals describes a CLI path that no longer exists
+
+<!-- sq:finding:F65:body -->
+`tests/daemon/test_remote_refusals.py` is unchanged by TASK-1264. Its docstring still reads "What the CLI prints when the daemon refuses a client for its schema or its vocabulary: whole stderr and exit code, nothing run and no fall back to local mode". After ADR-1261 point 8 the CLI never selects `HttpApi` and never sends a vocabulary hash. Those refusals reach a CLI process only when a harness hands it an `HttpApi`, as the route-parity job does. In production they reach the terminal UI. The test's subject has moved, but its description has not.
+
+TASK-1264 ST6 asked for a line in the handback for each test whose subject was the CLI's own selection, saying whether it was re-homed or retired, and named this file. The handbacks (ff30a54, 692517e) give a line for the retired `select-an-api` fixture and its test, but none for this file.
+
+Suggested: reword the docstring for the subject it now holds (an `HttpApi` client's refusal text, which the terminal UI shows), or move the file next to the route-parity tests, and record the disposition on TASK-1264.
+<!-- sq:finding:F65:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F65:discussion -->
+<!-- sq:finding:F65:discussion:end -->
+<!-- sq:finding:F65:end -->
+
+<!-- sq:finding:F66 -->
+### F66 — CHANGELOG and docs/daemon.md describe the pre-shim remote mode
+
+<!-- sq:finding:F66:body -->
+The adopter-facing text describes remote mode as it was before the shim. The CHANGELOG [0.19.0] daemon entry (Added, "The daemon: a long-lived process...") at da0c2a60 says:
+
+- "The CLI still parses and prints in your own process, so the output and the exit code are the same as in local mode". Now the daemon parses and renders. Parity rests on the sent terminal facts and environment.
+- "A command that calls no operation (`--help`, `--version`, completion, `docs`, `migrate help`, `migrate chlog`) ... never start or contact one". Now `--help`, completion, `docs` and `migrate help`/`chlog` are sent and start a daemon. Only a bare `--version` and the local-only commands do not.
+- "`waiting for the daemon (squad.repair)…` (the operation's name)". The shim prints the command path (F62).
+- The HTTP API entry: "A client at another schema version, or that parsed with another workflow vocabulary, is refused ..., and the CLI names the remedy". The CLI no longer sends a vocabulary hash; only the terminal UI and other route clients do.
+- The `[daemon]` entry: an unusable value "puts every command in local mode without a word on stderr". The shim now prints `warning: <problem>` before running locally.
+- Not mentioned anywhere: `--install-completion` and `--show-completion` always run locally, and a file the shim cannot read runs the command locally.
+
+`docs/daemon.md` § "Remote mode and local mode" says the same things: "The CLI parses your command line and prints the result in your own process in both modes"; "The mode is chosen at the first operation a command calls, so a command that calls none never starts or contacts a daemon ... `sq --help`, ..., shell completion, `sq docs`". In § "When the daemon cannot be used", "This is the only case where a command is handed to local mode after its request reached the daemon" is false now: a daemon lost between the two phases of a prompt also hands the command to local mode (ADR-1261 point 5).
+
+The 0.19 release is not cut yet, so the entry and the guide can be rewritten as they stand. The developer's handback (ff30a54) flagged `docs/daemon.md` for the writer.
+<!-- sq:finding:F66:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F66:discussion -->
+<!-- sq:finding:F66:discussion:end -->
+<!-- sq:finding:F66:end -->
+
+<!-- sq:finding:F67 -->
+### F67 — bump_version step 4 gives a stale reason for uv sync
+
+<!-- sq:finding:F67:body -->
+The module docstring of `scripts/bump_version.py` at da0c2a60 still lists step 4 as "``uv sync --all-extras`` so ``squads.__version__`` reflects the bump." `__version__` is now a literal that step 2 rewrites. `uv sync` refreshes the installed distribution's metadata, which nothing on the client path reads any more. The step stays useful, but its stated reason is false.
+
+Checked and fine: `set_init_version` rewrites the one `__version__ = "..."` line and refuses a module without one; `tests/meta/test_release_version_bump_script.py` covers it; `tests/meta/test_the_package_version_equals_the_project_version.py` holds the literal equal to `pyproject.toml` (`0.19.0` = `0.19.0`); `version_line()` prints the literal.
+<!-- sq:finding:F67:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F67:discussion -->
+<!-- sq:finding:F67:discussion:end -->
+<!-- sq:finding:F67:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1776,4 +2055,13 @@ No behaviour is at stake. The text should say what the code does: the replacemen
     - Verdict TASK-1263: not approved yet. Only F45 (low, test-only) is left; approve once it is fixed.
     - Verdict TASK-1262: not approved yet. All three medium findings are verified. F51 and F52 (low, both small) are left; approve once they are fixed. F56 is text only and does not block.
     @python-dev F45, F51, F52. @architect F56. @manager
+- [2026-10-30T22:55:22Z] `reviewer` Paul Reviewer:
+  - TASK-1264 reviewed, commits 09be06c5..da0c2a60. Findings F57-F67.
+    
+    - Byte parity holds. I ran 37 read cases on an export of da0c2a60 against a copy of this squad under `~/.cache`, piped and under a pseudo-terminal at 80, 100 and 120 columns, with `NO_COLOR`, `FORCE_COLOR`, `COLUMNS`, `PY_COLORS` and `TERMINAL_WIDTH`, plus bash, zsh and fish completion, `-C` and a bad `-C`. All were identical. Writes, `--file`, `--file=`, `--file -` with CRLF, a missing, directory or non-UTF-8 file, `import`, and prompts (declined, end of input, invalid then no, confirmed, `--json`) were also identical, compared on two copies. Item state was equal except for `updated_at`. The one gap is Ctrl-C at a prompt (F60).
+    - Fall back: the boundary in code is correct. `sent` is set only after `sendall` returns, a prompt-phase loss runs the command locally from the start, and the no-replay mutant reddens its test. The 503 retiring path is untested: its mutant survives (F58).
+    - Import guard: a `typing` import planted at the top of the module reddens it, but a third-party import on the prompt path passes (F59). Version literal, bump script and guard agree. `SQUADS_SPANS` and `SQUADS_DAEMON` are absent from a spawned daemon's `/proc` environment. A client without `SQUADS_SPANS` gets no span lines.
+    - Budget: 15 interleaved rounds here at load 5.3 gave show 40 ms (38-46), `list --json` 45 ms, bash Tab 44 ms.
+    - Windows was reasoned, not run: F57 (fixed at HEAD), F63.
+    - Verdict: approve with fixes. Nothing high is open. F58-F65 and F67 go to @python-dev. F66 goes to @tech-writer and must land before the 0.19 cut.
 <!-- sq:discussion:end -->
