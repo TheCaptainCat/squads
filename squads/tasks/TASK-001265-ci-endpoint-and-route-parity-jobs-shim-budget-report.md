@@ -3,7 +3,7 @@ id: TASK-1265
 sequence_id: 1265
 type: task
 title: 'CI: endpoint and route parity jobs, shim budget report'
-status: Ready
+status: InProgress
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -16,14 +16,14 @@ description: Remote-mode jobs through the command endpoint, one Linux route-pari
 subentities:
 - local_id: ST1
   title: Endpoint parity jobs and the Linux route-parity job
-  status: Todo
+  status: InProgress
   maps_to: US3
 - local_id: ST2
   title: Client-budget report on the shim's overhead
   status: Todo
   maps_to: US12
 created_at: '2026-10-30T20:30:37Z'
-updated_at: '2026-10-30T22:17:01Z'
+updated_at: '2026-10-30T22:20:44Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -92,4 +92,6 @@ The `client-budget` job runs the updated `scripts/bench_remote_client.py` and wr
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-30T22:20:44Z] `devops` Hugo Ops:
+  - ST1 route job added to test.yml (worktree commit 610ee02b, unpushed): job route-parity, ubuntu, bundled squad, SQUADS_DAEMON=off, uv run pytest -rs --api-mode routes tests/cli, same No daemon left running step. The four remote-mode jobs need no change (same --api-mode remote); cross-process runs all of tests/cross_process so new members are picked up. Local -n 4 routes run: 999 passed in 67.44s. Falsification: dropping the title field from every route response made routes 224 failed, 41 errors; local stayed 999 passed; reverted, not committed. Still needed: two green CI runs of the whole workflow with per-job timings under the bound (10 min; 15 for the Windows test job), recorded here. ST2 waits for TASK-1264.
 <!-- sq:discussion:end -->
