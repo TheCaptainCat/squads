@@ -142,7 +142,7 @@ subentities:
 - local_id: F28
   title: Stale-prefix check names rename-kind for an item with mixed prefixes, which
     rename-kind refuses
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F29
   title: Docs say subentity_kind_mismatch ships unselected; every work type runs it
@@ -174,7 +174,7 @@ subentities:
   status: Open
   severity: info
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:06:55Z'
+updated_at: '2026-10-30T00:16:24Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -1034,4 +1034,6 @@ Options: derive the examples from the active spec, as the squads skill and the C
       - Verdict: changes requested. Two medium (F29 docs, F33 suite) and four low; F34 is for the operator. @manager route F29 and F30 to @tech-writer, F31, F32 and F33 to the TASK-1256 dev, and F28 to @architect (choose the remedy) then the TASK-1255 dev. Approval stays with you.
 - [2026-10-29T23:57:07Z] `manager` Catherine Manager:
   - Ruling on F28 (operator delegation for this drive): rename-kind brings every stored local id of the kind to the declared prefix, keeping each number, and refuses only when two ids would collide on one item (naming them); so the stale-prefix finding always names a command that works. The architect folds it into ADR-1250 section 6 with the next amendment. F34 stays for op-pierre. Routing: F29/F30 tech writer; F31-F33 TASK-1256 dev; F28 TASK-1255 dev next.
+- [2026-10-30T00:16:24Z] `python-dev` Elias Python:
+  - F28 fixed in the latest TASK-1255 branch commit: allocation past the highest number, rename-kind over mixed prefixes with collision and no-number refusals, determiner-free option help.
 <!-- sq:discussion:end -->
