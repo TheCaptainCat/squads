@@ -265,6 +265,7 @@ _cli -> _workflow top
 _cli -> squads top
 _clock -> _context top
 _context -> _api typing
+_context -> _parse_cache typing
 _context -> _spec_documents typing
 _context -> _workflow typing
 _daemon -> _api top
@@ -272,6 +273,7 @@ _daemon -> _clock top
 _daemon -> _endpoint top
 _daemon -> _errors top
 _daemon -> _models top
+_daemon -> _parse_cache top
 _daemon -> _services top
 _daemon -> _spec_documents top
 _daemon -> squads top
@@ -308,6 +310,7 @@ _interactions -> _specmerge top
 _interactions -> _workflow top
 _interactions -> squads local
 _itemfile -> _aio top
+_itemfile -> _context top
 _itemfile -> _errors top
 _itemfile -> _models top
 _itemfile -> _sections top
@@ -405,6 +408,7 @@ _services -> _migrations top
 _services -> _models top
 _services -> _overrides local
 _services -> _overrides top
+_services -> _parse_cache top
 _services -> _paths top
 _services -> _pronouns top
 _services -> _rendering local
@@ -463,6 +467,7 @@ _views -> _roles top
 _views -> _sections top
 _views -> _transform top
 _views -> _workflow top
+_workflow -> _context local
 _workflow -> _errors local
 _workflow -> _errors top
 _workflow -> _models local

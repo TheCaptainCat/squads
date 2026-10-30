@@ -23,6 +23,7 @@ from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsE
 from squads._index._store import IndexStore
 from squads._language import DEFAULT_WORKING_LANGUAGE
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
+from squads._parse_cache import ParseCache
 from squads._paths import SquadPaths, load_config, process_dir
 from squads._roles._catalog import resolve_roles
 from squads._services._board import BoardMixin
@@ -364,8 +365,15 @@ class RequestScope:
     variable, builds no console and reads neither the process's directory nor its environment for
     a value a header carries."""
 
-    def __init__(self, root: Path, squad_dir: Path, sources: SpecSources) -> None:
+    def __init__(
+        self,
+        root: Path,
+        squad_dir: Path,
+        sources: SpecSources,
+        parse_cache: ParseCache | None = None,
+    ) -> None:
         self._root = root
+        self._parse_cache = parse_cache
         self._squad_dir = squad_dir
         self._lock = asyncio.Lock()
         self._spec: WorkflowSpec | None = None
@@ -392,6 +400,8 @@ class RequestScope:
     def _context(self, meta: RequestMetadata, *, conditional: bool) -> RequestContext:
         """The context for a request declaring *meta*; *conditional* says whether its
         ``If-Match`` is compared."""
+        # The override check below reads through the request's parse cache.
+        bind_context(RequestContext(parse_cache=self._parse_cache))
         at = None
         if meta.at is not None:
             try:
@@ -417,6 +427,7 @@ class RequestScope:
             start_dir=start,
             notices=NoticeLog(),
             preconditions=Preconditions(meta.if_match if conditional else None),
+            parse_cache=self._parse_cache,
         )
 
     async def _bound[T](

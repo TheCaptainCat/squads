@@ -70,7 +70,7 @@ class Application:
         self.state = state
         self.retiring = retirement_check
         self.vocabulary: VocabularyHash = state.sources.vocabulary()
-        self.scope = RequestScope(state.root, state.squad_dir, state.sources)
+        self.scope = RequestScope(state.root, state.squad_dir, state.sources, state.parse_cache)
         self.api = LocalApi(sources=lambda _squad_dir: state.sources)
 
     def identity(self) -> DaemonIdentity:

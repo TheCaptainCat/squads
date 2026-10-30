@@ -1628,26 +1628,43 @@ def _read_raw_override(
         return {}, (str(exc), exc.fix_hint or "")
 
 
+def _read_index_text(squad_dir: Path) -> str | None:
+    """The text of the squad's index, or ``None`` when it is absent or unreadable."""
+    index_path = squad_dir / ".squads.json"
+    if not index_path.is_file():
+        return None
+    try:
+        return index_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def _parse_index(squad_dir: Path, raw: str) -> Any:
+    """The index parsed from *raw*, through the daemon's parse cache when the request has one, or
+    ``None`` when it does not parse (lint cannot cross-check a corrupt one)."""
+    from squads._context import get_context
+    from squads._models._index import SquadsDB
+
+    def parse() -> SquadsDB:
+        return SquadsDB.model_validate_json(raw)
+
+    cache = get_context().parse_cache
+    try:
+        if cache is None:
+            return parse()
+        return cache.index(str(squad_dir / ".squads.json"), raw, parse)
+    except Exception:
+        return None
+
+
 def _load_index_sync(squad_dir: Path) -> Any:
     """Read and parse the squad index synchronously, returning a ``SquadsDB``-like object (with
     ``.items``) or ``None`` if absent or unreadable; it spares ``lint_workflow_spec`` the async
     ``store.load()``. It bypasses ``_validate_item_vocab`` on purpose, since lint must see items
     with unknown statuses or types to report them.
     """
-    from squads._models._index import SquadsDB
-
-    index_path = squad_dir / ".squads.json"
-    if not index_path.is_file():
-        return None
-    try:
-        raw = index_path.read_text(encoding="utf-8")
-        try:
-            return SquadsDB.model_validate_json(raw)
-        except Exception:
-            # Corrupt index — return None; lint can't cross-check.
-            return None
-    except OSError:
-        return None
+    raw = _read_index_text(squad_dir)
+    return None if raw is None else _parse_index(squad_dir, raw)
 
 
 # ---------------------------------------------------------------------------
@@ -1667,16 +1684,32 @@ def validate_against_index_fail_closed(
     a no-op if the index is absent, empty or unreadable, and lint calls ``lint_workflow_spec``
     instead, which reports without aborting.
     """
-    db = _load_index_sync(squad_dir)
+    from squads._context import get_context
+
+    raw = _read_index_text(squad_dir)
+    if raw is None:
+        return
+    cache = get_context().parse_cache
+    digest = cache.digest(raw) if cache is not None else b""
+    if cache is not None:
+        known, refusal = cache.checked(digest, spec, bundled)
+        if known:
+            if refusal is not None:
+                raise SquadsError(refusal)
+            return
+    db = _parse_index(squad_dir, raw)
     if db is None:
         return
 
     errors = validate_against_index(spec, db, bundled=bundled)
-    if not errors:
-        return
-
-    bullet_list = "\n".join(f"  - {e}" for e in errors)
-    raise SquadsError(
-        f"workflow spec is incompatible with the live index — "
-        f"run `sq workflow lint` to see details:\n{bullet_list}"
-    )
+    refusal = None
+    if errors:
+        bullet_list = "\n".join(f"  - {e}" for e in errors)
+        refusal = (
+            f"workflow spec is incompatible with the live index — "
+            f"run `sq workflow lint` to see details:\n{bullet_list}"
+        )
+    if cache is not None:
+        cache.keep_check(digest, spec, bundled, refusal)
+    if refusal is not None:
+        raise SquadsError(refusal)

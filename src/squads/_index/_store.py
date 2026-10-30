@@ -386,7 +386,7 @@ class IndexStore:
     def exists(self) -> bool:
         return self.index_path.is_file()
 
-    async def _read_from_disk(self, *, validate_vocab: bool) -> SquadsDB:
+    async def _read_from_disk(self, *, validate_vocab: bool, cached: bool = False) -> SquadsDB:
         """Read and validate the index straight from disk: the one implementation behind
         :meth:`load` (the scope-aware wrapper) and :meth:`transaction` (which must never consult or
         fill the read scope). A
@@ -394,11 +394,18 @@ class IndexStore:
         a number (invariant 2 keeps allocation inside ``transaction()``). ``validate_vocab=False``
         skips only the semantic checks and is passed solely by ``sq repair``'s pre-rebuild read, to
         recover the prior counter and corpus after vocab drift; a structurally unreadable index
-        raises either way.
+        raises either way. *cached* lets a daemon's parse cache skip the parse of text it has
+        already parsed; the file is read either way.
         """
         try:
             raw = await _aio.read_text(self.index_path)
-            db = SquadsDB.model_validate_json(raw)
+            cache = get_context().parse_cache if cached else None
+            if cache is None:
+                db = SquadsDB.model_validate_json(raw)
+            else:
+                db = cache.index(
+                    str(self.index_path), raw, lambda: SquadsDB.model_validate_json(raw)
+                )
         except FileNotFoundError as exc:
             # No index on disk is a different story from a corrupt one (fresh clone of a gitignored
             # index, wrong directory, half-finished adopt) but the same cause and remedy, so the
@@ -434,14 +441,14 @@ class IndexStore:
         fail-closed check, and ``fresh`` callers (``_confirm_cross_source``) need a real re-read.
         """
         if not validate_vocab or fresh:
-            return await self._read_from_disk(validate_vocab=validate_vocab)
+            return await self._read_from_disk(validate_vocab=validate_vocab, cached=True)
         scope = _read_scope.get()
         if scope is None:
-            return await self._read_from_disk(validate_vocab=True)
+            return await self._read_from_disk(validate_vocab=True, cached=True)
         cached = scope.snapshots.get(self)
         if cached is not None:
             return cached
-        db = await self._read_from_disk(validate_vocab=True)
+        db = await self._read_from_disk(validate_vocab=True, cached=True)
         scope.snapshots[self] = db
         return db
 

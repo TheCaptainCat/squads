@@ -1603,12 +1603,23 @@ class ServiceCore:
         return SelfRemedied(f"{msg}; {remedy}") if remedy else msg
 
     # ------------------------------------------------------------------ scan helpers
-    def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
+    def _iter_item_files(self, *, reads_frontmatter: bool = False) -> Iterator[tuple[str, Path]]:
         """Yield (item_type, markdown path) for every item file, for every type the active spec
         declares in ``ItemSpec.order`` then type name, which fixes the scan order collision
         resolution relies on. Skill files match the ``PREFIX-*.md`` glob and legacy slug-named files
-        are yielded too, for the repair/check callers to skip when they lack an ``id``.
+        are yielded too, for the repair/check callers to skip when they lack an ``id``. A walk
+        that reads every file's frontmatter (*reads_frontmatter*) and reaches its end tells the
+        daemon's parse cache which item files exist.
         """
+        cache = get_context().parse_cache if reads_frontmatter else None
+        if cache is not None:
+            cache.begin_scan()
+        yield from self._walk_item_files()
+        if cache is not None:
+            cache.end_scan()
+
+    def _walk_item_files(self) -> Iterator[tuple[str, Path]]:
+        """The walk :meth:`_iter_item_files` brackets."""
         for item_type, ts, folder in self._type_folders():
             prefix = ts.prefix
             if item_type == ROSTER_SKILL:

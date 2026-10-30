@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from squads._parse_cache import ParseCache
 from squads._spec_documents import SpecSources
 
 #: Whether the daemon's configuration has changed since it started, so it must answer
@@ -44,6 +45,8 @@ class DaemonState:
     started_at: datetime
     #: The documents the daemon loaded at start; what it serves is read from them.
     sources: SpecSources
+    #: The parsed files kept across requests; dropping it changes nothing but time.
+    parse_cache: ParseCache = field(default_factory=ParseCache)
     listeners: list[Listener] = field(default_factory=list[Listener])
     idle_deadline: Callable[[], datetime | None] = lambda: None
     stop: Callable[[], None] = lambda: None

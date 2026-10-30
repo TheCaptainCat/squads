@@ -23,10 +23,12 @@ from pathlib import Path
 from typing import Any
 
 from squads import _aio
+from squads._context import get_context
 from squads._errors import SquadsError
 from squads._models._item import INVENTED_WHEN_ABSENT, Item
 from squads._sections import (
     conform_line_endings,
+    frontmatter_block_end,
     join_frontmatter,
     replace_frontmatter,
     split_frontmatter,
@@ -46,7 +48,12 @@ def read_frontmatter(
         if path is None:
             raise ValueError("read_frontmatter requires a path or text")
         text = path.read_text(encoding="utf-8")
-    return split_frontmatter(text, source=source if source is not None else _label(path))[0]
+    label = source if source is not None else _label(path)
+    cache = get_context().parse_cache
+    end = frontmatter_block_end(text) if cache is not None and label else None
+    if cache is None or label is None or end is None:
+        return split_frontmatter(text, source=label)[0]
+    return cache.frontmatter(label, text[:end], lambda: split_frontmatter(text, source=label)[0])
 
 
 def _label(path: Path | None) -> str | None:

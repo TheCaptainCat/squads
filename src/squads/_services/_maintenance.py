@@ -1364,7 +1364,7 @@ class MaintenanceMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         skills = SkillScan()
         duplicated = await self._duplicated_files()
-        for item_type, md in self._iter_item_files():
+        for item_type, md in self._iter_item_files(reads_frontmatter=True):
             if md in duplicated:
                 max_n, max_filename_width = self._carry_duplicate(
                     db,
@@ -1686,7 +1686,7 @@ class MaintenanceMixin(ServiceCore):
 
     async def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []
-        for item_type, md in list(self._iter_item_files()):
+        for item_type, md in list(self._iter_item_files(reads_frontmatter=True)):
             try:
                 text = await _aio.read_text(md)
             except FileNotFoundError as exc:

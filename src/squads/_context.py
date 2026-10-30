@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from rich.console import Console
 
     from squads._api._api import Api
+    from squads._parse_cache import ParseCache
 
     # _context sits below _clock/_actor; _workflow._models and _spec_documents sit above them,
     # and a runtime import here would cycle back to this module mid-init, so they are type-only.
@@ -133,6 +134,8 @@ class RequestContext:
     notices: NoticeLog | None = None
     #: The ``If-Match`` a write compares and the ETag it leaves; ``None`` outside a daemon request.
     preconditions: Preconditions | None = None
+    #: The daemon's cache of parsed files; ``None`` in every other process.
+    parse_cache: ParseCache | None = None
 
 
 _DEFAULT_CONTEXT = RequestContext()
