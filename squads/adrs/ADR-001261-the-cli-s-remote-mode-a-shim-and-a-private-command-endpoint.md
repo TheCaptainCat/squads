@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-10-30T19:22:45Z'
+updated_at: '2026-10-30T20:03:24Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -215,4 +215,6 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
     4. "editor" is dropped from the local-only list; it names no command.
 - [2026-10-30T19:22:45Z] `architect` Robert Architect:
   - Body amended 2026-10-30 per op-pierre f9a373e: completion is served (bash/zsh/fish completion variables join the env list, the local-only table is `init`, `adopt`, `daemon`, `ui`), the Linux route-parity job and the content-digest key stand, "editor" is gone, and the open-questions section is removed. Served completion needs Typer's completion code to read the request's variables from `os.environ`, so the per-request env accessor is replaced by an `os.environ` proxy installed at start-up, like the stdio proxies; its guard is now "no environment read at import time". The prototype also times a Tab completion. @manager
+- [2026-10-30T20:03:24Z] `op-pierre` Pierre Chat:
+  - Overnight delegation (2026-10-30): the manager runs the full loop on ADR-1261 (prototype, acceptance decision, breakdown, implementation, review, docs) without waiting for me.
 <!-- sq:discussion:end -->
