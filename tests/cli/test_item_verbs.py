@@ -1297,7 +1297,8 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 
 @pytest.mark.covers("<type> view add", "name")
 @pytest.mark.bundled_only(
-    "an override cannot declare a view over its own transform without a template, so none is placeable here"
+    "an override cannot declare a view over its own transform without a template, "
+    "so none is placeable here"
 )
 async def test_view_add_places_the_declared_view_in_the_body(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
@@ -1318,7 +1319,8 @@ async def test_view_add_refuses_a_name_no_view_declares(populated_project, invok
 
 @pytest.mark.covers("<type> view disable", "name")
 @pytest.mark.bundled_only(
-    "an override cannot declare a view over its own transform without a template, so none is placeable here"
+    "an override cannot declare a view over its own transform without a template, "
+    "so none is placeable here"
 )
 async def test_view_disable_stops_showing_the_view(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
@@ -1329,7 +1331,8 @@ async def test_view_disable_stops_showing_the_view(populated_project, invoke) ->
 
 @pytest.mark.covers("<type> view add", "--as")
 @pytest.mark.bundled_only(
-    "an override cannot declare a view over its own transform without a template, so none is placeable here"
+    "an override cannot declare a view over its own transform without a template, "
+    "so none is placeable here"
 )
 async def test_view_add_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup", "--as", "manager"])
@@ -1344,7 +1347,8 @@ async def test_view_add_refuses_an_actor_no_roster_entry_has(populated_project, 
 
 @pytest.mark.covers("<type> view disable", "--as")
 @pytest.mark.bundled_only(
-    "an override cannot declare a view over its own transform without a template, so none is placeable here"
+    "an override cannot declare a view over its own transform without a template, "
+    "so none is placeable here"
 )
 async def test_view_disable_attributes_the_edit_to_the_named_slug(
     populated_project, invoke

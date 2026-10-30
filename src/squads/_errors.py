@@ -99,7 +99,7 @@ class IndexFullError(SquadsError):
 
 
 #: The errors a file system answers when it has no file locks at all.
-_NO_FILE_LOCKS = frozenset({errno.ENOSYS, errno.ENOLCK, errno.EOPNOTSUPP})
+_NO_FILE_LOCKS = frozenset({errno.ENOSYS, errno.ENOLCK, errno.EOPNOTSUPP, errno.ENOTSUP})
 
 
 class IndexLockUnavailableError(SquadsError):
@@ -114,7 +114,7 @@ class IndexLockUnavailableError(SquadsError):
                 "move the squad to one that does"
             )
         else:
-            message = f"cannot take the index lock {lock_path}: {reason}; nothing was written"
+            message = f"cannot take the index lock {lock_path}: {reason}"
         super().__init__(message)
         self.lock_path = lock_path
 

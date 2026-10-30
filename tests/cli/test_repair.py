@@ -287,7 +287,6 @@ async def test_repair_with_a_lock_file_it_cannot_open_does_not_blame_the_file_sy
     result = await invoke(["repair"])
     assert (result.exit_code, result.output) == (
         1,
-        f"error: cannot take the index lock {populated_project.lock_path}: Permission denied; "
-        "nothing was written\n",
+        f"error: cannot take the index lock {populated_project.lock_path}: Permission denied\n",
     )
     assert (await invoke(["list", "--json"])).output == before
