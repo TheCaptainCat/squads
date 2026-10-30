@@ -57,7 +57,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T08:06:41Z'
+updated_at: '2026-10-30T19:06:19Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -522,4 +522,11 @@ Done when:
     - (5) `click` joins the client import guard, with the reason in ADR-1225 section 5: uvicorn installs the real package beside `typer._click`. TASK-1219 adds it to the guard list.
 - [2026-10-30T00:41:00Z] `manager` Catherine Manager:
   - Ruling under the operator delegation (2026-10-30): the remote-mode parity run also covers the override squad, as one more ubuntu job. Recorded in ADR-1172 by the architect.
+- [2026-10-30T19:06:19Z] `op-pierre` Pierre Chat:
+  - Daemon direction (2026-10-30), after the benchmark recorded on TASK-1219 (gain 1.0-1.3x, client ~450 ms of which ~236 ms imports):
+    - The CLI gets a new remote mode: one private command endpoint (argv, cwd, -C, a fixed env list, terminal facts, file attachments in; stdout, stderr, exit code out). The daemon runs the same Typer app in process, and its commands call the daemon's own operations directly through LocalApi: no fork, no subprocess, no network call to itself. Rendering happens in the daemon.
+    - HttpApi stays, for the TUI. The resource routes stay the public API for every other client.
+    - The TASK-1217 attachment system comes back (attachments keyed by the argument as written, an unattached path refused), with needs_terminal for prompts.
+    - If the daemon does not answer before the request is sent, the CLI switches entirely to local mode. After the request is sent, nothing is replayed.
+    - The daemon keeps a cache of parsed files, validated against the files on disk (stat per file, under the read lock); the cache is never a source of truth.
 <!-- sq:discussion:end -->
