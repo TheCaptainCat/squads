@@ -55,10 +55,12 @@ def build_http_api(
     *,
     local: Callable[[], Api] | None,
     vocabulary: Callable[[], VocabularyHash] | None = None,
+    restart: Callable[[], bool] | None = None,
 ) -> HttpApi:
     """The ``HttpApi`` of this invocation for the daemon of *endpoint*, falling back to *local*
     for what the daemon does not serve or declines. *vocabulary* is the hash of the documents the
-    command was parsed with; by default the checkout's own."""
+    command was parsed with; by default the checkout's own. *restart* starts the daemon again when
+    it has gone, for a squad that has a local mode."""
 
     def connect(timeout: float) -> http.client.HTTPConnection | None:
         return connection(endpoint, read_record(endpoint), timeout)
@@ -76,15 +78,6 @@ def build_http_api(
             lambda timeout: connection(fresh, read_record(fresh), timeout),
             endpoint_name(fresh),
         )
-
-    def restart() -> bool:
-        """The daemon is gone (stopped, idle, retired): start it again, or say why not."""
-        from squads._daemon_start import ensure, failure_line
-
-        reason = ensure(endpoint)
-        if reason is not None:
-            common.err_console.print(common.e(failure_line(reason)), soft_wrap=True)
-        return reason is None
 
     return HttpApi(
         connect=connect,

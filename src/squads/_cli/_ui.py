@@ -2,7 +2,7 @@
 
 from squads._api._api import Api
 from squads._cli import app
-from squads._cli._calls import select_api
+from squads._cli._calls import session_api
 from squads._cli._common import handle_errors
 from squads._context import get_context
 from squads._errors import SquadsError
@@ -24,11 +24,7 @@ def ui() -> None:
     ctx = get_context()
 
     def selector() -> Api:
-        api = ctx.api or select_api(ctx.client_cwd)
-        reselect = getattr(api, "reselect", None)
-        if reselect is not None:
-            reselect()
-        return api
+        return session_api(ctx.api, ctx.client_cwd)
 
     import asyncio
 

@@ -12,6 +12,7 @@ from squads._api._api import Api, Operation
 from squads._api._response import Response
 from squads._cli import _common as common
 from squads._context import get_context
+from squads._endpoint import Endpoint
 
 
 def local_api() -> Api:
@@ -20,6 +21,10 @@ def local_api() -> Api:
     from squads._services._local_api import LocalApi
 
     return LocalApi(sources=common.invocation_sources)
+
+
+#: Seconds a failed daemon start is not tried again within one invocation.
+RETRY_AFTER = 30.0
 
 
 class SelectedApi:
@@ -33,6 +38,50 @@ class SelectedApi:
         self._chosen: Api | None = None
         #: Whether this process answers because a daemon could not be had, rather than by choice.
         self._by_default = False
+        #: When a daemon last failed to start, so the next try waits (``time.monotonic``).
+        self._failed_at: float | None = None
+        #: The lines already said, so a reason is said once per invocation.
+        self._said: set[str] = set()
+
+    def _say(self, line: str) -> None:
+        if line not in self._said:
+            self._said.add(line)
+            common.err_console.print(common.e(line), soft_wrap=True)
+
+    def _start(self, endpoint: Endpoint) -> bool:
+        """Have a daemon of *endpoint* serve, starting one unless a start failed less than
+        :data:`RETRY_AFTER` seconds ago; a failure is said once per reason."""
+        import time
+
+        from squads._daemon_start import ensure, failure_line
+
+        if self._failed_at is not None and time.monotonic() - self._failed_at < RETRY_AFTER:
+            return False
+        reason = ensure(endpoint)
+        if reason is None:
+            self._failed_at = None
+            return True
+        self._failed_at = time.monotonic()
+        self._say(failure_line(reason))
+        return False
+
+    def _usable(self, endpoint: Endpoint | None) -> bool:
+        """Whether the squad's settings, read now, let a daemon be used; an unusable setting is
+        said once."""
+        if endpoint is None:
+            return False
+        if not endpoint.enabled:
+            for problem in endpoint.problems:
+                self._say(f"warning: {problem}")
+        return endpoint.enabled
+
+    def _restart(self) -> bool:
+        """The daemon has gone (stopped, idle, retired): start it again under the settings as they
+        are now, so a switch turned off meanwhile keeps it off."""
+        from squads._endpoint import endpoint_for
+
+        endpoint = endpoint_for(self._client_cwd or common.process_dir())
+        return self._usable(endpoint) and endpoint is not None and self._start(endpoint)
 
     def reselect(self) -> None:
         """Forget a choice of this process that was made for want of a daemon, so the next call
@@ -55,23 +104,14 @@ class SelectedApi:
         from squads._endpoint import endpoint_for
 
         endpoint = endpoint_for(self._client_cwd or common.process_dir())
-        if endpoint is None:
+        if not self._usable(endpoint) or endpoint is None:
             return local_api()
-        if not endpoint.enabled:
-            # An unusable setting, unlike a switch that is off, is said once, then local mode.
-            for problem in endpoint.problems:
-                common.err_console.print(common.e(f"warning: {problem}"), soft_wrap=True)
-            return local_api()
-        from squads._daemon_start import ensure, failure_line
-
-        reason = ensure(endpoint)
-        if reason is not None:
-            common.err_console.print(common.e(failure_line(reason)), soft_wrap=True)
+        if not self._start(endpoint):
             self._by_default = True
             return local_api()
         from squads._cli._remote import build_http_api
 
-        return build_http_api(endpoint, local=local_api)
+        return build_http_api(endpoint, local=local_api, restart=self._restart)
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
         if op.local_only:
@@ -91,6 +131,16 @@ class SelectedApi:
         import asyncio
 
         return asyncio.run(self.call(op, req))
+
+
+def session_api(prior: Api | None, client_cwd: Path | None = None) -> Api:
+    """The API the next call of a long session goes through: the invocation's, looking for a daemon
+    again when the last choice was made for want of one."""
+    api = invocation_api(prior, client_cwd)
+    reselect = getattr(api, "reselect", None)
+    if reselect is not None:
+        reselect()
+    return api
 
 
 def select_api(client_cwd: Path | None = None) -> Api:
