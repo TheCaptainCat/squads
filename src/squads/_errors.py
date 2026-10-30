@@ -1,5 +1,6 @@
 """Exception hierarchy. CLI catches SquadsError and prints a clean message."""
 
+import errno
 from pathlib import Path
 
 
@@ -97,15 +98,24 @@ class IndexFullError(SquadsError):
         self.padding = padding
 
 
-class IndexLockUnavailableError(SquadsError):
-    """The file system cannot take the index lock, so the index cannot be guarded."""
+#: The errors a file system answers when it has no file locks at all.
+_NO_FILE_LOCKS = frozenset({errno.ENOSYS, errno.ENOLCK, errno.EOPNOTSUPP})
 
-    def __init__(self, lock_path: Path, reason: str) -> None:
-        super().__init__(
-            f"cannot take the index lock {lock_path}: {reason}; this file system does not "
-            "support file locks, so sq cannot guard the index there, "
-            "move the squad to one that does"
-        )
+
+class IndexLockUnavailableError(SquadsError):
+    """The index lock could not be taken for a reason other than another holder."""
+
+    def __init__(self, lock_path: Path, cause: OSError) -> None:
+        reason = cause.strerror or str(cause)
+        if cause.errno in _NO_FILE_LOCKS:
+            message = (
+                f"cannot take the index lock {lock_path}: {reason}; this file system does not "
+                "support file locks, so sq cannot guard the index there, "
+                "move the squad to one that does"
+            )
+        else:
+            message = f"cannot take the index lock {lock_path}: {reason}; nothing was written"
+        super().__init__(message)
         self.lock_path = lock_path
 
 

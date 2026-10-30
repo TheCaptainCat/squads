@@ -107,7 +107,8 @@ def test_a_writer_finding_the_lock_held_says_so_then_proceeds_on_release(project
         0,
         f"waiting for the index lock {project.lock_path}…\n",
     )
-    assert json.loads(result.stdout)["title"] == "After the wait"
+    created = json.loads(result.stdout)
+    assert (created["id"], created["title"]) == ("TASK-2", "After the wait")
     assert _titles(project) == ["After the wait"]
 
 
@@ -130,4 +131,6 @@ def test_a_holder_killed_hard_releases_the_lock(project, holder) -> None:
     process.wait()
     result = _run(_create(project, "After the kill"))
     assert (result.returncode, result.stderr) == (0, "")
+    created = json.loads(result.stdout)
+    assert (created["id"], created["title"]) == ("TASK-2", "After the kill")
     assert _titles(project) == ["After the kill"]

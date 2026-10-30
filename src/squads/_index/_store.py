@@ -350,7 +350,7 @@ class IndexStore:
         except Timeout:
             await self._acquire_after_notice(first)
         except OSError as exc:
-            raise IndexLockUnavailableError(self.lock_path, exc.strerror or str(exc)) from exc
+            raise IndexLockUnavailableError(self.lock_path, exc) from exc
 
     async def _acquire_after_notice(self, waited: float) -> None:
         """Say on stderr that the lock is being waited for, then wait out the timeout's rest."""
@@ -362,7 +362,7 @@ class IndexStore:
         except Timeout:
             raise IndexLockTimeoutError(self.lock_path) from None
         except OSError as exc:
-            raise IndexLockUnavailableError(self.lock_path, exc.strerror or str(exc)) from exc
+            raise IndexLockUnavailableError(self.lock_path, exc) from exc
 
     # ------------------------------------------------------------------ create / read
     def create_empty(self) -> SquadsDB:

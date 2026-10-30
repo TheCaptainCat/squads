@@ -1,8 +1,11 @@
 """`sq repair`: rebuilding the index from the item files, reporting what it found, and
 giving a shared number a new one on request."""
 
+import errno
 import json
+import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -250,3 +253,41 @@ async def test_renumber_json_names_the_moved_file_that_holds_a_reference(
             }
         ),
     )
+
+
+def _lock_refused(monkeypatch, code: int) -> None:
+    """Make taking the index lock fail with the system error *code*."""
+
+    def refuse(*_args: Any, **_kwargs: Any) -> None:
+        raise OSError(code, os.strerror(code))
+
+    monkeypatch.setattr("filelock.FileLock.acquire", refuse)
+
+
+@pytest.mark.covers("repair")
+async def test_repair_on_a_file_system_without_file_locks_names_the_lock(
+    populated_project, invoke, monkeypatch
+) -> None:
+    _lock_refused(monkeypatch, errno.ENOSYS)
+    result = await invoke(["repair"])
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: cannot take the index lock {populated_project.lock_path}: "
+        "Function not implemented; this file system does not support file locks, so sq cannot "
+        "guard the index there, move the squad to one that does\n",
+    )
+
+
+@pytest.mark.covers("repair")
+async def test_repair_with_a_lock_file_it_cannot_open_does_not_blame_the_file_system(
+    populated_project, invoke, monkeypatch
+) -> None:
+    _lock_refused(monkeypatch, errno.EACCES)
+    before = (await invoke(["list", "--json"])).output
+    result = await invoke(["repair"])
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: cannot take the index lock {populated_project.lock_path}: Permission denied; "
+        "nothing was written\n",
+    )
+    assert (await invoke(["list", "--json"])).output == before

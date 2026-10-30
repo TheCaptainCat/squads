@@ -1,9 +1,7 @@
 """`sq create <type>`: the title, the author, the parent, the attributes an item is created
 with, the body, and the options only some types carry."""
 
-import errno
 import json
-import os
 import re
 from typing import Any
 
@@ -441,20 +439,3 @@ async def test_create_help_lists_the_declared_options_before_help(override_proje
     ]
     created = await invoke(["create", "job", "Ship it", "--author", "manager", "--parent", "8"])
     assert created.exit_code == 0, created.output
-
-
-@pytest.mark.covers("create <type>", "--author")
-async def test_a_file_system_without_file_locks_is_refused_naming_the_lock(
-    project, invoke, monkeypatch
-) -> None:
-    def no_flock(*_args: Any, **_kwargs: Any) -> None:
-        raise OSError(errno.ENOSYS, os.strerror(errno.ENOSYS))
-
-    monkeypatch.setattr("filelock.FileLock.acquire", no_flock)
-    result = await invoke(["create", P.ref, "Index the corpus", "--author", "manager"])
-    assert (result.exit_code, result.output) == (
-        1,
-        f"error: cannot take the index lock {project.lock_path}: Function not implemented; "
-        "this file system does not support file locks, so sq cannot guard the index there, "
-        "move the squad to one that does\n",
-    )
