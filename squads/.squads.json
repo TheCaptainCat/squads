@@ -63298,7 +63298,7 @@
         {
           "local_id": "F47",
           "title": "Click's cached stream wrapper fixes the first client's encoding for every later served command",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63309,7 +63309,7 @@
         {
           "local_id": "F48",
           "title": "A daemon started under SQUADS_SPANS still prints spans into every served command's stderr",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63320,7 +63320,7 @@
         {
           "local_id": "F49",
           "title": "Terminal facts (tty, size, windows_vt) and the end-of-input answer are untested; dropping them stays green",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63331,7 +63331,7 @@
         {
           "local_id": "F50",
           "title": "Served Typer help ignores PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH; private console patch sits outside install()",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63342,7 +63342,7 @@
         {
           "local_id": "F51",
           "title": "Windows: Rich picks the served colour system from the daemon's console, not the client's",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63353,7 +63353,7 @@
         {
           "local_id": "F52",
           "title": "The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth endpoint module",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63364,7 +63364,7 @@
         {
           "local_id": "F53",
           "title": "The endpoint parity harness builds a command tree per test, not once per session as ADR-1261 point 9 says",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63375,7 +63375,7 @@
         {
           "local_id": "F54",
           "title": "select_api refusal tested as an internal unit; endpoint file grew past the planned rows",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63397,7 +63397,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T21:55:37Z",
+      "updated_at": "2026-10-30T22:09:42Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65602,7 +65602,7 @@
       "subentities": [],
       "path": "agents/skills/SKILL-000508-releasing-squads.md",
       "created_at": "2026-07-20T12:32:09Z",
-      "updated_at": "2026-10-29T12:06:58Z",
+      "updated_at": "2026-10-30T22:07:42Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -65959,7 +65959,7 @@
       ],
       "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
       "created_at": "2026-10-30T20:30:30Z",
-      "updated_at": "2026-10-30T21:42:40Z",
+      "updated_at": "2026-10-30T22:09:43Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

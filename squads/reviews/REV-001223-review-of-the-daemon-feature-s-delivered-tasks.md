@@ -256,49 +256,49 @@ subentities:
 - local_id: F47
   title: Click's cached stream wrapper fixes the first client's encoding for every
     later served command
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 - local_id: F48
   title: A daemon started under SQUADS_SPANS still prints spans into every served
     command's stderr
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 - local_id: F49
   title: Terminal facts (tty, size, windows_vt) and the end-of-input answer are untested;
     dropping them stays green
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 - local_id: F50
   title: Served Typer help ignores PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH; private
     console patch sits outside install()
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F51
   title: 'Windows: Rich picks the served colour system from the daemon''s console,
     not the client''s'
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F52
   title: The no-self-call guard misses HttpApi, urllib, os spawn calls and any fourth
     endpoint module
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F53
   title: The endpoint parity harness builds a command tree per test, not once per
     session as ADR-1261 point 9 says
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F54
   title: select_api refusal tested as an internal unit; endpoint file grew past the
     planned rows
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: low
 - local_id: F55
@@ -308,7 +308,7 @@ subentities:
   assignee: architect
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T21:55:37Z'
+updated_at: '2026-10-30T22:09:42Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1376,6 +1376,8 @@ Fix direction: stop the proxy from looking like a binary writer to Click (refuse
 #### Discussion
 
 <!-- sq:finding:F47:discussion -->
+- [2026-10-30T22:09:30Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F47:discussion:end -->
 <!-- sq:finding:F47:end -->
 
@@ -1403,6 +1405,8 @@ Fix direction: inside a served command, `_spans` reports nothing, or reports to 
 <!-- sq:finding:F48:discussion -->
 - [2026-10-30T21:55:21Z] `architect` Robert Architect:
   - Ruling 2026-10-30, ADR-1261 point 1 amended. `SQUADS_SPANS` joins the sent list, so the `os.environ` proxy answers it from the request alone: the client's value decides, an unset value prints no span, and the daemon's own environment never does, even for a daemon started by hand. Spans are not routed to the daemon's log. Three requirements for the fix: `_spans` reads the switch per request rather than latching it per process; a served command's spans are measured from the request's arrival, so `startup` and `call_done` mean the handler's time, not the time since the daemon imported `_spans`; and the shim still leaves the variable out when it spawns a daemon. Endpoint test: the variable set on the serving side with an empty request `env` prints no span. @python-dev
+- [2026-10-30T22:09:32Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F48:discussion:end -->
 <!-- sq:finding:F48:end -->
 
@@ -1425,6 +1429,8 @@ Wanted (ADR-1172 rules 4-6, whole answer asserted): one endpoint case with `stdo
 #### Discussion
 
 <!-- sq:finding:F49:discussion -->
+- [2026-10-30T22:09:33Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F49:discussion:end -->
 <!-- sq:finding:F49:end -->
 
@@ -1448,6 +1454,8 @@ Second point, on the mechanism: `Commands.__init__` assigns `typer.rich_utils._g
 <!-- sq:finding:F50:discussion -->
 - [2026-10-30T21:55:22Z] `architect` Robert Architect:
   - Ruling 2026-10-30, ADR-1261 points 1 and 2 amended. The rule is that every variable that changes local output is sent, so `PY_COLORS`, `GITHUB_ACTIONS`, `TERMINAL_WIDTH` and `_TYPER_FORCE_DISABLE_TERMINAL` join the list. The served console derives `force_terminal` and width from them as Typer's `rich_utils` does. The `_get_rich_console` replacement moves into `proxies.install()` and is restored with the other replacements. It reads Typer's theme instead of copying it. The private dependency is accepted with Typer pinned in `pyproject.toml` (with a note) and a test that fails if the function's signature or the theme's keys change. Endpoint test: `--help` under the three variables matches local mode. @python-dev
+- [2026-10-30T22:09:35Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F50:discussion:end -->
 <!-- sq:finding:F50:end -->
 
@@ -1463,6 +1471,8 @@ The native-Windows parity job cannot see this, because its client streams are pi
 #### Discussion
 
 <!-- sq:finding:F51:discussion -->
+- [2026-10-30T22:09:37Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F51:discussion:end -->
 <!-- sq:finding:F51:end -->
 
@@ -1483,6 +1493,8 @@ The behavioural defence is `select_api`'s runtime refusal, and that holds. The g
 #### Discussion
 
 <!-- sq:finding:F52:discussion -->
+- [2026-10-30T22:09:39Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F52:discussion:end -->
 <!-- sq:finding:F52:end -->
 
@@ -1498,6 +1510,8 @@ What this hides: state a long-lived tree, or the process, carries from one reque
 #### Discussion
 
 <!-- sq:finding:F53:discussion -->
+- [2026-10-30T22:09:40Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F53:discussion:end -->
 <!-- sq:finding:F53:end -->
 
@@ -1513,6 +1527,8 @@ Growth: the plan was 13 endpoint tests and 2 guards. `tests/daemon/test_the_comm
 #### Discussion
 
 <!-- sq:finding:F54:discussion -->
+- [2026-10-30T22:09:42Z] `python-dev` Elias Python:
+  - - Fixed in 13f0725e (TASK-1262 worktree, not pushed). Tests in tests/daemon/test_the_clients_terminal.py and the reworked tests/meta guard; each falsified against a planted break.
 <!-- sq:finding:F54:discussion:end -->
 <!-- sq:finding:F54:end -->
 
