@@ -3,7 +3,7 @@ id: FEAT-1249
 sequence_id: 1249
 type: feature
 title: Bundled vocabulary fully overridable
-status: InProgress
+status: Done
 parent: EPIC-538
 author: product-owner
 refs:
@@ -17,36 +17,36 @@ description: Overrides rename or replace types, kinds and badge fields end to en
 subentities:
 - local_id: US1
   title: Badge-field options derived from the spec
-  status: InProgress
+  status: Done
 - local_id: US2
   title: Root aliases resolved from the active spec
-  status: InProgress
+  status: Done
 - local_id: US3
   title: Import fronts and selectors per declared kind
-  status: InProgress
+  status: Done
 - local_id: US4
   title: Sub-entity mapping named after the target kind
-  status: InProgress
+  status: Done
 - local_id: US5
   title: Generated text and messages from the spec
-  status: InProgress
+  status: Done
 - local_id: US6
   title: Generic storage and the 0.19 schema migration
-  status: InProgress
+  status: Done
 - local_id: US7
   title: Wire and DTO shapes, and the stability doc
-  status: InProgress
+  status: Done
 - local_id: US8
   title: rename-field verb and check on unknown sub-entity keys
-  status: InProgress
+  status: Done
 - local_id: US9
   title: Guards derived from the spec, no allow-lists
-  status: InProgress
+  status: Done
 - local_id: US10
   title: Permanent override test squad and its CI job
-  status: InProgress
+  status: Done
 created_at: '2026-10-29T19:04:26Z'
-updated_at: '2026-10-29T22:22:14Z'
+updated_at: '2026-10-30T06:44:06Z'
 priority: high
 ---
 <!-- sq:body -->
