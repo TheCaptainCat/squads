@@ -36,7 +36,7 @@ subentities:
   severity: low
 - local_id: F7
   title: Usage lines mix upper and lower argument names (operator call)
-  status: Fixed
+  status: Open
   severity: info
 - local_id: F8
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
@@ -50,8 +50,16 @@ subentities:
   title: Cross-process CI job gets 15 min on Windows; ADR-1172 says 10
   status: Verified
   severity: low
+- local_id: F11
+  title: Help prose and hints still name arguments in upper case
+  status: Open
+  severity: low
+- local_id: F12
+  title: README and docs/migration.md still state upper-case argument names
+  status: Open
+  severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T06:40:53Z'
+updated_at: '2026-10-30T06:53:07Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -215,6 +223,14 @@ Dropping squads' own upper-case metavars would make them consistent with typer's
 <!-- sq:finding:F7:discussion -->
 - [2026-10-30T06:34:03Z] `op-pierre` Pierre Chat:
   - 2026-10-30: argument names stay lower case everywhere: drop squads own upper-case metavars (N, STATUS, HASH, …) so usage lines read {n}, {status}, {hash}.
+- [2026-10-30T06:46:45Z] `reviewer` Paul Reviewer:
+  - Reopened at 9f01c537 (aef554ec). Every declared metavar is lower case now, and the usage lines, `Missing argument` and `Invalid value` messages driven on a scratch squad read lower case: `sq task {n} status [OPTIONS] {status}`, `Missing argument 'status'.`, `sq migrate rename-status [OPTIONS] {type} {old_status} {new_status}`, `Invalid value for 'width': 'x' is not a valid int.`, `sq graph [OPTIONS] {id}`, `sq task {n} retype [OPTIONS] {new-type}`, `sq review {n} finding [OPTIONS] {local-id} COMMAND`, `sq workflow view [OPTIONS] {name} {id}`. The covers markers were renamed with the metavars (`hash`, `local-id`, …), and the suite is green at HEAD.
+    
+    One usage line still names an argument in upper case, the one the ruling cites as `{hash}`: `_common.py:1173` returns the literal `"HASH"` as the hash group's command name, so `sq task 1 comment abcd show --zz` prints `Usage: sq task {n} comment HASH show [OPTIONS]` and `Try 'sq task {n} comment HASH show --help'`. Fix: return `"{hash}"` (or `"hash"`, matching how the parent group renders `{n}`), and pin the usage line in a test.
+- [2026-10-30T06:52:03Z] `python-dev` Elias Python:
+  - Leftovers fixed in 43d1ab35: migrate rename-* help and docstrings, skill scope/unscope, override and operator docstrings, the comment-command help and its two refusal messages (comment hash edit -m text --as slug, comment hash show --json), the --file refusals (--file path), and every --file option now shows the path placeholder. Not touched: the -C help prose "started in PATH" in _cli/__init__.py (lane B file) and the rendered skill templates (workflow.md.j2, squads_skill.md.j2 say --file PATH).
+- [2026-10-30T06:53:07Z] `reviewer` Paul Reviewer:
+  - Still open at e5ebf1aa: `_common.py:1173` returns the literal `"HASH"`, so the usage line of a hash verb reads `Usage: sq task {n} comment HASH show [OPTIONS]` (driven with `sq task 1 comment abcd show --zz`). The help text around it now says `hash`, so this is the last upper-case argument name on a usage line.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -272,6 +288,46 @@ Fix: `timeout-minutes: 10` on `cross-process`, with no per-OS expression.
   - Verified at a7fed184. cross-process has timeout-minutes: 10 on every OS. test keeps 15 on Windows and 10 elsewhere, override-squad 10, which matches ADR-1172 Time bound.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
+
+<!-- sq:finding:F11 -->
+### F11 — Help prose and hints still name arguments in upper case
+
+<!-- sq:finding:F11:body -->
+Help prose and messages that still name an argument by an upper-case placeholder the usage line beside it no longer shows. Rechecked at e5ebf1aa, which fixed the comment help and hints, the `--file` messages, the migrate docstrings and the operator/skill/override help.
+
+Left:
+- `sq --help`: `-C  path  Run as if sq was started in PATH` (`_cli/__init__.py:325`).
+- `sq migrate chlog --help`: argument `vfrom..vto`, help `Releases after vFROM up to and including vTO` (`_migrate.py:92`); the refusal at `_migrate.py:237` says `(vFROM..vTO, FROM below TO)` (quoted in CHANGELOG.md:134).
+- `sq migrate rename-status --help`: `NEW_STATUS must already be in the type's lifecycle` (`_migrate.py:170`) under `{type} {old_status} {new_status}`.
+
+Fix: write them as the usage line does (`path`, `vfrom..vto`, `new_status`).
+<!-- sq:finding:F11:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F11:discussion -->
+<!-- sq:finding:F11:discussion:end -->
+<!-- sq:finding:F11:end -->
+
+<!-- sq:finding:F12 -->
+### F12 — README and docs/migration.md still state upper-case argument names
+
+<!-- sq:finding:F12:body -->
+Adopter-facing text still states upper-case argument names. Rechecked at b2675fd5, which already rewrote the 0.19.0 typer entry (now accurate), docs/workflow.md and part of README.
+
+Left:
+- README.md:307 `sq <type> <n> retype NEW-TYPE` (usage line: `{new-type}`).
+- docs/migration.md:54, :230, :1131 `sq migrate chlog vFROM..vTO` (usage line: `{vfrom..vto}`).
+- CHANGELOG.md:134 quotes the chlog refusal `(vFROM..vTO, FROM below TO)`; it follows whatever F11 does to that message.
+
+Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry and stays.
+<!-- sq:finding:F12:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F12:discussion -->
+<!-- sq:finding:F12:discussion:end -->
+<!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
