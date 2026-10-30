@@ -14,7 +14,7 @@ description: 'CLI tests in-process on the bundled squad and a full-override squa
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-29T21:13:08Z'
+updated_at: '2026-10-30T00:30:34Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -78,11 +78,11 @@ def test_update_refuses_parent_with_no_parent(...): ...
 ```
 
 - **Command key.** The command's path under `sq`, as `_help_tree` yields it. A work-item type name is written `<type>`, a sub-entity kind `<kind>` (`add-<kind>`, `<kinds>` for the plural listing), and the segments up to a mounted comment group `<host>` (`<host> comment edit`). The hidden `_addr` dispatcher segment that `_help_tree` yields is dropped (`task comment _addr edit` is `<host> comment edit`, `role _addr update` is `role update`), and the dispatcher's argument (`HASH`, `<slug|id|n>`) belongs to the parent key. The root callback is the empty key `""`. A group callback's own parameters belong to the group's key: `<type>` for `N`, `<host> comment` for `-m`, `--file` and `--as`.
-- **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named as the usage line prints it (`N`, `TITLE`), which is Click's `human_readable_name`. A parameter derived from a spec declaration is named by its derivation, so one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute of that kind. The `invoke` fixture records a derived flag under its derivation name.
+- **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named by Click's `human_readable_name`: its declared metavar where one is set (`N`, `HASH`, `<slug|id|n>`), else its parameter name (`title`). The usage line may decorate that name (`{N}`, `{title}`); the marker carries the bare name. A parameter derived from a spec declaration is named by its derivation, so one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute of that kind. The `invoke` fixture records a derived flag under its derivation name.
 - **Every leaf command is declared**, not only every (command, parameter) pair. A leaf with no parameters (`ui`) is declared with its command key alone: `@pytest.mark.covers("ui")`.
 - **The key alone declares the bare call:** the command run with none of its own parameters. It is valid on any leaf and required only on a leaf with no parameters, so a leaf that gains a parameter keeps it: the case that runs plain `sq sync` stays `covers("sync")`, and the case that runs `sq sync --json` is `covers("sync", "--json")`. It goes stale only when the key goes.
 - **Every CLI test declares.** Each test function in `tests/cli/` carries at least one `covers` marker. A test that runs no command of its own has no place in `tests/cli/`: a test of the suite's own fixtures belongs in `tests/meta/`.
-- **A refusal declares the parameter it is about.** A case whose call is refused for a missing or malformed value declares that parameter (`covers("create <type>", "TITLE")` for a missing title), not a parameter the call happens to pass. A refusal squads raises itself names in its message the flag it refuses (`--as`, `--message`, `--force`), and the case declares that parameter in the same way.
+- **A refusal declares the parameter it is about.** A case whose call is refused for a missing or malformed value declares that parameter (`covers("create <type>", "title")` for a missing title), not a parameter the call happens to pass. A refusal squads raises itself names in its message the flag it refuses (`--as`, `--message`, `--force`), and the case declares that parameter in the same way.
 - **One marker, several parameters**, is only for an interaction (rule 1). A test may carry several `covers` markers when it asserts each one's effect.
 
 The **coverage guard** is a new `tests/meta` module:
@@ -254,4 +254,6 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - Amended in place 2026-10-29, under REV-1259 F5 and the manager ruling 2a9fcf4 on REV-1259 (operator delegation for this drive).
     - Rule 5: a migration test may read the item files `sq migrate up` rewrote, as plain text, comparing whole files or the whole frontmatter, since those files are the output the command produces. Never through an internal function such as a frontmatter parser.
     - Unchanged and restated: `.squads.json` is never read, and a refusal is asserted by its whole message lines, never a substring.
+- [2026-10-30T00:30:34Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 (REV-1260 F6): rule "Parameter name" now names an argument by Click's `human_readable_name` alone, the declared metavar where set (`N`, `HASH`, `<slug|id|n>`), else the parameter name (`title`); the usage line may brace it (`{N}`, `{title}`) under typer 0.27. The refusal example now reads `covers("create <type>", "title")`. The guard and existing markers already follow this; no code change.
 <!-- sq:discussion:end -->

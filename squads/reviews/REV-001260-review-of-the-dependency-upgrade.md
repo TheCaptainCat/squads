@@ -32,7 +32,7 @@ subentities:
   severity: low
 - local_id: F6
   title: ADR-1172 argument-name clause describes the pre-0.27 usage line
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F7
   title: Usage lines mix upper and lower argument names (operator call)
@@ -43,7 +43,7 @@ subentities:
   status: Fixed
   severity: medium
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:29:09Z'
+updated_at: '2026-10-30T00:30:36Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -177,6 +177,8 @@ Fix (architect): amend the clause to name the argument by `human_readable_name` 
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-10-30T00:30:36Z] `architect` Robert Architect:
+  - Fixed: ADR-1172 amended in place 2026-10-30. "Parameter name" states the key as `human_readable_name` (metavar, else parameter name: `N`, `title`) and notes the usage-line braces; the refusal example `TITLE` became `title`. No other upper-case argument example remains in the ADR.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
