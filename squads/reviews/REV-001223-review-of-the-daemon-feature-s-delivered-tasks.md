@@ -207,17 +207,17 @@ subentities:
 - local_id: F39
   title: A session restarts a daemon from its first endpoint, ignoring enabled = false
     set since
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 - local_id: F40
   title: 'A session retries a failed daemon start on every call: one line and up to
     6 s each'
-  status: Open
+  status: Fixed
   assignee: python-dev
   severity: medium
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T09:19:24Z'
+updated_at: '2026-10-30T09:31:16Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.

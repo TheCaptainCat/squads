@@ -63202,7 +63202,7 @@
         {
           "local_id": "F39",
           "title": "A session restarts a daemon from its first endpoint, ignoring enabled = false set since",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63213,7 +63213,7 @@
         {
           "local_id": "F40",
           "title": "A session retries a failed daemon start on every call: one line and up to 6 s each",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63224,7 +63224,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T09:19:24Z",
+      "updated_at": "2026-10-30T09:31:16Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
