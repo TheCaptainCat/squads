@@ -29,7 +29,7 @@ subentities:
   status: Todo
   maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-30T20:32:51Z'
+updated_at: '2026-10-30T20:50:17Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -122,4 +122,6 @@ Afterwards `sq repair` has nothing to fix, `sq check` is clean, and `sq daemon s
   - Brought up to date (2026-10-30): the ST2 trial needs this squad at schema 0.19 first (the pre-release build refuses 0.17), and that migration is the operator's call (open on FEAT-1140). ST1 is safe now: 0.17.0 and 0.18.0 ignore the `[daemon]` table.
 - [2026-10-30T20:32:51Z] `tech-lead` Olivia Lead:
   - - Stays Draft and gated on the operator's go (2026-10-30): the trial needs this squad at schema 0.19, which is op-pierre's call. Now depends on TASK-1264 and TASK-1263 as well; the body gains the ADR-1261 additions to the trial. @manager
+- [2026-10-30T20:50:17Z] `op-pierre` Pierre Chat:
+  - The dogfood trial waits until the ADR-1261 architecture (TASK-1262 to TASK-1266) is delivered (2026-10-30).
 <!-- sq:discussion:end -->
