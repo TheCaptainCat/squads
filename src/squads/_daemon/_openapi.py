@@ -1,6 +1,6 @@
 """The OpenAPI 3.1 document of the daemon's API, built from the operation table: each operation's
 route, its parameters and body from the request DTO, its answer from the response DTO and the
-error envelope of every status it can answer with (ADR-1225, section 6).
+error envelope of every status it can answer with.
 
 Schemas are taken in validation mode. The item and sub-entity rows serialise through a model
 serializer typed ``dict[str, Any]``, which leaves their serialization-mode schema an opaque
@@ -49,13 +49,13 @@ _HEADERS: tuple[tuple[str, str], ...] = (
     (CLIENT_HEADER, "Required with the value 1 on every request that is not a GET."),
 )
 
-_ERROR_DESCRIPTIONS = {
-    400: "invalid: the request or the operation was refused.",
-    404: "not_found: no such item, role, comment or sub-entity.",
-    409: "conflict, vocabulary_mismatch, schema_mismatch or changed_since_read.",
-    423: "locked: the index lock stayed held by another process.",
-    500: "internal: an unexpected failure; the daemon's log holds the traceback.",
-}
+_ERROR_DESCRIPTIONS = (
+    (400, "invalid: the request or the operation was refused."),
+    (404, "not_found: no such item, role, comment or sub-entity."),
+    (409, "conflict, vocabulary_mismatch, schema_mismatch or changed_since_read."),
+    (423, "locked: the index lock stayed held by another process."),
+    (500, "internal: an unexpected failure; the daemon's log holds the traceback."),
+)
 
 
 def _ref_name(ref: dict[str, Any]) -> str:
@@ -124,7 +124,7 @@ def _responses(op: Operation[Any, Any], answer: dict[str, Any]) -> dict[str, Any
     statuses = sorted({status for _, status in HTTP_STATUS})
     for status in statuses:
         responses[str(status)] = {
-            "description": _ERROR_DESCRIPTIONS[status],
+            "description": dict(_ERROR_DESCRIPTIONS)[status],
             "content": {"application/json": {"schema": {"$ref": _REF.format(model="ErrorBody")}}},
         }
     responses["503"] = {

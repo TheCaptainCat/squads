@@ -16,7 +16,7 @@ from squads._errors import SquadsError
 
 _PATH_FIELD = re.compile(r"\{(\w+)\}")
 
-#: The headers a request carries beside its body (ADR-1225, section 2).
+#: The headers a request carries beside its body.
 ACTOR_HEADER = "Squads-Actor"
 AT_HEADER = "Squads-At"
 SESSION_HEADER = "Squads-Session-Id"

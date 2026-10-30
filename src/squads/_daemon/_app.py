@@ -1,5 +1,5 @@
 """The daemon's HTTP application: one route per operation of the table, the daemon's own routes and
-the answers they share (ADR-1225)."""
+the answers they share."""
 
 import functools
 import logging
@@ -36,8 +36,10 @@ from squads._services._service import RequestScope
 
 _log = logging.getLogger("squads.daemon")
 
+
 #: The answer to a request that arrived while the daemon's configuration had changed: nothing ran.
-RETIRING_BODY = {"not_executed": "retiring"}
+def retiring_body() -> dict[str, str]:
+    return {"not_executed": "retiring"}
 
 
 def _json(content: bytes, status: int = 200, headers: dict[str, str] | None = None) -> Response:
@@ -87,7 +89,7 @@ class Application:
     def retire(self) -> Response:
         """Answer that the daemon's configuration changed, and ask the process to exit."""
         return JSONResponse(
-            RETIRING_BODY, status_code=503, background=BackgroundTask(self.state.stop)
+            retiring_body(), status_code=503, background=BackgroundTask(self.state.stop)
         )
 
     def check_client(self, meta: RequestMetadata) -> Response | None:

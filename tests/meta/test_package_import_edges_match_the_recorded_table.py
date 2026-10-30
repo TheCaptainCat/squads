@@ -261,6 +261,11 @@ _clock -> _context top
 _context -> _api typing
 _context -> _spec_documents typing
 _context -> _workflow typing
+_daemon -> _api top
+_daemon -> _errors top
+_daemon -> _models top
+_daemon -> _services top
+_daemon -> _spec_documents top
 _discussion -> _badges top
 _discussion -> _errors top
 _discussion -> _models top
@@ -400,6 +405,7 @@ _services -> _views top
 _services -> _workflow top
 _services -> squads local
 _services -> squads top
+_spec_documents -> _api top
 _spec_documents -> _errors top
 _spec_documents -> _interactions top
 _spec_documents -> _roles top

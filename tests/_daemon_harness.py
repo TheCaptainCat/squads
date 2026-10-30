@@ -11,7 +11,7 @@ import json
 import os
 import socket
 import threading
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -97,7 +97,7 @@ def new_state(paths: SquadPaths) -> DaemonState:
 @contextmanager
 def serve_squad(
     paths: SquadPaths, *, retirement_check: RetirementCheck = never_retiring
-) -> Iterator[Served]:
+) -> Generator[Served]:
     """Serve the squad at *paths* until the block ends."""
     state = new_state(paths)
     app = build_app(state, retirement_check)

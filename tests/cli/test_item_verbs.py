@@ -5,6 +5,7 @@ disable`.
 Every other work-item type is held by the verb-set parity guard, so nothing here repeats per type.
 """
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -574,6 +575,11 @@ def _subtask_json(local_id: str, title: str, story: str | None) -> dict[str, Any
     }
 
 
+def _etag(path: Path) -> str:
+    """The strong ETag of the item file at *path*: the SHA-256 of its bytes, quoted."""
+    return f'"{hashlib.sha256(path.read_bytes()).hexdigest()}"'
+
+
 @pytest.mark.covers("<type> show", "--json")
 @pytest.mark.bundled_only("the rendered panes carry the bundled type's fields and placeholder text")
 async def test_show_json_prints_the_item_as_one_object(populated_project, invoke) -> None:
@@ -622,6 +628,7 @@ async def test_show_json_prints_the_item_as_one_object(populated_project, invoke
         },
     }
     # Compared as text, so the key order is held as well as the content.
+    expected["etag"] = _etag(populated_project.squad_dir / str(expected["path"]))
     output = await _ok(invoke, [P.ref, str(TASK), "show", "--json"])
     assert output == json.dumps(expected, indent=2) + "\n"
 
@@ -735,6 +742,7 @@ async def test_show_json_lists_a_declared_attribute_with_its_label(
             "attributes": [{"key": "target_date", "label": "target date", "value": "2026-12-01"}],
         },
     }
+    expected["etag"] = _etag(populated_project.squad_dir / str(expected["path"]))
     output = await _ok(invoke, ["milestone", str(MILESTONE), "show", "--json"])
     assert output == json.dumps(expected, indent=2) + "\n"
 

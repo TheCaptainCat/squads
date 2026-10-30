@@ -18,13 +18,12 @@ from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from rich.console import Console
 
     from squads._api._api import Api
-    from squads._models._index import SquadsDB
 
     # _context sits below _clock/_actor; _workflow._models and _spec_documents sit above them,
     # and a runtime import here would cycle back to this module mid-init, so they are type-only.
@@ -59,9 +58,9 @@ def etag_of(text: str) -> str:
     return f'"{hashlib.sha256(data).hexdigest()}"'
 
 
-#: Reads the addressed item's file text as an index (the transaction's, when one is open) places
-#: it: the item's id and its text, ``None`` when the item or its file is gone.
-type AddressedReader = Callable[[SquadsDB], Awaitable[tuple[str, str | None]]]
+#: Reads the addressed item's file text as a ``SquadsDB`` (the transaction's, when one is open)
+#: places it: the item's id and its text, ``None`` when the item or its file is gone.
+type AddressedReader = Callable[[Any], Awaitable[tuple[str, str | None]]]
 
 
 def if_match_allows(header: str, etag: str | None) -> bool:
