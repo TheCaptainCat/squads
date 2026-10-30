@@ -225,6 +225,17 @@ def _windows_vt() -> bool | None:  # pragma: no cover
         return None
 
 
+def _windows_truecolor(vt: bool | None) -> bool | None:  # pragma: no cover
+    """Whether the console shows 24-bit colour, as Rich reads it: virtual-terminal processing on a
+    Windows build from 10.0.15063."""
+    if vt is None:
+        return None
+    if not vt:
+        return False
+    version = sys.getwindowsversion()  # pyright: ignore[reportAttributeAccessIssue,reportUnknownMemberType,reportUnknownVariableType]
+    return version.major > 10 or (version.major == 10 and version.build >= 15063)  # pyright: ignore[reportUnknownMemberType,reportUnknownVariableType]
+
+
 def _stream_facts(stream: Any) -> dict[str, Any]:
     try:
         tty = bool(stream.isatty())
@@ -246,12 +257,14 @@ def _terminal_size() -> list[int] | None:
 def terminal_facts() -> dict[str, Any]:
     """Whether each standard stream is a terminal and its encoding; the terminal's size; on
     Windows, whether the console has virtual-terminal processing."""
+    vt = _windows_vt() if sys.platform == "win32" else None
     return {
         "stdin": _stream_facts(sys.stdin),
         "stdout": _stream_facts(sys.stdout),
         "stderr": _stream_facts(sys.stderr),
         "size": _terminal_size(),
-        "windows_vt": _windows_vt() if sys.platform == "win32" else None,
+        "windows_vt": vt,
+        "windows_truecolor": _windows_truecolor(vt),
     }
 
 
