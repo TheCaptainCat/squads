@@ -53,7 +53,7 @@ subentities:
   status: Todo
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T07:21:05Z'
+updated_at: '2026-10-30T07:31:36Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -297,4 +297,11 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
     - Parallel plan: lane D (ST4, ST5, ST7, ST6) merges before lane C (ST1, ST2, ST3, ST8, ST9 and the six cross-process cases).
 - [2026-10-30T00:44:17Z] `tech-lead` Olivia Lead:
   - Folded the 2026-10-30 rulings: `click` joins the import guard; the parity harness takes `--squad override` and skips no case; the `long` timeout class matches the operation table (rename-field and rename-kind included) and `HttpApi` reads `op.timeout`. Cross-process members go in the existing `tests/cross_process/`. The server-stderr hazard is settled by TASK-1218 ST12.
+- [2026-10-30T07:31:36Z] `python-dev` Elias Python:
+  - - @manager Lane C, first slice, on branch worktree-agent-a2e4036496471d197 (worktree .claude/worktrees/agent-a2e4036496471d197): cb2905c1, on release/0.19 16d79616. Task is InProgress; ST1, ST2 (partly), ST3, ST8, ST9 are NOT done: lane D's `HttpApi` is not on release/0.19, so nothing can select or call it yet.
+    - Done: `squads/_daemon_start.py` (stdlib): `ensure(endpoint)` finds a live daemon or spawns `python -m squads -C <root> daemon run --report-fd N` detached (POSIX `start_new_session`; Windows `DETACHED_PROCESS|CREATE_NEW_PROCESS_GROUP|CREATE_NO_WINDOW` plus a handle list for the report pipe), waits at most 5 s for `ready`, and returns `None` or the reason; `failure_line(reason)` is the one stderr line; `discard_stale` removes the socket and record of a dead daemon (lock free, nothing answers). A loser of the lock race ("already running") ends on the winner. `filelock` is imported lazily so the remote path stays off it.
+    - Cross-process (tests/cross_process, real `sq`, whole output): cold key starts a daemon that `daemon status --json` reports; a second `ensure` finds the same pid; the daemon outlives its starter and the starter's killed process group; an unusable runtime directory and an unloadable workflow override are failed starts that say why. Shared helpers moved to `tests/cross_process/_sq.py`. Falsified: no spawn, non-detached session and a dropped failure line each turn tests red; the runtime-directory pre-check is also done by the child, so dropping it alone stays green.
+    - Deviation to confirm: stale cleanup is not an operation. A new operation would add a daemon route that deletes the daemon's own runtime files. I exempted `ensure`/`discard_stale` by name in the no-file-writes CLI guard, as for `run_daemon` (runtime files, not squad data). Say if you want an operation instead.
+    - Waiting on lane D (needs `HttpApi(endpoint)` and the parity hook in `_calls.py`): ST1 selection in `select_api`, the fall back/no-replay/Ctrl-C cross-process members, ST8's import guard and benchmark. Baseline measured now: `import squads._cli` 361 ms and loads `squads._index`, `jinja2`, `yaml`, `importlib.metadata`; not `_services`, `anyio`, `filelock`, `starlette`, `uvicorn`, `click`, `rich.markdown`. No client-overhead numbers yet (nothing to call). ST9 (TUI selector) not started.
+    - Gates green: pyright, ruff, format, pytest 1859 passed, override squad tests/cli 835 passed, cross_process 9 passed, template manifest. Windows spawn path (handle list, flags) written, not run here.
 <!-- sq:discussion:end -->

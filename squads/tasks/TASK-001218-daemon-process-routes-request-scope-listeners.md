@@ -65,7 +65,7 @@ subentities:
   status: Done
   maps_to: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T07:16:23Z'
+updated_at: '2026-10-30T07:31:36Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -352,4 +352,6 @@ Tests: the guard (1); the expected waiting lines in `tests/cross_process/test_th
     - Choices to confirm: admission refusals are 421 `misdirected` (Host) and 403 `forbidden`, in the error envelope; `Host` and `Origin` are checked on TCP listeners only, Content-Type and `Squads-Client` on all; an unknown `[daemon]` key is reported and ignored, any other unusable value (or `SQUADS_DAEMON`) disables the daemon and the finding says so; the check rule is `daemon_config_valid` (warn, always on); `run` is exempted by name in the no-file-writes CLI guard (it keeps runtime files, not squad data).
     - Gates green: pyright, ruff, format, pytest 1854 passed, override squad tests/cli 835 passed, cross_process 4 passed, template manifest. Each test group was shown red against a deliberate break (17 breaks).
     - Not run on Windows or macOS: the TCP CLI port path, `msvcrt.open_osfhandle` report handle, the Windows `Origin` negative (skipped by platform), macOS runtime directory and 103-byte socket limit. Idle exit and crash leftovers are built, untested.
+- [2026-10-30T07:31:36Z] `reviewer` Paul Reviewer:
+  - Lane B reviewed on REV-1223: findings F19-F29 (8 low, 3 info), nothing blocking. See the REV-1223 comment for the verdict and the probes.
 <!-- sq:discussion:end -->

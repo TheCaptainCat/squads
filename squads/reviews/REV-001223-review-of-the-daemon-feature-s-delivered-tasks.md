@@ -96,8 +96,70 @@ subentities:
   status: Fixed
   assignee: architect
   severity: info
+- local_id: F19
+  title: 'SIGTERM kills the daemon before its cleanup: all four runtime files stay'
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F20
+  title: daemon status and stop report none running when the identity call fails,
+    while the lock is held
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F21
+  title: Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon
+    answers 500
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F22
+  title: Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD
+    refused as a write
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F23
+  title: Endpoint resolution unit tests and a substring migrate assertion break ADR-1172
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F24
+  title: The .squads.toml walk-up is duplicated in _paths and _endpoint despite the
+    one-place rule
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F25
+  title: Reserving daemon breaks an adopter type or alias of that name; no migration
+    note says so
+  status: Open
+  assignee: tech-writer
+  severity: low
+- local_id: F26
+  title: Lock released before its file is unlinked lets two daemons hold one key
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F27
+  title: Admission types misdirected/forbidden are absent from the error table and
+    the OpenAPI document
+  status: Open
+  assignee: architect
+  severity: info
+- local_id: F28
+  title: daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode
+  status: Open
+  assignee: python-dev
+  severity: info
+- local_id: F29
+  title: 'Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE,
+    runtime-dir ACL'
+  status: Open
+  assignee: python-dev
+  severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T07:24:26Z'
+updated_at: '2026-10-30T07:31:35Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -614,6 +676,187 @@ Lane A made six wire decisions that ADR-1225 does not state yet. I confirm each 
   - @reviewer F18 Fixed: verify against ADR-1225 sections 1-3 and 6. @tech-lead the code list above goes to TASK-1218 (it also closes F14).
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
+
+<!-- sq:finding:F19 -->
+### F19 — SIGTERM kills the daemon before its cleanup: all four runtime files stay
+
+<!-- sq:finding:F19:body -->
+`sq daemon run` stopped with SIGTERM (the conventional stop: `kill`, session teardown, a service manager) exits without running its cleanup, so `<key>.sock`, `<key>.json`, `<key>.lock` and `<key>.log` all stay.
+
+Reproduced on a scratch squad (Linux): daemon started with `sq daemon run`, `kill -TERM <pid>`; the process died and all four files remained. SIGINT cleans up.
+
+Cause (read): uvicorn's `Server.capture_signals` records SIGTERM, shuts the server down and then calls `signal.raise_signal(SIGTERM)` on leaving `serve()`. With the default disposition that kills the process inside `asyncio.run`, before the `finally` blocks of `Daemon._serve` and `Daemon.run` remove the files and release the lock.
+
+ADR-1052 point 8 says a clean exit removes all four. The staleness rule covers the leftovers, so the cost is stale files until the next start, not a wrong answer. Fix: handle SIGTERM in the daemon (for example a `Server` subclass whose `capture_signals` sets `should_exit` without re-raising) so the existing cleanup runs. Show it red/green with the cross-process set or a by-hand run; an in-process thread cannot receive the signal.
+<!-- sq:finding:F19:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F19:discussion -->
+<!-- sq:finding:F19:discussion:end -->
+<!-- sq:finding:F19:end -->
+
+<!-- sq:finding:F20 -->
+### F20 — daemon status and stop report none running when the identity call fails, while the lock is held
+
+<!-- sq:finding:F20:body -->
+`sq daemon status` and `sq daemon stop` report "no daemon is running for this squad" (exit 0; `{"running": false}` / `{"was_running": false}`) whenever the daemon answers `GET /v1/daemon` with anything but a 200 JSON object, even while it holds `<key>.lock` and serves.
+
+Reproduced: with the overflow of the next finding, the daemon answered 500 to the identity request; `status --json` said `running: false`, `stop` printed `no daemon is running for this squad` and exited 0, and the process was still alive afterwards.
+
+Cause (read): `_daemon_link._call` folds a refused connection, a timeout, a non-200 status and an unreadable body into `None`, and `daemon_identity`'s `None` is read as "not running".
+
+Fix: tell "nothing answers and the lock is free" (none running) from "something answers badly or the lock is held" (an error naming what happened, exit 1). `lock_is_free` already exists for this.
+<!-- sq:finding:F20:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F20:discussion -->
+<!-- sq:finding:F20:discussion:end -->
+<!-- sq:finding:F20:end -->
+
+<!-- sq:finding:F21 -->
+### F21 — Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon answers 500
+
+<!-- sq:finding:F21:body -->
+`[daemon] idle_timeout_minutes` has no upper bound. A value above about 1.4e12 minutes (the `timedelta` limit) passes `parse_daemon` and `sq check`, the daemon starts, and every `GET /v1/daemon` then fails with `OverflowError` in `Daemon._idle_deadline` (500, traceback in the log).
+
+Reproduced with `idle_timeout_minutes = 9000000000000` on a scratch squad: `sq check` reported nothing, `status --json` said none running (see the previous finding), and the log showed the overflow.
+
+An adopter will not type that number on purpose; a typo can. Fix: treat a value too large to schedule as unusable in `parse_daemon` (so `sq check` reports it and local mode applies, as for a negative value), or compute the deadline so it cannot overflow and report "never".
+<!-- sq:finding:F21:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F21:discussion -->
+<!-- sq:finding:F21:discussion:end -->
+<!-- sq:finding:F21:end -->
+
+<!-- sq:finding:F22 -->
+### F22 — Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD refused as a write
+
+<!-- sq:finding:F22:body -->
+The dev applies `Content-Type: application/json` and `Squads-Client: 1` on every listener, the Unix socket included. ADR-1052 point 5 sets the admission rules "on every TCP listener" and only says clients send the header everywhere. Going further is harmless, but nothing tests it: moving the two checks under the TCP branch (`if method != "GET" and isinstance(port, int)`) leaves `tests/daemon` and `tests/cli/test_daemon.py` green (59 passed). Every admission negative runs on the browser port.
+
+Related: `HEAD` is treated as a write. `HEAD /v1/daemon` on the socket answers `403 forbidden` "a write needs Content-Type: application/json", while ADR-1225 section 3 names `HEAD` beside every `GET` in the 405 `Allow` header. The letter of ADR-1052 ("every other method") supports the refusal; the message ("a write") does not.
+
+Decide: either keep the socket rule and record it in ADR-1225 section 6 with one route negative on the CLI socket, or apply it to TCP only as the ADR reads. Treat `HEAD` as `GET` in admission, or ask the architect to strike it from the `Allow` rule.
+<!-- sq:finding:F22:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F22:discussion -->
+<!-- sq:finding:F22:discussion:end -->
+<!-- sq:finding:F22:end -->
+
+<!-- sq:finding:F23 -->
+### F23 — Endpoint resolution unit tests and a substring migrate assertion break ADR-1172
+
+<!-- sq:finding:F23:body -->
+Tests outside ADR-1172's rules:
+
+- `tests/daemon/test_the_endpoint_resolution.py` calls the internal `endpoint_for` directly in 9 cases, 7 of them in a parametrized settings table. That breaks rules 3 to 5 (no internal calls, no shape tables), and the plan did not include it. ST2's planned surface cases (`status` via `-C` into a subfolder, and from another squad) already exist in `tests/cli/test_daemon.py`. How a setting chooses the mode is the fall back member of the cross-process set (TASK-1219). The link-reaches-the-same-key case can be a surface case (`sq -C <link> daemon status --json`). Key-per-installation is not observable in-process: drop it, or name it as built and untested.
+- `tests/cli/test_migrate.py::test_up_keeps_a_daemon_table_when_it_regenerates_the_config` asserts a substring of the regenerated `.squads.toml` (`"\n[daemon]\n…" in regenerated`). Assert the whole file.
+
+`tests/daemon/test_the_cli_socket.py` stats the socket and the directory. That is a direct file read, but the mode is observable only there and it is the security property. I take it as a justified exception and it went red when I removed the `chmod`.
+<!-- sq:finding:F23:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F23:discussion -->
+<!-- sq:finding:F23:discussion:end -->
+<!-- sq:finding:F23:end -->
+
+<!-- sq:finding:F24 -->
+### F24 — The .squads.toml walk-up is duplicated in _paths and _endpoint despite the one-place rule
+
+<!-- sq:finding:F24:body -->
+The `.squads.toml` walk-up exists twice: `_endpoint.find_config` and `_paths.find_config` are identical copies, and `_paths.resolve` still uses its own. The squad directory is also derived two ways: the endpoint takes the raw `squad_dir` string, or `squads` when it is not a string, and resolves it; `_paths` takes the validated `SquadsConfig.squad_dir` unresolved.
+
+ADR-1052 point 9 asks for one function, so that the daemon, the CLI and `SquadsConfig` cannot resolve differently, and `_endpoint`'s docstring claims to be "the one place". Today they agree because the two copies happen to match. Fix: `_paths` calls `_endpoint.find_config` (both import directions already exist), and `_endpoint` takes `squad_dir` by the rule `SquadsConfig` validates, or the divergence is documented.
+<!-- sq:finding:F24:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F24:discussion -->
+<!-- sq:finding:F24:discussion:end -->
+<!-- sq:finding:F24:end -->
+
+<!-- sq:finding:F25 -->
+### F25 — Reserving daemon breaks an adopter type or alias of that name; no migration note says so
+
+<!-- sq:finding:F25:body -->
+`daemon` joins `RESERVED_CLI_VERBS` (the live command table requires it, so this is correct). An adopter whose `.overrides/workflow.toml` declares a type or an alias named `daemon` is refused at load after upgrading (`item 'daemon': shadows the built-in sq daemon command`), and every command stops until the override is edited.
+
+Neither the 0.19 Migration section of CHANGELOG nor docs/migration.md says so. Route to the writer with the daemon's CHANGELOG work (TASK-1221): one Migration line naming the reserved name and the rename.
+<!-- sq:finding:F25:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F25:discussion -->
+<!-- sq:finding:F25:discussion:end -->
+<!-- sq:finding:F25:end -->
+
+<!-- sq:finding:F26 -->
+### F26 — Lock released before its file is unlinked lets two daemons hold one key
+
+<!-- sq:finding:F26:body -->
+`Daemon.run` releases `<key>.lock` and then unlinks it. Between those two calls, a second `daemon run` can open the old file and lock it. The first daemon then unlinks the path, so a third start creates a new file, locks it as well, and two daemons serve one key: the later one unlinks and rebinds the socket path, and the first one's exit cleanup removes the other's `.sock` and `.json`.
+
+Found by reading; not reproduced, because the window is microseconds and needs a start racing an exit. Low. Fix: on POSIX, unlink while the lock is still held, then release (a racer either fails on the held inode or creates a fresh file). Or keep the lock file, as the index lock does (`preserve_lock_file=True` is already set) and amend ADR-1052 point 8's "removes all four".
+<!-- sq:finding:F26:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F26:discussion -->
+<!-- sq:finding:F26:discussion:end -->
+<!-- sq:finding:F26:end -->
+
+<!-- sq:finding:F27 -->
+### F27 — Admission types misdirected/forbidden are absent from the error table and the OpenAPI document
+
+<!-- sq:finding:F27:body -->
+The admission refusals answer `421 misdirected` and `403 forbidden` in the error envelope. I accept the choice: ADR-1052 point 2 fixes the statuses and ADR-1225 section 3 leaves `type` an open set. But the two types exist only as literals in `_daemon/_admission.py`. They are not in the status table in `_api/_errors.py`, and `GET /v1/openapi.json` lists neither 421 nor 403, so `HttpApi` (TASK-1219) and a client built from the document cannot learn them from either. Record both types in ADR-1225 section 3's table (as F18 did for lane A's wire decisions) and add them to the OpenAPI error responses.
+<!-- sq:finding:F27:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F27:discussion -->
+<!-- sq:finding:F27:discussion:end -->
+<!-- sq:finding:F27:end -->
+
+<!-- sq:finding:F28 -->
+### F28 — daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode
+
+<!-- sq:finding:F28:body -->
+`daemon_config_valid` reads `SQUADS_DAEMON` from `os.environ` in `_services/_validators.py`. When the daemon answers `sq check`, that is the serving process's environment, not the client's (ADR-1225 section 7 keeps per-request values off the daemon's own process). It matters only for a daemon started by hand with an unusable value: every remote `sq check` would then report a warning that is false for the caller. A daemon the CLI spawns inherits a usable value, because an unusable one keeps the CLI local. Info: either accept it and say so in the rule's docstring, or let the client report its own variable.
+<!-- sq:finding:F28:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F28:discussion -->
+<!-- sq:finding:F28:discussion:end -->
+<!-- sq:finding:F28:end -->
+
+<!-- sq:finding:F29 -->
+### F29 — Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE, runtime-dir ACL
+
+<!-- sq:finding:F29:body -->
+Not run on Windows or macOS, so these are by reading only:
+
+- The native Windows CLI port. Its one test, any `Origin` refused, is skipped elsewhere, and no case checks `Host`, `Content-Type` or `Squads-Client` on it.
+- `_bind_loopback` sets no `SO_EXCLUSIVEADDRUSE` on Windows. Another local process can then bind the same port with `SO_REUSEADDR` and take connections meant for the daemon, answering as it. The pid-and-path identity check reads a `<key>.json` that any process can read too. ADR-1052 point 6 already accepts that any local process can drive the API on Windows; being impersonated to the CLI is a different exposure, and the fix is one socket option.
+- On Windows, `runtime_dir_problem` checks only that the runtime directory is a directory, with no owner or ACL check.
+- The `msvcrt.open_osfhandle` start report, and the macOS `$TMPDIR` location with its 103-byte socket limit.
+
+Built and untested by design (ADR-1052 point 11, plan): idle exit (a mutation that never stops on idle stays green), crash leftovers, and the runtime-directory mode check (a mutation dropping it stays green). These are held by the fall back member of TASK-1219's cross-process set.
+<!-- sq:finding:F29:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F29:discussion -->
+<!-- sq:finding:F29:discussion:end -->
+<!-- sq:finding:F29:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -670,4 +913,12 @@ Lane A made six wire decisions that ADR-1225 does not state yet. I confirm each 
     - The dev's decisions: init and adopt answering 400, an absolute `Squads-Client-Dir`, UTF-8 carried in Latin-1 headers, the ETag over LF-normalised text, and no httpx: confirmed, to be recorded in ADR-1225 (F18, @architect). The ETag-only-where-read rule: the mechanism is confirmed, its gaps are F14.
     - New: F13 (medium) the retirement and vocabulary checks run before a request queues, so a queued request runs on a configuration that changed while it waited (driven); F14, F15, F16, F17 (low); F18 (info). Lane B's admission negatives are not in this pass.
     - Verdict: changes requested. @python-dev F13-F17, @architect F18.
+- [2026-10-30T07:31:35Z] `reviewer` Paul Reviewer:
+  - - Lane B (commit 7f9f2554) reviewed against ADR-1052, ADR-1225 sections 3, 5-7, ADR-1172 and the plan. Findings F19-F29: eight low and three info, nothing blocking. Recommended verdict for lane B: approve once the low findings are fixed or given a disposition.
+    - Probed with a real `sq daemon run` on a scratch squad, using a runtime directory of my own. Held: socket 0600 in a 0700 directory, a 0755 runtime directory refused, a socket path over 107 bytes refused. A rebinding Host, a Host without a port and a Host with a trailing dot get 421. No CORS header on any answer, and a preflight gets 403. A browser-port write with a foreign, null, https or missing Origin, or with a localhost/127.0.0.1 mismatch, gets 403. A write from the browser port's own v4 and v6 origins gets 200. Retirement works and `stop` removes the files.
+    - Falsified six mutations. Red: chmod dropped, browser Origin check dropped, overrides left out of the fingerprint. Green, so untested: the socket Content-Type/Squads-Client rule (F22); the runtime-directory mode check and idle exit, both deferred by design (F29).
+    - Choices to confirm. Accepted: 421 `misdirected` and 403 `forbidden` (record them, F27); unknown `[daemon]` key reported and ignored while any other unusable value disables, as ADR-1052 point 7 says; `daemon` in RESERVED_CLI_VERBS (needs a migration note, F25); the `--json` shapes; retirement tests in tests/daemon, since they are route behaviour and the override squad's existing `.overrides` would break the scaffold case. Host/Origin on TCP only matches ADR-1052; Content-Type and Squads-Client on the socket go beyond it untested (F22). The PROCESS_ENTRY exemption is one named entry, like GATED_ROUTE. It hides any write reachable from run_daemon, and LocalApi's writes are gated anyway. Narrowing it to Daemon and bind_listeners buys nothing, so it is not an exception in disguise; no finding.
+    - Not a finding: `sq daemon run` starts even with `enabled = false` or an unusable setting. It is the by-hand diagnostic entry, and the switch governs the CLI's own spawns (TASK-1219).
+    - Not run: Windows and macOS (F29).
+    - @python-dev F19-F24, F26, F28 and F29. @tech-writer F25. @architect F27.
 <!-- sq:discussion:end -->

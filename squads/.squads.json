@@ -33465,7 +33465,7 @@
       ],
       "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-30T07:16:23Z",
+      "updated_at": "2026-10-30T07:31:36Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -33577,7 +33577,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-30T07:21:05Z",
+      "updated_at": "2026-10-30T07:31:36Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -62978,11 +62978,132 @@
           "attributes": {
             "severity": "info"
           }
+        },
+        {
+          "local_id": "F19",
+          "title": "SIGTERM kills the daemon before its cleanup: all four runtime files stay",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F20",
+          "title": "daemon status and stop report none running when the identity call fails, while the lock is held",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F21",
+          "title": "Unbounded idle_timeout_minutes overflows the idle deadline; GET /v1/daemon answers 500",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F22",
+          "title": "Socket Content-Type/Squads-Client rule is untested and beyond ADR-1052; HEAD refused as a write",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F23",
+          "title": "Endpoint resolution unit tests and a substring migrate assertion break ADR-1172",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F24",
+          "title": "The .squads.toml walk-up is duplicated in _paths and _endpoint despite the one-place rule",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F25",
+          "title": "Reserving daemon breaks an adopter type or alias of that name; no migration note says so",
+          "status": "Open",
+          "assignee": "tech-writer",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F26",
+          "title": "Lock released before its file is unlinked lets two daemons hold one key",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F27",
+          "title": "Admission types misdirected/forbidden are absent from the error table and the OpenAPI document",
+          "status": "Open",
+          "assignee": "architect",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        },
+        {
+          "local_id": "F28",
+          "title": "daemon_config_valid reads the serving process's SQUADS_DAEMON in remote mode",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        },
+        {
+          "local_id": "F29",
+          "title": "Windows and macOS paths unrun: CLI port admission, SO_EXCLUSIVEADDRUSE, runtime-dir ACL",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
         }
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T07:24:26Z",
+      "updated_at": "2026-10-30T07:31:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
