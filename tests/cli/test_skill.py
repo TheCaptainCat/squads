@@ -55,7 +55,7 @@ def _no_skill(slug: str) -> str:
 # ------------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("skill add", "NAME")
+@pytest.mark.covers("skill add", "name")
 async def test_add_creates_a_skill_with_the_scaffold_body_and_its_pointer(project, invoke) -> None:
     result = await invoke(["skill", "add", "Deploy Notes"])
     assert (result.exit_code, result.output) == (
@@ -85,7 +85,7 @@ async def test_add_creates_a_skill_with_the_scaffold_body_and_its_pointer(projec
     assert _pointer(project).exists()
 
 
-@pytest.mark.covers("skill add", "NAME")
+@pytest.mark.covers("skill add", "name")
 async def test_add_refuses_a_name_whose_slug_a_skill_already_has(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", "add", "Deploy Notes"])
@@ -95,15 +95,15 @@ async def test_add_refuses_a_name_whose_slug_a_skill_already_has(project, invoke
     )
 
 
-@pytest.mark.covers("skill add", "NAME")
+@pytest.mark.covers("skill add", "name")
 async def test_add_needs_a_name(project, invoke) -> None:
     result = await invoke(["skill", "add"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq skill add [OPTIONS] NAME",
+            "Usage: sq skill add [OPTIONS] {name}",
             "sq skill add --help",
-            "Missing argument 'NAME'.",
+            "Missing argument 'name'.",
         ),
     )
 
@@ -425,7 +425,7 @@ async def test_refs_in_and_out_together_show_both_directions(project, invoke) ->
 # ------------------------------------------------------------------------------- ref add/rm
 
 
-@pytest.mark.covers("skill ref add", "TARGET")
+@pytest.mark.covers("skill ref add", "target")
 async def test_ref_add_links_the_skill_to_the_item_with_the_default_kind(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "1"])
@@ -435,7 +435,7 @@ async def test_ref_add_links_the_skill_to_the_item_with_the_default_kind(project
     }
 
 
-@pytest.mark.covers("skill ref add", "TARGET")
+@pytest.mark.covers("skill ref add", "target")
 async def test_ref_add_takes_the_kind_after_a_colon(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "1:blocks"])
@@ -445,7 +445,7 @@ async def test_ref_add_takes_the_kind_after_a_colon(project, invoke) -> None:
     ]
 
 
-@pytest.mark.covers("skill ref add", "TARGET")
+@pytest.mark.covers("skill ref add", "target")
 async def test_ref_add_refuses_a_number_no_item_has(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "99"])
@@ -487,7 +487,7 @@ async def test_ref_add_as_refuses_a_slug_that_is_not_registered(project, invoke)
     )
 
 
-@pytest.mark.covers("skill ref rm", "TARGET")
+@pytest.mark.covers("skill ref rm", "target")
 async def test_ref_rm_drops_every_ref_to_the_item(project, invoke) -> None:
     await _two_skills_with_a_ref(invoke)
     result = await invoke(["skill", SLUG, "ref", "rm", "3"])
@@ -495,7 +495,7 @@ async def test_ref_rm_drops_every_ref_to_the_item(project, invoke) -> None:
     assert await read_json(invoke, ["skill", SLUG, "refs", "--json"]) == {"out": []}
 
 
-@pytest.mark.covers("skill ref rm", "TARGET")
+@pytest.mark.covers("skill ref rm", "target")
 async def test_ref_rm_refuses_a_number_no_item_has(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "rm", "99"])
@@ -522,7 +522,7 @@ async def test_ref_rm_as_refuses_a_slug_that_is_not_registered(project, invoke) 
 # ------------------------------------------------------------------------- link/unlink role
 
 
-@pytest.mark.covers("skill link-role", "ROLE")
+@pytest.mark.covers("skill link-role", "role")
 async def test_link_role_scopes_the_skill_to_the_role_and_updates_its_pointer(
     project, invoke
 ) -> None:
@@ -537,7 +537,7 @@ async def test_link_role_scopes_the_skill_to_the_role_and_updates_its_pointer(
     )
 
 
-@pytest.mark.covers("skill link-role", "ROLE")
+@pytest.mark.covers("skill link-role", "role")
 async def test_link_role_refuses_a_role_that_does_not_exist(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "link-role", "nobody"])
@@ -547,7 +547,7 @@ async def test_link_role_refuses_a_role_that_does_not_exist(project, invoke) -> 
     )
 
 
-@pytest.mark.covers("skill link-role", "ROLE")
+@pytest.mark.covers("skill link-role", "role")
 async def test_link_role_refuses_the_number_of_an_item_that_is_not_a_role(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "link-role", "2"])
@@ -574,7 +574,7 @@ async def test_link_role_as_refuses_a_slug_that_is_not_registered(project, invok
     )
 
 
-@pytest.mark.covers("skill unlink-role", "ROLE")
+@pytest.mark.covers("skill unlink-role", "role")
 async def test_unlink_role_unscopes_the_skill_and_updates_the_pointer(project, invoke) -> None:
     await _add(invoke)
     await invoke(["skill", SLUG, "link-role", "manager"])
@@ -589,7 +589,7 @@ async def test_unlink_role_unscopes_the_skill_and_updates_the_pointer(project, i
     )
 
 
-@pytest.mark.covers("skill unlink-role", "ROLE")
+@pytest.mark.covers("skill unlink-role", "role")
 async def test_unlink_role_refuses_a_role_that_does_not_exist(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "unlink-role", "nobody"])
@@ -599,7 +599,7 @@ async def test_unlink_role_refuses_a_role_that_does_not_exist(project, invoke) -
     )
 
 
-@pytest.mark.covers("skill unlink-role", "ROLE")
+@pytest.mark.covers("skill unlink-role", "role")
 async def test_unlink_role_refuses_a_role_the_skill_is_not_scoped_to(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "unlink-role", "manager"])
@@ -690,7 +690,7 @@ async def test_remove_purge_deletes_the_skill_and_its_pointer(project, invoke) -
 # ------------------------------------------------------------------------------------ views
 
 
-@pytest.mark.covers("skill view add", "NAME")
+@pytest.mark.covers("skill view add", "name")
 async def test_view_add_places_a_declared_view_in_the_body_and_a_repeat_changes_nothing(
     project, invoke
 ) -> None:
@@ -708,7 +708,7 @@ async def test_view_add_places_a_declared_view_in_the_body_and_a_repeat_changes_
     )
 
 
-@pytest.mark.covers("skill view add", "NAME")
+@pytest.mark.covers("skill view add", "name")
 async def test_view_add_refuses_a_view_the_spec_does_not_declare(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "view", "add", "nosuch"])
@@ -736,7 +736,7 @@ async def test_view_add_as_refuses_a_slug_that_is_not_registered(project, invoke
     )
 
 
-@pytest.mark.covers("skill view disable", "NAME")
+@pytest.mark.covers("skill view disable", "name")
 async def test_view_disable_keeps_the_tag_disabled_and_a_repeat_changes_nothing(
     project, invoke
 ) -> None:
@@ -754,7 +754,7 @@ async def test_view_disable_keeps_the_tag_disabled_and_a_repeat_changes_nothing(
     )
 
 
-@pytest.mark.covers("skill view disable", "NAME")
+@pytest.mark.covers("skill view disable", "name")
 async def test_view_disable_of_a_name_without_a_tag_places_it_disabled(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "view", "disable", "nosuch"])
@@ -764,7 +764,7 @@ async def test_view_disable_of_a_name_without_a_tag_places_it_disabled(project, 
     )
 
 
-@pytest.mark.covers("skill view disable", "NAME")
+@pytest.mark.covers("skill view disable", "name")
 async def test_view_disable_is_refused_on_a_system_skill_whose_view_is_declared(
     seeded_project, invoke
 ) -> None:
@@ -909,7 +909,7 @@ async def test_view_disable_json_prints_the_skill_and_the_tag_it_placed_disabled
     )
 
 
-@pytest.mark.covers("skill unlink-role", "ROLE")
+@pytest.mark.covers("skill unlink-role", "role")
 async def test_unlink_role_refuses_a_skill_whose_only_ref_to_the_role_is_another_kind(
     project, invoke
 ) -> None:

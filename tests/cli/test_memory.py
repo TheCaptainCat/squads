@@ -21,7 +21,7 @@ async def _remember(invoke, fact: str, *extra: str, role: str = "manager") -> No
 # ------------------------------------------------------------------------------------ role
 
 
-@pytest.mark.covers("memory", "ROLE")
+@pytest.mark.covers("memory", "role")
 async def test_the_role_argument_names_whose_notebook_a_verb_reads(project, invoke) -> None:
     await invoke(["role", "activate", "architect"])
     await _remember(invoke, "Prefer uv over pip", role="architect")
@@ -30,7 +30,7 @@ async def test_the_role_argument_names_whose_notebook_a_verb_reads(project, invo
     assert [m["slug"] for m in listed] == ["prefer-uv-over-pip"]
 
 
-@pytest.mark.covers("memory", "ROLE")
+@pytest.mark.covers("memory", "role")
 async def test_the_role_argument_takes_an_operator_slug(project, invoke) -> None:
     await invoke(["operator", "add", "Alice Tester"])
     result = await invoke(["memory", "op-alice", "add", "Likes short replies"])
@@ -40,7 +40,7 @@ async def test_the_role_argument_takes_an_operator_slug(project, invoke) -> None
     )
 
 
-@pytest.mark.covers("memory", "ROLE")
+@pytest.mark.covers("memory", "role")
 async def test_the_role_argument_still_reaches_the_notebook_of_an_archived_role(
     project, invoke
 ) -> None:
@@ -51,7 +51,7 @@ async def test_the_role_argument_still_reaches_the_notebook_of_an_archived_role(
     assert [m["slug"] for m in listed] == ["prefer-uv-over-pip"]
 
 
-@pytest.mark.covers("memory", "ROLE")
+@pytest.mark.covers("memory", "role")
 async def test_the_role_argument_refuses_a_slug_nobody_on_the_roster_has(project, invoke) -> None:
     result = await invoke(["memory", "nobody", "list"])
     assert (result.exit_code, result.output) == (
@@ -63,7 +63,7 @@ async def test_the_role_argument_refuses_a_slug_nobody_on_the_roster_has(project
 # ------------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("memory add", "FACT")
+@pytest.mark.covers("memory add", "fact")
 async def test_add_files_the_fact_under_a_slug_made_from_it(project, invoke) -> None:
     result = await invoke(["memory", "manager", "add", "Prefer uv over pip"])
     assert (result.exit_code, result.output) == (0, "remembered prefer-uv-over-pip for manager\n")
@@ -77,7 +77,7 @@ async def test_add_files_the_fact_under_a_slug_made_from_it(project, invoke) -> 
     ]
 
 
-@pytest.mark.covers("memory add", "FACT")
+@pytest.mark.covers("memory add", "fact")
 async def test_add_numbers_the_slug_of_a_fact_that_would_collide(project, invoke) -> None:
     await _remember(invoke, "Prefer uv over pip")
     result = await invoke(["memory", "manager", "add", "Prefer uv over pip"])
@@ -87,15 +87,15 @@ async def test_add_numbers_the_slug_of_a_fact_that_would_collide(project, invoke
     )
 
 
-@pytest.mark.covers("memory add", "FACT")
+@pytest.mark.covers("memory add", "fact")
 async def test_add_needs_a_fact(project, invoke) -> None:
     result = await invoke(["memory", "manager", "add"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq memory ROLE add [OPTIONS] FACT",
-            "sq memory ROLE add --help",
-            "Missing argument 'FACT'.",
+            "Usage: sq memory {role} add [OPTIONS] {fact}",
+            "sq memory {role} add --help",
+            "Missing argument 'fact'.",
         ),
     )
 
@@ -171,7 +171,7 @@ async def test_list_json_lists_the_notebook_and_is_empty_before_the_first_fact(
 # ------------------------------------------------------------------------------------ show
 
 
-@pytest.mark.covers("memory show", "SLUG")
+@pytest.mark.covers("memory show", "slug")
 async def test_show_prints_the_memory_with_its_stamp_and_body(project, invoke, tmp_path) -> None:
     source = tmp_path / "detail.md"
     source.write_text("First paragraph.\n", encoding="utf-8")
@@ -196,7 +196,7 @@ async def test_show_json_describes_the_memory(project, invoke) -> None:
     }
 
 
-@pytest.mark.covers("memory show", "SLUG")
+@pytest.mark.covers("memory show", "slug")
 async def test_show_refuses_a_slug_the_notebook_does_not_hold(project, invoke) -> None:
     result = await invoke(["memory", "manager", "show", "terse"])
     assert (result.exit_code, result.output) == (1, NO_TERSE)
@@ -205,7 +205,7 @@ async def test_show_refuses_a_slug_the_notebook_does_not_hold(project, invoke) -
 # ---------------------------------------------------------------------------------- search
 
 
-@pytest.mark.covers("memory search", "QUERY")
+@pytest.mark.covers("memory search", "query")
 async def test_search_prints_each_matching_memory_with_the_lines_that_matched(
     project, invoke, tmp_path
 ) -> None:
@@ -220,7 +220,7 @@ async def test_search_prints_each_matching_memory_with_the_lines_that_matched(
     )
 
 
-@pytest.mark.covers("memory search", "QUERY")
+@pytest.mark.covers("memory search", "query")
 async def test_search_reads_the_body_as_well_as_the_summary(project, invoke, tmp_path) -> None:
     source = tmp_path / "detail.md"
     source.write_text("First paragraph.\n\nThe release is on Friday.\n", encoding="utf-8")
@@ -232,22 +232,22 @@ async def test_search_reads_the_body_as_well_as_the_summary(project, invoke, tmp
     )
 
 
-@pytest.mark.covers("memory search", "QUERY")
+@pytest.mark.covers("memory search", "query")
 async def test_search_says_when_nothing_matches(project, invoke) -> None:
     await _remember(invoke, "Terse replies", "--slug", "terse")
     result = await invoke(["memory", "manager", "search", "nothing-like-this"])
     assert (result.exit_code, result.output) == (0, "no matches for nothing-like-this\n")
 
 
-@pytest.mark.covers("memory search", "QUERY")
+@pytest.mark.covers("memory search", "query")
 async def test_search_needs_a_query(project, invoke) -> None:
     result = await invoke(["memory", "manager", "search"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq memory ROLE search [OPTIONS] QUERY",
-            "sq memory ROLE search --help",
-            "Missing argument 'QUERY'.",
+            "Usage: sq memory {role} search [OPTIONS] {query}",
+            "sq memory {role} search --help",
+            "Missing argument 'query'.",
         ),
     )
 
@@ -270,7 +270,7 @@ async def test_search_json_lists_the_matching_memories_with_their_hits(
 # ---------------------------------------------------------------------------------- forget
 
 
-@pytest.mark.covers("memory forget", "SLUG")
+@pytest.mark.covers("memory forget", "slug")
 async def test_forget_deletes_the_memory(project, invoke) -> None:
     await _remember(invoke, "Terse replies", "--slug", "terse")
     result = await invoke(["memory", "manager", "forget", "terse"])
@@ -278,7 +278,7 @@ async def test_forget_deletes_the_memory(project, invoke) -> None:
     assert await read_json(invoke, ["memory", "manager", "list", "--json"]) == []
 
 
-@pytest.mark.covers("memory forget", "SLUG")
+@pytest.mark.covers("memory forget", "slug")
 async def test_forget_refuses_a_slug_the_notebook_does_not_hold(project, invoke) -> None:
     result = await invoke(["memory", "manager", "forget", "terse"])
     assert (result.exit_code, result.output) == (1, NO_TERSE)
@@ -329,7 +329,7 @@ async def test_forget_json_prints_the_memory_as_it_was_and_its_role(project, inv
     assert await read_json(invoke, ["memory", "manager", "list", "--json"]) == []
 
 
-@pytest.mark.covers("memory search", "QUERY")
+@pytest.mark.covers("memory search", "query")
 async def test_search_shows_a_line_once_when_the_body_repeats_the_summary(project, invoke) -> None:
     await _remember(invoke, "Widget quirk", "--slug", "widget")
     result = await invoke(["memory", "manager", "search", "widget"])

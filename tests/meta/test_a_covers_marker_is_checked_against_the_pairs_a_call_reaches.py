@@ -42,7 +42,7 @@ CASES: dict[str, Case] = {
     "a create option a type adds, the author left out": (
         ["create", "bug", "T", "--severity", "S1"],
         {
-            ("create <type>", "TITLE"),
+            ("create <type>", "title"),
             ("create <type>", "--<field>"),
             ("create <type>", "--author"),
         },
@@ -52,22 +52,22 @@ CASES: dict[str, Case] = {
         ["task", "3", "show"],
         {("<type>", "N"), ("<type> show", None)},
     ),
-    "a leaf with its argument missing": (["search"], {("search", None), ("search", "TEXT")}),
+    "a leaf with its argument missing": (["search"], {("search", None), ("search", "text")}),
     "a built create with its title missing": (
         ["create", "task"],
-        {("create <type>", None), ("create <type>", "TITLE")},
+        {("create <type>", None), ("create <type>", "title")},
     ),
     "a create option an attribute adds": (
         ["create", "guide", "G", "--tags", "ops"],
         {
-            ("create <type>", "TITLE"),
+            ("create <type>", "title"),
             ("create <type>", "--<attribute:list>"),
             ("create <type>", "--author"),
         },
     ),
     "a hidden create alias of a built create": (
         ["create", "g", "G"],
-        {("create <type>", "TITLE"), ("create <type>", "--author")},
+        {("create <type>", "title"), ("create <type>", "--author")},
     ),
     "a group with its address missing": (["task"], set()),
     "a roster comment with the hash missing is read as a slug": (

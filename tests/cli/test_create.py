@@ -14,7 +14,7 @@ P = selected()
 
 pytestmark = pytest.mark.anyio
 
-USAGE = f"Usage: sq create {P.ref} [OPTIONS] TITLE\nTry 'sq create {P.ref} --help' for help.\n"
+USAGE = f"Usage: sq create {P.ref} [OPTIONS] {{title}}\nTry 'sq create {P.ref} --help' for help.\n"
 
 
 async def _shown(invoke, item_type: str, number: int) -> dict[str, Any]:
@@ -24,7 +24,7 @@ async def _shown(invoke, item_type: str, number: int) -> dict[str, Any]:
     return json.loads(result.output)
 
 
-@pytest.mark.covers("create <type>", "TITLE")
+@pytest.mark.covers("create <type>", "title")
 @pytest.mark.covers("create <type>", "--author")
 @pytest.mark.bundled_only(
     "the case creates or reads a bundled type's own options, defaults or messages"
@@ -65,13 +65,13 @@ async def test_author_is_required(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("create <type>", "TITLE")
+@pytest.mark.covers("create <type>", "title")
 async def test_title_is_required(project, invoke) -> None:
     result = await invoke(["create", P.ref, "--author", "manager"])
     assert (result.exit_code, result.output) == (
         2,
         USAGE + "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ Missing argument 'TITLE'.                                                    │\n"
+        "│ Missing argument 'title'.                                                    │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
 
@@ -237,7 +237,7 @@ async def test_a_declared_field_flag_sets_the_value_the_squad_names(
     )
     assert (refused.exit_code, refused.output) == (
         2,
-        unknown_option("create initiative [OPTIONS] TITLE", "create initiative", "--priority"),
+        unknown_option("create initiative [OPTIONS] {title}", "create initiative", "--priority"),
     )
 
 
@@ -435,7 +435,7 @@ async def test_tags_split_on_commas_and_drop_blanks_as_update_set_does(project, 
     assert (await _shown(invoke, "guide", 2))["tags"] == ["a", "b", "c"]
 
 
-@pytest.mark.covers("create <type>", "TITLE")
+@pytest.mark.covers("create <type>", "title")
 @pytest.mark.covers("create <type>", "--author")
 async def test_create_help_lists_the_declared_options_before_help(override_project, invoke) -> None:
     result = await invoke(["create", "job", "--help"])

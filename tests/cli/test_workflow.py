@@ -264,7 +264,7 @@ async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
 # --- view -----------------------------------------------------------------------------------
 
 
-@pytest.mark.covers("workflow view", "NAME")
+@pytest.mark.covers("workflow view", "name")
 @pytest.mark.covers("workflow view", "ID")
 async def test_view_resolves_a_declared_view_against_the_item(milestone_project, invoke) -> None:
     expected = (
@@ -288,7 +288,7 @@ async def test_view_resolves_a_declared_view_against_the_item(milestone_project,
     assert await _run(invoke, "view", "milestone_rollup", "MILE-8") == expected
 
 
-@pytest.mark.covers("workflow view", "NAME")
+@pytest.mark.covers("workflow view", "name")
 async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "ghost", "8") == (
         1,

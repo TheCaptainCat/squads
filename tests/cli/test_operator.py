@@ -37,7 +37,7 @@ def _roster_lines(project) -> list[str]:
 # ------------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("operator add", "NAME")
+@pytest.mark.covers("operator add", "name")
 async def test_add_registers_a_person_under_a_slug_made_from_the_first_name(
     project, invoke
 ) -> None:
@@ -56,7 +56,7 @@ async def test_add_registers_a_person_under_a_slug_made_from_the_first_name(
     assert _roster_lines(project) == ["- **Alice Tester** (`op-alice`)"]
 
 
-@pytest.mark.covers("operator add", "NAME")
+@pytest.mark.covers("operator add", "name")
 async def test_add_refuses_a_slug_an_operator_already_has(project, invoke) -> None:
     await _add_alice(invoke)
     result = await invoke(["operator", "add", "Alice Tester"])
@@ -66,15 +66,15 @@ async def test_add_refuses_a_slug_an_operator_already_has(project, invoke) -> No
     )
 
 
-@pytest.mark.covers("operator add", "NAME")
+@pytest.mark.covers("operator add", "name")
 async def test_add_needs_a_name(project, invoke) -> None:
     result = await invoke(["operator", "add"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq operator add [OPTIONS] NAME",
+            "Usage: sq operator add [OPTIONS] {name}",
             "sq operator add --help",
-            "Missing argument 'NAME'.",
+            "Missing argument 'name'.",
         ),
     )
 

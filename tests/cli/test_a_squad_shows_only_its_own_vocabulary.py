@@ -98,7 +98,7 @@ def _spelled(text: str, names: vocabulary.Vocabulary) -> list[str]:
 @pytest.mark.covers("list", "--json")
 @pytest.mark.covers("tree", "--json")
 @pytest.mark.covers("<type> show", "--json")
-@pytest.mark.covers("import", "FILE")
+@pytest.mark.covers("import", "file")
 async def test_the_scenario_prints_the_squads_own_vocabulary_and_no_dropped_word(
     populated_project, invoke
 ) -> None:

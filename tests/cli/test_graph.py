@@ -63,10 +63,10 @@ async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) ->
     assert await _graph(invoke, "4", "--depth", "deep") == (
         2,
         [
-            "Usage: sq graph [OPTIONS] ID",
+            "Usage: sq graph [OPTIONS] {ID}",
             "Try 'sq graph --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--depth' / '-d': 'deep' is not a valid integer.           │",
+            "│ Invalid value for '--depth' / '-d': 'deep' is not a valid int.               │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
@@ -275,7 +275,7 @@ async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
     assert await _graph(invoke, "4", "--depth", "-1") == (
         2,
         [
-            "Usage: sq graph [OPTIONS] ID",
+            "Usage: sq graph [OPTIONS] {ID}",
             "Try 'sq graph --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
             "│ Invalid value for '--depth' / '-d': must be 0 or more                        │",

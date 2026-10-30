@@ -415,7 +415,7 @@ async def test_a_derived_filter_means_exactly_its_generic_form(override_project,
     refused = await invoke(["list", "--json", "--priority", "high"])
     assert (refused.exit_code, refused.output) == (
         2,
-        unknown_option("list [OPTIONS]", "list", "--priority", " ('(Possible options: --sort)',)"),
+        unknown_option("list [OPTIONS]", "list", "--priority", " (Possible options: --sort)"),
     )
 
 

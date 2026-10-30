@@ -219,7 +219,7 @@ async def test_show_prints_the_status_story_body_and_discussion(populated_projec
 # --- add-<kind> -----------------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> add-<kind>", "title")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
 )
@@ -237,15 +237,15 @@ async def test_add_scaffolds_a_todo_subtask_with_the_given_title(populated_proje
     )
 
 
-@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> add-<kind>", "title")
 async def test_add_refuses_a_missing_or_blank_title(populated_project, invoke) -> None:
     before = (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1]
     assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}"]) == (
         2,
-        f"Usage: sq {P.ref} N add-{P.kind} [OPTIONS] TITLE\n"
-        f"Try 'sq {P.ref} N add-{P.kind} --help' for help.\n"
+        f"Usage: sq {P.ref} {{N}} add-{P.kind} [OPTIONS] {{title}}\n"
+        f"Try 'sq {P.ref} {{N}} add-{P.kind} --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ Missing argument 'TITLE'.                                                    │\n"
+        "│ Missing argument 'title'.                                                    │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
     assert await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", "  "]) == (
@@ -442,7 +442,7 @@ async def test_add_severity_sets_the_severity_of_a_new_finding(populated_project
     assert (await _finding(invoke, 3))["severity"] == "low"
 
 
-@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> add-<kind>", "title")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
 )
@@ -1126,7 +1126,7 @@ async def _action(invoke, local: int = 1) -> dict[str, Any]:
     return json.loads(await _ok(invoke, ["job", "9", "action", str(local), "show", "--json"]))
 
 
-@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> add-<kind>", "title")
 @pytest.mark.covers("<type> <kind>", "LOCAL-ID")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
@@ -1145,10 +1145,10 @@ async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
 
     assert await _ran(invoke, ["job", "9", "action", "1", "update", f"--{P.target_kind}", "1"]) == (
         2,
-        "Usage: sq job N action LOCAL-ID update [OPTIONS]\n"
-        "Try 'sq job N action LOCAL-ID update --help' for help.\n"
+        "Usage: sq job {N} action {LOCAL-ID} update [OPTIONS]\n"
+        "Try 'sq job {N} action {LOCAL-ID} update --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        f"│ No such option: --{P.target_kind} ('(Possible options: --json)',)                     "
+        f"│ No such option: --{P.target_kind} (Possible options: --json)                          "
         f" │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
@@ -1163,7 +1163,7 @@ async def test_the_mapping_flags_are_refused_together_under_the_target_kinds_nam
     ) == (1, "error: use --outcome or --no-outcome, not both\n")
 
 
-@pytest.mark.covers("<type> add-<kind>", "TITLE")
+@pytest.mark.covers("<type> add-<kind>", "title")
 @pytest.mark.covers("<type> <kind>", "LOCAL-ID")
 async def test_a_missing_mapping_target_is_named_by_its_kind_and_local_prefix(
     override_project, invoke
@@ -1188,19 +1188,19 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
     update_help = (await _ok(invoke, ["job", "9", "action", "1", "update", "--help"])).splitlines()
 
     assert (
-        "│ --impact               TEXT  Impact: large|small.                            │"
+        "│ --impact               <str>  Impact: large|small.                           │"
         in add_help
     )
     assert (
-        "│ --outcome              TEXT  Desired outcome it maps to, as `OC<n>` or       │"
+        "│ --outcome              <str>  Desired outcome it maps to, as `OC<n>` or      │"
         in add_help
     )
     assert (
-        "│ --outcome               TEXT  Desired outcome to map it to, as `OC<n>` or    │"
+        "│ --outcome               <str>  Desired outcome to map it to, as `OC<n>` or   │"
         in update_help
     )
     assert (
-        "│ --no-outcome                  Clear the Desired outcome mapping.             │"
+        "│ --no-outcome                   Clear the Desired outcome mapping.            │"
         in update_help
     )
     assert await _ok(invoke, ["job", "9", "actions"]) == (
@@ -1221,15 +1221,15 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
     create_help = (await _ok(invoke, ["create", "job", "--help"])).splitlines()
     list_help = (await _ok(invoke, ["list", "--help"])).splitlines()
     assert (
-        "│ --no-work-size                Clear the Work size.                           │"
+        "│ --no-work-size                 Clear the Work size.                          │"
         in update_item_help
     )
     assert (
-        "│    --owner-team                  TEXT  job attribute: owner team.            │"
+        "│    --owner-team                  <str>  job attribute: owner team.           │"
         in create_help
     )
     assert (
-        "│ --min-urgency            TEXT  At least this Urgency: now|soon|later.        │"
+        "│ --min-urgency            <str>  At least this Urgency: now|soon|later.       │"
         in list_help
     )
 
@@ -1259,10 +1259,10 @@ async def test_a_required_field_has_no_clear_flag(populated_project, invoke) -> 
         invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--no-severity"]
     ) == (
         2,
-        f"Usage: sq {P.third} N {P.third_kind} LOCAL-ID update [OPTIONS]\n"
-        f"Try 'sq {P.third} N {P.third_kind} LOCAL-ID update --help' for help.\n"
+        f"Usage: sq {P.third} {{N}} {P.third_kind} {{LOCAL-ID}} update [OPTIONS]\n"
+        f"Try 'sq {P.third} {{N}} {P.third_kind} {{LOCAL-ID}} update --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ No such option: --no-severity ('(Possible options: --severity)',)            │\n"
+        "│ No such option: --no-severity (Possible options: --severity)                 │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
 

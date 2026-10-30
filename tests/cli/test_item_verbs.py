@@ -278,10 +278,10 @@ async def test_update_sets_and_clears_a_field_only_some_types_declare(
     assert refused == (
         2,
         unknown_option(
-            f"{P.ref} N update [OPTIONS]",
-            f"{P.ref} N update",
+            f"{P.ref} {{N}} update [OPTIONS]",
+            f"{P.ref} {{N}} update",
             "--severity",
-            f" ('(Possible options: {P.badge_flag}, --set)',)",
+            f" (Possible options: {P.badge_flag}, --set)",
         ),
     )
 
@@ -300,12 +300,12 @@ async def test_update_takes_a_flag_per_declared_field_and_a_negation_per_optiona
     assert both == (1, "error: use either --work-size or --no-work-size, not both\n")
     for flag, hint in (
         ("--priority", ""),
-        ("--no-priority", " ('(Possible options: --no-parent)',)"),
+        ("--no-priority", " (Possible options: --no-parent)"),
     ):
         refused = await _ran(invoke, ["initiative", "8", "update", flag])
         assert refused == (
             2,
-            unknown_option("initiative N update [OPTIONS]", "initiative N update", flag, hint),
+            unknown_option("initiative {N} update [OPTIONS]", "initiative {N} update", flag, hint),
         )
 
 
@@ -1182,14 +1182,14 @@ async def test_remove_refuses_an_actor_no_roster_entry_has(populated_project, in
 # --- ref add / ref rm -----------------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> ref add", "TARGET")
+@pytest.mark.covers("<type> ref add", "target")
 async def test_ref_add_links_the_item_to_the_target_as_related(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "ref", "add", f"{P.third_prefix}-{REVIEW}"])
     assert out == (0, f"{P.ref_prefix}-3 → {P.third_prefix}-{REVIEW} (related)\n")
     assert (await _show(invoke))["refs"] == [f"{P.third_prefix}-{REVIEW}"]
 
 
-@pytest.mark.covers("<type> ref add", "TARGET")
+@pytest.mark.covers("<type> ref add", "target")
 async def test_ref_add_refuses_a_target_that_is_not_an_item_id(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "ref", "add", "elsewhere"]) == (
         1,
@@ -1229,7 +1229,7 @@ async def test_ref_add_refuses_an_actor_no_roster_entry_has(populated_project, i
     assert out == (1, "error: unknown slug 'ghost'; valid slugs: manager\n")
 
 
-@pytest.mark.covers("<type> ref rm", "TARGET")
+@pytest.mark.covers("<type> ref rm", "target")
 async def test_ref_rm_drops_every_ref_to_the_target(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", P.ref_kind_one])
     await _ok(invoke, [P.ref, str(TASK), "ref", "add", str(REVIEW), "--kind", "related"])
@@ -1239,7 +1239,7 @@ async def test_ref_rm_drops_every_ref_to_the_target(populated_project, invoke) -
     assert (await _show(invoke))["refs"] == [f"{P.host_prefix}-{FEATURE}"]
 
 
-@pytest.mark.covers("<type> ref rm", "TARGET")
+@pytest.mark.covers("<type> ref rm", "target")
 async def test_ref_rm_refuses_a_target_the_item_has_no_ref_to(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "ref", "rm", str(REVIEW)]) == (
         1,
@@ -1247,7 +1247,7 @@ async def test_ref_rm_refuses_a_target_the_item_has_no_ref_to(populated_project,
     )
 
 
-@pytest.mark.covers("<type> ref rm", "TARGET")
+@pytest.mark.covers("<type> ref rm", "target")
 async def test_ref_rm_refuses_a_target_that_is_not_an_item_id(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "ref", "rm", "elsewhere"]) == (
         1,
@@ -1360,7 +1360,7 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 # --- view add / view disable ----------------------------------------------------------------
 
 
-@pytest.mark.covers("<type> view add", "NAME")
+@pytest.mark.covers("<type> view add", "name")
 @pytest.mark.bundled_only(
     "the declared attribute and the view belong to the bundled milestone type"
 )
@@ -1372,7 +1372,7 @@ async def test_view_add_places_the_declared_view_in_the_body(populated_project, 
     }
 
 
-@pytest.mark.covers("<type> view add", "NAME")
+@pytest.mark.covers("<type> view add", "name")
 async def test_view_add_refuses_a_name_no_view_declares(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), "view", "add", "gantt"]) == (
         1,
@@ -1381,7 +1381,7 @@ async def test_view_add_refuses_a_name_no_view_declares(populated_project, invok
     )
 
 
-@pytest.mark.covers("<type> view disable", "NAME")
+@pytest.mark.covers("<type> view disable", "name")
 @pytest.mark.bundled_only(
     "the declared attribute and the view belong to the bundled milestone type"
 )

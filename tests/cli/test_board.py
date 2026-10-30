@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._output import read_json
+from tests.cli._output import read_json, unknown_option
 from tests.cli._roster import usage_error
 
 pytestmark = pytest.mark.anyio
@@ -171,7 +171,7 @@ async def test_list_prints_one_numbered_line_per_notice(project, invoke) -> None
 # ----------------------------------------------------------------------------------- clear
 
 
-@pytest.mark.covers("board clear", "N")
+@pytest.mark.covers("board clear", "n")
 async def test_clear_takes_down_the_notice_with_that_number(project, invoke) -> None:
     first = await _post(invoke, "-m", "First", at=EARLIER)
     second = await _post(invoke, "-m", "Second")
@@ -180,7 +180,7 @@ async def test_clear_takes_down_the_notice_with_that_number(project, invoke) -> 
     assert [(n["n"], n["id"]) for n in await _board(invoke)] == [(1, second)]
 
 
-@pytest.mark.covers("board clear", "N")
+@pytest.mark.covers("board clear", "n")
 async def test_clear_refuses_a_number_the_listing_does_not_have(project, invoke) -> None:
     await _post(invoke, "-m", "First")
     for number in ("0", "2"):
@@ -192,28 +192,28 @@ async def test_clear_refuses_a_number_the_listing_does_not_have(project, invoke)
     assert len(await _board(invoke)) == 1
 
 
-@pytest.mark.covers("board clear", "N")
+@pytest.mark.covers("board clear", "n")
 async def test_clear_refuses_a_number_that_is_not_an_integer(project, invoke) -> None:
     result = await invoke(["board", "clear", "first"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq board clear [OPTIONS] N",
+            "Usage: sq board clear [OPTIONS] {n}",
             "sq board clear --help",
-            "Invalid value for 'N': 'first' is not a valid integer.",
+            "Invalid value for 'n': 'first' is not a valid int.",
         ),
     )
 
 
-@pytest.mark.covers("board clear", "N")
+@pytest.mark.covers("board clear", "n")
 async def test_clear_needs_a_number(project, invoke) -> None:
     result = await invoke(["board", "clear"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq board clear [OPTIONS] N",
+            "Usage: sq board clear [OPTIONS] {n}",
             "sq board clear --help",
-            "Missing argument 'N'.",
+            "Missing argument 'n'.",
         ),
     )
 
@@ -267,3 +267,16 @@ async def test_clear_json_prints_the_notice_taken_down(project, invoke) -> None:
         + "\n"
     )
     assert await _board(invoke) == []
+
+
+@pytest.mark.covers("board post", "--message")
+async def test_post_names_the_options_close_to_an_unknown_one_as_plain_text(
+    project, invoke
+) -> None:
+    await _post(invoke, "-m", "Freeze on Friday")
+    result = await invoke(["board", "post", "-m", "Second", "--slug", "manager"])
+    assert (result.exit_code, result.output) == (
+        2,
+        unknown_option("board post [OPTIONS]", "board post", "--slug", " (Possible options: --as)"),
+    )
+    assert [notice["body"] for notice in await _board(invoke)] == ["Freeze on Friday"]

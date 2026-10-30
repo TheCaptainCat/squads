@@ -244,7 +244,7 @@ async def test_list_json_describes_each_activated_role(project, invoke) -> None:
 # ------------------------------------------------------------------------------- activate
 
 
-@pytest.mark.covers("role activate", "SLUG")
+@pytest.mark.covers("role activate", "slug")
 @pytest.mark.bundled_only("activates a catalog role whose text names the bundled workflow")
 async def test_activate_adds_a_catalog_role_and_writes_its_pointer(project, invoke) -> None:
     result = await invoke(["role", "activate", "architect"])
@@ -272,7 +272,7 @@ async def test_activate_adds_a_catalog_role_and_writes_its_pointer(project, invo
     ]
 
 
-@pytest.mark.covers("role activate", "SLUG")
+@pytest.mark.covers("role activate", "slug")
 async def test_activate_refuses_a_slug_the_catalog_does_not_declare(project, invoke) -> None:
     result = await invoke(["role", "activate", "nosuch"])
     assert (result.exit_code, result.output) == (
@@ -395,7 +395,7 @@ async def test_activate_as_refuses_a_slug_that_is_not_registered(project, invoke
 # ---------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("role add", "SLUG")
+@pytest.mark.covers("role add", "slug")
 @pytest.mark.covers("role add", "--name")
 @pytest.mark.covers("role add", "--job-title")
 @pytest.mark.covers("role add", "--desc")
@@ -466,7 +466,7 @@ async def test_add_names_the_one_field_it_is_missing(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("role add", "SLUG")
+@pytest.mark.covers("role add", "slug")
 async def test_add_refuses_a_slug_a_role_already_has(project, invoke) -> None:
     await _add_scout(invoke)
     result = await invoke(["role", "add", "scout", *SCOUT])
@@ -476,15 +476,15 @@ async def test_add_refuses_a_slug_a_role_already_has(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("role add", "SLUG")
+@pytest.mark.covers("role add", "slug")
 async def test_add_needs_a_slug(project, invoke) -> None:
     result = await invoke(["role", "add"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq role add [OPTIONS] SLUG",
+            "Usage: sq role add [OPTIONS] {slug}",
             "sq role add --help",
-            "Missing argument 'SLUG'.",
+            "Missing argument 'slug'.",
         ),
     )
 
@@ -1013,7 +1013,7 @@ async def test_status_needs_a_status(project, invoke) -> None:
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq role <slug|id|n> status [OPTIONS] STATUS",
+            "Usage: sq role <slug|id|n> status [OPTIONS] {STATUS}",
             "sq role <slug|id|n> status --help",
             "Missing argument 'STATUS'.",
         ),
@@ -1260,7 +1260,7 @@ async def test_regen_refuses_a_role_that_is_not_activated(project, invoke) -> No
 # ------------------------------------------------------------------------------------ views
 
 
-@pytest.mark.covers("role view add", "NAME")
+@pytest.mark.covers("role view add", "name")
 async def test_view_add_of_the_view_a_role_already_renders_changes_nothing(project, invoke) -> None:
     result = await invoke(["role", "manager", "view", "add", "role_definition"])
     assert (result.exit_code, result.output) == (
@@ -1269,7 +1269,7 @@ async def test_view_add_of_the_view_a_role_already_renders_changes_nothing(proje
     )
 
 
-@pytest.mark.covers("role view add", "NAME")
+@pytest.mark.covers("role view add", "name")
 async def test_view_add_is_refused_for_a_name_the_role_body_does_not_take(project, invoke) -> None:
     await _add_scout(invoke)
     result = await invoke(["role", "scout", "view", "add", "nosuch"])
@@ -1286,7 +1286,7 @@ async def test_view_add_as_refuses_a_slug_that_is_not_registered(project, invoke
     )
 
 
-@pytest.mark.covers("role view disable", "NAME")
+@pytest.mark.covers("role view disable", "name")
 async def test_view_disable_is_refused_while_the_spec_declares_the_view(project, invoke) -> None:
     """The bundled spec accepts no edit of the role definition view; the refusal is the case."""
     await _add_scout(invoke)

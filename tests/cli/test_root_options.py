@@ -114,7 +114,7 @@ async def test_c_help_of_one_squad_does_not_change_the_next_squads_verbs(
     result = await invoke(["-C", str(project.root), "bug", "1", f"add-{P.third_kind}", "x"])
     assert (result.exit_code, result.output) == (
         2,
-        "Usage: sq bug [OPTIONS] N COMMAND [ARGS]...\n"
+        "Usage: sq bug [OPTIONS] {N} COMMAND [ARGS]...\n"
         "Try 'sq bug --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         f"│ No such command 'add-{P.third_kind}'.                                               │\n"

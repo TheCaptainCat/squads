@@ -34,7 +34,7 @@ async def _run(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
-@pytest.mark.covers("inbox", "ROLE")
+@pytest.mark.covers("inbox", "role")
 async def test_inbox_lists_the_open_items_that_mention_the_slug(readable, invoke) -> None:
     assert await _run(invoke, "inbox", "manager") == (
         0,
@@ -46,12 +46,12 @@ async def test_inbox_lists_the_open_items_that_mention_the_slug(readable, invoke
     )
 
 
-@pytest.mark.covers("inbox", "ROLE")
+@pytest.mark.covers("inbox", "role")
 async def test_inbox_says_when_nothing_mentions_the_slug(populated_project, invoke) -> None:
     assert await _run(invoke, "inbox", "manager") == (0, ["nothing for @manager"])
 
 
-@pytest.mark.covers("inbox", "ROLE")
+@pytest.mark.covers("inbox", "role")
 async def test_inbox_refuses_a_slug_no_roster_entry_has(readable, invoke) -> None:
     assert await _run(invoke, "inbox", "ghost") == (
         1,
@@ -85,19 +85,19 @@ async def test_inbox_json_prints_one_object_per_item_with_the_mentioning_lines(
     assert result.output == json.dumps(expected, indent=2) + "\n"
 
 
-@pytest.mark.covers("mine", "ROLE")
+@pytest.mark.covers("mine", "role")
 async def test_mine_lists_the_open_items_assigned_directly_or_through_a_sub_entity(
     readable, invoke
 ) -> None:
     assert await _run(invoke, "mine", "manager") == (0, MANAGER_ROWS)
 
 
-@pytest.mark.covers("mine", "ROLE")
+@pytest.mark.covers("mine", "role")
 async def test_mine_says_when_nothing_is_assigned(readable, invoke) -> None:
     assert await _run(invoke, "mine", "op-pierre") == (0, ["nothing assigned to op-pierre"])
 
 
-@pytest.mark.covers("mine", "ROLE")
+@pytest.mark.covers("mine", "role")
 async def test_mine_refuses_a_slug_no_roster_entry_has(readable, invoke) -> None:
     assert await _run(invoke, "mine", "ghost") == (
         1,

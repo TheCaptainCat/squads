@@ -115,7 +115,7 @@ async def test_tail_refuses_a_value_that_is_not_an_integer(history, invoke) -> N
             "Usage: sq reflog [OPTIONS]",
             "Try 'sq reflog --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--tail' / '-n': 'many' is not a valid integer.            │",
+            "│ Invalid value for '--tail' / '-n': 'many' is not a valid int.                │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )

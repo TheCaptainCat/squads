@@ -166,6 +166,6 @@ async def test_from_refuses_a_value_that_is_not_an_integer(populated_project, in
     assert (result.exit_code, result.output) == (
         2,
         USAGE + "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ Invalid value for '--from': 'x' is not a valid integer.                      │\n"
+        "│ Invalid value for '--from': 'x' is not a valid int.                          │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
