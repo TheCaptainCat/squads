@@ -7,7 +7,8 @@ import shutil
 from pathlib import Path
 
 #: Modules (relative to ``src/squads``) allowed to write to the streams, as a path prefix.
-_EXEMPT = ("_cli/", "_tui/", "__main__.py", "_spans.py")
+#: ``_daemon/_lifecycle.py`` writes its readiness line to the pipe it inherited, no process stream.
+_EXEMPT = ("_cli/", "_tui/", "__main__.py", "_spans.py", "_daemon/_lifecycle.py")
 
 _STREAMS = frozenset({"stdout", "stderr", "__stdout__", "__stderr__"})
 
