@@ -4,11 +4,16 @@ It holds the environment variables a served command can see; the daemon reads th
 the two sides cannot disagree on it.
 """
 
-#: The variables the client sends with a command, absent ones left out. A variable outside this
-#: list does not exist for a served command; the daemon's diagnostic variables are never on it.
+#: The variables the client sends with a command, absent ones left out: every one that changes
+#: what a command prints locally. The daemon's own environment answers for any other name.
 SENT_ENVIRONMENT: tuple[str, ...] = (
     "SQUADS_SESSION_ID",
     "SQUADS_PARENT_SESSION_ID",
+    "SQUADS_SPANS",
+    "PY_COLORS",
+    "GITHUB_ACTIONS",
+    "TERMINAL_WIDTH",
+    "_TYPER_FORCE_DISABLE_TERMINAL",
     "NO_COLOR",
     "FORCE_COLOR",
     "CLICOLOR_FORCE",

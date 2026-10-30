@@ -68,17 +68,41 @@ def _dimension(name: str, terminal: int | None, fallback: int) -> int:
     return chosen or fallback
 
 
-def build_console(*, stderr: bool) -> Console:
+def windows_color_system(
+    detected: str | None, legacy: bool | None, truecolor: bool | None
+) -> str | None:
+    """The colour system of a Windows client's console. Rich asks the console of its own process,
+    which for a served command is the daemon's, so once it detected a colour system the client's
+    facts decide: standard on a legacy console, else 24-bit or 256 colours as its console shows."""
+    if detected is None or truecolor is None:
+        return detected
+    if legacy:
+        return "standard"
+    return "truecolor" if truecolor else "256"
+
+
+def build_console(
+    *, stderr: bool, force_terminal: bool | None = None, width: int | None = None
+) -> Console:
     """A console for the standard stream it names. A served command's is sized and featured as
-    its client's terminal is, not as the daemon's."""
+    its client's terminal is, not as the daemon's; *force_terminal* and *width* are Typer's own
+    settings for its help and error consoles."""
     served = get_context().served
     if served is None:
-        return Console(stderr=stderr)
+        return Console(stderr=stderr, force_terminal=force_terminal, width=width)
     legacy = None if served.windows_vt is None else not served.windows_vt
-    console = Console(stderr=stderr, legacy_windows=legacy)
+    console = Console(stderr=stderr, legacy_windows=legacy, force_terminal=force_terminal)
+    system = windows_color_system(console.color_system, legacy, served.windows_truecolor)
+    if system != console.color_system:
+        console = Console(
+            stderr=stderr,
+            legacy_windows=legacy,
+            force_terminal=force_terminal,
+            color_system=system,  # type: ignore[arg-type]
+        )
     if not console.is_dumb_terminal:
         console.size = (
-            _dimension("COLUMNS", served.columns, 80),
+            width or _dimension("COLUMNS", served.columns, 80),
             _dimension("LINES", served.lines, 25),
         )
     return console

@@ -431,6 +431,7 @@ _services -> _views top
 _services -> _workflow top
 _services -> squads local
 _services -> squads top
+_spans -> _context top
 _spec_documents -> _api top
 _spec_documents -> _errors top
 _spec_documents -> _interactions top

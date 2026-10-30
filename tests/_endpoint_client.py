@@ -6,6 +6,7 @@ served command in process; it never travels on the wire.
 """
 
 import base64
+import functools
 import os
 from contextlib import ExitStack
 from dataclasses import dataclass
@@ -13,6 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import typer.main
+from typer._click import Command
 from typer.testing import CliRunner
 
 from squads._cli import app
@@ -73,10 +76,25 @@ def _file_arguments(argv: list[str], command: str | None) -> list[str]:
     return named
 
 
-def _terminal() -> dict[str, Any]:
-    """A client whose streams are pipes."""
-    stream = {"tty": False, "encoding": "utf-8"}
-    return {"stdin": stream, "stdout": stream, "stderr": stream}
+def terminal_facts(
+    *,
+    tty: bool = False,
+    encoding: str = "utf-8",
+    size: tuple[int, int] | None = None,
+    windows_vt: bool | None = None,
+    windows_truecolor: bool | None = None,
+) -> dict[str, Any]:
+    """The facts of a client whose three streams are all terminals (*tty*) or all pipes."""
+    stream = {"tty": tty, "encoding": encoding}
+    facts: dict[str, Any] = {"stdin": stream, "stdout": stream, "stderr": stream}
+    for name, value in (
+        ("size", size),
+        ("windows_vt", windows_vt),
+        ("windows_truecolor", windows_truecolor),
+    ):
+        if value is not None:
+            facts[name] = list(value) if isinstance(value, tuple) else value
+    return facts
 
 
 def post_commands(served: Served, body: dict[str, Any]) -> Reply:
@@ -94,11 +112,17 @@ def command_body(argv: list[str], **fields: Any) -> dict[str, Any]:
         "client_dir": cwd,
         "env": {},
         "prog_name": "sq",
-        "terminal": _terminal(),
+        "terminal": terminal_facts(),
         "attachments": {},
         "answers": [],
         **fields,
     }
+
+
+@functools.cache
+def command_tree() -> Command:
+    """The CLI's command tree, built once and served to every case of the session."""
+    return typer.main.get_command(app)
 
 
 class EndpointClient:
@@ -123,7 +147,9 @@ class EndpointClient:
             held[2].close()
         stack = ExitStack()
         served = stack.enter_context(
-            serve_squad(resolve(client_cwd=endpoint.root), clock=lambda: self._clock)
+            serve_squad(
+                resolve(client_cwd=endpoint.root), command=command_tree(), clock=lambda: self._clock
+            )
         )
         self._served[endpoint.root] = (current, served, stack)
         return served

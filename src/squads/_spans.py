@@ -1,7 +1,8 @@
 """Wall-clock spans of one invocation, written to stderr when ``SQUADS_SPANS`` is non-empty.
 
 A value of the form ``t=<float>`` is a launcher's ``time.perf_counter()`` reading, and ``mark``
-times are reported from it; any other value times them from the module's import.
+times are reported from it; any other value times them from the module's import. A command the
+daemon serves times them from its request's arrival.
 """
 
 import os
@@ -9,6 +10,8 @@ import sys
 import time
 from collections.abc import Generator
 from contextlib import AbstractContextManager, contextmanager, nullcontext
+
+from squads._context import get_context
 
 _IMPORTED = time.perf_counter()
 
@@ -19,6 +22,9 @@ def _switch() -> str:
 
 
 def _origin(switch: str) -> float:
+    served = get_context().served
+    if served is not None:
+        return served.arrived
     if switch.startswith("t="):
         try:
             return float(switch[2:])

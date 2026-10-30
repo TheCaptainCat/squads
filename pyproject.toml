@@ -23,7 +23,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "typer>=0.27.3",
+    # Held to one minor series: the daemon replaces typer.rich_utils._get_rich_console for served
+    # commands (squads/_daemon/_proxies.py), and a test pins that function's shape.
+    "typer>=0.27.3,<0.28",
     "pydantic>=2.14.2",
     "jinja2>=3.1.6",
     "filelock>=4.2.4",

@@ -8,6 +8,7 @@ import base64
 import binascii
 import json
 import logging
+import time
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime
@@ -16,18 +17,14 @@ from typing import Any
 
 import typer._click as _click  # underscore is upstream's own private module path, not ours
 import typer.main
-import typer.rich_utils as rich_utils
 from pydantic import BaseModel, ConfigDict, ValidationError
-from rich.console import Console
-from rich.theme import Theme
 
 from squads import _aio as aio
 from squads._api._api import Api, Operation
 from squads._api._response import Response
-from squads._cli import _common as common
 from squads._cli import app
 from squads._cli import run as run_cli
-from squads._context import RequestContext, ServedCommand, get_context
+from squads._context import RequestContext, ServedCommand
 from squads._daemon import _proxies as proxies
 from squads._errors import SquadsError
 from squads._services._service import RequestScope
@@ -36,32 +33,6 @@ _log = logging.getLogger("squads.daemon")
 
 #: The text a client reads when the daemon's command failed for a reason of its own.
 INTERNAL_ERROR = "error: internal error; the traceback is in the daemon's log\n"
-
-
-_TYPER_CONSOLE = rich_utils._get_rich_console  # pyright: ignore[reportPrivateUsage]
-
-
-def _typer_console(stderr: bool = False) -> Console:
-    """Typer's help and error console. Typer fixes its terminal and width from the daemon's
-    environment when it is imported, so a served command gets the client's instead."""
-    if get_context().served is None:
-        return _TYPER_CONSOLE(stderr)
-    console = common.build_console(stderr=stderr)
-    console.push_theme(
-        Theme(
-            {
-                "option": rich_utils.STYLE_OPTION,
-                "switch": rich_utils.STYLE_SWITCH,
-                "negative_option": rich_utils.STYLE_NEGATIVE_OPTION,
-                "negative_switch": rich_utils.STYLE_NEGATIVE_SWITCH,
-                "types": rich_utils.STYLE_TYPES,
-                "types_sep": rich_utils.STYLE_TYPES_SEPARATOR,
-                "usage": rich_utils.STYLE_USAGE,
-            }
-        )
-    )
-    console.highlighter = rich_utils.highlighter
-    return console
 
 
 class StreamFacts(BaseModel):
@@ -84,6 +55,7 @@ class Terminal(BaseModel):
     stderr: StreamFacts
     size: tuple[int, int] | None = None
     windows_vt: bool | None = None
+    windows_truecolor: bool | None = None
 
 
 class CommandRequest(BaseModel):
@@ -167,6 +139,8 @@ class Session:
             columns=size[0] if size else None,
             lines=size[1] if size else None,
             windows_vt=terminal.windows_vt,
+            windows_truecolor=terminal.windows_truecolor,
+            arrived=time.perf_counter(),
             begin_prompt=self._begin_prompt,
         )
 
@@ -186,7 +160,6 @@ class Commands:
         clock: Callable[[], datetime | None] = lambda: None,
     ) -> None:
         proxies.install()
-        rich_utils._get_rich_console = _typer_console  # pyright: ignore[reportPrivateUsage]
         self._scope = scope
         #: The command tree, built when the daemon starts.
         self._command = command if command is not None else typer.main.get_command(app)

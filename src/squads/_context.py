@@ -114,6 +114,10 @@ class ServedCommand:
     lines: int | None
     #: Whether a Windows client's console has virtual-terminal processing; ``None`` elsewhere.
     windows_vt: bool | None
+    #: Whether a Windows client's console shows 24-bit colour; ``None`` elsewhere.
+    windows_truecolor: bool | None
+    #: When the request arrived (``time.perf_counter``), which the spans of the command count from.
+    arrived: float
     #: Marks that the output so far is what the user has seen and the next write is the prompt.
     begin_prompt: Callable[[], None]
 

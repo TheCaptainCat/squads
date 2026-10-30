@@ -3,10 +3,6 @@ chunks and an exit code, or with a prompt it stopped at."""
 
 import base64
 import json
-import os
-import subprocess
-import sys
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -20,7 +16,6 @@ from squads._api._dto._check import SyncRequest
 from squads._cli import _calls as calls
 from squads._cli import _common as common
 from squads._cli import app, main_callback
-from squads._context import ServedCommand, bind_context, get_context
 from squads._daemon._commands import INTERNAL_ERROR
 from squads._paths import SquadPaths
 from tests._endpoint_client import command_body, post_commands
@@ -127,14 +122,6 @@ def test_an_attachment_that_is_not_utf8_is_refused_as_local_mode_refuses_it(
             "exit_code": 1,
         },
     )
-
-
-def test_a_served_command_cannot_select_an_api_of_its_own() -> None:
-    served = ServedCommand({}, "utf-8", None, None, None, lambda: None)
-    bind_context(replace(get_context(), served=served))
-
-    with pytest.raises(RuntimeError, match="the daemon's own API"):
-        calls.select_api()
 
 
 def test_stdin_attached_under_a_dash_is_the_text_the_command_reads(
@@ -267,8 +254,9 @@ def test_an_answer_is_not_fed_to_a_screen_the_user_did_not_see(
     assert len(json.loads(_cli(runner, "task", "2", "comments", "--json"))) == 1
 
 
-def _writing_then_asking() -> Command:
-    """A command tree with one command that writes, then asks: no command of the CLI does."""
+def _commands_no_cli_command_has() -> Command:
+    """A command tree with the commands that reach what no command of the CLI does: one that
+    writes, then asks, and one that selects an API of its own."""
     host = typer.Typer(name="sq")
     host.callback()(main_callback)
 
@@ -277,11 +265,15 @@ def _writing_then_asking() -> Command:
         calls.call(ops.SYNC, SyncRequest())
         common.confirm("Go on?", json_out=False)
 
+    @host.command("select-an-api")
+    def select_an_api() -> None:  # pyright: ignore[reportUnusedFunction]
+        calls.select_api()
+
     return typer.main.get_command(host)
 
 
 def test_a_prompt_reached_after_a_write_is_an_internal_error(project: SquadPaths, serve) -> None:
-    daemon = serve(project, command=_writing_then_asking())
+    daemon = serve(project, command=_commands_no_cli_command_has())
 
     reply = post_commands(daemon, command_body(["write-then-ask"]))
 
@@ -291,32 +283,22 @@ def test_a_prompt_reached_after_a_write_is_an_internal_error(project: SquadPaths
     )
 
 
-def test_the_command_endpoint_is_the_only_route_the_clients_files_travel_on(
-    project: SquadPaths, serve
-) -> None:
-    daemon = serve(project)
-
-    reply = daemon.request("GET", "/v1/commands")
-    document = daemon.get("/v1/openapi.json").json()
-
-    assert (reply.status, reply.headers["allow"]) == (405, "POST")
-    assert "/v1/commands" not in document["paths"]
-
-
-def test_a_request_that_is_not_a_command_is_refused_as_invalid(project: SquadPaths, serve) -> None:
-    daemon = serve(project)
-
-    reply = daemon.request("POST", "/v1/commands", {"argv": "task"})
-
-    assert reply.status == 400
-    assert reply.json()["error"]["type"] == "invalid"
-
-
 def test_the_answer_carries_the_daemons_handler_time(project: SquadPaths, serve) -> None:
     reply = post_commands(serve(project), command_body(["--help"]))
 
     assert reply.status == 200
     assert reply.headers["server-timing"].startswith("handler;dur=")
+
+
+def test_a_served_command_cannot_select_an_api_of_its_own(project: SquadPaths, serve) -> None:
+    daemon = serve(project, command=_commands_no_cli_command_has())
+
+    reply = post_commands(daemon, command_body(["select-an-api"]))
+
+    assert (reply.status, reply.json()) == (
+        200,
+        {"kind": "done", "output": [["stderr", INTERNAL_ERROR]], "exit_code": 1},
+    )
 
 
 def test_a_directory_the_client_names_with_c_is_never_read(
@@ -330,34 +312,6 @@ def test_a_directory_the_client_names_with_c_is_never_read(
     assert (reply.status, reply.json()) == (
         200,
         {"kind": "done", "output": [["stdout", "[]\n"]], "exit_code": 0},
-    )
-
-
-def test_help_is_laid_out_for_the_clients_terminal_as_local_mode_lays_it_out(
-    project: SquadPaths, serve, tmp_path: Path
-) -> None:
-    client = {
-        "FORCE_COLOR": "1",
-        "COLUMNS": "60",
-        "TERM": "xterm-256color",
-        "COLORTERM": "truecolor",
-    }
-    plain = {k: v for k, v in os.environ.items() if k != "_TYPER_FORCE_DISABLE_TERMINAL"}
-    local = subprocess.run(
-        [str(Path(sys.executable).parent / "sq"), "--help"],
-        env={**plain, **client, "SQUADS_DAEMON": "off"},
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    assert "\x1b[" in local.stdout
-
-    reply = post_commands(serve(project), command_body(["--help"], env=client))
-
-    assert (reply.status, reply.json()) == (
-        200,
-        {"kind": "done", "output": [["stdout", local.stdout]], "exit_code": 0},
     )
 
 

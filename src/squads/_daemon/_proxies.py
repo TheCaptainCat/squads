@@ -16,8 +16,12 @@ import sys
 from dataclasses import dataclass
 from typing import TextIO
 
+import typer.rich_utils as rich_utils
 from rich.console import Console
+from rich.theme import Theme
 
+from squads._cli import _common as common
+from squads._context import get_context
 from squads._shim import SENT_ENVIRONMENT
 
 STDOUT = "stdout"
@@ -145,6 +149,11 @@ class StandardStream(io.TextIOBase):
     """A standard stream: the request's capture while one runs, the stream it replaced otherwise.
     It also takes ``bytes``, which Click and Typer write on the completion path."""
 
+    #: Click keeps the text stream it wraps around a stream in a map keyed by the stream, which
+    #: would fix the first client's encoding for every later one. An unhashable stream is never
+    #: kept there, so each write is wrapped for the encoding of the request writing it.
+    __hash__ = None  # pyright: ignore[reportAssignmentType]
+
     def __init__(self, name: str, fallback: TextIO) -> None:
         self._name = name
         self._fallback = fallback
@@ -204,6 +213,43 @@ class StandardStream(io.TextIOBase):
         return capture.read_line()
 
 
+#: The styles Typer's help and error consoles define, which a served console takes from them.
+TYPER_STYLES = (
+    "option",
+    "switch",
+    "negative_option",
+    "negative_switch",
+    "types",
+    "types_sep",
+    "usage",
+)
+
+TYPER_CONSOLE = rich_utils._get_rich_console  # pyright: ignore[reportPrivateUsage]
+
+
+def typer_console(stderr: bool = False) -> Console:
+    """Typer's help and error console. Typer fixes its terminal and width from the process's
+    environment when it is imported; a served command gets them from its client's, by the same
+    rules, with the client's terminal facts."""
+    if get_context().served is None:
+        return TYPER_CONSOLE(stderr)
+    typers = TYPER_CONSOLE(stderr)
+    forced = bool(
+        os.environ.get("GITHUB_ACTIONS")
+        or os.environ.get("FORCE_COLOR")
+        or os.environ.get("PY_COLORS")
+    )
+    columns = os.environ.get("TERMINAL_WIDTH")
+    console = common.build_console(
+        stderr=stderr,
+        force_terminal=False if os.environ.get("_TYPER_FORCE_DISABLE_TERMINAL") else forced or None,
+        width=int(columns) if columns else None,
+    )
+    console.push_theme(Theme({name: typers.get_style(name) for name in TYPER_STYLES}))
+    console.highlighter = typers.highlighter
+    return console
+
+
 class Environment(collections.abc.MutableMapping[str, str]):
     """``os.environ`` for a served command: a name of the fixed list reads the request's ``env``,
     any other name the daemon's own."""
@@ -249,6 +295,8 @@ def install() -> None:
         sys.stderr = StandardStream(STDERR, sys.stderr)
     if not isinstance(sys.stdin, StandardStream):
         sys.stdin = StandardStream(STDIN, sys.stdin)
+    if rich_utils._get_rich_console is not typer_console:  # pyright: ignore[reportPrivateUsage]
+        rich_utils._get_rich_console = typer_console  # pyright: ignore[reportPrivateUsage]
     if not isinstance(os.environ, Environment):
         os.environ = Environment(os.environ)  # noqa: B003  # pyright: ignore[reportAttributeAccessIssue]
         # Rich binds the process environment when it is imported, which is the one replaced here.
