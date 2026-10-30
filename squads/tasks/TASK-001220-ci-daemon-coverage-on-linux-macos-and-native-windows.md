@@ -27,7 +27,7 @@ subentities:
   status: Done
   maps_to: US12
 created_at: '2026-10-28T14:08:43Z'
-updated_at: '2026-10-30T08:03:28Z'
+updated_at: '2026-10-30T10:05:11Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -123,4 +123,6 @@ The benchmark script of TASK-1219 ST8 run on one runner as a report: the human a
     - Local counts: `tests/cli` collects 997 tests in each of local, remote and remote-override mode. `scripts/bench_remote_client.py` exists only in a worktree, not on release/0.19 yet, so `client-budget` fails (harmlessly) until TASK-1219 ST8 merges.
     - Not done: the throwaway-branch deliberate-leak proof, the Windows collected-ID check and the two timing runs per OS. They need CI.
     - Timing on release/0.19: push and PR triggers are main-only, so push the branch and run `gh workflow run test.yml --ref release/0.19`, or use Actions > test > Run workflow with the branch chosen. Do it twice, then read each job's duration with `gh run view <id> --json jobs`.
+- [2026-10-30T10:05:11Z] `manager` Catherine Manager:
+  - CI run 41037144455 on release/0.19 (workflow_dispatch, 2026-10-30): every job green on ubuntu, macOS and native Windows. Windows full suite 7m28s (bound 15), remote-mode Windows 2m58s, cross-process Windows 1m43s; every other job under 3m. A second run confirms the ADR-1172 time bound.
 <!-- sq:discussion:end -->
