@@ -59,7 +59,6 @@ about which side is ahead.
 
 import asyncio
 import contextlib
-import sys
 import threading
 from collections.abc import AsyncGenerator, Generator
 from contextvars import ContextVar, Token
@@ -73,6 +72,7 @@ from filelock import FileLock, Timeout
 from pydantic import ValidationError
 
 from squads import _aio
+from squads._context import record_notice
 from squads._errors import (
     IndexLockTimeoutError,
     IndexLockUnavailableError,
@@ -353,8 +353,8 @@ class IndexStore:
             raise IndexLockUnavailableError(self.lock_path, exc) from exc
 
     async def _acquire_after_notice(self, waited: float) -> None:
-        """Say on stderr that the lock is being waited for, then wait out the timeout's rest."""
-        print(f"waiting for the index lock {self.lock_path}…", file=sys.stderr)
+        """Record that the lock is being waited for, then wait out the timeout's rest."""
+        record_notice(f"waiting for the index lock {self.lock_path}…")
         try:
             await _aio.to_thread(
                 partial(self._lock.acquire, timeout=max(self._lock_timeout - waited, 0.0))
@@ -497,10 +497,7 @@ class IndexStore:
                                     parent_session_id=entry.parent_session_id,
                                 )
                         except Exception as exc:  # never fail a committed mutation
-                            print(
-                                f"[squads reflog] warning: reflog append failed: {exc}",
-                                file=sys.stderr,
-                            )
+                            record_notice(f"reflog append failed: {exc}")
                 finally:
                     # Unconditional, commit or raise: drop any snapshot this store filed so a later
                     # read in the invocation cannot see pre-mutation state. On the raise path it

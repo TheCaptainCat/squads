@@ -346,7 +346,7 @@ def main_callback(
 
 
 def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> None:
-    from squads._context import bind_context, get_context
+    from squads._context import NoticeLog, bind_context, get_context
 
     # Bind one fresh RequestContext per invocation, from -C/--at plus the clock that
     # `_resolve_clock_override` carries forward; the request's own starting directory and
@@ -368,6 +368,7 @@ def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> 
             documents=prior.documents,
             consoles=common.build_consoles(),
             api=calls.select_api(),
+            notices=NoticeLog(sink=common.print_notice),
         )
     )
     common.mark_root_callback_ran(ctx)

@@ -12,6 +12,7 @@ accessors below; nothing below ``compose_service`` reads the ``ContextVar`` dire
 fields are added with a default, so existing call sites and fields are untouched.
 """
 
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -27,6 +28,26 @@ if TYPE_CHECKING:
     # and a runtime import here would cycle back to this module mid-init, so they are type-only.
     from squads._spec_documents import SpecDocuments
     from squads._workflow._models import WorkflowSpec
+
+
+class NoticeLog:
+    """The notices the engine raised during one request, in order, and the sink that shows each
+    one as it is raised (the CLI's notice printer; the daemon sets none)."""
+
+    def __init__(self, sink: Callable[[str], None] | None = None) -> None:
+        self._notices: list[str] = []
+        self._sink = sink
+
+    def record(self, text: str) -> None:
+        """Keep *text*, and hand it to the sink when there is one."""
+        self._notices.append(text)
+        if self._sink is not None:
+            self._sink(text)
+
+    @property
+    def notices(self) -> tuple[str, ...]:
+        """Every notice recorded so far."""
+        return tuple(self._notices)
 
 
 @dataclass(frozen=True)
@@ -55,6 +76,9 @@ class RequestContext:
     consoles: tuple[Console, Console] | None = None
     #: The API this invocation's commands call.
     api: Api | None = None
+    #: The notices raised while the request's operation runs; ``LocalApi`` adds them to the
+    #: response's ``warnings``.
+    notices: NoticeLog | None = None
 
 
 _DEFAULT_CONTEXT = RequestContext()
@@ -70,6 +94,14 @@ def bind_context(ctx: RequestContext) -> None:
 def get_context() -> RequestContext:
     """Return the ambient context for the current task/thread (the default when unset)."""
     return _context_var.get()
+
+
+def record_notice(text: str) -> None:
+    """Record *text* as a notice of the request now running; nothing below the CLI writes to the
+    process's streams. A request with no log drops it."""
+    log = get_context().notices
+    if log is not None:
+        log.record(text)
 
 
 def rebind(**changes: object) -> RequestContext:

@@ -867,6 +867,11 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
     return wrapper
 
 
+def print_notice(text: str) -> None:
+    """One notice on stderr as the engine raises it, once per invocation."""
+    print_notices([text])
+
+
 def print_notices(warnings: Sequence[str]) -> None:
     """Each notice on stderr, once per invocation: a response's, or those a refused call carries
     before its error."""

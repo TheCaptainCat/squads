@@ -26,11 +26,11 @@ parse with both as ``None``.
 """
 
 import json
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from squads._context import record_notice
 from squads._models._schema import SCHEMA_VERSION
 
 #: The closed ``op`` vocabulary, the one list every surface naming reflog operations (this
@@ -101,7 +101,8 @@ async def append_line(
     """Append one compact JSON line to the reflog file on a worker thread. ``session_id`` and
     ``parent_session_id`` are omitted when ``None``, and the reader defaults both to ``None``. The
     swallow of ``(OSError, TypeError, ValueError)`` stays inside the threaded closure so no
-    exception crosses the loop boundary (the reflog never-raise contract).
+    exception crosses the loop boundary (the reflog never-raise contract); a failed append is
+    recorded as a notice of the request.
     """
     from squads import _aio
 
@@ -123,18 +124,18 @@ async def append_line(
         }
     )
 
-    def _write() -> None:
+    def _write() -> str | None:
         try:
             line = json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
             with path.open("a", encoding="utf-8", newline="") as fh:
                 fh.write(line)
         except (OSError, TypeError, ValueError) as exc:
-            print(
-                f"[squads reflog] warning: could not append to {path}: {exc}",
-                file=sys.stderr,
-            )
+            return f"could not append to {path}: {exc}"
+        return None
 
-    await _aio.to_thread(_write)
+    failure = await _aio.to_thread(_write)
+    if failure is not None:
+        record_notice(failure)
 
 
 async def read_lines(path: Path) -> list[ReflogLine]:
@@ -188,9 +189,6 @@ async def read_lines(path: Path) -> list[ReflogLine]:
             )
         except Exception:
             # Interior malformed line — warn and skip.
-            print(
-                f"[squads reflog] warning: skipping malformed line {i + 1} in {path}",
-                file=sys.stderr,
-            )
+            record_notice(f"skipping malformed line {i + 1} in {path}")
 
     return out

@@ -105,7 +105,7 @@ def test_a_writer_finding_the_lock_held_says_so_then_proceeds_on_release(project
     result = _run(_create(project, "After the wait"))
     assert (result.returncode, result.stderr) == (
         0,
-        f"waiting for the index lock {project.lock_path}…\n",
+        f"warning: waiting for the index lock {project.lock_path}…\n",
     )
     created = json.loads(result.stdout)
     assert (created["id"], created["title"]) == ("TASK-2", "After the wait")
@@ -118,7 +118,7 @@ def test_a_lock_held_past_the_timeout_fails_the_command_and_writes_nothing(proje
     assert (result.returncode, result.stdout, result.stderr) == (
         1,
         "",
-        f"waiting for the index lock {project.lock_path}…\n"
+        f"warning: waiting for the index lock {project.lock_path}…\n"
         f"error: the index lock {project.lock_path} is held by another sq process; "
         "nothing was written, retry the command\n",
     )

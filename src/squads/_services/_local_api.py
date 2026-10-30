@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from squads import _spans as spans
 from squads._api._api import Grant, Mode, Operation
 from squads._api._response import Response
-from squads._context import get_context
+from squads._context import NoticeLog, get_context, rebind
 from squads._errors import SchemaGateError, SquadsError
 from squads._index._store import read_scope
 from squads._language import resolve_working_language
@@ -39,6 +39,11 @@ def check_grant(paths: SquadPaths, grant: Grant | None) -> None:
         f"this squad is at schema v{disk}, newer than squads {__version__} "
         f"(v{SCHEMA_VERSION}). Upgrade the squads package."
     )
+
+
+def _language(notice: str | None) -> tuple[str, ...]:
+    """The working-language notice as a tuple of at most one."""
+    return () if notice is None else (notice,)
 
 
 class LocalApi:
@@ -72,9 +77,15 @@ class LocalApi:
         return svc
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
-        """Run *op* on *req*. The squad's working-language notice joins the warnings, or the
-        refusal's when the call is refused past the schema gate. A local-only operation creates
-        the squad, so it runs whether one resolves or not, and gets no service."""
+        """Run *op* on *req*. The notices the engine raised while it ran, then the squad's
+        working-language notice, join the warnings, or the refusal's when the call is refused
+        past the schema gate. A local-only operation creates the squad, so it runs whether one
+        resolves or not, and gets no service."""
+        log = get_context().notices
+        if log is None:
+            log = NoticeLog()
+            rebind(notices=log)
+        raised_before = len(log.notices)
         paths: SquadPaths | None = None
         unresolved: SquadsError | None = None
         notice: str | None = None
@@ -96,12 +107,12 @@ class LocalApi:
                 with spans.span("operation"):
                     response = await self._scoped(handler_for(op)(svc, req))
         except SquadsError as exc:
-            if notice is not None:
-                exc.warnings = (*exc.warnings, notice)
+            exc.warnings = (*exc.warnings, *log.notices[raised_before:], *_language(notice))
             raise
-        if notice is None:
+        extra = [*log.notices[raised_before:], *_language(notice)]
+        if not extra:
             return response
-        return response.model_copy(update={"warnings": [*response.warnings, notice]})
+        return response.model_copy(update={"warnings": [*response.warnings, *extra]})
 
     @staticmethod
     async def _scoped[Res](call: Awaitable[Response[Res]]) -> Response[Res]:
