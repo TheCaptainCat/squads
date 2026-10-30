@@ -206,7 +206,7 @@ def _ctrl_c_at_the_prompt(project: SquadPaths, daemon: str, *argv: str) -> tuple
     if pid == 0:  # pragma: no cover
         os.execve(command[0], command, {**env(), "SQUADS_DAEMON": daemon, "TERM": "xterm"})
     shown = b""
-    while PROMPT not in shown:
+    while PROMPT + b": " not in shown:  # the whole prompt, trailing space included
         shown += os.read(master, 4096)
     os.write(master, b"\x03")
     try:
@@ -216,7 +216,8 @@ def _ctrl_c_at_the_prompt(project: SquadPaths, daemon: str, *argv: str) -> tuple
         pass
     os.close(master)
     _, status = os.waitpid(pid, 0)
-    return os.waitstatus_to_exitcode(status), shown
+    # the terminal's echo of the key may land either side of the program's last write
+    return os.waitstatus_to_exitcode(status), shown.replace(b"^C", b"")
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="the terminal is a Unix pseudo-terminal")
