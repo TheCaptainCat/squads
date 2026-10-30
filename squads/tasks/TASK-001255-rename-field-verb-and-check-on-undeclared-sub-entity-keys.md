@@ -3,7 +3,7 @@ id: TASK-1255
 sequence_id: 1255
 type: task
 title: rename-field verb and check on undeclared sub-entity keys
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -24,7 +24,7 @@ subentities:
   status: Done
   story: US8
 created_at: '2026-10-29T19:55:10Z'
-updated_at: '2026-10-29T22:33:57Z'
+updated_at: '2026-10-30T06:39:15Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -110,4 +110,6 @@ Tests (5): a move over an item and a sub-entity entry leaves `sq check` clean; t
   - Adopter-visible: sq check reports an undeclared key on a sub-entity entry and names the verb; new sq migrate rename-field with --json; reflog gains the rename-field op (docs/workflow.md op table row added to satisfy the drift guard). @manager ready for review.
 - [2026-10-29T22:33:57Z] `reviewer` Paul Reviewer:
   - Reviewed on REV-1259: changes requested (F20, F22 low; F21, F23 for the architect). @manager
+- [2026-10-30T06:39:14Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

@@ -27,11 +27,11 @@ subentities:
   story: US4
 - local_id: ST3
   title: 'Starlette app: routes from the table, envelope, errors'
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST4
   title: Writes, corpus operations and ETags
-  status: Todo
+  status: Done
   story: US2
 - local_id: ST5
   title: Lifecycle, retirement and sq daemon commands
@@ -47,15 +47,15 @@ subentities:
   story: US7
 - local_id: ST8
   title: Request scope and metadata headers
-  status: Todo
+  status: Done
   story: US10
 - local_id: ST9
   title: Schema and vocabulary checks, daemon side
-  status: Todo
+  status: Done
   story: US11
 - local_id: ST10
   title: OpenAPI document and route guards
-  status: Todo
+  status: Done
   story: US1
 - local_id: ST11
   title: Starlette and uvicorn at their locked lower bounds
@@ -66,7 +66,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-10-28T14:08:41Z'
-updated_at: '2026-10-30T00:50:49Z'
+updated_at: '2026-10-30T06:36:20Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -340,4 +340,9 @@ Tests: the guard (1); the expected waiting lines in `tests/cross_process/test_th
     - Parallel plan: lane A (ST3, ST8, ST4, ST9, ST10), lane B (ST1, ST2, ST5, ST6, ST7), seams and merge order in the body.
 - [2026-10-30T00:44:16Z] `tech-lead` Olivia Lead:
   - Folded the 2026-10-30 rulings (architect 6f3d62c on FEAT-1140): new ST12 (lane A) records the lock notice and reflog warnings on `RequestContext`, with the local sink set by the root callback, `LocalApi` merging them into `warnings`, the guard against stdout/stderr writes below the CLI, and the expected lines updated in `tests/cross_process/test_the_index_lock.py`. ST3: the 423 case asserts the notice in `warnings`. Now about 41 tests and 3 guards.
+- [2026-10-30T06:36:20Z] `python-dev` Elias Python:
+  - - @manager Lane A is done on branch worktree-agent-aeec7bd7715d7cb1d (worktree .claude/worktrees/agent-aeec7bd7715d7cb1d), rebased on release/0.19 914cbe12. Commits: 2ae3eb20 (ST11), ac9fbe54 (ST12), 994f32c7 and 20d99867 (ST3, ST4, ST8, ST9, ST10 with tests). Task stays InProgress for lane B.
+    - Seams for lane B: `squads._daemon._app.build_app(state, retirement_check=never_retiring)`; `DaemonState` in `_daemon/_state.py` (pid, version, root, squad_dir, started_at, sources, listeners, idle_deadline, stop); `retirement_check() -> bool` and `state.stop()` is called after a `503 retiring` and after `POST /v1/daemon/stop`. Test harness: `tests/_daemon_harness.py` (`serve_squad`, fixture `serve`).
+    - Choices to confirm: init/adopt (local_only) answer 400 on the daemon; Squads-Client-Dir must be absolute and is read as UTF-8 bytes carried in Latin-1; ETag is the SHA-256 of the LF-normalised file text; `ErrorDetail` gained `warnings` and an optional `details` (schema and vocabulary mismatch); `CONDITIONAL_WRITES` in `_api/_ops.py` lists the If-Match writes; the show DTO gained `etag`.
+    - Gates green: pyright, ruff, format, template manifest, pytest 1815 passed, override squad tests/cli 822 passed, cross_process 4 passed.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-1258
 sequence_id: 1258
 type: task
 title: Stability and adopter docs for the overridable vocabulary
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: tech-writer
@@ -30,7 +30,7 @@ subentities:
   status: Done
   story: US7
 created_at: '2026-10-29T19:55:13Z'
-updated_at: '2026-10-29T23:56:14Z'
+updated_at: '2026-10-30T06:39:19Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -116,4 +116,6 @@ _Add with `sq task 1258 add-subtask "<title>"`; track with `sq task 1258 subtask
     - Two things in delivered behaviour look wrong (not doc issues): (1) the Click unknown-option suggestion now prints `No such option: --sorx ('(Possible options: --json, --sort)',)`, where 0.17.0 prints `(Possible options: --json, --sort)`; (2) on a bundled type, an override's kind `label` does not reach the option help (`--story` help still says `Story` with `label = "Need"`), although the table header and the show line do use it.
 - [2026-10-29T23:56:14Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1259 (fifth pass): F29 (medium, subentity_kind_mismatch now runs by default) and F30 are for this task. The BREAKING entries and stability tiers hold when driven.
+- [2026-10-30T06:39:18Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

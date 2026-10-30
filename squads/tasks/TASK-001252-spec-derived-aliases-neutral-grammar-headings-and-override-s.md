@@ -3,7 +3,7 @@ id: TASK-1252
 sequence_id: 1252
 type: task
 title: Spec-derived aliases, neutral grammar, headings and override squad
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -35,7 +35,7 @@ subentities:
   status: Done
   story: US5
 created_at: '2026-10-29T19:55:07Z'
-updated_at: '2026-10-29T21:10:20Z'
+updated_at: '2026-10-30T06:39:08Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -210,4 +210,6 @@ Tests (1): on the override squad, `sq skill squads show` and the CLAUDE.md secti
     - The squads skill, CLAUDE.md section and workflow cheatsheet read every example from the squad's own vocabulary instead of bundled type and kind names.
 - [2026-10-29T21:10:20Z] `reviewer` Paul Reviewer:
   - Generated-text rewording reviewed in REV-1259 F8 (medium): derive the review gate, findings and tree fields from the spec instead of neutral words.
+- [2026-10-30T06:39:07Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

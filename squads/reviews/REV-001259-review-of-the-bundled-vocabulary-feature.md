@@ -3,7 +3,7 @@ id: REV-1259
 sequence_id: 1259
 type: review
 title: Review of the bundled vocabulary feature
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-1249
@@ -171,7 +171,7 @@ subentities:
 - local_id: F34
   title: Bundled role text names bundled commands on a squad that drops them (operator
     ruling)
-  status: Open
+  status: WontFix
   severity: info
 - local_id: F35
   title: New show --full and --raw cases assert what plain show prints
@@ -179,22 +179,22 @@ subentities:
   severity: medium
 - local_id: F36
   title: Both-squad cases sit beside bundled-only copies of the same pairs
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F37
   title: Retype runs on the override squad; view disable needs a fixture view
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F38
   title: Vocabulary guards skip command docstrings, which are adopter help
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F39
   title: Bundled spec comments and playbook notes keep the old side-state order
   status: Verified
   severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T06:34:02Z'
+updated_at: '2026-10-30T06:36:27Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -984,6 +984,8 @@ Options: derive the examples from the active spec, as the squads skill and the C
 <!-- sq:finding:F34:discussion -->
 - [2026-10-30T06:34:02Z] `op-pierre` Pierre Chat:
   - 2026-10-30: no derivation. When an adopter renames a type, they override the role definitions too; the bundled roles.toml text stays as written.
+- [2026-10-30T06:36:17Z] `reviewer` Paul Reviewer:
+  - WontFix under the op-pierre ruling (bde3dd2, 2026-10-30): the role text is not derived. An adopter who renames a type overrides the role definitions too, and the bundled roles.toml text stays as written.
 <!-- sq:finding:F34:discussion:end -->
 <!-- sq:finding:F34:end -->
 
@@ -1027,6 +1029,8 @@ ADR-1172 "Time bound": review checks for duplicated cases. The bundled copies th
   - - Reopened. The duplicates are gone, but three pins went with them. The dropped `test_add_json_prints_where_the_body_region_was_written` was the only test asserting `path`, `start_line` and `end_line` of `add-<kind> --json`; the new case checks `local_id`, `region` and `display.item` only. Driven on a scratch export: with `start_line` +1, `end_line` 0 and `path` "x" in `SubentityAdded`, tests/cli passes on both squads (bundled 979 passed; override 821 passed, 158 skipped). `rg start_line tests` finds nothing (it found the old case at 28999c46). Read: retype's `rewritten` key is no longer asserted either.
     - `display.body_command` and sub-entity `nothing_to_clear` are still held: the same mutation of those turns 8 cases red.
     - Fix: assert `path` (name), `start_line`/`end_line` (each sits inside the item file around the new block) and `rewritten == []` in the both-squad cases.
+- [2026-10-30T06:36:01Z] `reviewer` Paul Reviewer:
+  - Verified at 95bf130d. The add-<kind> --json case pins the whole payload (path, start_line, end_line, display) on both squads, and retype --json pins rewritten == []. Driven on a scratch export: start_line +1 and a stray rewritten entry turn 3 cases red on each squad (bundled 977 passed, override 819 passed and 158 skipped).
 <!-- sq:finding:F36:discussion:end -->
 <!-- sq:finding:F36:end -->
 
@@ -1050,6 +1054,8 @@ Fix: add the retype pair and an item view to the profile and fixture, and run th
     - Reopened for the view half. The fixture's `milestone_rollup` is not fixture vocabulary. (1) The name is the bundled view's, which names a bundled type; it only renders because the override shares that name and inherits the bundled `transform` through the merge. (2) `scopes` is the bundled roster ref kind with `role = "preload"` (skill to role), not the fixture's own. The fixture comment ("over this squad ref kind") says otherwise. (3) The profile has no view name: the meta check and every view case spell "milestone_rollup". Driven: it places, renders and disables on INI-2 with an INI-3 scopes member.
     - Constraint, driven: an override may not name `squads._view_transforms` (load refused), and a view with a name of its own needs a template (`view add` refused without one). So the fix is a fixture-declared membership ref kind as the source, plus a fixture-own view name with an override template under the fixture, and the name in the profile. Or keep the bundled name, record why in the fixture comment, and put it in the profile.
     - Also: the four `retype NEW-TYPE` cases in test_item_verbs.py (reclassify, sub-entities, roster, undeclared) still carry "retype moves between the bundled types and names them", which the new profile pair disproves. Convert them through `retype_from`/`retype_to`, or give each a reason that holds.
+- [2026-10-30T06:36:03Z] `reviewer` Paul Reviewer:
+  - Verified at 95bf130d, per the manager ruling (dc1c5fa). The fixture no longer borrows milestone_rollup. The four view cases are bundled_only with a reason that holds. The four retype NEW-TYPE cases now run through the profile retype pair on both squads, and the meta check holds the folder, the target list and the type-list text to each spec.
 <!-- sq:finding:F37:discussion:end -->
 <!-- sq:finding:F37:end -->
 
@@ -1073,6 +1079,8 @@ Fix: scan the docstrings of the functions registered as commands (or every docst
   - - The four help texts read well in `--help` at 80 columns (retype, list, reflog, skill link-role, rendered on a scratch squad). The help-rule meta check passes. Falsified: without the `_is_command` exclusion, the new scanner case goes red.
     - Reopened: the filter only recognises decorated commands. Six registrations are imperative, as `app.command("x")(fn)`: `add-<kind>` and the sub-entity `update` in _items.py, and the roster `body`, `remove`, `rm` and `status` in _roster.py. The three roster functions carry adopter help docstrings. Driven: a probe registered as `app.command("x")(verb)`, with a docstring holding a TASK prefix written with its dash, leaves the item-type guard green; the decorated form turns it red. No live hit today. Fix: also treat a function as a command when a `.command(...)` or `.callback(...)` call result is applied to it, and add that form to the scanner test.
     - Nit, outside what the scanner can see: the reworded `sq list` help keeps "a records item such as a decision". That is a bundled type name in bare prose on any squad.
+- [2026-10-30T06:36:05Z] `reviewer` Paul Reviewer:
+  - Verified at 95bf130d. _registered_names covers the bare, wrapped and keyword-argument forms of app.command("x")(fn), which are the six live imperative registrations. Driven: a TASK prefix with its dash put in the roster body_verb docstring turns test_no_bundled_item_type_name_appears_outside_the_spec_layer red, and nothing else goes red beyond the 7 baseline failures of the git-less export. The sq list nit is fixed.
 <!-- sq:finding:F38:discussion:end -->
 <!-- sq:finding:F38:end -->
 
@@ -1191,4 +1199,6 @@ Fix: bring the comments and strings to the printed order. Whether the playbook's
     - Verdict: changes requested. F34 stays for op-pierre. Once F36-F38 are fixed and verified, every other finding is Verified and I would recommend Approved. @manager route F36-F38 to the TASK-1256 dev.
 - [2026-10-30T00:53:51Z] `manager` Catherine Manager:
   - Ruling on F37 (view half): the override fixture drops the borrowed milestone_rollup view; `view add`/`view disable` stay bundled_only with the true reason (an override cannot declare a view over its own transform without a template, which is not this feature). The four retype NEW-TYPE cases move to the profile retype pair. F36: restore assertions on add-<kind> --json path/start_line/end_line and retype rewritten in the both-squad cases. F38: recognise app.command("x")(fn) registrations too. Routed to the TASK-1256 dev.
+- [2026-10-30T06:36:27Z] `reviewer` Paul Reviewer:
+  - Final round at 95bf130d. F36, F37 and F38 are Verified (mutations driven on both squads; the scanner falsified on a live registration). F34 is WontFix under the op-pierre ruling (bde3dd2). Every finding is now closed, so REV-1259 moves to Approved under the manager delegation for this drive. No operator items are left open. @manager the FEAT-1249 tasks are yours to close.
 <!-- sq:discussion:end -->

@@ -3,7 +3,7 @@ id: TASK-1253
 sequence_id: 1253
 type: task
 title: Derived badge options, request fields and import fronts
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -37,7 +37,7 @@ subentities:
   status: Done
   story: US3
 created_at: '2026-10-29T19:55:08Z'
-updated_at: '2026-10-29T21:45:24Z'
+updated_at: '2026-10-30T06:39:10Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -208,4 +208,6 @@ Tests (4): `add-<kind>` with field and target-kind keys plus the kind selector o
     - Not touched: TUI/VS Code clients (the TUI filter has no priority read); tree text rendering and `ItemRow.priority`/`severity`/tree node `priority` stay for the wire-shape task.
 - [2026-10-29T21:45:24Z] `reviewer` Paul Reviewer:
   - Reviewed on REV-1259 (F9 to F15): changes requested. Medium: F9 (bundled import with a null or empty severity is refused), F10 (empty derived-flag value dropped silently), F11 (reflog delta loses badge changes). @python-dev see REV-1259 for the details and fixes.
+- [2026-10-30T06:39:09Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

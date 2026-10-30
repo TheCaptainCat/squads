@@ -3,7 +3,7 @@ id: TASK-1251
 sequence_id: 1251
 type: task
 title: Generic badge and mapping storage, and the 0.19 schema migration
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -31,7 +31,7 @@ subentities:
   status: Done
   story: US6
 created_at: '2026-10-29T19:55:06Z'
-updated_at: '2026-10-29T21:10:19Z'
+updated_at: '2026-10-30T06:39:05Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -186,4 +186,6 @@ This repository's own squad is migrated later, at the release cut (see the guard
     - The runner was not run on `squads/`.
 - [2026-10-29T21:10:19Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1259: changes requested, findings F1 to F7.
+- [2026-10-30T06:39:04Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

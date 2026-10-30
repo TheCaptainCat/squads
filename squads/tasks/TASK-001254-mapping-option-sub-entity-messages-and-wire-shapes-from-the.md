@@ -3,7 +3,7 @@ id: TASK-1254
 sequence_id: 1254
 type: task
 title: Mapping option, sub-entity messages and wire shapes from the spec
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -37,7 +37,7 @@ subentities:
   status: Done
   story: US7
 created_at: '2026-10-29T19:55:09Z'
-updated_at: '2026-10-29T22:00:43Z'
+updated_at: '2026-10-30T06:39:12Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -204,4 +204,6 @@ Tests (2): an action's head on the override squad shows its field and the mappin
     - `sq check` on the repo squad is clean.
 - [2026-10-29T22:00:43Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1259: changes requested, low findings F16 to F19 (tests, covers bare pairs, fixed articles, ADR-1250 section 7 wire and context gaps). The behaviour is sound on both squads (driven).
+- [2026-10-30T06:39:11Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

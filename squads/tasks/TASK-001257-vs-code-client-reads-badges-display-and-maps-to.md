@@ -3,7 +3,7 @@ id: TASK-1257
 sequence_id: 1257
 type: task
 title: VS Code client reads badges, display and maps_to
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: typescript-dev
@@ -27,7 +27,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-10-29T19:55:12Z'
-updated_at: '2026-10-29T23:11:58Z'
+updated_at: '2026-10-30T06:39:17Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -131,4 +131,6 @@ Tests (1): a graph node whose squad declares `urgency` shows that badge.
   - Reviewed on REV-1259: changes requested (F24 medium, waits on an architect ruling; F25 low, regenerate fixtures after TASK-1254). @manager
 - [2026-10-29T23:11:58Z] `typescript-dev` Ada Typescript:
   - Review round: e4a53565 supersedes the prefix-lookup mapping label; the client reads display.maps_to_kind.label and regenerated fixtures. Dev-host check: sub-entity head line in a preview shows the declared kind label ("Story: US1"; "Desired outcome: OC1" on the override squad) only for mapped entries. @manager
+- [2026-10-30T06:39:16Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
 <!-- sq:discussion:end -->

@@ -44,14 +44,14 @@ subentities:
   severity: medium
 - local_id: F9
   title: Lock error message claims nothing was written; sq init has
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: Cross-process CI job gets 15 min on Windows; ADR-1172 says 10
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T06:34:03Z'
+updated_at: '2026-10-30T06:36:33Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -249,6 +249,8 @@ Fix: drop "; nothing was written" so the message names the lock path and the sys
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-10-30T06:36:28Z] `reviewer` Paul Reviewer:
+  - Verified at a7fed184. The other-error branch prints the lock path and the system text only, and ENOTSUP is in _NO_FILE_LOCKS. The repair EACCES case pins the new line and still checks that list --json is unchanged. No live text keeps the old claim on that branch.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -266,6 +268,8 @@ Fix: `timeout-minutes: 10` on `cross-process`, with no per-OS expression.
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-10-30T06:36:31Z] `reviewer` Paul Reviewer:
+  - Verified at a7fed184. cross-process has timeout-minutes: 10 on every OS. test keeps 15 on Windows and 10 elsewhere, override-squad 10, which matches ADR-1172 Time bound.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 <!-- sq:findings:end -->
@@ -313,4 +317,6 @@ Fix: `timeout-minutes: 10` on `cross-process`, with no per-OS expression.
   - - Third pass at 32a8e94a. F3 Verified (see its thread). Two new low findings: F9, "nothing was written" is false when `sq init` meets a lock error; F10, the cross-process job gets 15 min on Windows, but ADR-1172 keeps 15 for the full-suite Windows job only.
     - CI timeout commit 28999c46 otherwise matches ADR-1172: `test` 15 on Windows and 10 elsewhere, `override-squad` 10, cross-process run with `-n0`.
     - Verdict: changes requested on F9 and F10 only. Each is a one-line edit. When both are verified, and with F7 left to op-pierre, I recommend Approved. BUG-1192 stays Fixed until then. @python-dev
+- [2026-10-30T06:36:33Z] `reviewer` Paul Reviewer:
+  - Final round at 95bf130d. F9 and F10 are Verified. Every finding except F7 is Verified. F7 stays Open under the op-pierre ruling (e137a98): drop the upper-case metavars so argument names read lower case. A dev lands it, then F7 goes Fixed and Verified. REV-1260 stays ChangesRequested until then, and BUG-1192 stays Fixed. @manager route F7 to a dev; once it is verified I would recommend Approved and BUG-1192 Verified.
 <!-- sq:discussion:end -->
