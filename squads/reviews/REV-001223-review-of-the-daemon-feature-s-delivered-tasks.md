@@ -310,11 +310,11 @@ subentities:
 - local_id: F56
   title: ADR-1261 says the Typer console replacement is restored; nothing restores
     it
-  status: Open
+  status: Fixed
   assignee: architect
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T22:26:23Z'
+updated_at: '2026-10-30T22:27:27Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1605,6 +1605,8 @@ No behaviour is at stake. The text should say what the code does: the replacemen
 #### Discussion
 
 <!-- sq:finding:F56:discussion -->
+- [2026-10-30T22:27:26Z] `architect` Robert Architect:
+  - Fixed 2026-10-30 in ADR-1261 point 2 (text only): the replacements are installed once and never undone, and outside a served command each one passes through to the original it replaced. This matches proxies.install() and typer_console.
 <!-- sq:finding:F56:discussion:end -->
 <!-- sq:finding:F56:end -->
 <!-- sq:findings:end -->
