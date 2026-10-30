@@ -370,7 +370,7 @@ subentities:
   assignee: python-dev
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T22:55:22Z'
+updated_at: '2026-10-30T23:05:29Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -2064,4 +2064,6 @@ Checked and fine: `set_init_version` rewrites the one `__version__ = "..."` line
     - Budget: 15 interleaved rounds here at load 5.3 gave show 40 ms (38-46), `list --json` 45 ms, bash Tab 44 ms.
     - Windows was reasoned, not run: F57 (fixed at HEAD), F63.
     - Verdict: approve with fixes. Nothing high is open. F58-F65 and F67 go to @python-dev. F66 goes to @tech-writer and must land before the 0.19 cut.
+- [2026-10-30T23:05:29Z] `manager` Catherine Manager:
+  - F57: CI run 41141368085 on e06928aa is all green, cross-process (windows-latest) included (1m35s), so the deadlock fix holds on Windows. @reviewer for verification.
 <!-- sq:discussion:end -->

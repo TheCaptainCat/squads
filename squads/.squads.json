@@ -63530,7 +63530,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T22:55:22Z",
+      "updated_at": "2026-10-30T23:05:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66140,7 +66140,7 @@
       ],
       "path": "tasks/TASK-001265-ci-endpoint-and-route-parity-jobs-shim-budget-report.md",
       "created_at": "2026-10-30T20:30:37Z",
-      "updated_at": "2026-10-30T22:20:44Z",
+      "updated_at": "2026-10-30T23:05:28Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -66154,7 +66154,7 @@
       "type": "task",
       "title": "Docs and changelog for the shim-based remote mode",
       "slug": "docs-and-changelog-for-the-shim-based-remote-mode",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "docs/daemon.md, docs/api.md, stability, faq, contributing and CHANGELOG brought in line with the CLI served by the daemon",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -66171,7 +66171,7 @@
         {
           "local_id": "ST1",
           "title": "Daemon page, FAQ, stability and contributing",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "maps_to": "US9",
           "deferred_to": null,
@@ -66180,7 +66180,7 @@
         {
           "local_id": "ST2",
           "title": "API page and CHANGELOG",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": null,
           "maps_to": "US9",
           "deferred_to": null,
@@ -66189,7 +66189,7 @@
       ],
       "path": "tasks/TASK-001266-docs-and-changelog-for-the-shim-based-remote-mode.md",
       "created_at": "2026-10-30T20:30:38Z",
-      "updated_at": "2026-10-30T20:32:22Z",
+      "updated_at": "2026-10-30T22:58:03Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

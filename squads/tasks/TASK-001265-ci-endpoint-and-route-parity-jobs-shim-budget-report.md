@@ -23,7 +23,7 @@ subentities:
   status: Todo
   maps_to: US12
 created_at: '2026-10-30T20:30:37Z'
-updated_at: '2026-10-30T22:20:44Z'
+updated_at: '2026-10-30T23:05:28Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -94,4 +94,6 @@ The `client-budget` job runs the updated `scripts/bench_remote_client.py` and wr
 <!-- sq:discussion -->
 - [2026-10-30T22:20:44Z] `devops` Hugo Ops:
   - ST1 route job added to test.yml (worktree commit 610ee02b, unpushed): job route-parity, ubuntu, bundled squad, SQUADS_DAEMON=off, uv run pytest -rs --api-mode routes tests/cli, same No daemon left running step. The four remote-mode jobs need no change (same --api-mode remote); cross-process runs all of tests/cross_process so new members are picked up. Local -n 4 routes run: 999 passed in 67.44s. Falsification: dropping the title field from every route response made routes 224 failed, 41 errors; local stayed 999 passed; reverted, not committed. Still needed: two green CI runs of the whole workflow with per-job timings under the bound (10 min; 15 for the Windows test job), recorded here. ST2 waits for TASK-1264.
+- [2026-10-30T23:05:28Z] `manager` Catherine Manager:
+  - First all-green run with the route-parity job and the shim: https://github.com/TheCaptainCat/squads/actions/runs/41141368085 (e06928aa). Timings: test windows 7m47s, macOS 3m38s, ubuntu 2m8s; remote-mode windows 2m54s, macOS 1m32s, ubuntu 1m34s; remote-mode-override 1m34s; route-parity 1m22s; cross-process windows 1m35s, macOS 1m34s, ubuntu 1m24s; client-budget 0m22s.
 <!-- sq:discussion:end -->
