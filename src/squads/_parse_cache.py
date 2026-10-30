@@ -11,6 +11,7 @@ import pickle
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 
 def digest_of(text: str) -> bytes:
@@ -39,24 +40,25 @@ class _Check:
 class ParseCache:
     """Parsed files and override-check outcomes kept across the requests of one daemon."""
 
-    def __init__(self) -> None:
+    def __init__(self, squad_dir: Path) -> None:
+        # A file is named by its absolute path in a corpus walk and relative to the squad in a
+        # check rule; both spellings of the squad directory map onto one key.
+        self._bases = tuple({f"{squad_dir}/", f"{squad_dir.resolve()}/"})
         self._lock = threading.Lock()
         self._index: dict[str, _Entry] = {}
         self._frontmatter: dict[str, _Entry] = {}
         self._check: _Check | None = None
         self._scan = 0
 
-    @staticmethod
-    def digest(text: str) -> bytes:
-        """The digest a kept value is keyed by."""
-        return digest_of(text)
-
     def index[T](self, key: str, text: str, parse: Callable[[], T]) -> T:
         """The index read from the file *key*, as :meth:`_parsed` returns it."""
         return self._parsed(self._index, key, text, parse)
 
     def frontmatter[T](self, key: str, text: str, parse: Callable[[], T]) -> T:
-        """The frontmatter read from the item file *key*, as :meth:`_parsed` returns it."""
+        """The frontmatter read from the file *key* (absolute, or relative to the squad), as
+        :meth:`_parsed` returns it."""
+        for base in self._bases:
+            key = key.removeprefix(base)
         return self._parsed(self._frontmatter, key, text, parse)
 
     def _parsed[T](
@@ -74,6 +76,7 @@ class ParseCache:
             else:
                 pickled = None
         if pickled is not None:
+            # A copy per hit: a caller that edits what it got must not edit the entry.
             return pickle.loads(pickled)
         value = parse()
         kept = pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
@@ -102,16 +105,9 @@ class ParseCache:
             self._scan += 1
 
     def end_scan(self) -> None:
-        """End a walk that reached every item file: an entry not read since before the previous
-        walk began is for a file that is no longer there, and is dropped. (The walk and the
-        per-item checks that follow it spell a file's path differently, so an entry is also read
-        between two walks.)"""
+        """End a walk that reached every item file: an entry it did not read is for a file that is
+        no longer there, and is dropped."""
         with self._lock:
-            oldest = self._scan - 1
-            for key in [k for k, e in self._frontmatter.items() if e.scan < oldest]:
+            current = self._scan
+            for key in [k for k, e in self._frontmatter.items() if e.scan < current]:
                 del self._frontmatter[key]
-
-    def item_files(self) -> frozenset[str]:
-        """The item files that have an entry."""
-        with self._lock:
-            return frozenset(self._frontmatter)

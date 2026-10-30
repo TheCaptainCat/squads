@@ -38,7 +38,7 @@ from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from re import DOTALL, MULTILINE
 from re import compile as re_compile
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 
@@ -89,6 +89,9 @@ from squads._workflow._models import (
     WorkflowSpec,
 )
 from squads._workflow._validator_names import parse_validator_entry
+
+if TYPE_CHECKING:
+    from squads._parse_cache import ParseCache
 
 #: Canonical location for the project workflow override (relative to squad_dir).
 WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
@@ -1639,16 +1642,14 @@ def _read_index_text(squad_dir: Path) -> str | None:
         return None
 
 
-def _parse_index(squad_dir: Path, raw: str) -> Any:
-    """The index parsed from *raw*, through the daemon's parse cache when the request has one, or
-    ``None`` when it does not parse (lint cannot cross-check a corrupt one)."""
-    from squads._context import get_context
+def _parse_index(squad_dir: Path, raw: str, cache: ParseCache | None) -> Any:
+    """The index parsed from *raw*, through *cache* when there is one, or ``None`` when it does not
+    parse (lint cannot cross-check a corrupt one)."""
     from squads._models._index import SquadsDB
 
     def parse() -> SquadsDB:
         return SquadsDB.model_validate_json(raw)
 
-    cache = get_context().parse_cache
     try:
         if cache is None:
             return parse()
@@ -1664,7 +1665,7 @@ def _load_index_sync(squad_dir: Path) -> Any:
     with unknown statuses or types to report them.
     """
     raw = _read_index_text(squad_dir)
-    return None if raw is None else _parse_index(squad_dir, raw)
+    return None if raw is None else _parse_index(squad_dir, raw, None)
 
 
 # ---------------------------------------------------------------------------
@@ -1673,7 +1674,11 @@ def _load_index_sync(squad_dir: Path) -> Any:
 
 
 def validate_against_index_fail_closed(
-    spec: WorkflowSpec, squad_dir: Path, *, bundled: WorkflowSpec
+    spec: WorkflowSpec,
+    squad_dir: Path,
+    *,
+    bundled: WorkflowSpec,
+    cache: ParseCache | None = None,
 ) -> None:
     """Raise ``SquadsError`` if the merged spec drops types or statuses live items reference,
     re-prefixes or re-folders a type against a non-empty corpus, or shrinks a badge collection a
@@ -1682,22 +1687,24 @@ def validate_against_index_fail_closed(
     ``compose_service`` calls it after ``load_workflow_spec`` succeeds, reading the index
     synchronously, and the error lists every offending ID and points to ``sq workflow lint``. It is
     a no-op if the index is absent, empty or unreadable, and lint calls ``lint_workflow_spec``
-    instead, which reports without aborting.
+    instead, which reports without aborting. *cache* is the daemon's parse cache, when the caller
+    has one; without it the request's ambient one is used.
     """
     from squads._context import get_context
+    from squads._parse_cache import digest_of
 
     raw = _read_index_text(squad_dir)
     if raw is None:
         return
-    cache = get_context().parse_cache
-    digest = cache.digest(raw) if cache is not None else b""
+    cache = cache if cache is not None else get_context().parse_cache
+    digest = digest_of(raw) if cache is not None else b""
     if cache is not None:
         known, refusal = cache.checked(digest, spec, bundled)
         if known:
             if refusal is not None:
                 raise SquadsError(refusal)
             return
-    db = _parse_index(squad_dir, raw)
+    db = _parse_index(squad_dir, raw, cache)
     if db is None:
         return
 

@@ -361,14 +361,21 @@ def test_help_is_laid_out_for_the_clients_terminal_as_local_mode_lays_it_out(
     )
 
 
-def test_a_served_command_reads_through_the_daemons_parse_cache(project: SquadPaths, serve) -> None:
+def test_a_served_command_reads_through_the_daemons_parse_cache(
+    project: SquadPaths, serve, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import yaml
+
     daemon = serve(project)
-    assert daemon.state.parse_cache.item_files() == frozenset()
+    post_commands(daemon, command_body(["task", "create", "Held", "--author", "manager"]))
+    assert post_commands(daemon, command_body(["check", "--json"])).status == 200
+    parsed: list[str] = []
+    real = yaml.safe_load
+    monkeypatch.setattr(yaml, "safe_load", lambda text: parsed.append(text) or real(text))
 
     reply = post_commands(daemon, command_body(["check", "--json"]))
 
-    assert reply.status == 200
-    assert daemon.state.parse_cache.item_files() != frozenset()
+    assert (reply.status, parsed) == (200, [])
 
 
 def test_an_argument_that_is_not_text_reaches_the_command_as_a_lone_surrogate(

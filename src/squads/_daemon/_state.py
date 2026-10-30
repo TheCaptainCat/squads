@@ -46,7 +46,10 @@ class DaemonState:
     #: The documents the daemon loaded at start; what it serves is read from them.
     sources: SpecSources
     #: The parsed files kept across requests; dropping it changes nothing but time.
-    parse_cache: ParseCache = field(default_factory=ParseCache)
+    parse_cache: ParseCache = field(init=False)
     listeners: list[Listener] = field(default_factory=list[Listener])
     idle_deadline: Callable[[], datetime | None] = lambda: None
     stop: Callable[[], None] = lambda: None
+
+    def __post_init__(self) -> None:
+        self.parse_cache = ParseCache(self.squad_dir)

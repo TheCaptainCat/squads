@@ -4,6 +4,7 @@ its back, to the same size and with its timestamp restored, is read back as it n
 import os
 from pathlib import Path
 
+from squads._parse_cache import ParseCache
 from squads._paths import SquadPaths
 from tests._daemon_harness import Served, serve_squad
 from tests.check._arrange import write_override
@@ -68,14 +69,29 @@ def test_a_refused_override_check_is_answered_once_the_index_changes(project: Sq
         assert daemon.get("/v1/items").status == 200
 
 
-def test_an_entry_for_a_file_that_is_gone_is_dropped_by_the_corpus_walks_that_follow(
-    project: SquadPaths, serve
+def counting(cache: ParseCache, key: str, block: str, calls: list[str]) -> None:
+    cache.frontmatter(key, block, lambda: calls.append(key) or {"k": 1})
+
+
+def test_a_file_named_absolutely_and_relative_to_the_squad_is_parsed_once(tmp_path: Path) -> None:
+    cache = ParseCache(tmp_path)
+    calls: list[str] = []
+    counting(cache, str(tmp_path / "tasks" / "TASK-1.md"), "k: 1", calls)
+    counting(cache, "tasks/TASK-1.md", "k: 1", calls)
+    assert len(calls) == 1
+
+
+def test_a_file_the_next_corpus_walk_does_not_read_is_parsed_again_when_it_comes_back(
+    tmp_path: Path,
 ) -> None:
-    daemon = serve(project)
-    item = project.squad_dir / make_task(daemon, "Doomed")
-    daemon.get("/v1/check")
-    assert any(key.endswith(item.name) for key in daemon.state.parse_cache.item_files())
-    item.unlink()
-    for _ in range(3):
-        daemon.get("/v1/check")
-    assert not any(key.endswith(item.name) for key in daemon.state.parse_cache.item_files())
+    cache = ParseCache(tmp_path)
+    calls: list[str] = []
+    counting(cache, "tasks/kept.md", "k: 1", calls)
+    counting(cache, "tasks/gone.md", "k: 1", calls)
+    cache.begin_scan()
+    counting(cache, "tasks/kept.md", "k: 1", calls)
+    cache.end_scan()
+    calls.clear()
+    counting(cache, "tasks/kept.md", "k: 1", calls)
+    counting(cache, "tasks/gone.md", "k: 1", calls)
+    assert calls == ["tasks/gone.md"]

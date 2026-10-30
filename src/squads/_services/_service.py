@@ -392,7 +392,9 @@ class RequestScope:
         if not override_present(override):
             return None
         try:
-            validate_against_index_fail_closed(self._spec, self._squad_dir, bundled=bundled_spec())
+            validate_against_index_fail_closed(
+                self._spec, self._squad_dir, bundled=bundled_spec(), cache=self._parse_cache
+            )
         except Exception as exc:  # any failure of the check is the refusal's text
             return spec_refusal(override, exc)
         return None
@@ -400,8 +402,6 @@ class RequestScope:
     def _context(self, meta: RequestMetadata, *, conditional: bool) -> RequestContext:
         """The context for a request declaring *meta*; *conditional* says whether its
         ``If-Match`` is compared."""
-        # The override check below reads through the request's parse cache.
-        bind_context(RequestContext(parse_cache=self._parse_cache))
         at = None
         if meta.at is not None:
             try:
@@ -433,8 +433,6 @@ class RequestScope:
     def command_context(self, start_dir: Path) -> RequestContext:
         """The context a CLI command run for a client starts from: the daemon's squad and spec,
         paths spelled from *start_dir*, and the preconditions of no request."""
-        # The override check below reads through the daemon's parse cache.
-        bind_context(RequestContext(parse_cache=self._parse_cache))
         return RequestContext(
             active_spec=self._spec,
             client_cwd=self._root,

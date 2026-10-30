@@ -477,6 +477,8 @@ _workflow -> _errors top
 _workflow -> _models local
 _workflow -> _models top
 _workflow -> _overrides local
+_workflow -> _parse_cache local
+_workflow -> _parse_cache typing
 _workflow -> _specload top
 _workflow -> _specmerge top
 _workflow -> squads local
