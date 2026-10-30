@@ -3,7 +3,7 @@ id: TASK-1263
 sequence_id: 1263
 type: task
 title: 'Daemon cache of parsed files: index, frontmatter, override check'
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -13,18 +13,18 @@ description: Content-keyed cache of the index, item frontmatter and the override
 subentities:
 - local_id: ST1
   title: Cache on the daemon state, threaded through the request
-  status: Todo
+  status: Done
   maps_to: US2
 - local_id: ST2
   title: Index and frontmatter keyed by content digest
-  status: Todo
+  status: Done
   maps_to: US2
 - local_id: ST3
   title: Override-check memo and the start-up spec
-  status: Todo
+  status: Done
   maps_to: US2
 created_at: '2026-10-30T20:30:25Z'
-updated_at: '2026-10-30T20:35:18Z'
+updated_at: '2026-10-30T21:14:56Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -118,4 +118,14 @@ Tests: an override check refused, then answered once the index digest changes (1
 <!-- sq:discussion -->
 - [2026-10-30T20:35:18Z] `python-dev` Elias Python:
   - Starting on the cache (ST1-ST3).
+- [2026-10-30T20:54:36Z] `python-dev` Elias Python:
+  - Cache delivered on the worktree branch (commit 89825e3b), not pushed.
+    
+    - `src/squads/_parse_cache.py`: `ParseCache`. Index and frontmatter entries are keyed by path and the BLAKE2b digest of the text just read, kept pickled, a fresh copy per hit. One slot holds the override-check outcome, keyed by index digest and the identity of the spec and the bundled spec. `begin_scan`/`end_scan` drop frontmatter entries a full corpus walk did not read.
+    - Hung off `DaemonState`, passed to `RequestScope`, carried on `RequestContext.parse_cache`. Nothing at module level; `None` in local mode.
+    - Read paths: `IndexStore.load` (never `transaction()`), `read_frontmatter`, `validate_against_index_fail_closed`. The routes already take the merged spec from the start-up documents.
+    - Tests: tests/daemon/test_the_parse_cache.py, 3 tests, each falsified (digest check removed: red).
+    - Measured on a copy of the squad under ~/.cache, handler time from Server-Timing, 31 interleaved warm runs, load 2.6: task show 89 (77-98) to 68 (55-95) ms; check 6314 (5861-6643) to 3732 (3520-3884) ms. Cold first request (7 runs): task show 107 to 95, check 6532 to 5428.
+- [2026-10-30T21:14:55Z] `manager` Catherine Manager:
+  - Integrated on release/0.19 as ff9784bf and 4585afec. Gates: pyright 0, ruff clean, full suite 1895 passed, remote 999 passed, override 840 passed, cross-process 22 passed, manifest current. Warm check handler 1.3-1.7 s, level with the prototype. Review joins TASK-1262's.
 <!-- sq:discussion:end -->

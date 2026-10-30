@@ -65672,7 +65672,7 @@
       "type": "task",
       "title": "Daemon cache of parsed files: index, frontmatter, override check",
       "slug": "daemon-cache-of-parsed-files-index-frontmatter-override-chec",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Content-keyed cache of the index, item frontmatter and the override's index check, threaded through the request context, reads only",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -65685,7 +65685,7 @@
         {
           "local_id": "ST1",
           "title": "Cache on the daemon state, threaded through the request",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US2",
           "deferred_to": null,
@@ -65694,7 +65694,7 @@
         {
           "local_id": "ST2",
           "title": "Index and frontmatter keyed by content digest",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US2",
           "deferred_to": null,
@@ -65703,7 +65703,7 @@
         {
           "local_id": "ST3",
           "title": "Override-check memo and the start-up spec",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US2",
           "deferred_to": null,
@@ -65712,7 +65712,7 @@
       ],
       "path": "tasks/TASK-001263-daemon-cache-of-parsed-files-index-frontmatter-override-chec.md",
       "created_at": "2026-10-30T20:30:25Z",
-      "updated_at": "2026-10-30T20:35:18Z",
+      "updated_at": "2026-10-30T21:14:56Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
