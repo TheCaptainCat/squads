@@ -66117,7 +66117,7 @@
       "type": "task",
       "title": "CI: endpoint and route parity jobs, shim budget report",
       "slug": "ci-endpoint-and-route-parity-jobs-shim-budget-report",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "Remote-mode jobs through the command endpoint, one Linux route-parity job, the client-budget report on the shim's overhead",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -66133,7 +66133,7 @@
         {
           "local_id": "ST1",
           "title": "Endpoint parity jobs and the Linux route-parity job",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -66142,7 +66142,7 @@
         {
           "local_id": "ST2",
           "title": "Client-budget report on the shim's overhead",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US12",
           "deferred_to": null,
@@ -66151,7 +66151,7 @@
       ],
       "path": "tasks/TASK-001265-ci-endpoint-and-route-parity-jobs-shim-budget-report.md",
       "created_at": "2026-10-30T20:30:37Z",
-      "updated_at": "2026-10-30T23:05:28Z",
+      "updated_at": "2026-10-30T23:43:20Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

@@ -3,7 +3,7 @@ id: TASK-1265
 sequence_id: 1265
 type: task
 title: 'CI: endpoint and route parity jobs, shim budget report'
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -16,14 +16,14 @@ description: Remote-mode jobs through the command endpoint, one Linux route-pari
 subentities:
 - local_id: ST1
   title: Endpoint parity jobs and the Linux route-parity job
-  status: InProgress
+  status: Done
   maps_to: US3
 - local_id: ST2
   title: Client-budget report on the shim's overhead
-  status: Todo
+  status: Done
   maps_to: US12
 created_at: '2026-10-30T20:30:37Z'
-updated_at: '2026-10-30T23:05:28Z'
+updated_at: '2026-10-30T23:43:20Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -96,4 +96,6 @@ The `client-budget` job runs the updated `scripts/bench_remote_client.py` and wr
   - ST1 route job added to test.yml (worktree commit 610ee02b, unpushed): job route-parity, ubuntu, bundled squad, SQUADS_DAEMON=off, uv run pytest -rs --api-mode routes tests/cli, same No daemon left running step. The four remote-mode jobs need no change (same --api-mode remote); cross-process runs all of tests/cross_process so new members are picked up. Local -n 4 routes run: 999 passed in 67.44s. Falsification: dropping the title field from every route response made routes 224 failed, 41 errors; local stayed 999 passed; reverted, not committed. Still needed: two green CI runs of the whole workflow with per-job timings under the bound (10 min; 15 for the Windows test job), recorded here. ST2 waits for TASK-1264.
 - [2026-10-30T23:05:28Z] `manager` Catherine Manager:
   - First all-green run with the route-parity job and the shim: https://github.com/TheCaptainCat/squads/actions/runs/41141368085 (e06928aa). Timings: test windows 7m47s, macOS 3m38s, ubuntu 2m8s; remote-mode windows 2m54s, macOS 1m32s, ubuntu 1m34s; remote-mode-override 1m34s; route-parity 1m22s; cross-process windows 1m35s, macOS 1m34s, ubuntu 1m24s; client-budget 0m22s.
+- [2026-10-30T23:43:15Z] `devops` Hugo Ops:
+  - CI record. Run 1 https://github.com/TheCaptainCat/squads/actions/runs/41141368085 (e06928aa), run 2 https://github.com/TheCaptainCat/squads/actions/runs/41145415746 (fd0d4d61): all 14 jobs green in both. Minutes run1/run2: test ubuntu 2.1/2.1, macos 3.6/2.6, windows 7.8/6.3 (bound 15); remote-mode ubuntu 1.6/1.4, macos 1.5/2.6, windows 2.9/3.2; remote-mode-override 1.6/1.5; route-parity 1.4/1.5; cross-process ubuntu 1.4/1.2, macos 1.6/1.6, windows 1.6/1.7; override-squad 1.1/1.1; lint 0.5/0.4; client-budget 0.4/0.5. Every job well under its 10 min bound. Client-budget (ms, 31 runs, median p25-p75, budget 100): run1 show 35 35-35, list --json 36 36-36, bash completion 34 34-34; run2 show 53 53-54, list --json 55 55-56, completion 53 53-53; all ok. The step writes to the job summary via GITHUB_STEP_SUMMARY and the job has continue-on-error, so it stays a report. No workflow change needed. Note: the second form is list --json rather than task show --json; flagging in case the task text should be read as show --json.
 <!-- sq:discussion:end -->
