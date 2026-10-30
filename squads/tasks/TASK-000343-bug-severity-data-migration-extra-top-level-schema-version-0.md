@@ -15,7 +15,7 @@ subentities:
 - local_id: ST1
   title: _v0_7_to_v0_8 runner + registry + manual + SCHEMA_VERSION 0.7->0.8 bump
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-09T08:20:11Z'
 updated_at: '2026-07-09T13:55:41Z'
 ---

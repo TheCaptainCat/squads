@@ -5,13 +5,13 @@ type: bug
 title: A foundation skill can be archived, with nothing refusing or reporting it
 status: Verified
 author: architect
-priority: high
 refs:
 - ADR-697:addresses
 description: The roster status verb shipped before its config-integrity guards; sq
   check stays silent
 created_at: '2026-07-29T16:20:12Z'
 updated_at: '2026-07-31T12:41:40Z'
+priority: high
 ---
 <!-- sq:body -->
 The roster status verb accepts any lifecycle-valid transition on a roster entry, including retiring a skill that every role preloads. In a fresh squad, `sq skill squads status Archived` succeeds and `sq check` then reports no issues, leaving a squad whose generated role entries all preload a skill whose own status says it is retired.

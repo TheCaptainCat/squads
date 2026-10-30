@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-899
 author: tech-lead
 assignee: tech-writer
-priority: low
 refs:
 - TASK-996:depends-on
 description: 'Validators reference and release note: no_status_banner and subentity_title_max
@@ -16,13 +15,14 @@ subentities:
 - local_id: ST1
   title: Rewrite the validators reference for the two checks
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Write the release note for the two checks
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-10-11T21:10:21Z'
 updated_at: '2026-10-12T06:19:30Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

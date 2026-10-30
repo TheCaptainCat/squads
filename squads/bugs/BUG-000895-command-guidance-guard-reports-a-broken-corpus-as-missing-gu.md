@@ -6,13 +6,13 @@ title: Command-guidance guard reports a broken corpus as missing guidance
 status: Verified
 author: qa
 assignee: python-dev
-priority: medium
-severity: medium
 refs:
 - BUG-894
 - MILE-867:targets
 created_at: '2026-09-03T07:08:03Z'
 updated_at: '2026-09-09T14:43:37Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

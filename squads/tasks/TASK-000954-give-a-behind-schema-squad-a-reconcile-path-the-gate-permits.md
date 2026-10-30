@@ -6,7 +6,6 @@ title: Give a behind-schema squad a reconcile path the gate permits
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - REV-952:fixes
 - MILE-934:targets
@@ -36,6 +35,7 @@ subentities:
   status: Done
 created_at: '2026-09-15T08:41:13Z'
 updated_at: '2026-10-15T19:19:49Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

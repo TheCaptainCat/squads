@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: typescript-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -17,17 +16,18 @@ subentities:
 - local_id: ST1
   title: Client types on the new shapes
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: Mapping label from the target kind
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Graph label from badges and display
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-10-29T19:55:12Z'
 updated_at: '2026-10-30T06:39:17Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

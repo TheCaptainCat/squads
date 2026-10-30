@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Spawn-tree view + show --full session surfacing (best-effort, untrusted)
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-22T09:11:24Z'
 updated_at: '2026-07-06T15:18:55Z'
 ---

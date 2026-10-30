@@ -5,12 +5,12 @@ type: bug
 title: Slugs drop accented letters instead of transliterating them
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - MILE-934:targets
 created_at: '2026-09-25T13:39:46Z'
 updated_at: '2026-09-29T16:06:04Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Reproduction

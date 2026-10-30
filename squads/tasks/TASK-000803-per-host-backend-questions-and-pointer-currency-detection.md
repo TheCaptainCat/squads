@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-792
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-781:implements
 - TASK-802:depends-on
@@ -18,21 +17,22 @@ subentities:
 - local_id: ST1
   title: Declare the five per-host questions without growing the abstract seven
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Both bundled backends answer all five questions explicitly
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: sq check compares a fresh render against disk, at two severities
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: sq sync reports what it regenerated for a currency fix
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-08-25T14:42:10Z'
 updated_at: '2026-08-26T12:04:48Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

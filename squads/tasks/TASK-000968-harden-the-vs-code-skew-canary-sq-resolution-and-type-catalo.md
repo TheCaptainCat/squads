@@ -6,7 +6,6 @@ title: 'Harden the VS Code skew canary: sq resolution and type-catalog keys'
 status: Done
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 refs:
 - BUG-949:fixes
 - BUG-935:fixes
@@ -24,6 +23,7 @@ subentities:
   assignee: typescript-dev
 created_at: '2026-09-29T13:29:18Z'
 updated_at: '2026-09-29T14:13:45Z'
+priority: medium
 ---
 <!-- sq:body -->
 Harden the VS Code skew canary (`clients/vscode/test/canary/skewCanary.test.ts`) on both

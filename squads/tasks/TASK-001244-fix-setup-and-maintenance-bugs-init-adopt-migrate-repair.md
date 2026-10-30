@@ -5,7 +5,6 @@ type: task
 title: 'Fix setup and maintenance bugs: init, adopt, migrate, repair'
 status: Done
 author: tech-lead
-priority: high
 refs:
 - BUG-1187:fixes
 - BUG-1188:fixes
@@ -37,6 +36,7 @@ subentities:
   status: Done
 created_at: '2026-10-29T16:27:28Z'
 updated_at: '2026-10-29T20:41:11Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

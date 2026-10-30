@@ -6,11 +6,11 @@ title: 'Plane-1 role validation: declared role, palette colour, pending fallback
 status: Done
 parent: FEAT-605
 author: tech-lead
-priority: high
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:21Z'
 updated_at: '2026-07-22T16:37:13Z'
+priority: high
 ---
 <!-- sq:body -->
 Implements FEAT-605 US1. Add the Plane-1 (load-time) spec validation for the role catalog so a malformed spec fails closed instead of surfacing later as a render or derivation error.

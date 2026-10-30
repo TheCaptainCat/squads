@@ -7,7 +7,6 @@ title: 'FEAT-000064: negative-path error UX leaks the internal _addr subgroup an
 status: Approved
 parent: FEAT-64
 author: reviewer
-priority: high
 refs:
 - TASK-65
 description: AddressDispatchGroup routes every unknown token to the hidden _addr subgroup;
@@ -61,6 +60,7 @@ subentities:
   severity: low
 created_at: '2026-06-12T12:46:41Z'
 updated_at: '2026-06-12T13:18:41Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

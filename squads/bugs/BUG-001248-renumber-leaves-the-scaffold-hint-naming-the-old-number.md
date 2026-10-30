@@ -5,13 +5,13 @@ type: bug
 title: Renumber leaves the scaffold hint naming the old number
 status: Verified
 author: qa
-priority: low
-severity: medium
 refs:
 - REV-1247
 - MILE-1241:targets
 created_at: '2026-10-29T17:11:35Z'
 updated_at: '2026-10-29T20:40:36Z'
+priority: low
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

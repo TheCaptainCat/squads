@@ -13,23 +13,23 @@ subentities:
 - local_id: ST1
   title: 'mine: surface items whose sub-entity is assigned to the slug'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'workload: count sub-entity assignments per assignee'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 'inbox: attribute each hit to the region it matched'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: 'show --json: discussion on every sub-entity entry'
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: 'sub-entity show --json: standalone machine-readable surface'
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-08-03T07:56:37Z'
 updated_at: '2026-08-03T14:37:00Z'
 ---

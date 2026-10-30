@@ -7,7 +7,6 @@ status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - TASK-1112:depends-on
 - TASK-1111:depends-on
@@ -17,21 +16,22 @@ subentities:
 - local_id: ST1
   title: Rebuild the store, counter, marker, path-guard and write-once tests
   status: Todo
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Rebuild migration, reconcile, corpus-fit, repair and renumber tests
   status: Todo
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Prove integrity-core parity and delete the old files it covers
   status: Todo
-  story: US9
+  maps_to: US9
 - local_id: ST4
   title: Rebuild line-ending preservation and container restore tests
   status: Todo
-  story: US6
+  maps_to: US6
 created_at: '2026-10-24T13:42:15Z'
 updated_at: '2026-10-27T20:16:24Z'
+priority: high
 ---
 <!-- sq:body -->
 Rebuild the integrity core in the new root, deepest layering first: index store, global counter, transactions, markers and `reject_markers`, the `abspath` traversal guard, the write-once guard, preserved line endings on every file write (item files, skill files, managed regions and `.squads.toml`), sub-entity container restore, migrations, including the 0.16 to 0.17 role step, reconcile, corpus-fit, repair and renumber (US6), then prove parity and delete the old files this area covers (US9). This is the first of the three area increments; the engine and backend areas follow it one at a time, so each increment's CI measurement and deletion commit stands alone.

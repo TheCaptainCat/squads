@@ -11,11 +11,11 @@ subentities:
 - local_id: ST1
   title: Short slug derivation + --slug override
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: 'Tests: derivation, override, collision, legacy resolve'
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-15T11:47:08Z'
 updated_at: '2026-07-15T12:01:56Z'
 ---

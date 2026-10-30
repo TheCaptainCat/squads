@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -19,25 +18,26 @@ subentities:
 - local_id: ST1
   title: Mapping option named after the target kind
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Clear flags for optional sub-entity fields
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Messages and help from the spec
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Wire shapes by badge code and maps_to
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST5
   title: Template render context for fields and mapping
   status: Done
-  story: US7
+  maps_to: US7
 created_at: '2026-10-29T19:55:09Z'
 updated_at: '2026-10-30T06:39:12Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

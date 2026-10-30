@@ -6,7 +6,6 @@ title: Stop storing system skill bodies and render them on read
 status: Done
 parent: FEAT-694
 author: tech-lead
-priority: high
 refs:
 - ADR-776:implements
 - ADR-781:implements
@@ -28,6 +27,7 @@ subentities:
   status: Done
 created_at: '2026-09-01T08:26:15Z'
 updated_at: '2026-09-02T09:08:11Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

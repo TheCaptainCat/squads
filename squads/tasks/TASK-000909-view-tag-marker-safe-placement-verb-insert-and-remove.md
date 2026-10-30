@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-905
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - ADR-880:implements
 description: The unpaired tag shape, one shared name resolution, and the only path
@@ -16,33 +15,34 @@ subentities:
 - local_id: ST1
   title: Declare the unpaired view-tag shape and its recogniser
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: One shared view-name resolution helper
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Marker-safe insert inside a region, anchored and idempotent
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Marker-safe removal of one named tag
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: CLI placement verb over both directions
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Cover the prose guard as unchanged, with its control
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST7
   title: Gates and test falsification
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-09-03T10:06:10Z'
 updated_at: '2026-09-03T14:37:48Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

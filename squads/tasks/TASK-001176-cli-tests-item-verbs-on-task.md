@@ -13,15 +13,15 @@ subentities:
 - local_id: ST1
   title: update and its interactions
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: show, status, body, retype, remove
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: ref, refs, comments and view verbs
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-27T21:35:09Z'
 updated_at: '2026-10-28T01:02:40Z'
 ---

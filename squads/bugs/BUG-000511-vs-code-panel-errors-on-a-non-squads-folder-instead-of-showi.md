@@ -6,11 +6,11 @@ title: VS Code panel errors on a non-squads folder instead of showing an empty s
 status: Verified
 author: manager
 assignee: typescript-dev
-priority: medium
 description: Opening the Squads panel outside a squad shows an error node + error
   toast
 created_at: '2026-07-21T08:08:29Z'
 updated_at: '2026-07-21T08:13:56Z'
+priority: medium
 ---
 <!-- sq:body -->
 **What happens.** Opening the Squads view in a workspace with no squad (no `.squads.toml`) renders a red error node in the tree and fires an error notification. `sq tree --json` exits 1 there with `error: no .squads.toml found… — run sq init`, and the client's `treeDataProvider.fail` path treats every non-zero exit as a runtime error.

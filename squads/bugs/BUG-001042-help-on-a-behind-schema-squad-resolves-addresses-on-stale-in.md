@@ -5,12 +5,12 @@ type: bug
 title: Help on a behind-schema squad resolves addresses on stale index
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1033
 - MILE-1051:targets
 created_at: '2026-10-16T09:01:36Z'
 updated_at: '2026-10-25T11:11:41Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Repro

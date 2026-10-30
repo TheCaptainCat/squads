@@ -5,7 +5,6 @@ type: bug
 title: No agent-facing surface names sq renumber, the id-collision remedy
 status: Verified
 author: qa
-priority: high
 refs:
 - BUG-865
 - TASK-882
@@ -13,6 +12,7 @@ description: renumber is one of only two shipped commands absent from all 1744 l
   of agent-facing guidance, and no surface detects a duplicate id either.
 created_at: '2026-09-02T08:49:51Z'
 updated_at: '2026-09-02T14:19:08Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Symptom

@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Block leaf roles from spawning (US2)
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-21T21:46:41Z'
 updated_at: '2026-07-06T15:18:54Z'
 ---

@@ -5,7 +5,6 @@ type: epic
 title: Complete spec-driven customization
 status: InProgress
 author: product-owner
-priority: high
 refs:
 - FEAT-533
 - ADR-534
@@ -15,6 +14,7 @@ description: Make the work-item vocabulary fully overridable (drop/rename/re-pre
   · splat-refs).
 created_at: '2026-07-21T15:11:25Z'
 updated_at: '2026-10-29T19:04:25Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Outcome

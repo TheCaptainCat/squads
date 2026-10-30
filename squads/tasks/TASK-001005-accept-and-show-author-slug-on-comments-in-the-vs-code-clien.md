@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-980
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 refs:
 - ADR-979:implements
 - TASK-1004:depends-on
@@ -17,9 +16,10 @@ subentities:
 - local_id: ST1
   title: Read an optional author_slug and show it in the preview
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-10-12T06:48:44Z'
 updated_at: '2026-10-16T14:38:35Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

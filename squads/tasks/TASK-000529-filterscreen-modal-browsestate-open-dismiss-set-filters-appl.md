@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Open/dismiss popup; seed from and dismiss BrowseState
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: ItemFilter dimensions; apply -> refresh_tree keeps ancestors
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-21T12:20:36Z'
 updated_at: '2026-07-21T14:37:57Z'
 ---

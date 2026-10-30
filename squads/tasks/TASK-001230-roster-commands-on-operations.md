@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1224:implements
 - TASK-1227:depends-on
@@ -18,29 +17,30 @@ subentities:
   title: role verbs and the shared roster registrars
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: skill verbs
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: operator and dev verbs
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Roster display names and columns
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: JSON output on the 24 roster keys
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 created_at: '2026-10-28T22:12:39Z'
 updated_at: '2026-10-29T05:27:32Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

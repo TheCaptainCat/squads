@@ -7,22 +7,22 @@ status: Done
 parent: FEAT-40
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Restructure role.md.j2 working agreements into two regimes
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Separate decision-recording from handoff-signalling in live regime
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Normalize 'For <role>' handoff lines in _interactions.py
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T07:38:11Z'
 updated_at: '2026-06-23T09:57:47Z'
+priority: high
 ---
 <!-- sq:body -->
 **Goal.** Rewrite the bundled roles' 'Working agreements' so they read correctly in BOTH regimes an agent operates in, fixing the rigidity that forces a choice between honesty and compliance (see FEAT-40 Problem: the 2026-06-11 false-inbox incident). Content/template only — NO CLI behaviour changes.

@@ -7,20 +7,20 @@ status: Done
 parent: FEAT-18
 author: tech-lead
 assignee: architect
-priority: medium
 subentities:
 - local_id: ST1
   title: Draft the architecture guide covering layering, data model, and the marker
     mechanism
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Cross-link the guide and the retroactive ADRs both directions with related
     refs
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T14:18:09Z'
 updated_at: '2026-07-06T15:19:04Z'
+priority: medium
 ---
 <!-- sq:body -->
 Content-only documentation work: zero code changes. Deliverable is ONE sq guide item plus cross-link refs, authored through the CLI. Tech-writer polishes after the architect drafts.

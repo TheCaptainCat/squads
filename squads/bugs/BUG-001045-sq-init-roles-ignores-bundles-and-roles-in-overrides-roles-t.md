@@ -5,12 +5,12 @@ type: bug
 title: sq init --roles ignores bundles and roles in .overrides/roles.toml
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1035
 - MILE-1051:targets
 created_at: '2026-10-16T09:14:41Z'
 updated_at: '2026-10-26T06:46:26Z'
+priority: low
 ---
 <!-- sq:body -->
 `sq init --roles <name>` resolves its bundle and slugs against the bundled role catalog only, so a bundle or role declared in the project's `.overrides/roles.toml` is refused.

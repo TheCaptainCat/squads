@@ -6,7 +6,6 @@ title: Machine-readable surface audit
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - PRD-862:implements
 description: --json on every read command, documented exit codes, golden-file tests
@@ -25,6 +24,7 @@ subentities:
   status: Todo
 created_at: '2026-06-10T12:41:11Z'
 updated_at: '2026-09-01T13:47:29Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

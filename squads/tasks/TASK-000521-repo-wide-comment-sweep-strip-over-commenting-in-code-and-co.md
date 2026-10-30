@@ -6,13 +6,13 @@ title: 'Repo-wide comment sweep: strip over-commenting in code and config'
 status: Done
 author: manager
 assignee: python-dev
-priority: medium
 refs:
 - FEAT-237
 description: Complete tour of every code/config comment; remove ID refs, verbose narration,
   and restate-the-obvious comments
 created_at: '2026-07-21T09:35:58Z'
 updated_at: '2026-07-22T00:23:45Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

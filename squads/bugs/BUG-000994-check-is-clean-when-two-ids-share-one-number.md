@@ -5,12 +5,12 @@ type: bug
 title: check is clean when two ids share one number
 status: Verified
 author: qa
-priority: medium
 refs:
 - MILE-934:targets
 - BUG-993
 created_at: '2026-10-11T20:18:04Z'
 updated_at: '2026-10-16T19:08:31Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Reproduction

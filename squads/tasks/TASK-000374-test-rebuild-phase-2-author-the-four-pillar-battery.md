@@ -10,15 +10,15 @@ subentities:
 - local_id: ST1
   title: Behavior-named taxonomy across the four pillars, no dev-archaeology
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Fast by default: mark scale slow, flip addopts to -m not slow, under 30s'
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Each invariant asserted once at the lowest meaningful layer
   status: Todo
-  story: US3
+  maps_to: US3
 created_at: '2026-07-10T04:48:20Z'
 updated_at: '2026-07-13T09:27:40Z'
 ---

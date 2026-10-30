@@ -14,7 +14,7 @@ subentities:
 - local_id: ST1
   title: Width-tolerant ID equality across resolver/backrefs/check
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-14T20:56:35Z'
 updated_at: '2026-06-23T09:58:32Z'
 ---

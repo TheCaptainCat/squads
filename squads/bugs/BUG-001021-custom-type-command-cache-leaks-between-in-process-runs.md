@@ -5,7 +5,6 @@ type: bug
 title: Custom-type command cache leaks between in-process runs
 status: Verified
 author: qa
-priority: low
 refs:
 - TASK-1018
 - MILE-1051:targets
@@ -13,6 +12,7 @@ description: Class-level cache keeps one squad's custom type and aliases for lat
   -C runs
 created_at: '2026-10-15T20:51:06Z'
 updated_at: '2026-10-25T11:11:55Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Summary

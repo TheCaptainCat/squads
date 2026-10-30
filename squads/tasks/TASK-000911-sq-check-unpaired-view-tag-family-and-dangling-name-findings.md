@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-905
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - TASK-909:depends-on
 - ADR-880:implements
@@ -17,25 +16,26 @@ subentities:
 - local_id: ST1
   title: Exempt the unpaired view family from pairing arithmetic
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Dangling name or missing template as an error finding
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST3
   title: Prove the repair sweep needs no change
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST4
   title: Retype carries the tag and the check does not fire
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST5
   title: Gates and test falsification
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-09-03T10:06:19Z'
 updated_at: '2026-09-03T14:37:51Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

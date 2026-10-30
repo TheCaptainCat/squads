@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: sq docs workflow override-format doc + worked example
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-06-30T07:49:55Z'
 updated_at: '2026-07-06T15:21:09Z'
 ---

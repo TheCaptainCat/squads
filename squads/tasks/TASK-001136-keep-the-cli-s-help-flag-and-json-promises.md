@@ -5,7 +5,6 @@ type: task
 title: Keep the CLI's help, flag and JSON promises
 status: Done
 author: tech-lead
-priority: medium
 refs:
 - MILE-1051:targets
 - BUG-1094:fixes
@@ -34,6 +33,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T05:39:17Z'
 updated_at: '2026-10-25T11:06:16Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

@@ -6,7 +6,6 @@ title: 'Fix the 0.16 engine bugs: versions, skills, views, spec id, slugs'
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-937:fixes
 - BUG-938:fixes
@@ -44,6 +43,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-09-29T13:31:10Z'
 updated_at: '2026-10-09T18:18:40Z'
+priority: medium
 ---
 <!-- sq:body -->
 Six engine bugs targeted at 0.16, one dev pass. Each subtask is independent and touches a

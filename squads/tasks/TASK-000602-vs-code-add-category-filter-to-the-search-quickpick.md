@@ -7,9 +7,9 @@ status: Done
 parent: FEAT-570
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 created_at: '2026-07-22T13:00:58Z'
 updated_at: '2026-07-23T07:09:25Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-570 US3 (VS Code QuickPick filter). Add a category dimension to the search QuickPick filtering, alongside the existing type/status narrowing. Depends on TASK-600 (category plumbing).

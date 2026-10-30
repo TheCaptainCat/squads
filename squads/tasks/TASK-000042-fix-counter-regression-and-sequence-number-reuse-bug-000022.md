@@ -6,7 +6,6 @@ title: Fix counter regression and sequence-number reuse (BUG-000022)
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-22:fixes
 subentities:
@@ -26,6 +25,7 @@ subentities:
   status: Todo
 created_at: '2026-06-11T12:14:51Z'
 updated_at: '2026-07-06T15:17:28Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

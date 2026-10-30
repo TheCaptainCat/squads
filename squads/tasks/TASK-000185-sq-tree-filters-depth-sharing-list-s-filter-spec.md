@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: Shared ItemFilter predicate + tree filter flags
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Ancestor-preserving prune, --depth, path-only render + JSON
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-24T13:13:35Z'
 updated_at: '2026-06-24T14:14:32Z'
 ---

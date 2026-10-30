@@ -6,11 +6,11 @@ title: PyPI publish job has no tag-vs-version guard like the VSIX job does
 status: Verified
 author: manager
 assignee: devops
-priority: high
 description: publish.yml's PyPI job can publish on a tag/version mismatch with no
   guard
 created_at: '2026-07-21T08:44:01Z'
 updated_at: '2026-07-21T08:45:49Z'
+priority: high
 ---
 <!-- sq:body -->
 **Gap.** In `.github/workflows/publish.yml`, the `vsix` job has a "version guard — tag must match core version" step that aborts when `github.event.release.tag_name` != `v<pyproject version>`. The `publish` (PyPI) job has **no** such guard — it goes `checkout → uv sync → regen manifest → uv build → uv publish` unconditionally.

@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: low
 description: 'Client: roster polish F18+F22 (US4 client)'
 created_at: '2026-07-18T20:10:34Z'
 updated_at: '2026-07-18T20:48:25Z'
+priority: low
 ---
 <!-- sq:body -->
 Story: US4 (REV-448 F18 + F22, Low). **Discipline: CLIENT / TypeScript** (`clients/vscode/`, `domain/metaView.ts`). No core change.

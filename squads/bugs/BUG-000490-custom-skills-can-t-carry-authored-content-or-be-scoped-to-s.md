@@ -5,9 +5,9 @@ type: bug
 title: Custom skills can't carry authored content or be scoped to specific roles
 status: Verified
 author: manager
-priority: high
 created_at: '2026-07-20T08:24:46Z'
 updated_at: '2026-07-20T12:33:48Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What we tried to do

@@ -6,7 +6,6 @@ title: 'Address comments by short hash: show, edit and remove'
 status: Done
 parent: FEAT-1017
 author: tech-lead
-priority: medium
 refs:
 - TASK-1070:depends-on
 - TASK-992:depends-on
@@ -18,64 +17,65 @@ subentities:
 - local_id: ST1
   title: Derive the comment hash and resolve a prefix within one scope
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Splice comments by line span, with the edit mark and the legacy-line refusal
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST3
   title: Make comment a group that routes a hash to show, edit and remove
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Show one comment, with a --json record
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Edit a comment by its author, keeping header and position
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Remove a comment by its author, with confirmation
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST7
   title: Refuse duplicate comments on write, merge or remove them together
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST8
   title: Record comment edits and removals in the reflog
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST9
   title: Put the hash in every render, JSON payload, search and inbox hit
   status: Done
-  story: US9
+  maps_to: US9
 - local_id: ST10
   title: Register the comment address verbs on skills, roles and operators
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST11
   title: Teach the address verbs in bundled guidance and the managed CLAUDE.md region
   status: Done
-  story: US11
+  maps_to: US11
 - local_id: ST12
   title: Show the comment hash and edit mark in the VS Code client
   status: Done
   assignee: typescript-dev
-  story: US9
+  maps_to: US9
 - local_id: ST13
   title: Document hash addressing in the docs, CHANGELOG and CLAUDE.md conventions
   status: Done
   assignee: tech-writer
-  story: US11
+  maps_to: US11
 - local_id: ST14
   title: Add the dated notes ADR-1013 owes to ADR-979 and ADR-981
   status: Done
   assignee: architect
-  story: US11
+  maps_to: US11
 created_at: '2026-10-16T21:12:16Z'
 updated_at: '2026-10-17T02:12:55Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

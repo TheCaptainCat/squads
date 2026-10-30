@@ -5,7 +5,6 @@ type: decision
 title: Advisory create-lane enforcement (Slice B)
 status: Accepted
 author: architect
-priority: medium
 refs:
 - FEAT-122:implements
 - ADR-155
@@ -14,6 +13,7 @@ refs:
 - ADR-696
 created_at: '2026-06-22T12:14:44Z'
 updated_at: '2026-10-25T21:36:51Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Context

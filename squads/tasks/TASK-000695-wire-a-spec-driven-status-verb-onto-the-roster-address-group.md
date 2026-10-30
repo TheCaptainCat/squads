@@ -12,27 +12,27 @@ subentities:
 - local_id: ST1
   title: Register the status verb on all three roster address subgroups
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Match the work-item status verb's --force and error shape
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Derive allowed targets from the addressed type's lifecycle
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Add the verb to the addressed-verb help and grammar blocks
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Add the verb to the roster grammar lines in README and docs
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Cover the verb with a service test and a CLI smoke test
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-29T14:43:04Z'
 updated_at: '2026-07-31T12:41:19Z'
 ---

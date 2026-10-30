@@ -6,7 +6,6 @@ title: sq override command group + staleness stamps, hash manifest, and sq check
 status: Done
 parent: FEAT-14
 author: tech-lead
-priority: high
 refs:
 - TASK-91:blocks
 description: scaffold/diff/update/list; override-base stamp; per-release content-hash
@@ -15,17 +14,18 @@ subentities:
 - local_id: ST1
   title: override-base stamp + per-release content-hash manifest in package data
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: 'sq check: version-drift warn + missing-marker error'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: sq override scaffold/diff/update/list command group
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T20:57:11Z'
 updated_at: '2026-07-06T15:19:40Z'
+priority: high
 ---
 <!-- sq:body -->
 Staleness + authoring-UX task for FEAT-14 (ADR-85 §3, the `sq override` group, and Consequences 'sq check gains two override checks'). This is the durable-contract command surface.

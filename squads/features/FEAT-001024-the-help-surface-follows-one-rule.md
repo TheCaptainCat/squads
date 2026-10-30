@@ -5,7 +5,6 @@ type: feature
 title: The --help surface follows one rule
 status: Done
 author: product-owner
-priority: medium
 refs:
 - REV-958:addresses
 - MILE-934:targets
@@ -45,6 +44,7 @@ subentities:
   status: Todo
 created_at: '2026-10-15T21:43:01Z'
 updated_at: '2026-10-17T05:11:50Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

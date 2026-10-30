@@ -5,7 +5,6 @@ type: decision
 title: 'Capability attenuation: leaf roles cannot spawn; enforced at the backend'
 status: Accepted
 author: architect
-priority: high
 refs:
 - FEAT-122
 - BUG-152:fixes
@@ -14,6 +13,7 @@ description: Spawn authority reserved to manager+tech-lead via per-role tool lis
   identity-aware profiles gated on FEAT-000125
 created_at: '2026-06-21T21:40:15Z'
 updated_at: '2026-10-25T21:36:48Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

@@ -6,18 +6,18 @@ title: Multi-active backend runtime and sq check rule
 status: Done
 parent: FEAT-138
 author: tech-lead
-priority: high
 subentities:
 - local_id: ST1
   title: active_backends config model + runtime fan-out over all backends
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: sq check rule for active backends (empty + deactivation semantics)
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-16T09:39:30Z'
 updated_at: '2026-06-23T09:59:00Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

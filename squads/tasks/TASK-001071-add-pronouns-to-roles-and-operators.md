@@ -18,36 +18,36 @@ subentities:
 - local_id: ST1
   title: Declare and pin the pronouns attribute, with one shape rule and a check
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Set and clear pronouns through the creation and update verbs
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Resolve a declared roster default from the role catalog document
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Carry resolved pronouns in the four roster --json payloads
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Render pronouns in the generated roster section and identity pointer
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Add the typed display table to .squads.toml
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST7
   title: Print Name (pronouns) dimmed in human CLI output and sq ui
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST8
   title: Show pronouns in the VS Code client behind its own setting
   status: Done
   assignee: typescript-dev
-  story: US4
+  maps_to: US4
 created_at: '2026-10-16T19:53:59Z'
 updated_at: '2026-10-17T03:14:22Z'
 ---

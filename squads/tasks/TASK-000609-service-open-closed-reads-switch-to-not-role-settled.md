@@ -6,11 +6,11 @@ title: Service open/closed reads switch to not role.settled
 status: Done
 parent: FEAT-605
 author: tech-lead
-priority: medium
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:22Z'
 updated_at: '2026-07-22T16:37:14Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-605 US1. Switch the service-level open/closed reads off the old terminal/is_open inputs onto the role object (`not role.settled`), via the `is_open`/`is_live` helper.

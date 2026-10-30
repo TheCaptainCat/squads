@@ -6,7 +6,6 @@ title: Allow prose in roster bodies and give operators a profile
 status: Done
 parent: FEAT-1054
 author: tech-lead
-priority: medium
 refs:
 - TASK-1069:depends-on
 - TASK-1070:depends-on
@@ -16,26 +15,27 @@ subentities:
 - local_id: ST1
   title: Stop sq check reporting prose in a role body as a missing seeded tag
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add the body verb to roles and operators through one shared helper
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Make the greeting skill read the operator profile and adapt
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Offer registration and a short interview to an unknown human
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Document the prose allowance and the operator profile
   status: Done
   assignee: tech-writer
-  story: US4
+  maps_to: US4
 created_at: '2026-10-16T21:10:07Z'
 updated_at: '2026-10-17T00:56:30Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

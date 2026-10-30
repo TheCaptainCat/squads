@@ -6,9 +6,9 @@ title: Add --category roster|work|records filter to sq list/tree
 status: Done
 parent: FEAT-570
 author: tech-lead
-priority: medium
 created_at: '2026-07-22T13:00:54Z'
 updated_at: '2026-07-22T17:18:00Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-570 US1. Add a `--category roster|work|records` filter dimension alongside today's type/status/priority filters.

@@ -5,7 +5,6 @@ type: feature
 title: Rebuild the test suite from the ground up
 status: Cancelled
 author: product-owner
-priority: high
 refs:
 - MILE-1051:targets
 description: Replace the 13,800-test suite with a smaller, falsification-checked one;
@@ -43,6 +42,7 @@ subentities:
   status: Todo
 created_at: '2026-10-17T07:56:25Z'
 updated_at: '2026-10-27T20:16:28Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

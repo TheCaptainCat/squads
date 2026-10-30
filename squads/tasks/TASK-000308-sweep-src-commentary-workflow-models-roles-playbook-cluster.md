@@ -7,22 +7,22 @@ status: Done
 parent: FEAT-237
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: Strip refs from comments/docstrings
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Restyle: terse + history-free'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Remove refs from any user-facing strings here
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-06T12:55:24Z'
 updated_at: '2026-07-06T13:21:30Z'
+priority: medium
 ---
 <!-- sq:body -->
 SRC WAVE (part 1 of 2). Scope: all Python under src/squads/_workflow, _interactions, _roles, _models. Blast radius: ~161 ref-hits across these subpackages, PLUS every comment/docstring in them for the restyle pass (the restyle touches more than just ref-bearing lines). Disjoint file set from the part-2 task, so the two can run in parallel with no collision. Combines ref-strip (US1), terse/history-free restyle (US2), and CLI/output-string ref-removal for strings emitted from these files (US4) into ONE owner per file. Done when: zero squad-item refs remain in these files' comments/docstrings/strings; commentary is terse and history-free; any user-facing strings had real refs removed without rewording; full test suite passes UNCHANGED and green; pyright + ruff clean.

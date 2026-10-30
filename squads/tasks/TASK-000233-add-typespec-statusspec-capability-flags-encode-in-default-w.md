@@ -11,11 +11,11 @@ subentities:
 - local_id: ST1
   title: Add capability flags to TypeSpec/StatusSpec + encode in default_workflow.toml
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: extra=forbid + model_validate hardening; characterization tests pin 22 checks
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-26T09:48:47Z'
 updated_at: '2026-07-06T15:21:02Z'
 ---

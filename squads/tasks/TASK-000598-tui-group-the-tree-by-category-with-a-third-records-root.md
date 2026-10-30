@@ -7,9 +7,9 @@ status: Done
 parent: FEAT-570
 author: tech-lead
 assignee: python-dev
-priority: medium
 created_at: '2026-07-22T13:00:55Z'
 updated_at: '2026-07-23T07:09:22Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-570 US2 (TUI records root). Switch the browse tree's grouping from the roster/not-roster boolean to `category`, adding a third `records` root alongside Work and Roster. Depends on US1 (TASK-595 category on the wire / spec accessor).

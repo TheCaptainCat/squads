@@ -7,9 +7,9 @@ status: Done
 parent: FEAT-211
 author: tech-lead
 assignee: python-dev
-priority: medium
 created_at: '2026-07-02T09:20:18Z'
 updated_at: '2026-07-02T12:57:11Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal — spec-derive two static-prose artifacts in the sq workflow cheatsheet

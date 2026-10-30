@@ -5,7 +5,6 @@ type: task
 title: Fix listing option validation and three messages
 status: Done
 author: tech-lead
-priority: low
 refs:
 - BUG-1193:fixes
 - BUG-1194:fixes
@@ -40,6 +39,7 @@ subentities:
   status: Done
 created_at: '2026-10-29T16:27:29Z'
 updated_at: '2026-10-29T20:41:13Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Goal

@@ -5,12 +5,12 @@ type: bug
 title: sq import orders one item's warnings differently than 0.15.0
 status: Verified
 author: qa
-priority: low
 refs:
 - FEAT-899
 - MILE-1051:targets
 created_at: '2026-10-12T05:33:56Z'
 updated_at: '2026-10-25T17:53:03Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Reproduction

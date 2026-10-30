@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: Rewrite default_backend to active_backends in 0.2->0.3 migration
   status: Todo
-  story: US3
+  maps_to: US3
 created_at: '2026-06-16T14:18:32Z'
 updated_at: '2026-07-06T15:18:53Z'
 ---

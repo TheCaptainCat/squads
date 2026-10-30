@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: Body-region-only marker-safe regen preserves stamped frontmatter
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Idempotence test: sq sync twice leaves id/sequence_id unchanged'
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-24T18:46:55Z'
 updated_at: '2026-07-06T15:19:50Z'
 ---

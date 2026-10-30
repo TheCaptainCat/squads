@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Add LabelSpec + ItemSpec.labels and the label_for resolver
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Retarget ad-hoc type-name display derivations through label_for
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-24T11:50:40Z'
 updated_at: '2026-07-24T12:47:15Z'
 ---

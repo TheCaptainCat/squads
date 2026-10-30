@@ -5,7 +5,6 @@ type: task
 title: 'Fix item verb bugs: guide options, ref rm, sub-entities, view ID'
 status: Done
 author: tech-lead
-priority: medium
 refs:
 - BUG-1183:fixes
 - BUG-1184:fixes
@@ -33,6 +32,7 @@ subentities:
   status: Done
 created_at: '2026-10-29T16:27:30Z'
 updated_at: '2026-10-29T20:41:16Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

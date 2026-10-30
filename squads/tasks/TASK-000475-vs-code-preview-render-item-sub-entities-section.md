@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: high
 description: 'Client: preview lists item sub-entities (US1/F15 client)'
 created_at: '2026-07-18T20:10:32Z'
 updated_at: '2026-07-18T20:23:06Z'
+priority: high
 ---
 <!-- sq:body -->
 Story: US1 (REV-448 F15, High). **Discipline: CLIENT / TypeScript** (`clients/vscode/`). No core change.

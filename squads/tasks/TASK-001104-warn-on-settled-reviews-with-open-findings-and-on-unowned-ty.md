@@ -15,31 +15,31 @@ subentities:
 - local_id: ST1
   title: Add subentities_settled_with_parent and select it on the bundled review type
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Add type_has_live_author, naming the catalog role to activate
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Give every outstanding finding on this repo's settled reviews a real disposition
   status: Done
   assignee: reviewer
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Write the 0.17.0 CHANGELOG entries for the two new check rules
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 - local_id: ST5
   title: Make type_has_live_author selectable and selected by default
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST6
   title: Document type_has_live_author as on by default and deselectable
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 created_at: '2026-10-24T10:04:02Z'
 updated_at: '2026-10-25T19:48:43Z'
 ---

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -17,25 +16,26 @@ subentities:
 - local_id: ST1
   title: Override test squad and its fixture
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST2
   title: Root aliases from the active spec
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Neutral grammar names and the target kind
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Container heading key on sub-entity kinds
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST5
   title: Generated agent text from the spec
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-10-29T19:55:07Z'
 updated_at: '2026-10-30T06:39:08Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

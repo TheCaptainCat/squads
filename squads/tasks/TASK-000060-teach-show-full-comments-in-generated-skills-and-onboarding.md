@@ -7,14 +7,14 @@ status: Done
 parent: FEAT-26
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Teach --full --comments in generated skills and onboarding
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-06-12T08:58:27Z'
 updated_at: '2026-07-06T15:18:23Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

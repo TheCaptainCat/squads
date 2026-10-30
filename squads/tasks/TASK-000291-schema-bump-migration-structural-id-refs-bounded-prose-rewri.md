@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Bump SCHEMA_VERSION; register Migration record + runner
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: 'Runner: structural id/refs + bounded, fence-skipping prose rewrite'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: 'Migration test: mixed fixture, unpadded outside fences, idempotent'
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-04T20:45:37Z'
 updated_at: '2026-07-04T23:23:27Z'
 ---

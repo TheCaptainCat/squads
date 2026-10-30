@@ -6,7 +6,6 @@ title: Fix the final check rule review findings
 status: Done
 parent: FEAT-1202
 author: tech-lead
-priority: high
 refs:
 - REV-1213:addresses
 description: Near-miss, malformed override, stderr, oracle and helper fixes for the
@@ -15,21 +14,22 @@ subentities:
 - local_id: ST1
   title: 'Override stamp and drift near-misses: F1'
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST2
   title: 'Harness: malformed override and stderr: F2, F3'
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST3
   title: 'Independent oracles for corpus rules: F4, F6'
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST4
   title: 'One _arrange helper per job: F5'
   status: Done
-  story: US7
+  maps_to: US7
 created_at: '2026-10-28T10:20:38Z'
 updated_at: '2026-10-28T10:31:46Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

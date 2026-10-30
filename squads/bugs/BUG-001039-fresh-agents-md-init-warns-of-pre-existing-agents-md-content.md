@@ -5,12 +5,12 @@ type: bug
 title: Fresh agents_md init warns of pre-existing AGENTS.md content
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1032
 - MILE-1051:targets
 created_at: '2026-10-16T09:01:11Z'
 updated_at: '2026-10-25T19:52:11Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Repro

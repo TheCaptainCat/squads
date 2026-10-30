@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Reflog + inline mentions rewritten; history left literal
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-06T08:47:58Z'
 updated_at: '2026-07-06T10:15:41Z'
 ---

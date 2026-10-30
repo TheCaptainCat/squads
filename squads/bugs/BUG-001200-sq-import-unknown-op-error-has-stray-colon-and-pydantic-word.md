@@ -5,13 +5,13 @@ type: bug
 title: 'sq import: unknown op error has stray colon and pydantic wording'
 status: Verified
 author: qa
-priority: low
-severity: low
 refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-28T00:28:17Z'
 updated_at: '2026-10-29T20:40:32Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 ## Defect

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-777:implements
 description: Give the roles catalog a whole-document override with its own stamp,
@@ -16,26 +15,27 @@ subentities:
 - local_id: ST1
   title: Resolve .overrides/roles.toml through the shared merge engine
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Stamp, drift and sq override scaffold roles
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Deselect on the roles catalog document
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Close the role override top-level key space
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Narrow the superseded role-top-level clause in place
   status: Todo
   assignee: architect
-  story: US4
+  maps_to: US4
 created_at: '2026-08-25T14:40:35Z'
 updated_at: '2026-08-25T23:39:46Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

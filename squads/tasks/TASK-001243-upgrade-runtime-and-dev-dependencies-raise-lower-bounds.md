@@ -6,7 +6,6 @@ title: Upgrade runtime and dev dependencies, raise lower bounds
 status: InReview
 parent: FEAT-1242
 author: tech-lead
-priority: high
 refs:
 - ADR-1172
 - BUG-1192:fixes
@@ -16,33 +15,34 @@ subentities:
 - local_id: ST1
   title: 'typer 0.27: help tree and usage errors match what adopters see'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'filelock 4: index lock tests, release on process death'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: pydantic 2.14 and anyio 4.15 locked, suite green
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Runtime lower bounds raised to the tested versions
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: ruff 0.17, pyright, pytest locked; gates clean
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Report adopter-visible changes for the changelog
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST7
   title: Surface test for the unknown-option suggestion (BUG-1192)
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-10-29T16:23:49Z'
 updated_at: '2026-10-30T00:25:17Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

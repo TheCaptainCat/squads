@@ -13,19 +13,19 @@ subentities:
 - local_id: ST1
   title: list and tree
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST2
   title: show, search, inbox, mine, blocked
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST3
   title: graph, workload, reflog
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST4
   title: docs, workflow and ui
   status: Done
-  story: US8
+  maps_to: US8
 created_at: '2026-10-27T21:35:14Z'
 updated_at: '2026-10-28T01:02:45Z'
 ---

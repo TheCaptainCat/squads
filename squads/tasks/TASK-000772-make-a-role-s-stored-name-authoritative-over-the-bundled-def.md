@@ -6,7 +6,6 @@ title: Make a role's stored name authoritative over the bundled default
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-771:fixes
 - ADR-754:implements
@@ -15,6 +14,7 @@ description: 'Stop sq sync reverting an operator-set role name: the item owns ex
   the operator-settable fields, one mechanism for bundled and developer roles'
 created_at: '2026-08-21T21:06:34Z'
 updated_at: '2026-08-22T09:26:31Z'
+priority: high
 ---
 <!-- sq:body -->
 `sq sync` silently reverts an operator-set role name to the bundled catalog default. No warning, no

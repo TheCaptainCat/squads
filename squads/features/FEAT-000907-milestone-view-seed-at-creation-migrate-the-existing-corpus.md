@@ -6,7 +6,6 @@ title: 'Milestone view: seed at creation, migrate the existing corpus once'
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: medium
 refs:
 - MILE-867:targets
 - ADR-880:implements
@@ -28,6 +27,7 @@ subentities:
   status: Cancelled
 created_at: '2026-09-03T09:11:01Z'
 updated_at: '2026-09-15T09:36:11Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Why

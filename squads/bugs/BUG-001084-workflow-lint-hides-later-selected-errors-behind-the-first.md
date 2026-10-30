@@ -6,11 +6,11 @@ title: workflow lint hides later [selected] errors behind the first
 status: Verified
 parent: MILE-1051
 author: qa
-priority: low
 refs:
 - REV-1083
 created_at: '2026-10-16T22:04:16Z'
 updated_at: '2026-10-25T19:52:06Z'
+priority: low
 ---
 <!-- sq:body -->
 `sq workflow lint` says it collects ALL errors, but inside the `[selected]` table the first error found hides the others in the same file. Seen on release/0.16 HEAD (clean `git archive` export, scratch squad); the behaviour is older than 0.16, the `[selected]` table having shipped long before.

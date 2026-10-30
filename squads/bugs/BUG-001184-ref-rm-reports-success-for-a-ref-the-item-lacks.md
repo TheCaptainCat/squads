@@ -5,13 +5,13 @@ type: bug
 title: ref rm reports success for a ref the item lacks
 status: Verified
 author: qa
-priority: low
-severity: low
 refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:31Z'
 updated_at: '2026-10-29T20:40:04Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.

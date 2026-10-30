@@ -6,7 +6,6 @@ title: 'Ref graph view: sq graph <item>'
 status: Done
 parent: EPIC-38
 author: product-owner
-priority: medium
 refs:
 - FEAT-35:depends-on
 - FEAT-19:depends-on
@@ -27,6 +26,7 @@ subentities:
   status: Todo
 created_at: '2026-06-11T07:45:02Z'
 updated_at: '2026-09-01T13:47:54Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

@@ -12,7 +12,7 @@ subentities:
 - local_id: ST1
   title: Surface role memory index (index-only) via backend
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-15T07:47:18Z'
 updated_at: '2026-07-15T10:20:50Z'
 ---

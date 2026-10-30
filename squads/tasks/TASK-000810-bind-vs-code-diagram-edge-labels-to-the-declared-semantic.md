@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: typescript-dev
-priority: low
 refs:
 - ADR-775:implements
 - REV-808:addresses
@@ -18,13 +17,14 @@ subentities:
 - local_id: ST1
   title: Branch edge labelling on the declared semantic
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Client-side coverage for the semantic edge binding
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-08-25T17:56:43Z'
 updated_at: '2026-08-25T23:39:57Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

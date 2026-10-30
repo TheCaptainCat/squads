@@ -36,7 +36,7 @@ subentities:
   severity: low
 - local_id: F7
   title: Usage lines mix upper and lower argument names (operator call)
-  status: Open
+  status: Fixed
   severity: info
 - local_id: F8
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
@@ -51,7 +51,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T06:36:33Z'
+updated_at: '2026-10-30T06:40:53Z'
 ---
 <!-- sq:body -->
 ## Scope

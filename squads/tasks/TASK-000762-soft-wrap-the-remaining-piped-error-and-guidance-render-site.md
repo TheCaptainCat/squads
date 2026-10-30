@@ -6,13 +6,13 @@ title: Soft-wrap the remaining piped error and guidance render sites
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-755:fixes
 description: 'Finish the sweep: schema hard-stop (both branches), version notice,
   per-file degrade loops, scaffold guidance, plus a class-level guard'
 created_at: '2026-08-21T19:36:44Z'
 updated_at: '2026-08-22T09:26:24Z'
+priority: medium
 ---
 <!-- sq:body -->
 The single-line error render sites in the async bridge's `SquadsError` handler are soft-wrapped

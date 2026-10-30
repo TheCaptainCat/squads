@@ -6,7 +6,6 @@ title: 'CLI remote mode: HttpApi, selection and fall back'
 status: Draft
 parent: FEAT-1140
 author: tech-lead
-priority: high
 refs:
 - ADR-1052:implements
 - TASK-1218:depends-on
@@ -20,41 +19,42 @@ subentities:
 - local_id: ST1
   title: API selection in the root callback
   status: Todo
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Implicit start, discovery and failed start
   status: Todo
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Native Windows client path
   status: Todo
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: HttpApi requests, headers and errors
   status: Todo
-  story: US10
+  maps_to: US10
 - local_id: ST5
   title: Fall back, no replay, timeouts and Ctrl-C
   status: Todo
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Mode parity run over HttpApi
   status: Todo
-  story: US3
+  maps_to: US3
 - local_id: ST7
   title: Schema and vocabulary headers, client side
   status: Todo
-  story: US11
+  maps_to: US11
 - local_id: ST8
   title: 'Client budget: levers, import guard, benchmark'
   status: Todo
-  story: US12
+  maps_to: US12
 - local_id: ST9
   title: The terminal UI as a daemon client
   status: Todo
-  story: US13
+  maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
 updated_at: '2026-10-30T00:44:17Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

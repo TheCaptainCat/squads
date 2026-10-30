@@ -5,7 +5,6 @@ type: task
 title: Prove the preview graph renders and share the leaf builder
 status: Done
 author: tech-lead
-priority: medium
 refs:
 - MILE-1051:targets
 - REV-462:addresses
@@ -21,6 +20,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T19:56:58Z'
 updated_at: '2026-10-26T09:35:00Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

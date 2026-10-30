@@ -5,13 +5,13 @@ type: epic
 title: squads control / trust plane
 status: Draft
 author: product-owner
-priority: low
 refs:
 - REV-118
 - REV-119
 - BUG-120
 created_at: '2026-06-15T11:53:01Z'
 updated_at: '2026-06-15T12:00:30Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Why this epic exists

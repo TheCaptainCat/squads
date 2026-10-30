@@ -5,11 +5,11 @@ type: bug
 title: 'Renamed stripped managed skill file: check gives no remedy'
 status: Verified
 author: qa
-priority: low
 refs:
 - MILE-1051:targets
 created_at: '2026-10-09T20:19:45Z'
 updated_at: '2026-10-25T17:52:43Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Reproduction

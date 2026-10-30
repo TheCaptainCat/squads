@@ -5,11 +5,11 @@ type: bug
 title: sq check passes while an invalid roles.toml override blocks commands
 status: Fixed
 author: qa
-priority: high
 refs:
 - REV-1035
 created_at: '2026-10-16T09:14:42Z'
 updated_at: '2026-10-16T11:23:10Z'
+priority: high
 ---
 <!-- sq:body -->
 `sq check` never loads `.overrides/roles.toml`, so an invalid role catalog override can read "no issues" while every command that needs the catalog refuses.

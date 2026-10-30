@@ -5,13 +5,13 @@ type: bug
 title: repair silently drops one of two files sharing a number
 status: Verified
 author: qa
-priority: high
-severity: medium
 refs:
 - FEAT-1173
 - MILE-1241:targets
 created_at: '2026-10-27T23:37:38Z'
 updated_at: '2026-10-29T20:40:19Z'
+priority: high
+severity: medium
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.

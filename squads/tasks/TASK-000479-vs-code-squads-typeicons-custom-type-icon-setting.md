@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: low
 description: 'Client: custom type-icon setting (US5/F21 client)'
 created_at: '2026-07-18T20:10:35Z'
 updated_at: '2026-07-18T20:52:50Z'
+priority: low
 ---
 <!-- sq:body -->
 Story: US5 (REV-448 F21, Low). **Discipline: CLIENT / TypeScript** (`clients/vscode/`, `domain/displayNode.ts`). No core change.

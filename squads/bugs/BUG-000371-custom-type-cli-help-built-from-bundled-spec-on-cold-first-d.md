@@ -6,12 +6,12 @@ title: Custom-type CLI help built from bundled spec on cold first dispatch
 status: Verified
 author: reviewer
 assignee: python-dev
-priority: medium
 refs:
 - FEAT-336
 - REV-360
 created_at: '2026-07-10T03:48:50Z'
 updated_at: '2026-07-13T07:15:54Z'
+priority: medium
 ---
 <!-- sq:body -->
 `build_item_app` reads the module-global active spec via `common.get_active_spec()`, which returns the **bundled** spec before the root callback's `_bind_active_spec` runs. Click resolves a subcommand group's `get_command` before the root callback fires, so a **cold, first-in-process** `--help` / introspection of a project-declared **custom** type builds its command tree from the bundled spec — missing that type's `add-<kind>` surface and showing wrong retype-target / priority help.

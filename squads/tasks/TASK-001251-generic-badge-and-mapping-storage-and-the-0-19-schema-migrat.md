@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -17,21 +16,22 @@ subentities:
 - local_id: ST1
   title: Item badge values stored as attributes
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Flat sub-entity entries with maps_to
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Stored-key collision rule at spec load
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Schema 0.19 runner on a fixture corpus
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-10-29T19:55:06Z'
 updated_at: '2026-10-30T06:39:05Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

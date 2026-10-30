@@ -5,7 +5,6 @@ type: feature
 title: Dependencies current and tested
 status: InProgress
 author: product-owner
-priority: high
 refs:
 - MILE-1241:targets
 description: 'The versions an adopter installs are the versions the suite runs: runtime
@@ -19,6 +18,7 @@ subentities:
   status: InProgress
 created_at: '2026-10-29T12:59:18Z'
 updated_at: '2026-10-29T23:44:33Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

@@ -5,13 +5,13 @@ type: bug
 title: set_body and repair sweep disagree on a stale bundled skill slug
 status: Verified
 author: qa
-severity: low
 refs:
 - ADR-880
 - FEAT-948
 - MILE-934:targets
 created_at: '2026-09-15T08:00:38Z'
 updated_at: '2026-10-09T19:20:59Z'
+severity: low
 ---
 <!-- sq:body -->
 ## Problem

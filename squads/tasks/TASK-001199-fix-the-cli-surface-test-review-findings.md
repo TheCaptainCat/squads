@@ -16,30 +16,30 @@ subentities:
   title: 'Harness and guards: F1-F5, F15'
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Roster folding: F6'
   status: Done
   assignee: python-dev
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: 'Markers and assertions: F12, F16, F13 docstrings'
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: 'Pinned bugs and portability: F7-F11'
   status: Done
   assignee: python-dev
-  story: US7
+  maps_to: US7
 - local_id: ST5
   title: Fix review findings F18 and F19
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Fix Windows CI failures in init, memory, role, repair tests
   status: Done
-  story: US7
+  maps_to: US7
 created_at: '2026-10-27T23:53:34Z'
 updated_at: '2026-10-28T01:02:47Z'
 ---

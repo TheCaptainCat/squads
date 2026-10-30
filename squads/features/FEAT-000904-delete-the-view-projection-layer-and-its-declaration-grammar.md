@@ -6,7 +6,6 @@ title: Delete the view projection layer and its declaration grammar
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: urgent
 refs:
 - MILE-867:targets
 - ADR-880:implements
@@ -30,6 +29,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:10:57Z'
 updated_at: '2026-09-24T08:49:39Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Why

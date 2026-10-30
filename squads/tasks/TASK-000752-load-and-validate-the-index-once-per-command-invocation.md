@@ -6,7 +6,6 @@ title: Load and validate the index once per command invocation
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-747:fixes
 - ADR-753:implements
@@ -14,6 +13,7 @@ description: Request-scoped index read to remove the N+1 over sub-entities in th
   show path
 created_at: '2026-08-21T12:43:00Z'
 updated_at: '2026-08-21T18:37:00Z'
+priority: medium
 ---
 <!-- sq:body -->
 One command invocation deserialises and revalidates the whole index once per sub-entity. The cost

@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Sub-entity rule tests
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Prose rule tests
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Falsify each test three ways
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-28T08:37:59Z'
 updated_at: '2026-10-28T10:41:07Z'
 ---

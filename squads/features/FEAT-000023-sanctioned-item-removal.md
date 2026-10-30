@@ -6,7 +6,6 @@ title: Sanctioned item removal
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - BUG-22:depends-on
 - PRD-858:implements
@@ -24,6 +23,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T13:52:25Z'
 updated_at: '2026-09-01T13:47:37Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

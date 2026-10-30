@@ -7,14 +7,14 @@ status: Done
 parent: FEAT-237
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: Strip refs from TOML structural comments
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-06T12:55:26Z'
 updated_at: '2026-07-06T13:21:32Z'
+priority: medium
 ---
 <!-- sq:body -->
 SRC WAVE. Scope: the structural comments in the three bundled package-data TOMLs — src/squads/_workflow/default_workflow.toml, src/squads/_roles/roles.toml, src/squads/_interactions/playbook.toml. Blast radius: small (~10 ref-hits, 3 files). Strip-only, no restyle/rewording of the data. Disjoint files from all other tasks — parallel-safe. Done when: zero squad-item refs remain in the comments of these three files; the files still parse and load (sq init/sync unaffected); tests green and unchanged.

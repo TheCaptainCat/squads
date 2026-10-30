@@ -5,7 +5,6 @@ type: bug
 title: Legacy-folded default-kind refs vanish from sq graph after a default-kind rename
 status: Verified
 author: qa
-priority: high
 refs:
 - TASK-796:addresses
 - ADR-775
@@ -14,6 +13,7 @@ description: Pre-0.2 extra.ref_kinds fold spells the default kind; renaming the 
   (ADR-775 A1) orphans it and sq graph silently drops the edge
 created_at: '2026-08-25T15:44:33Z'
 updated_at: '2026-09-01T08:05:17Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Summary

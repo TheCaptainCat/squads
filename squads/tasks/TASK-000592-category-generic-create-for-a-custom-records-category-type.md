@@ -6,9 +6,9 @@ title: Category-generic create for a custom records-category type
 status: Done
 parent: FEAT-569
 author: tech-lead
-priority: high
 created_at: '2026-07-22T13:00:50Z'
 updated_at: '2026-07-22T17:16:02Z'
+priority: high
 ---
 <!-- sq:body -->
 Implements FEAT-569 (records-category create path). Make `sq create` fully spec-driven for a project-declared custom `category = "records"` type — no records-name special-casing anywhere in the create path.

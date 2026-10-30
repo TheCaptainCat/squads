@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-693
 author: tech-lead
 assignee: tech-writer
-priority: medium
 refs:
 - FEAT-321
 - TASK-830:depends-on
@@ -20,11 +19,11 @@ subentities:
 - local_id: ST1
   title: Document [views] as a declarable, overridable spec section
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Document the milestone type and its roll-up
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Document the contract type and its advisory currency check
   status: Done
@@ -33,6 +32,7 @@ subentities:
   status: Done
 created_at: '2026-08-26T13:36:03Z'
 updated_at: '2026-09-01T07:43:08Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

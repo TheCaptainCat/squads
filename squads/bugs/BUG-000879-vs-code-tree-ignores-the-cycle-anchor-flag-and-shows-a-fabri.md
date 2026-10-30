@@ -5,8 +5,6 @@ type: bug
 title: VS Code tree ignores the cycle-anchor flag and shows a fabricated root
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - BUG-870
 - TASK-877:depends-on
@@ -15,6 +13,8 @@ description: The client maps tree JSON through a closed field list, so the ancho
   one. Not reachable until the core change lands.
 created_at: '2026-09-02T10:23:06Z'
 updated_at: '2026-09-03T07:09:15Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

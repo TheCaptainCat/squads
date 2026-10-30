@@ -5,12 +5,12 @@ type: bug
 title: check after a number clash blames a missing subtasks section
 status: Verified
 author: qa
-priority: medium
 refs:
 - BUG-994
 - MILE-1051:targets
 created_at: '2026-10-11T20:18:02Z'
 updated_at: '2026-10-25T17:52:36Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Reproduction

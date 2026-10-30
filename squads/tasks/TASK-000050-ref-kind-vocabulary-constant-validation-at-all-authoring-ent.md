@@ -7,25 +7,25 @@ status: Done
 parent: FEAT-35
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - TASK-51:blocks
 subentities:
 - local_id: ST1
   title: Define VALID_REF_KINDS and validate --kind in add_ref
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Keep bare ref add first-class: default related validates trivially, no nudge,
     no warning'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Accept depends-on/supersedes/duplicates ref kinds
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-06-11T20:21:59Z'
 updated_at: '2026-07-06T15:17:49Z'
+priority: high
 ---
 <!-- sq:body -->
 Make the ref-kind vocabulary a finite, single-source-of-truth list and enforce it at every authoring entry point. Per **ADR-49** (Proposed): the 1.0 vocabulary is **explicitly CLOSED** — eight kinds, no project-config lookup on the validation path, no custom-kind escape hatch.

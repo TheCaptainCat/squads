@@ -6,7 +6,6 @@ title: Resolve every role-mirror consumer while the mirror still exists
 status: Done
 parent: FEAT-694
 author: tech-lead
-priority: high
 refs:
 - ADR-776:implements
 - TASK-848:depends-on
@@ -37,6 +36,7 @@ subentities:
   status: Done
 created_at: '2026-09-01T08:23:20Z'
 updated_at: '2026-09-01T12:13:50Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

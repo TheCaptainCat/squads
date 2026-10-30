@@ -7,23 +7,23 @@ status: Done
 parent: FEAT-64
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Route role/skill/operator show bodies through the FEAT-000026 styled path
     (TTY/raw/piped)
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Preserve role catalog card + activation-hint fallback; add operator show
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Styled-vs-raw rendering tests; full-suite regression check on print_item
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-12T12:05:15Z'
 updated_at: '2026-07-06T15:19:02Z'
+priority: high
 ---
 <!-- sq:body -->
 Make `sq role <n> show`, `sq skill <n> show`, and `sq operator <n> show` render their bodies through the FEAT-26 styled markdown path — the same renderer `sq feature <n> show` uses for its body facet. Depends on TASK-65 for the item-first `show` surface (especially the new `sq operator show`); both tasks touch the same three CLI modules, so coordinate / stack.

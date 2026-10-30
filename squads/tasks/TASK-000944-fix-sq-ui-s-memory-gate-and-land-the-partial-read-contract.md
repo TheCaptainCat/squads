@@ -16,22 +16,22 @@ subentities:
 - local_id: ST1
   title: Gate sq ui memory attachment on item type, not slug lookup
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Render a zero-memory identity as a leaf, not an empty branch
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: 'Exit code 4: a usable-but-short result, across the five listings'
   status: Done
 - local_id: ST4
   title: Regression-cover the memory show --json payload shape
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Cover bracket safety on the sq ui memory surfaces
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Split source from message where an unreadable file is named
   status: Done

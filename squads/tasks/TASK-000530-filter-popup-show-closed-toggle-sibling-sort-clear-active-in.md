@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Show-closed toggle reveals/hides terminal items
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Sibling sort (TUI-side) + clear/reset + active-filter indicator
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-21T12:20:38Z'
 updated_at: '2026-07-21T14:37:57Z'
 ---

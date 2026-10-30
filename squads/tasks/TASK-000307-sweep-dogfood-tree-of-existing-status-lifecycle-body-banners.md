@@ -14,11 +14,11 @@ subentities:
   title: Enumerate + clean flagged item bodies via the guard
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Verify markers/frontmatter intact after the sweep
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-06T12:13:33Z'
 updated_at: '2026-07-06T12:50:03Z'
 ---

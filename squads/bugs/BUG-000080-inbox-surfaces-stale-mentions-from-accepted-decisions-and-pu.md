@@ -5,11 +5,11 @@ type: bug
 title: Inbox surfaces stale mentions from Accepted decisions and Published guides
 status: Verified
 author: manager
-priority: medium
 refs:
 - ADR-49
 created_at: '2026-06-12T14:59:31Z'
 updated_at: '2026-06-12T15:08:27Z'
+priority: medium
 ---
 <!-- sq:body -->
 **Symptom (live, 2026-06-12).** op-pierre's inbox shows the acceptance-request mention from ADR-49 — Accepted two days ago. The mention line ('this is Proposed for your acceptance') was written when the ADR was Proposed and is long resolved.

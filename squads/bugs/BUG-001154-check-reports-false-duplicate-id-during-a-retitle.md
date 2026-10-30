@@ -6,10 +6,10 @@ title: check reports false duplicate id during a retitle
 status: Verified
 parent: MILE-1051
 author: qa
-priority: low
-severity: low
 created_at: '2026-10-25T22:05:02Z'
 updated_at: '2026-10-26T12:15:07Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 ## Steps (driven 2026-10-25, scratch squad, dev build 0.17)

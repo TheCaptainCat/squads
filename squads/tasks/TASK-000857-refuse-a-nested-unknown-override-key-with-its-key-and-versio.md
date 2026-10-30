@@ -5,7 +5,6 @@ type: task
 title: Refuse a nested unknown override key with its key and version
 status: Done
 author: tech-lead
-priority: low
 refs:
 - REV-854:addresses
 - MILE-836:targets
@@ -14,6 +13,7 @@ description: A nested unknown override key is refused by a raw pydantic error wi
   refusal the top level already produces
 created_at: '2026-09-01T11:25:22Z'
 updated_at: '2026-09-02T14:01:24Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

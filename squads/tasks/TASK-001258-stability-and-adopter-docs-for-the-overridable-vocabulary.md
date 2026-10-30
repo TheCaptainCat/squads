@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: tech-writer
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -20,17 +19,18 @@ subentities:
 - local_id: ST1
   title: Stability tiers and adopter docs
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: Document the heading key
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: 0.19.0 CHANGELOG entries
   status: Done
-  story: US7
+  maps_to: US7
 created_at: '2026-10-29T19:55:13Z'
 updated_at: '2026-10-30T06:39:19Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

@@ -6,7 +6,6 @@ title: Regenerate a reactivated roster entry through one projection path
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: high
 refs:
 - REV-706:addresses
 - ADR-697:implements
@@ -16,13 +15,14 @@ subentities:
 - local_id: ST1
   title: Collapse the two projections into one helper
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Regenerate a reactivated entry with its full preload list
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-31T09:36:35Z'
 updated_at: '2026-07-31T12:41:30Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

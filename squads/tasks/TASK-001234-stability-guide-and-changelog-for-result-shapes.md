@@ -6,7 +6,6 @@ title: Stability guide and changelog for result shapes
 status: Done
 parent: FEAT-1226
 author: tech-lead
-priority: medium
 refs:
 - ADR-1224:implements
 - TASK-1232:depends-on
@@ -17,25 +16,26 @@ subentities:
 - local_id: ST1
   title: 'Stability guide: tiers, provisional shapes, schema rule'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Display keys for adopters
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: JSON output on every command, in docs and changelog
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Reserved display key and attribute labels
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Behaviour notes from the command moves
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-10-28T22:12:43Z'
 updated_at: '2026-10-29T12:45:47Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

@@ -6,7 +6,6 @@ title: 'Squad-global validators: parent outcomes, cycles, WIP, staleness'
 status: Done
 parent: EPIC-540
 author: product-owner
-priority: low
 refs:
 - ADR-864:implements
 - FEAT-898:depends-on
@@ -37,6 +36,7 @@ subentities:
   status: Todo
 created_at: '2026-09-03T09:02:36Z'
 updated_at: '2026-10-16T21:01:59Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Why

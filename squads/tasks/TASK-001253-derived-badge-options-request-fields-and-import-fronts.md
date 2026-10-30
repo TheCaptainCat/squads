@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -19,25 +18,26 @@ subentities:
 - local_id: ST1
   title: Derived flags on create and item update
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Derived filters on list and tree
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: List badge column from the spec
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Derived-flag and import-key collisions
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: Import fronts and selectors per declared kind
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-29T19:55:08Z'
 updated_at: '2026-10-30T06:39:10Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

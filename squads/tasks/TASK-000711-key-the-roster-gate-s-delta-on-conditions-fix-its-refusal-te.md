@@ -6,7 +6,6 @@ title: Key the roster gate's delta on conditions, fix its refusal texts
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: urgent
 refs:
 - REV-706:addresses
 - ADR-697:implements
@@ -16,23 +15,23 @@ subentities:
 - local_id: ST1
   title: Compare the delta on the condition, not on its rendering
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Name a remedy the transition direction will accept
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: State the reason the meaningless-unlink guard tested
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Report two holders of the default designation
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: Describe both status flags in adopter vocabulary
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Count the scopes kind in the ref-kind reference
   status: Done
@@ -41,6 +40,7 @@ subentities:
   status: Done
 created_at: '2026-07-31T11:47:02Z'
 updated_at: '2026-07-31T12:41:36Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Context

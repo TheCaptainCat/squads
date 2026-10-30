@@ -6,7 +6,6 @@ title: Report missing pointers, what sync regenerated, and a value skew
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-784:fixes
 - ADR-783:implements
@@ -25,6 +24,7 @@ subentities:
   status: Done
 created_at: '2026-08-22T10:25:05Z'
 updated_at: '2026-08-22T14:17:43Z'
+priority: high
 ---
 <!-- sq:body -->
 Three gaps in what the tool tells an operator about the state of its own generated files and its own

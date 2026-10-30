@@ -5,13 +5,13 @@ type: bug
 title: Schema gate refuses sq override update and diff on a behind squad
 status: Verified
 author: qa
-priority: low
 refs:
 - MILE-934:targets
 description: Override stamp/diff verbs unreachable exactly when an upgrade makes overrides
   drift
 created_at: '2026-10-16T13:33:13Z'
 updated_at: '2026-10-16T19:08:39Z'
+priority: low
 ---
 <!-- sq:body -->
 On a squad behind the package's schema, the schema gate refuses `sq override update` and `sq override diff`. These are the documented way to re-stamp an override's base version (`squads:override-base:<version>`) and to see what an upgrade changed under it. An upgrade is exactly when overrides drift, and a behind-schema squad is exactly when the gate refuses them, so the documented workflow is unavailable when it is needed. (Hand-editing the stamp is legitimate, since override files are user-owned. The defect is only that the convenient, checked command is blocked.)

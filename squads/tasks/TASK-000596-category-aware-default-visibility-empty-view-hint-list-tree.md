@@ -6,9 +6,9 @@ title: Category-aware default visibility + empty-view hint (list/tree)
 status: Cancelled
 parent: FEAT-570
 author: tech-lead
-priority: medium
 created_at: '2026-07-22T13:00:53Z'
 updated_at: '2026-07-22T15:37:56Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-570 US1 (folds REV-565 F9). Make the default (non-`--all`) visibility of `sq list`/`sq tree` category-aware, and add an empty-view hint so a hidden-but-not-empty view never looks broken.

@@ -6,7 +6,6 @@ title: 'View transforms: structured data for views'
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: high
 refs:
 - MILE-1051:targets
 - REV-1099:addresses
@@ -30,6 +29,7 @@ subentities:
   status: Done
 created_at: '2026-10-24T13:01:42Z'
 updated_at: '2026-10-24T14:47:11Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

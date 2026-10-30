@@ -6,7 +6,6 @@ title: Retire the role Skills section and the extra.skills cache
 status: Done
 parent: FEAT-694
 author: tech-lead
-priority: medium
 refs:
 - ADR-776:implements
 description: Move a role's skills list from the rendered body into the computed show
@@ -15,21 +14,22 @@ subentities:
 - local_id: ST1
   title: Add the computed skills row to the role show card
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Remove the Skills block from role.md.j2 and regenerate
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Delete the extra.skills cache and its writers
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Narrow PERMITTED_EXTRA_SKEW and update its pinning test
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-09-01T08:03:18Z'
 updated_at: '2026-09-01T09:54:27Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

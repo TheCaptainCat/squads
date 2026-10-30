@@ -6,12 +6,12 @@ title: 'Consumer audit: is_meta sites reclassified to category'
 status: Done
 parent: EPIC-538
 author: product-owner
-priority: medium
 refs:
 - FEAT-567
 - FEAT-533
 created_at: '2026-07-22T08:39:40Z'
 updated_at: '2026-07-22T12:54:12Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

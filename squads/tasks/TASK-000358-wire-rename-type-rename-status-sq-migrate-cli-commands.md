@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: sq migrate rename-type CLI command
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: sq migrate rename-status CLI command
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-07-09T21:34:35Z'
 updated_at: '2026-07-13T09:27:38Z'
 ---

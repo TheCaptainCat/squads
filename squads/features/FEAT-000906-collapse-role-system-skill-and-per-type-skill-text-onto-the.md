@@ -6,7 +6,6 @@ title: Collapse role, system-skill, and per-type-skill text onto the view mechan
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: high
 refs:
 - MILE-867:targets
 - ADR-880:implements
@@ -32,6 +31,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:10:59Z'
 updated_at: '2026-09-10T09:35:29Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Why

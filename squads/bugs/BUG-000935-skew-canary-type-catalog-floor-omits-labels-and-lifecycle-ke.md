@@ -5,13 +5,13 @@ type: bug
 title: Skew canary type-catalog floor omits labels and lifecycle keys
 status: Verified
 author: qa
-priority: low
-severity: low
 refs:
 - BUG-896:addresses
 - MILE-934:targets
 created_at: '2026-09-09T14:41:36Z'
 updated_at: '2026-09-29T16:06:11Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 ## Summary

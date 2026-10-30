@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-321
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-320:implements
 - ADR-775
@@ -20,25 +19,26 @@ subentities:
 - local_id: ST1
   title: Declare [items.contract] and its Draft-Active-Superseded lifecycle
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: The contract item template steering functional prose
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: The implements edge from a feature and the supersedes rule
   status: Todo
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: The advisory ref_rule_target_present validator
   status: Todo
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Playbook entries and the generated sq-contract surface
   status: Todo
-  story: US4
+  maps_to: US4
 created_at: '2026-08-26T13:33:55Z'
 updated_at: '2026-09-01T15:37:14Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

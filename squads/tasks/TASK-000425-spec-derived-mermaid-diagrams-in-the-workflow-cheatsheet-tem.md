@@ -12,7 +12,7 @@ subentities:
   title: Spec-derived hierarchy flowchart + per-type lifecycle stateDiagram in workflow.md.j2;
     regen manifest
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-15T14:02:33Z'
 updated_at: '2026-07-15T14:44:35Z'
 ---

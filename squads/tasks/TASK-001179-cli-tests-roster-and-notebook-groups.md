@@ -13,27 +13,27 @@ subentities:
 - local_id: ST1
   title: role group module
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: dev group module
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: operator group module
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: skill group module
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: memory group module
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST6
   title: board group module
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-10-27T21:35:12Z'
 updated_at: '2026-10-28T01:02:43Z'
 ---

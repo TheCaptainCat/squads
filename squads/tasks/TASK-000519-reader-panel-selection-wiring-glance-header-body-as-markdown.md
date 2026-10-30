@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Tree selection loads item into reader panel
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Body-as-Markdown tab
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: At-a-glance status/priority/assignee header
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-21T09:18:54Z'
 updated_at: '2026-07-21T12:05:12Z'
 ---

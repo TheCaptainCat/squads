@@ -6,14 +6,14 @@ title: Spec-derived status badges in show/list + sub-entity heads, graceful defa
 status: Done
 parent: FEAT-211
 author: tech-lead
-priority: high
 subentities:
 - local_id: ST1
   title: Spec-derived badge resolver with graceful default in show/list/heads
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-07-02T09:20:17Z'
 updated_at: '2026-07-06T15:21:10Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal — spec-derived status badges everywhere, with a graceful default (AC#3, US2)

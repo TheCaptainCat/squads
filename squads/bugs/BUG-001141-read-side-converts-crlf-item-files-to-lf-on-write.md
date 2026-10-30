@@ -6,11 +6,11 @@ title: Read side converts CRLF item files to LF on write
 status: Verified
 parent: MILE-1051
 author: qa
-priority: low
 refs:
 - BUG-1028
 created_at: '2026-10-25T11:10:37Z'
 updated_at: '2026-10-26T06:46:40Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Reproduction

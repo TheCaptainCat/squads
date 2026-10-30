@@ -12,7 +12,7 @@ subentities:
 - local_id: ST1
   title: Managed board skill + memory-vs-board boundary
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-15T07:48:37Z'
 updated_at: '2026-07-15T11:09:21Z'
 ---

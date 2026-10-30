@@ -6,7 +6,6 @@ title: Re-tier no_status_banner and the sub-entity title advisory
 status: Done
 parent: EPIC-540
 author: product-owner
-priority: low
 refs:
 - ADR-864:implements
 - FEAT-898:depends-on
@@ -29,6 +28,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:02:32Z'
 updated_at: '2026-10-12T06:20:46Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Why

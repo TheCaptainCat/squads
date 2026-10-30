@@ -6,7 +6,6 @@ title: 'Uniform item addressing: every command accepts both ID and number'
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - PRD-862:implements
 description: Every ID-accepting surface (verbs, tree, --parent, ref add, search args)
@@ -25,6 +24,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T12:56:45Z'
 updated_at: '2026-09-01T13:47:32Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

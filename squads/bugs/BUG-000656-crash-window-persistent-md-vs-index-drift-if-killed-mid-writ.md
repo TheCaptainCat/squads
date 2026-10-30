@@ -5,11 +5,11 @@ type: bug
 title: 'Crash-window: persistent .md-vs-index drift if killed mid-write'
 status: Verified
 author: qa
-severity: medium
 refs:
 - BUG-668
 created_at: '2026-07-24T14:38:30Z'
 updated_at: '2026-07-28T07:25:02Z'
+severity: medium
 ---
 <!-- sq:body -->
 ## Symptom

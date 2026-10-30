@@ -5,12 +5,12 @@ type: bug
 title: self --json spec identity can't distinguish two override documents
 status: Verified
 author: qa
-severity: low
 refs:
 - MILE-934:targets
 - REV-920
 created_at: '2026-09-24T09:57:16Z'
 updated_at: '2026-09-29T16:05:52Z'
+severity: low
 ---
 <!-- sq:body -->
 ## Summary

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-777:implements
 - TASK-799:depends-on
@@ -18,26 +17,27 @@ subentities:
 - local_id: ST1
   title: Raise unstamped shadowing template and role overrides to error
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: tests/meta uniformity guard over the override registry
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Correct OverrideEntry.kind docstring
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Narrow the stale playbook-override amendment note
   status: Todo
   assignee: architect
-  story: US5
+  maps_to: US5
 - local_id: ST5
   title: Restore the manifest-freshness content assertion
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-08-25T14:40:36Z'
 updated_at: '2026-08-25T23:39:48Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

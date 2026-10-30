@@ -6,13 +6,13 @@ title: Send inbox and search unreadable-file errors to stderr
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - BUG-787:fixes
 description: 'Stream-contract fix in the shared per-file degrade helper: the human
   branch prints to stdout, --json is already correct'
 created_at: '2026-08-22T13:53:45Z'
 updated_at: '2026-08-22T14:17:46Z'
+priority: low
 ---
 <!-- sq:body -->
 `sq inbox` and `sq search` print their per-file unreadable-file skip lines to **stdout** in human

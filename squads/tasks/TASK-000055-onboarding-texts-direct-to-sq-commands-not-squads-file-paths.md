@@ -7,14 +7,14 @@ status: Done
 parent: FEAT-41
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Rewrite CLAUDE.md impersonation paragraph to direct to sq role show
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-12T07:52:37Z'
 updated_at: '2026-06-23T09:58:03Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

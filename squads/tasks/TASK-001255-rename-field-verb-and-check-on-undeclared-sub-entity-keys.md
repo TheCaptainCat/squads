@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -18,13 +17,14 @@ subentities:
 - local_id: ST1
   title: Undeclared keys on sub-entity entries in check
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST2
   title: The rename-field verb
   status: Done
-  story: US8
+  maps_to: US8
 created_at: '2026-10-29T19:55:10Z'
 updated_at: '2026-10-30T06:39:15Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

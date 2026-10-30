@@ -5,12 +5,12 @@ type: bug
 title: init logs padded reflog targets for seeded skills (SKILL-000009)
 status: Verified
 author: qa
-priority: medium
 refs:
 - REV-1033
 - MILE-1051:targets
 created_at: '2026-10-16T09:01:15Z'
 updated_at: '2026-10-25T19:52:15Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Repro

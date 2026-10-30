@@ -13,11 +13,11 @@ subentities:
 - local_id: ST1
   title: Split story-body write into its own PO Do step in playbook.toml
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Add the Watch-for DoD line + regen skill via sq sync
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-06T11:37:24Z'
 updated_at: '2026-07-06T12:10:01Z'
 ---

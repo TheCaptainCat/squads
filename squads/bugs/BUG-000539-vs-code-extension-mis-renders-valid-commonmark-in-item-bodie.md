@@ -6,7 +6,6 @@ title: VS Code extension mis-renders valid CommonMark in item bodies
 status: Verified
 author: op-pierre
 assignee: typescript-dev
-priority: medium
 refs:
 - BUG-535
 description: 'Extension body renderer mangles valid CommonMark: bold-wrapped inline
@@ -14,6 +13,7 @@ description: 'Extension body renderer mangles valid CommonMark: bold-wrapped inl
   span runs on.'
 created_at: '2026-07-21T15:24:45Z'
 updated_at: '2026-07-22T09:10:18Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Summary

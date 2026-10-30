@@ -6,7 +6,6 @@ title: Give skills, roles and operators the item verbs
 status: Done
 parent: FEAT-977
 author: tech-lead
-priority: high
 refs:
 - TASK-990:depends-on
 - TASK-1069:depends-on
@@ -17,32 +16,33 @@ subentities:
 - local_id: ST1
   title: Register remove on skills, roles and operators, with rm as its alias
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Give every skill a discussion region, in the template and through a 0.16
     contribution
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Add comment and comments to skills, roles and operators
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Make the system-entry gate refuse update by field, with a declared exemption
     set
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Add update for display fields on skills, roles and operators
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Rewrite the docs passages that deny a roster update verb
   status: Done
   assignee: tech-writer
-  story: US3
+  maps_to: US3
 created_at: '2026-10-16T19:52:27Z'
 updated_at: '2026-10-17T00:17:38Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

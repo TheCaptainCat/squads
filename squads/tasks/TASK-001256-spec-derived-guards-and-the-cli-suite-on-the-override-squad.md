@@ -7,7 +7,6 @@ status: InReview
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1250:implements
 - MILE-1241:targets
@@ -19,29 +18,30 @@ subentities:
 - local_id: ST1
   title: Vocabulary guards derived from the bundled spec
   status: Done
-  story: US9
+  maps_to: US9
 - local_id: ST2
   title: Generated-text guard on the override squad
   status: Done
-  story: US9
+  maps_to: US9
 - local_id: ST3
   title: CLI surface suite on both squads
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST4
   title: CI job on the override squad
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST5
   title: Acceptance scenario on both squads
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST6
   title: Migrate this repository's squad at the cut
   status: Todo
-  story: US6
+  maps_to: US6
 created_at: '2026-10-29T19:55:11Z'
 updated_at: '2026-10-29T23:56:13Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

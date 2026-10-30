@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: Parent-cycle + live-index cross-check validation
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-30T07:49:52Z'
 updated_at: '2026-07-06T15:21:06Z'
 ---

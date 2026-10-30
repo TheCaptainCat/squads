@@ -6,7 +6,6 @@ title: Per-role capability attenuation
 status: Done
 parent: EPIC-121
 author: product-owner
-priority: low
 refs:
 - FEAT-125
 - PRD-860:implements
@@ -20,6 +19,7 @@ subentities:
   status: Done
 created_at: '2026-06-15T11:56:09Z'
 updated_at: '2026-09-01T13:48:20Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Lane-rules spec for Slice B (product-owner draft, 2026-06-22)

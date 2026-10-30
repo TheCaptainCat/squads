@@ -6,7 +6,6 @@ title: Anchor and mark the cyclic component in bare sq tree
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-870:fixes
 - TASK-849:depends-on
@@ -25,6 +24,7 @@ subentities:
   status: Done
 created_at: '2026-09-02T10:08:03Z'
 updated_at: '2026-09-02T14:01:56Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What is wrong

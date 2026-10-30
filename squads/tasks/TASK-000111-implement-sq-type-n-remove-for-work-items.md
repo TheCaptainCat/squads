@@ -6,22 +6,22 @@ title: Implement sq <type> <n> remove for work items
 status: Done
 parent: FEAT-23
 author: tech-lead
-priority: medium
 subentities:
 - local_id: ST1
   title: Atomic remove preserving counter high-water mark
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Ref/child safety on removal; --force severs incoming refs
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Traceable removal trace + remove-vs-cancel docs
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-15T08:20:37Z'
 updated_at: '2026-06-23T09:58:35Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

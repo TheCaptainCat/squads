@@ -14,7 +14,7 @@ subentities:
 - local_id: ST1
   title: Pre-merge shift preserves referential intent
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-06T08:47:57Z'
 updated_at: '2026-07-06T09:55:28Z'
 ---

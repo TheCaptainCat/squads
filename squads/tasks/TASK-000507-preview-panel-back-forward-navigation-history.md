@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: 'History stack: back/forward + forward-stack truncation'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Discoverable controls: title-bar buttons, keybinding, inert at ends'
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-20T12:26:12Z'
 updated_at: '2026-07-20T12:41:17Z'
 ---

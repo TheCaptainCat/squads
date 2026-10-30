@@ -6,7 +6,6 @@ title: Make sq check name the real cause of a damaged file
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - MILE-1051:targets
 - BUG-993:fixes
@@ -40,6 +39,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-10-25T05:39:16Z'
 updated_at: '2026-10-25T17:45:08Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

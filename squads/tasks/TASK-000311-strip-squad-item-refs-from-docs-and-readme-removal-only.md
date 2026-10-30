@@ -7,20 +7,20 @@ status: Done
 parent: FEAT-237
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: Remove refs from docs/README (no rewording)
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Preserve legit CLI-syntax / example payloads
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 created_at: '2026-07-06T12:55:26Z'
 updated_at: '2026-07-06T14:06:17Z'
+priority: medium
 ---
 <!-- sq:body -->
 USER-FACING WAVE. Scope: docs/*.md + README.md (ref-bearing: adoption, agents, internals, recipes, stability, tutorial, workflow, docs/README, README.md). Blast radius: ~116 ref-hits across 9 files. REMOVAL ONLY — strip the reference and let the guarantee stand on its own terms; do NOT reword or restyle the surrounding prose (product content). Disjoint from src/ and bundled-prose tasks — parallel-safe. Done when: zero real-citation squad-item refs remain; the diff is reference removals only (no sentence rewrites); legitimate CLI-syntax templates (--parent FEAT-…, sq task <n>) and illustrative example payloads (e.g. a recipe's example BUG id) are preserved and confirmed as non-violations for the guard.

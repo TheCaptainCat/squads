@@ -6,7 +6,6 @@ title: Enforced separation of duties
 status: Draft
 parent: EPIC-121
 author: product-owner
-priority: low
 refs:
 - FEAT-125:depends-on
 - REV-118
@@ -21,6 +20,7 @@ subentities:
   status: Todo
 created_at: '2026-06-15T11:56:15Z'
 updated_at: '2026-06-16T09:52:43Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Problem

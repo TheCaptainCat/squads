@@ -6,7 +6,6 @@ title: 'The daemon: a local API the CLI and web client share'
 status: InProgress
 parent: EPIC-29
 author: product-owner
-priority: high
 refs:
 - FEAT-33
 - ADR-1052:depends-on
@@ -59,6 +58,7 @@ subentities:
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
 updated_at: '2026-10-30T00:45:18Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

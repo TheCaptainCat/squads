@@ -6,7 +6,6 @@ title: 'CI: daemon coverage on Linux, macOS and native Windows'
 status: Draft
 parent: FEAT-1140
 author: tech-lead
-priority: high
 refs:
 - ADR-1052:implements
 - TASK-1218:depends-on
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Cross-process and parity jobs on the three-OS matrix
   status: Todo
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Leaked-daemon check and bounded wall time
   status: Todo
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Client-budget report job
   status: Todo
-  story: US12
+  maps_to: US12
 created_at: '2026-10-28T14:08:43Z'
 updated_at: '2026-10-30T00:44:18Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

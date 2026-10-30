@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - REV-817:addresses
 - ADR-777:implements
@@ -20,14 +19,15 @@ subentities:
   title: Name the running version in the shared unknown-key message
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Update every carrier of the old refusal text
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 created_at: '2026-08-25T23:00:49Z'
 updated_at: '2026-08-26T16:01:05Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

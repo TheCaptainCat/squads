@@ -6,7 +6,6 @@ title: Refuse a retirement that would break generated backend config
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: high
 refs:
 - BUG-698:fixes
 - ADR-697:implements
@@ -17,25 +16,26 @@ subentities:
 - local_id: ST1
   title: Evaluate the clauses in the pure half of the status transition
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Widen rm_ref with an optional kind and demote unlink_role to a wrapper
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: 'Add --unlink to the roster status verb: sever, re-evaluate, report'
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Word each refusal to its tier with a satisfiable remedy
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST5
   title: Cover the refusals, the escape and the importer replay
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-30T07:47:23Z'
 updated_at: '2026-07-31T12:41:24Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

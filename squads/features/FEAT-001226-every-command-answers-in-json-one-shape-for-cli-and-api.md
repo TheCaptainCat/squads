@@ -6,7 +6,6 @@ title: Every command answers in JSON, one shape for CLI and API
 status: Done
 parent: EPIC-29
 author: product-owner
-priority: high
 refs:
 - MILE-1152:targets
 - ADR-1224:depends-on
@@ -35,6 +34,7 @@ subentities:
   status: Done
 created_at: '2026-10-28T22:00:08Z'
 updated_at: '2026-10-29T13:06:08Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

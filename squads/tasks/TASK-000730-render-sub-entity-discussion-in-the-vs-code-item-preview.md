@@ -15,11 +15,11 @@ subentities:
 - local_id: ST1
   title: Carry an optional discussion field through the type and guard
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Render a comments block inside each sub-entity pane
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-08-03T07:58:53Z'
 updated_at: '2026-08-20T19:27:10Z'
 ---

@@ -5,13 +5,13 @@ type: bug
 title: show prints a redundant 'Body' literal before the body
 status: Verified
 author: op-pierre
-priority: low
 refs:
 - FEAT-26
 description: sq <type> <n> show prefixes the body with a bare 'Body' label; the body
   is self-evident after the metadata panel and usually opens with its own headings
 created_at: '2026-06-10T14:52:35Z'
 updated_at: '2026-06-11T20:40:08Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Observed

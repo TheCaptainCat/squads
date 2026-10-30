@@ -5,7 +5,6 @@ type: feature
 title: VS Code full-text search (QuickPick)
 status: Done
 author: product-owner
-priority: medium
 refs:
 - PRD-863:implements
 description: Read-only QuickPick over sq search --json in the VS Code extension; submit/debounced,
@@ -25,6 +24,7 @@ subentities:
   status: Todo
 created_at: '2026-07-21T14:17:03Z'
 updated_at: '2026-09-01T13:50:37Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

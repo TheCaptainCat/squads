@@ -6,7 +6,6 @@ title: Store and show role and skill origin, refuse writes on system ones
 status: Done
 parent: FEAT-976
 author: tech-lead
-priority: high
 refs:
 - TASK-990:depends-on
 description: One origin rule, stored as a pinned attribute, stamped at creation and
@@ -15,29 +14,30 @@ subentities:
 - local_id: ST1
   title: Define one origin rule for roles and skills
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Declare and pin the origin attribute, report bad values in check
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Stamp origin on every creation path
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Show origin on every role and skill surface
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Stamp existing squads through a 0.16 contribution
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Refuse content writes on system roles and skills
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-16T19:20:35Z'
 updated_at: '2026-10-16T22:59:05Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

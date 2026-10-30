@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: Extract reusable per-item type-rewrite primitive from retype()
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-09T21:34:34Z'
 updated_at: '2026-07-13T09:27:35Z'
 ---

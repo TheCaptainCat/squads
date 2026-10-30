@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-901
 author: tech-lead
 assignee: tech-writer
-priority: low
 refs:
 - TASK-1001:depends-on
 - TASK-997:depends-on
@@ -17,17 +16,18 @@ subentities:
 - local_id: ST1
   title: Add the eight checks to the validators reference
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST2
   title: Write the release note for the eight checks
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST3
   title: Document the blocked flag and the role catalog's sixth key
   status: Done
-  story: US10
+  maps_to: US10
 created_at: '2026-10-12T05:46:28Z'
 updated_at: '2026-10-16T22:50:28Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

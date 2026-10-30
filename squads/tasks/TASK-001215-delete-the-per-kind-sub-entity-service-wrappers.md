@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1092
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - REV-956:addresses
 description: Remove the 16 test-only per-kind sub-entity wrappers and comment selectors;
@@ -16,17 +15,18 @@ subentities:
 - local_id: ST1
   title: Port the two CLI fixture builders to the generic API
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Delete the 16 wrappers and their exemptions
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Route comment selectors through the generic sub pair
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-28T12:22:42Z'
 updated_at: '2026-10-28T12:48:07Z'
+priority: low
 ---
 <!-- sq:body -->
 Remove the bundled per-kind sub-entity surface that only tests use, so every sub-entity goes through the generic kind-taking API. The remainder of REV-956 F7. No behaviour change.

@@ -6,7 +6,6 @@ title: Move the roster, thread the spec and split oversized modules
 status: Done
 parent: FEAT-1092
 author: tech-lead
-priority: medium
 refs:
 - REV-956:addresses
 - TASK-1123:depends-on
@@ -18,37 +17,38 @@ subentities:
 - local_id: ST1
   title: Extract the roster projection into a collaborator
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Move the interactions init into named modules
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Prune bundled shims and make spec parameters required
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Load the three spec documents through one shared path
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Split registries, validity checks and ordering out of models
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Share the corpus walk and move check into its own mixin
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST7
   title: Move the view tag engine and remedy builders out of views
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST8
   title: Replace bundled sub-entity tags with one generic helper
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-24T21:53:25Z'
 updated_at: '2026-10-28T12:46:03Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

@@ -6,7 +6,6 @@ title: 'Daemon process: routes, request scope, listeners'
 status: InProgress
 parent: FEAT-1140
 author: tech-lead
-priority: high
 refs:
 - ADR-1052:implements
 - TASK-1217:depends-on
@@ -20,53 +19,54 @@ subentities:
 - local_id: ST1
   title: '[daemon] table, SQUADS_DAEMON and the check rule'
   status: Todo
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Shared endpoint resolution, key and runtime directory
   status: Todo
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: 'Starlette app: routes from the table, envelope, errors'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Writes, corpus operations and ETags
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Lifecycle, retirement and sq daemon commands
   status: Todo
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Listeners on uvicorn and the admission middleware
   status: Todo
-  story: US6
+  maps_to: US6
 - local_id: ST7
   title: Browser listener, off by default
   status: Todo
-  story: US7
+  maps_to: US7
 - local_id: ST8
   title: Request scope and metadata headers
   status: Done
-  story: US10
+  maps_to: US10
 - local_id: ST9
   title: Schema and vocabulary checks, daemon side
   status: Done
-  story: US11
+  maps_to: US11
 - local_id: ST10
   title: OpenAPI document and route guards
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST11
   title: Starlette and uvicorn at their locked lower bounds
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST12
   title: Operation notices travel in warnings, nothing below the CLI prints
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-10-28T14:08:41Z'
 updated_at: '2026-10-30T06:36:20Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

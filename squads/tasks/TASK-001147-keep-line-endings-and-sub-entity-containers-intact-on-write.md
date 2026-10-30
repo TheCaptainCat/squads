@@ -5,7 +5,6 @@ type: task
 title: Keep line endings and sub-entity containers intact on write
 status: Done
 author: tech-lead
-priority: low
 refs:
 - MILE-1051:targets
 - BUG-1141:fixes
@@ -21,6 +20,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T19:56:57Z'
 updated_at: '2026-10-26T06:38:36Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Goal

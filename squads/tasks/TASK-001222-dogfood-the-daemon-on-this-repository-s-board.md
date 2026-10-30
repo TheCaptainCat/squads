@@ -6,7 +6,6 @@ title: Dogfood the daemon on this repository's board
 status: Draft
 parent: FEAT-1140
 author: tech-lead
-priority: medium
 refs:
 - ADR-1052:implements
 - TASK-1219:depends-on
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Commit enabled = false and the switch-on step
   status: Todo
-  story: US8
+  maps_to: US8
 - local_id: ST2
   title: Trial with SQUADS_DAEMON=on and record the result
   status: Todo
-  story: US8
+  maps_to: US8
 - local_id: ST3
   title: Live check of remote timeouts and Ctrl-C
   status: Todo
-  story: US3
+  maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
 updated_at: '2026-10-30T00:33:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

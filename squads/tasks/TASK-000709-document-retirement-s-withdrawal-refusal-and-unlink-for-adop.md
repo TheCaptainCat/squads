@@ -6,7 +6,6 @@ title: Document retirement's withdrawal, refusal and --unlink for adopters
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: high
 refs:
 - REV-706:addresses
 - TASK-707:depends-on
@@ -17,24 +16,25 @@ subentities:
 - local_id: ST1
   title: Add the withdrawal entry under action required
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Add the refusal and --unlink entry under Added
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Correct the sq check entry's withdrawn condition
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Cover all three roster types in the roles doc
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Reconcile the workflow diagram with its own table
   status: Done
 created_at: '2026-07-31T09:36:40Z'
 updated_at: '2026-07-31T12:41:32Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

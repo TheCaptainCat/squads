@@ -5,13 +5,13 @@ type: bug
 title: Atomic writer translates newlines on Windows
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1027
 - MILE-1051:targets
 description: Text-mode open without newline='' alters line endings on Windows
 created_at: '2026-10-16T07:42:11Z'
 updated_at: '2026-10-25T11:12:04Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Mechanism (read from the code, not run on Windows)

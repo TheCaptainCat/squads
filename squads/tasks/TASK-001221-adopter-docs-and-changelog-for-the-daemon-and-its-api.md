@@ -6,7 +6,6 @@ title: Adopter docs and changelog for the daemon and its API
 status: Draft
 parent: FEAT-1140
 author: tech-lead
-priority: medium
 refs:
 - ADR-1052:implements
 - TASK-1219:depends-on
@@ -19,13 +18,14 @@ subentities:
 - local_id: ST1
   title: Modes, settings, fall back and daemon commands
   status: Todo
-  story: US9
+  maps_to: US9
 - local_id: ST2
   title: API reference and security stance
   status: Todo
-  story: US9
+  maps_to: US9
 created_at: '2026-10-28T14:08:44Z'
 updated_at: '2026-10-30T00:33:01Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

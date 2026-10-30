@@ -11,11 +11,11 @@ subentities:
 - local_id: ST1
   title: 'Golden-lock test: loaded default spec == frozen snapshot of today'
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: 'Build test: default_workflow.toml ships in the wheel'
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-06-25T14:21:31Z'
 updated_at: '2026-07-06T15:20:53Z'
 ---

@@ -6,7 +6,6 @@ title: 'Dual-regime role definitions: subagent invocation vs live conversation'
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - FEAT-14
 - PRD-860:implements
@@ -25,6 +24,7 @@ subentities:
   status: Done
 created_at: '2026-06-11T08:43:52Z'
 updated_at: '2026-09-01T13:48:00Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

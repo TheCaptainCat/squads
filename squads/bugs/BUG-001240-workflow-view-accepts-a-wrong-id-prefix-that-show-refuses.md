@@ -5,12 +5,12 @@ type: bug
 title: workflow view accepts a wrong ID prefix that show refuses
 status: Verified
 author: qa
-priority: low
-severity: medium
 refs:
 - MILE-1241:targets
 created_at: '2026-10-29T12:25:03Z'
 updated_at: '2026-10-29T20:40:34Z'
+priority: low
+severity: medium
 ---
 <!-- sq:body -->
 ## Steps

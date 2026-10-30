@@ -6,12 +6,12 @@ title: gen_template_manifest.py breaks after BUG-213's importlib.metadata versio
   fix
 status: Verified
 author: devops
-priority: high
 description: The template-manifest generator parses squads/__init__.py as text to
   read __version__; it now returns the literal source line instead of a version string,
   breaking CI's manifest-freshness check and the release write-path.
 created_at: '2026-07-07T13:06:59Z'
 updated_at: '2026-07-19T19:05:20Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Defect

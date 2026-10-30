@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-905
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - ADR-880:implements
 - REV-912:addresses
@@ -17,33 +16,34 @@ subentities:
 - local_id: ST1
   title: Recogniser accepts the form its producers emit
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Widen the shared predicate to source applicability
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Placement refuses a source-incompatible host
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Expansion leaves an inapplicable tag literal
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Generalise the file-level finding to two reasons
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST6
   title: Correct US8 acceptance and cover the retype read
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST7
   title: Gates, falsification, and the reviewer repros
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-09-03T12:03:18Z'
 updated_at: '2026-09-03T14:37:54Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

@@ -12,7 +12,7 @@ subentities:
   title: 'Structured actor record: read env session pair, additive reflog + frontmatter
     fields, schema 0.4 migration'
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-22T09:11:18Z'
 updated_at: '2026-07-06T15:18:54Z'
 ---

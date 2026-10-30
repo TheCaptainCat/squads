@@ -6,7 +6,6 @@ title: Full-text search page
 status: Done
 parent: EPIC-28
 author: product-owner
-priority: medium
 refs:
 - PRD-863:implements
 subentities:
@@ -24,6 +23,7 @@ subentities:
   status: Todo
 created_at: '2026-07-21T12:14:45Z'
 updated_at: '2026-09-01T13:50:35Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

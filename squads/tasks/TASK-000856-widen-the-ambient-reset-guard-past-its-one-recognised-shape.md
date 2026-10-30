@@ -5,7 +5,6 @@ type: task
 title: Widen the ambient-reset guard past its one recognised shape
 status: Done
 author: tech-lead
-priority: low
 refs:
 - REV-854:addresses
 - MILE-836:targets
@@ -14,6 +13,7 @@ description: The guard derives its reset set from one syntactic shape; an import
   make the exhaustiveness claim honest about the rest
 created_at: '2026-09-01T11:25:20Z'
 updated_at: '2026-09-02T14:01:21Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

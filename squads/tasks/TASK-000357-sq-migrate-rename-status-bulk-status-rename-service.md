@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: Bulk rename-status service scoped to the type's lifecycle
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-07-09T21:34:35Z'
 updated_at: '2026-07-13T09:27:36Z'
 ---

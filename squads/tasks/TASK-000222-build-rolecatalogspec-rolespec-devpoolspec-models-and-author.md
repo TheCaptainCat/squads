@@ -11,11 +11,11 @@ subentities:
   title: RoleCatalogSpec/RoleSpec/DevPoolSpec models capturing full RoleDef field
     set
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Author bundled roles.toml encoding today's 8 roles + bundles + dev pool
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-06-26T07:35:28Z'
 updated_at: '2026-07-06T15:20:54Z'
 ---

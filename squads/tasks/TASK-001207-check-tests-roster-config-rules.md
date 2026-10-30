@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Roster member tests
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Display, language and view member tests
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Falsify each test two ways
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-10-28T08:38:01Z'
 updated_at: '2026-10-28T10:41:09Z'
 ---

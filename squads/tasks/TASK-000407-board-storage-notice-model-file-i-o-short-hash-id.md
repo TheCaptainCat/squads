@@ -14,15 +14,15 @@ subentities:
 - local_id: ST1
   title: 'Notice model + file I/O: short-hash id, author/posted-at/until/body'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Generate squads/board/.index.jsonl via the shared generator
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Read-time expiry filter; reads never mutate files
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-15T07:47:58Z'
 updated_at: '2026-07-15T11:09:19Z'
 ---

@@ -5,12 +5,12 @@ type: bug
 title: sq role activate on a retired role reports success but no-ops
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - REV-733
 created_at: '2026-08-03T15:40:02Z'
 updated_at: '2026-08-15T19:55:21Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Symptom

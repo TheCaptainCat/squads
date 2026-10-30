@@ -12,7 +12,7 @@ subentities:
 - local_id: ST1
   title: Summary table renders from declared columns (base + fields + Story)
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-09T21:31:32Z'
 updated_at: '2026-07-13T09:27:34Z'
 ---

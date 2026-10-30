@@ -5,12 +5,12 @@ type: bug
 title: display.assignee ignores [display] pronouns in --json
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - FEAT-1226
 created_at: '2026-10-29T12:25:02Z'
 updated_at: '2026-10-29T12:37:53Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Steps

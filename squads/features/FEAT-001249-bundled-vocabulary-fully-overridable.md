@@ -6,7 +6,6 @@ title: Bundled vocabulary fully overridable
 status: InProgress
 parent: EPIC-538
 author: product-owner
-priority: high
 refs:
 - MILE-1241:targets
 - REV-1247
@@ -48,6 +47,7 @@ subentities:
   status: InProgress
 created_at: '2026-10-29T19:04:26Z'
 updated_at: '2026-10-29T22:22:14Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

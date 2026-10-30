@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-237
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - TASK-308:depends-on
 - TASK-309:depends-on
@@ -19,19 +18,20 @@ subentities:
   title: Implement gate + wire into CI
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Tolerate legitimate id-shaped tokens
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: 'Negative check: gate fails on a new ref'
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 created_at: '2026-07-06T12:55:28Z'
 updated_at: '2026-07-06T14:32:05Z'
+priority: high
 ---
 <!-- sq:body -->
 THE GATE (lands last / green). Ship an enforced lint/CI gate (grep gate or ruff rule) that FAILS the build when a squad-item reference appears anywhere it is forbidden. Allowlist = the dogfood squad's item markdown under squads/** ONLY; forbidden territory = everything else (src/, docs/, README, shipped markdown, CLI output strings, bundled prose, CLAUDE.md). Detection pattern at minimum: (FEAT|TASK|ADR|REV|BUG|EPIC)-\d, bare US/ST story-subtask numbers, bare §. The gate MUST tolerate legitimate uses so it does not false-positive: CLI-syntax templates (--parent FEAT-…, sq task <n>) and illustrative example payloads (a reflog JSON sample carrying a TASK id; a recipe's example BUG id). Recommended: develop the gate EARLY to use as the cleanup's own completion checker, but MERGE it with/after the final cleanup so CI is never red in the interim. Depends-on all five cleanup tasks. Done when: the gate runs in CI and is GREEN on the cleaned tree with squads/** as sole allowlist; it does NOT fire on the surviving legitimate uses; and a negative check proves it FAILS when a squad-item ref is introduced on a forbidden surface.
