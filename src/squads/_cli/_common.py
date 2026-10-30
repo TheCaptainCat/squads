@@ -73,11 +73,11 @@ def windows_color_system(
 ) -> str | None:
     """The colour system of a Windows client's console. Rich asks the console of its own process,
     which for a served command is the daemon's, so once it detected a colour system the client's
-    facts decide: standard on a legacy console, else 24-bit or 256 colours as its console shows."""
+    facts decide: the Windows palette on a legacy console, else 24-bit or 256 colours."""
     if detected is None or truecolor is None:
         return detected
     if legacy:
-        return "standard"
+        return "windows"
     return "truecolor" if truecolor else "256"
 
 

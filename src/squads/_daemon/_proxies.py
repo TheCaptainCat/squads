@@ -14,7 +14,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
-from typing import TextIO
+from typing import Any, BinaryIO, TextIO, cast
 
 import typer.rich_utils as rich_utils
 from rich.console import Console
@@ -145,9 +145,28 @@ CURRENT: contextvars.ContextVar[Capture | None] = contextvars.ContextVar(
 )
 
 
+class _Bytes(io.RawIOBase):
+    """The binary side of a standard stream while a request runs: its bytes are decoded as the
+    request's client reads that stream."""
+
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    def writable(self) -> bool:
+        return True
+
+    def write(self, data: Any) -> int:
+        capture = CURRENT.get()
+        if capture is not None:
+            capture.write_bytes(self._name, bytes(data))
+        return len(data)
+
+    def flush(self) -> None:
+        """Nothing is held back."""
+
+
 class StandardStream(io.TextIOBase):
-    """A standard stream: the request's capture while one runs, the stream it replaced otherwise.
-    It also takes ``bytes``, which Click and Typer write on the completion path."""
+    """A standard stream: the request's capture while one runs, the stream it replaced otherwise."""
 
     #: Click keeps the text stream it wraps around a stream in a map keyed by the stream, which
     #: would fix the first client's encoding for every later one. An unhashable stream is never
@@ -157,6 +176,7 @@ class StandardStream(io.TextIOBase):
     def __init__(self, name: str, fallback: TextIO) -> None:
         self._name = name
         self._fallback = fallback
+        self._binary = cast(BinaryIO, _Bytes(name))
 
     @property
     def encoding(self) -> str:  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -190,16 +210,21 @@ class StandardStream(io.TextIOBase):
     def close(self) -> None:
         """A standard stream is not the proxy's to close."""
 
-    def write(self, s: str | bytes | bytearray) -> int:  # pyright: ignore[reportIncompatibleMethodOverride]
+    @property
+    def buffer(self) -> BinaryIO:
+        """Where the bytes Click and Typer write on the completion path go. The stream itself takes
+        text only, so Click writes it as text and no wrapper of Click's translates its newlines."""
+        if CURRENT.get() is None:
+            return self._fallback.buffer
+        return self._binary
+
+    def write(self, s: str) -> int:
+        if not isinstance(s, str):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise TypeError(f"write() argument must be str, not {type(s).__name__}")
         capture = CURRENT.get()
         if capture is None:
-            if isinstance(s, str):
-                return self._fallback.write(s)
-            return self._fallback.buffer.write(s)
-        if isinstance(s, str):
-            capture.write(self._name, s)
-        else:
-            capture.write_bytes(self._name, bytes(s))
+            return self._fallback.write(s)
+        capture.write(self._name, s)
         return len(s)
 
     def read(self, size: int | None = -1) -> str:

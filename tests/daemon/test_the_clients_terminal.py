@@ -1,15 +1,11 @@
 """What a served command takes from its client's terminal and environment: encodings, whether
 streams are terminals, size, a Windows console's features, spans, and Typer's own consoles."""
 
-import fcntl
 import inspect
 import os
-import pty
 import re
-import struct
 import subprocess
 import sys
-import termios
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -44,7 +40,10 @@ CLIENT_VARIABLES = {
     "SQUADS_SPANS",
 }
 
-SQ = str(Path(sys.executable).parent / "sq")
+SQ = str(Path(sys.executable).parent / ("sq.exe" if sys.platform == "win32" else "sq"))
+
+#: Cases that compare with a real `sq` process, which a Windows console lays out by its own rules.
+needs_posix = pytest.mark.skipif(sys.platform == "win32", reason="compares with a POSIX process")
 
 
 def _clean_environment() -> dict[str, str]:
@@ -66,6 +65,11 @@ def _local(argv: list[str], env: dict[str, str], cwd: Path) -> str:
 
 def _in_a_terminal(argv: list[str], env: dict[str, str], cwd: Path, size: tuple[int, int]) -> str:
     """What `sq` prints on a pseudo-terminal of *size* (columns, lines)."""
+    import fcntl
+    import pty
+    import struct
+    import termios
+
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", size[1], size[0], 0, 0))
     process = subprocess.Popen(
@@ -101,7 +105,7 @@ def _help(served, terminal: dict[str, Any], env: dict[str, str] | None = None) -
 TERMINAL_ENV = {"TERM": "xterm-256color"}
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="needs a pseudo-terminal")
+@needs_posix
 def test_a_client_on_a_terminal_gets_the_layout_local_mode_gives_a_terminal(
     project: SquadPaths, serve, tmp_path: Path
 ) -> None:
@@ -113,6 +117,7 @@ def test_a_client_on_a_terminal_gets_the_layout_local_mode_gives_a_terminal(
     assert served == local
 
 
+@needs_posix
 def test_a_client_that_is_not_a_terminal_gets_the_plain_layout(
     project: SquadPaths, serve, tmp_path: Path
 ) -> None:
@@ -148,7 +153,7 @@ def test_a_windows_console_without_virtual_terminal_processing_is_laid_out_as_le
         ("256", False, None, "256"),
         ("256", False, True, "truecolor"),
         ("truecolor", False, False, "256"),
-        ("truecolor", True, True, "standard"),
+        ("truecolor", True, True, "windows"),
     ],
 )
 def test_a_windows_clients_console_decides_the_colour_system(
@@ -203,7 +208,21 @@ def _echoing() -> Command:
     def echo_cafe() -> None:  # pyright: ignore[reportUnusedFunction]
         typer.echo("Café")
 
+    @host.command("which-stream")
+    def which_stream() -> None:  # pyright: ignore[reportUnusedFunction]
+        from typer._click._compat import _default_text_stdout  # pyright: ignore[reportPrivateUsage]
+
+        typer.echo("itself" if _default_text_stdout() is sys.stdout else "wrapped")
+
     return typer.main.get_command(host)
+
+
+def test_click_writes_text_to_the_proxy_itself_so_no_wrapper_translates_its_newlines(
+    project: SquadPaths, serve
+) -> None:
+    reply = post_commands(serve(project, command=_echoing()), command_body(["which-stream"]))
+
+    assert reply.json()["output"] == [["stdout", "itself\n"]]
 
 
 def test_each_request_is_written_in_its_own_clients_encoding(project: SquadPaths, serve) -> None:
@@ -268,6 +287,7 @@ HELP_CLIENTS = [
 ]
 
 
+@needs_posix
 @pytest.mark.parametrize(("client", "coloured"), HELP_CLIENTS)
 def test_help_is_laid_out_for_the_clients_environment_as_local_mode_lays_it_out(
     client: dict[str, str], coloured: bool, project: SquadPaths, serve, tmp_path: Path
