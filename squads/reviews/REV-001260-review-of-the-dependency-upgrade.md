@@ -36,7 +36,7 @@ subentities:
   severity: low
 - local_id: F7
   title: Usage lines mix upper and lower argument names (operator call)
-  status: Fixed
+  status: Verified
   severity: info
 - local_id: F8
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
@@ -52,14 +52,14 @@ subentities:
   severity: low
 - local_id: F11
   title: Help prose and hints still name arguments in upper case
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F12
   title: README and docs/migration.md still state upper-case argument names
-  status: Fixed
+  status: Open
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T07:05:54Z'
+updated_at: '2026-10-30T07:12:19Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -231,6 +231,8 @@ Dropping squads' own upper-case metavars would make them consistent with typer's
   - Leftovers fixed in 43d1ab35: migrate rename-* help and docstrings, skill scope/unscope, override and operator docstrings, the comment-command help and its two refusal messages (comment hash edit -m text --as slug, comment hash show --json), the --file refusals (--file path), and every --file option now shows the path placeholder. Not touched: the -C help prose "started in PATH" in _cli/__init__.py (lane B file) and the rendered skill templates (workflow.md.j2, squads_skill.md.j2 say --file PATH).
 - [2026-10-30T06:53:07Z] `reviewer` Paul Reviewer:
   - Still open at e5ebf1aa: `_common.py:1173` returns the literal `"HASH"`, so the usage line of a hash verb reads `Usage: sq task {n} comment HASH show [OPTIONS]` (driven with `sq task 1 comment abcd show --zz`). The help text around it now says `hash`, so this is the last upper-case argument name on a usage line.
+- [2026-10-30T07:12:07Z] `reviewer` Paul Reviewer:
+  - Verified at 3dd1e94c. Driven on a scratch squad: `sq task {n} comment hash show [OPTIONS]`, `Missing argument 'status'.`, `'old_status'`, `'new-type'`, `Invalid value for 'width'`. An AST scan of every string literal under `_cli` finds no upper-case placeholder left except the `-C` help `started in PATH` (`_cli/__init__.py:325`), left on purpose for lane B, which owns that file.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -306,6 +308,8 @@ Fix: write them as the usage line does (`path`, `vfrom..vto`, `new_status`).
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-10-30T07:12:09Z] `reviewer` Paul Reviewer:
+  - Verified at 3dd1e94c. `sq migrate chlog --help` reads `Releases after vfrom up to and including vto`, and the refusal reads `(vfrom..vto, from below to)`. The rename-status and rename-type help read `new_status` and `new_type`. `--badge` and `--min-badge` read `code=value` and refuse with `expected code=value, got 'priority'`. Example IDs read `<prefix>-<n>`. The `-C` help `PATH` is lane B's (see F7).
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -328,6 +332,8 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
 <!-- sq:finding:F12:discussion -->
 - [2026-10-30T07:00:44Z] `tech-writer` Theo Writer:
   - Fixed in the working tree (uncommitted). README `retype <new-type>`; docs/migration.md `chlog vfrom..vto` and `(vfrom, vto]` (three places). A second grep found more upper-case argument placeholders in README synopses, now lower case: `sq create … <title>`, `sq create guide <title>`, `status <status>`, `sq operator add "<name>"`, `sq skill add <name>`. Option-value placeholders (`--depth N`, `--priority CODE`, `--from N`) are left as they are.
+- [2026-10-30T07:12:11Z] `reviewer` Paul Reviewer:
+  - Reopened at 3dd1e94c. README, docs and templates are lower case, and so are the option placeholders. The new 0.19.0 entry (CHANGELOG.md:82) is accurate. One entry in the same section now contradicts it: CHANGELOG.md:103 says the two help texts with an example item ID read `<PREFIX>-<n>`, but they read `<prefix>-<n>` (`_main.py:755`, `:830`). Fix: one word. Optional in the same edit: :76 `ref rm TARGET`, where the usage line and README read `{target}` / `<target>`. README.md:291 `-C PATH` follows the `-C` help and goes with lane B. @tech-writer
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->
@@ -384,4 +390,9 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
     - F12 (low, @tech-writer): README.md:307 `retype NEW-TYPE` and docs/migration.md `chlog vFROM..vTO` (3 places). The 0.19.0 typer entry is accurate since b2675fd5.
     - Note, not a finding: the names mix separators (`new-type`, `local-id` against `old_status`, `new_status`, `root_id`); typer's default for an unnamed argument keeps the underscore.
     - Verdict: changes requested. REV-1260 stays ChangesRequested and BUG-1192 stays Fixed until F7, F11 and F12 are verified; each is a one-line edit. @manager
+- [2026-10-30T07:12:19Z] `reviewer` Paul Reviewer:
+  - - Pass at 3dd1e94c. F7 and F11 are Verified. F12 is reopened on one word: CHANGELOG.md:103 (0.19.0) still says the example IDs read `<PREFIX>-<n>`; they read `<prefix>-<n>`, as the new entry at :82 says.
+    - Method: an AST scan of every string literal under `_cli`, then usage, `Missing argument`, `Invalid value`, refusal and help text driven on a scratch squad, then README, docs, templates and the 0.19.0 CHANGELOG section grepped.
+    - Left on purpose: the `-C` help `started in PATH` (`_cli/__init__.py:325`) and README.md:291, which tracks it. Lane B owns that file and carries the fix.
+    - Verdict: changes requested on F12 only. Once it is verified, I recommend Approved and BUG-1192 Verified. @tech-writer @manager
 <!-- sq:discussion:end -->

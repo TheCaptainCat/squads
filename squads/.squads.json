@@ -64562,7 +64562,7 @@
         {
           "local_id": "F7",
           "title": "Usage lines mix upper and lower argument names (operator call)",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -64606,7 +64606,7 @@
         {
           "local_id": "F11",
           "title": "Help prose and hints still name arguments in upper case",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -64617,7 +64617,7 @@
         {
           "local_id": "F12",
           "title": "README and docs/migration.md still state upper-case argument names",
-          "status": "Fixed",
+          "status": "Open",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -64628,7 +64628,7 @@
       ],
       "path": "reviews/REV-001260-review-of-the-dependency-upgrade.md",
       "created_at": "2026-10-30T00:20:29Z",
-      "updated_at": "2026-10-30T07:05:54Z",
+      "updated_at": "2026-10-30T07:12:19Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
