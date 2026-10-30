@@ -43,7 +43,7 @@ subentities:
   status: Todo
 - local_id: US9
   title: Documentation for adopters
-  status: Todo
+  status: InProgress
 - local_id: US10
   title: Actor, time, session and paths travel with each call
   status: InProgress
@@ -57,7 +57,7 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-30T07:20:40Z'
+updated_at: '2026-10-30T08:06:41Z'
 priority: high
 ---
 <!-- sq:body -->

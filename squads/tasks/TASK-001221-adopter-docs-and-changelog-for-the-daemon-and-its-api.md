@@ -3,7 +3,7 @@ id: TASK-1221
 sequence_id: 1221
 type: task
 title: Adopter docs and changelog for the daemon and its API
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -24,7 +24,7 @@ subentities:
   status: Todo
   maps_to: US9
 created_at: '2026-10-28T14:08:44Z'
-updated_at: '2026-10-30T00:33:01Z'
+updated_at: '2026-10-30T08:06:40Z'
 priority: medium
 ---
 <!-- sq:body -->
