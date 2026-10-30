@@ -15,7 +15,7 @@ description: Resource routes under /v1 generated from the operation table replac
   POST /v1/commands; HttpApi or LocalApi chosen per invocation; ADR-1052 amended on
   acceptance
 created_at: '2026-10-28T20:58:41Z'
-updated_at: '2026-10-30T08:01:27Z'
+updated_at: '2026-10-30T08:01:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -506,4 +506,6 @@ Board changes that follow acceptance, for their owners:
     - Section 3, refusals bullet: admission keeps ADR-1052 point 5's rules and answers with the error body (empty `warnings`, no `details`), checks in order `Host`, `Origin`, `Content-Type`, `Squads-Client`. Nothing is routed and the client never retries.
 - [2026-10-30T07:36:31Z] `architect` Robert Architect:
   - Amended in place 2026-10-30 for REV-1223 F22 and F27, per the manager's ruling on REV-1223 (5599c2c). Status unchanged. Section 1: `HEAD` is the body-less form of `GET`. Section 3's 403 row reads "a method other than `GET` or `HEAD`" for both the browser port's `Origin` rule and the `Content-Type`/`Squads-Client` rule, matching ADR-1052 point 5.
+- [2026-10-30T08:01:35Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 for REV-1223 F22. Status unchanged. Section 3, 403 row: every admission check runs on TCP listeners only, as ADR-1052 point 5 says. That includes the `Content-Type`/`Squads-Client` rule, which I had wrongly extended to the Unix socket. The socket is owner-only (`0600` in a `0700` directory) and checks none of them; clients still send both headers on it.
 <!-- sq:discussion:end -->
