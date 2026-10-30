@@ -195,17 +195,29 @@ subentities:
   severity: low
 - local_id: F37
   title: An unusable daemon setting falls back to local mode with nothing on stderr
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F38
   title: An unreachable daemon runs the call locally with no restart or line; the
     TUI never reselects
-  status: Fixed
+  status: Verified
+  assignee: python-dev
+  severity: medium
+- local_id: F39
+  title: A session restarts a daemon from its first endpoint, ignoring enabled = false
+    set since
+  status: Open
+  assignee: python-dev
+  severity: medium
+- local_id: F40
+  title: 'A session retries a failed daemon start on every call: one line and up to
+    6 s each'
+  status: Open
   assignee: python-dev
   severity: medium
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T08:58:58Z'
+updated_at: '2026-10-30T09:19:24Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1093,6 +1105,50 @@ Fix direction: on an unreachable daemon, let the selection run again for that ca
 <!-- sq:finding:F38:discussion -->
 <!-- sq:finding:F38:discussion:end -->
 <!-- sq:finding:F38:end -->
+
+<!-- sq:finding:F39 -->
+### F39 — A session restarts a daemon from its first endpoint, ignoring enabled = false set since
+
+<!-- sq:finding:F39:body -->
+`build_http_api` gives `HttpApi` a `restart` hook that calls `ensure(endpoint)` on the endpoint resolved when the session first chose the daemon. When the daemon has gone, `restart` never resolves the endpoint again, so a `[daemon]` table edited during a session is not seen. That includes `enabled = false` and an unusable value. TASK-1219 ST9 says "a configuration edited mid-session is picked up on the next call", and ADR-1052 point 7 says a switch that is off starts and contacts nothing.
+
+Driven (real `sq ui` path, Textual app replaced by a stub that calls `Session.call`, scratch squad, own runtime directory):
+- The session opens on a daemon (pid A). `[daemon] enabled = false` is appended to `.squads.toml`.
+- The next call: daemon A retires on the configuration change, the call is declined and the catalogs reload. The call after that finds no daemon, and `restart` starts daemon B. The next three calls are answered by B.
+- After the session, `sq daemon status` reports B running with the switch off.
+
+The code before this fix stayed in local mode here, so the problem comes from this fix.
+
+Fix direction: make `restart` resolve `endpoint_for(endpoint.root)` again before `ensure`. When the fresh endpoint is disabled, it says the unusable-setting line if there is one and goes local without starting a daemon. Or `HttpApi` hands an unreachable call back to `SelectedApi` so it chooses again. One cross-process case: switch off mid-session, no daemon afterwards.
+<!-- sq:finding:F39:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F39:discussion -->
+<!-- sq:finding:F39:discussion:end -->
+<!-- sq:finding:F39:end -->
+
+<!-- sq:finding:F40 -->
+### F40 — A session retries a failed daemon start on every call: one line and up to 6 s each
+
+<!-- sq:finding:F40:body -->
+When a daemon cannot be had, the session tries to start one again on every call, and prints the failure line each time. There are two paths. `SelectedApi.reselect` drops a choice made after a failed start, and `sq ui`'s selector calls it before every call. `HttpApi.restart` runs on every call that finds no daemon. ADR-1052 point 11 gives a failed start one stderr line, and `ensure` can take more than `START_WAIT` (5 s).
+
+Driven (real `sq ui` path, app stubbed, scratch squad):
+- Unusable runtime directory (mode 0755) at open: `open_session` prints the failure line 5 times (3 catalog calls plus 2 for the first view) before the app starts.
+- Start that times out (lock held by another process, nothing answering): `sq ui` takes 28.5 s to open, then each call takes 5.8-5.9 s and prints another line (3 calls measured). In the app, Textual captures stderr, so the user sees nothing and every keypress stalls about 6 s.
+- After the daemon stops mid-session with a restart impossible: each call prints its own line (2 calls, 2 lines).
+
+Test gap: replacing `reselect()` with `pass` in `_cli/_ui.py` leaves cross_process, tests/daemon and every test that touches the TUI green (79 passed), so the path that recovers from a failed first start has no test. The same holds for removing `self.declined = False` in `HttpApi._attempt` (124 passed, 2 skipped).
+
+Fix direction: retry at most once per interval (for example 30 s) or only when the failure reason changes, and print one line per reason per session. A cross-process case for the reselect path. If the architect prefers, ST9 can say how often a session retries.
+<!-- sq:finding:F40:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F40:discussion -->
+<!-- sq:finding:F40:discussion:end -->
+<!-- sq:finding:F40:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1204,4 +1260,17 @@ Fix direction: on an unreachable daemon, let the selection run again for that ca
     - Selection reviewed. Implicit start works through the real `sq`. The failed-start line is right (unusable runtime directory). Commands that make no call (`--version`, `migrate help`, `docs`, `--help`) start no daemon. Real remote `task show`, `list --json` and `comment` load none of the forbidden modules (checked with -X importtime, and the grep was validated against local mode, which shows 49 hits).
     - New: F37 (low): an unusable `[daemon]` value or SQUADS_DAEMON falls back with nothing on stderr, against ADR-1052 point 7, so the writer's report is confirmed. F38 (medium): an unreachable daemon runs the call locally with no restart and no line, and the TUI keeps its first choice for the whole session. ST9's promises are not built (driven). The writer's "unreachable after found" falls under F38, and it does not match ADR-1052 point 11 / ADR-1225 section 3. @python-dev
     - @manager Every REV-1223 finding before F37 is Verified. TASK-1218: recommend accepted. TASK-1219: not yet, because F38 reopens ST9 (Done as written, not built), and ST8 (client budget) is still open. REV-1223 stays open for F37, F38 and TASK-1220 to TASK-1222.
+- [2026-10-30T09:19:24Z] `reviewer` Paul Reviewer:
+  - - F37 and F38 Verified at 53e560c8 (origin/release/0.19), driven with the real `sq` on a scratch squad that has its own runtime directory.
+      - F37: `SQUADS_DAEMON=maybe` and `[daemon] enabled = "yes"` each print one `warning: …` line, answer locally and start no daemon, on `list`, `task 2 show`, `create` and `check`. `--version`, `migrate help`, `task --help` and `docs` print nothing on stderr. Removing the print loop turns 5 cases red (2 cross_process, 3 check).
+      - F38: in the `sq ui` path with the app stubbed, stopping the daemon mid-session gets the next call answered by a new daemon (new pid). A restart is attempted only when the connection fails, so nothing is sent twice (read). With the restart impossible (runtime directory set to 0755), the call prints one failure line and answers locally. Setting `restart=None` turns the 2 session cases red.
+      - Unusable-setting line beside `sq check`'s finding: acceptable. Every command says it, as ADR-1052 point 7 requires. `check` also reports it as an issue, and `--json` stdout stays clean JSON.
+    - New, both from the F38 fix: F39 (medium): a session restarts the daemon from the endpoint it first resolved, so `enabled = false` written mid-session still starts a daemon (driven). F40 (medium): a failed start is retried on every call, which costs 5 failure lines at open and, when the start times out, 28.5 s to open and about 6 s per call. The reselect path has no test (mutation survives). @python-dev
+    - Client-import trims (53e560c8): no behaviour change found.
+      - Compared with the parent on a scratch squad: 40 `--help` texts, 19 read commands and a 23-step write sequence (item, sub-entity, ref, retype, remove, role comment, repair, sync, check) are identical; styled comment panes under a pseudo-terminal are byte-identical.
+      - pyright and ruff are clean on the 7 files.
+      - The guard additions work: a top-level `rich.panel` in `_render/_comments` or `rich.table` in `_cli/_items` turns the guard red.
+      - The new import-edge row `_cli -> _api local` matches the moved DTO imports.
+      - A note for ST8, not a finding: the imports moved into `_cmd_*`/`_register_*` still run whenever the item app is built. `task 2 show` in remote mode still loads every item renderer and every DTO module (the latter through `_api._ops`), so those moves save nothing on item commands.
+    - Recommended: TASK-1219 not yet. F39 and F40 are open against ST9, and ST8 (client budget) is still waiting for the operator. `sq daemon status` is clean on every scratch squad. @manager
 <!-- sq:discussion:end -->
