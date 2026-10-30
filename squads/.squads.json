@@ -65882,7 +65882,7 @@
       "type": "task",
       "title": "CLI shim: stdlib client for the command endpoint",
       "slug": "cli-shim-stdlib-client-for-the-command-endpoint",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "squads.__main__ becomes a stdlib shim: lean endpoint path, local-only and file-argument tables, prompts, fall back before sending, Windows transport, CLI off HttpApi, the 100 ms budget",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -65896,7 +65896,7 @@
         {
           "local_id": "ST1",
           "title": "Lean endpoint path for the shim",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US12",
           "deferred_to": null,
@@ -65905,7 +65905,7 @@
         {
           "local_id": "ST2",
           "title": "Shim entry, -C, the local-only table and the local run",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65914,7 +65914,7 @@
         {
           "local_id": "ST3",
           "title": "Request building, attachments and answer writing",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65923,7 +65923,7 @@
         {
           "local_id": "ST4",
           "title": "Prompts, fall back before sending, no replay, Ctrl-C",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65932,7 +65932,7 @@
         {
           "local_id": "ST5",
           "title": "Daemon start from the shim and the Windows transport",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US6",
           "deferred_to": null,
@@ -65941,7 +65941,7 @@
         {
           "local_id": "ST6",
           "title": "The CLI off HttpApi, the TUI's selection kept",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -65950,7 +65950,7 @@
         {
           "local_id": "ST7",
           "title": "Client budget: the shim's overhead, benchmark and runbook",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US12",
           "deferred_to": null,
@@ -65959,7 +65959,7 @@
       ],
       "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
       "created_at": "2026-10-30T20:30:30Z",
-      "updated_at": "2026-10-30T22:09:43Z",
+      "updated_at": "2026-10-30T22:18:49Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -65973,7 +65973,7 @@
       "type": "task",
       "title": "CI: endpoint and route parity jobs, shim budget report",
       "slug": "ci-endpoint-and-route-parity-jobs-shim-budget-report",
-      "status": "Draft",
+      "status": "Ready",
       "description": "Remote-mode jobs through the command endpoint, one Linux route-parity job, the client-budget report on the shim's overhead",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -66007,7 +66007,7 @@
       ],
       "path": "tasks/TASK-001265-ci-endpoint-and-route-parity-jobs-shim-budget-report.md",
       "created_at": "2026-10-30T20:30:37Z",
-      "updated_at": "2026-10-30T20:32:18Z",
+      "updated_at": "2026-10-30T22:17:01Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

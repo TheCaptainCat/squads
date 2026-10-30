@@ -3,7 +3,7 @@ id: TASK-1264
 sequence_id: 1264
 type: task
 title: 'CLI shim: stdlib client for the command endpoint'
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 assignee: python-dev
@@ -16,34 +16,34 @@ description: 'squads.__main__ becomes a stdlib shim: lean endpoint path, local-o
 subentities:
 - local_id: ST1
   title: Lean endpoint path for the shim
-  status: Todo
+  status: Done
   maps_to: US12
 - local_id: ST2
   title: Shim entry, -C, the local-only table and the local run
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST3
   title: Request building, attachments and answer writing
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST4
   title: Prompts, fall back before sending, no replay, Ctrl-C
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST5
   title: Daemon start from the shim and the Windows transport
-  status: Todo
+  status: Done
   maps_to: US6
 - local_id: ST6
   title: The CLI off HttpApi, the TUI's selection kept
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST7
   title: 'Client budget: the shim''s overhead, benchmark and runbook'
-  status: Todo
+  status: Done
   maps_to: US12
 created_at: '2026-10-30T20:30:30Z'
-updated_at: '2026-10-30T22:09:43Z'
+updated_at: '2026-10-30T22:18:49Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -204,4 +204,14 @@ Tests: none; the benchmark is a report.
   - Starting. Two decisions the ADR leaves open, both taken to keep the lean path lean: (1) squads.__version__ is read through importlib.metadata today, which the shim path may not import, so it becomes a literal in squads/__init__.py kept equal to pyproject by scripts/bump_version.py and a tests/meta guard; (2) the typed _endpoint classes (dataclasses/NamedTuple) become plain slot classes in the same module.
 - [2026-10-30T22:09:43Z] `python-dev` Elias Python:
   - SENT_ENVIRONMENT in src/squads/_shim.py grew by SQUADS_SPANS, PY_COLORS, GITHUB_ACTIONS, TERMINAL_WIDTH and _TYPER_FORCE_DISABLE_TERMINAL (every variable that changes local output is sent). The request terminal also gained windows_truecolor (bool, Windows clients only). The shim still strips SQUADS_SPANS when it spawns the daemon.
+- [2026-10-30T22:18:48Z] `python-dev` Elias Python:
+  - Shim built and gated on release/0.19 (worktree branch `worktree-agent-aea1edb924436f4d6`, commits 968d3d35, e9d26a34, aa716b52, not pushed). @manager @architect
+    
+    - Gates: pyright 0; ruff check and format clean; manifest current; `tests/meta tests/cli tests/daemon` 1789 passed, 2 skipped; `--api-mode remote tests/cli` 999; `--api-mode routes tests/cli` 999; `--api-mode remote --squad override tests/cli` 840 passed, 159 skipped; `-n0 tests/cross_process` 25; `tests/check tests/regressions` 149. The full suite is the manager's.
+    - Budget, 31 interleaved runs, copy of this repo's squad, daemon on the copy (stopped after), load average 3.2 on 14 cores: shim overhead `task 1219 show` 48 ms (p25-p75 44-54), `list --json` 52 (48-58), bash Tab 49 (45-52); 100 ms criterion read on the runner, ~1.3x this host.
+    - Byte comparison shim vs `SQUADS_DAEMON=off` on a scratch squad: 25 cases identical in stdout, stderr, exit code and resulting item state (the 12 of the task plus `-C`, `NO_COLOR`, zsh completion, declined and `--json` removal, missing `--file`, `import`); 12 more on a pseudo-terminal at 80 and 120 columns, byte for byte.
+    - Decisions the ADR leaves open: (1) `squads.__version__` was read through `importlib.metadata`, which the lean path may not import; it is now a literal in `squads/__init__.py`, rewritten by `scripts/bump_version.py` and held equal to `pyproject.toml` by a `tests/meta` guard. (2) `_endpoint` records are plain slot classes (no `dataclasses`/`NamedTuple`), `SquadsConfig` takes `DaemonSettings` as an arbitrary type. (3) `--install-completion` and `--show-completion` run locally (they act on the client's shell). (4) On a daemon lost after a prompt answer was sent, no replay (error, exit 1); lost before it is sent, local run from the start. (5) The `long` table maps command paths to operation names; the guard holds the names equal to the operations classed `long` and the paths to registered commands, not path-to-operation binding. (6) `sq check` no longer shows the unusable-setting warning line in-process (the shim prints it); the three `tests/check` cases dropped that stderr expectation, the cross-process members hold it.
+    - Start path adds `squads._daemon_start` and `squads._daemon_link` (`squads._windows_owner` on Windows) over the live set `squads`, `squads.__main__`, `squads._shim`, `squads._endpoint`; no third-party package, none of `dataclasses`, `typing`, `importlib.metadata`. The spawned daemon is started without `SQUADS_SPANS` and `SQUADS_DAEMON`.
+    - Not run here (Windows): the `msvcrt.locking` lock probe, `select`-polled reads, the VT/console setup, the detached spawn, the loopback-port admission headers on a real daemon. The port transport and its identity check ran on Linux against the harness application (admission is not in that harness).
+    - Not touched: docs and CHANGELOG (docs/daemon.md still reads true but should be re-read by the writer, e.g. the sentence on the only case handed to local mode after sending).
 <!-- sq:discussion:end -->

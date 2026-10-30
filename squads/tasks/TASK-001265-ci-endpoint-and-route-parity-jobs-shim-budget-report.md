@@ -3,7 +3,7 @@ id: TASK-1265
 sequence_id: 1265
 type: task
 title: 'CI: endpoint and route parity jobs, shim budget report'
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -23,7 +23,7 @@ subentities:
   status: Todo
   maps_to: US12
 created_at: '2026-10-30T20:30:37Z'
-updated_at: '2026-10-30T20:32:18Z'
+updated_at: '2026-10-30T22:17:01Z'
 priority: medium
 ---
 <!-- sq:body -->
