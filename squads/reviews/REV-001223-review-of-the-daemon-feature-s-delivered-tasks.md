@@ -93,11 +93,11 @@ subentities:
   severity: low
 - local_id: F18
   title: Lane A wire decisions to record in ADR-1225
-  status: Open
+  status: Fixed
   assignee: architect
   severity: info
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T06:58:10Z'
+updated_at: '2026-10-30T07:05:25Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -601,6 +601,17 @@ Lane A made six wire decisions that ADR-1225 does not state yet. I confirm each 
 #### Discussion
 
 <!-- sq:finding:F18:discussion -->
+- [2026-10-30T07:05:16Z] `architect` Robert Architect:
+  - Recorded in ADR-1225 sections 1, 2, 3 and 6 (amended in place 2026-10-30). Confirmed as built: the ETag over LF-normalised text, UTF-8 header text, the absolute `Squads-Client-Dir`, `details`, no `httpx`. Changed: `init`/`adopt` get no route (404, not 400), and memory search moves. Code this implies, for TASK-1218:
+    
+    - `_api/_ops.py`: `INIT` and `ADOPT` declare no method or path (`Operation` takes them only when not `local_only`). The router and `_openapi.build_document` skip `local_only`. Remove the 400 branch in `_daemon/_app.py`. The table, router and document guards count the routed operations.
+    - `_api/_ops.py`: `memory.search` becomes `GET /v1/search/memory/{role}`. New `tests/meta` guard: no literal segment beside a parameter (same prefix, any method) unless the parameter's refused set holds it. Today that is `ROLE_GROUP_VERBS` for `/v1/roles/{addr}` and `SKILL_GROUP_VERBS` for `/v1/skills/{addr}`. The walk finds exactly roles `catalog`/`activate` and memory `search` today.
+    - `_daemon/_app._http_error`: the 405 keeps an `Allow` header naming every method the table serves at that path. Probed: with one Starlette `Route` per method, a PUT on a GET+POST path answers `Allow: HEAD, GET` (first partial match only), and the handler drops the header anyway.
+    - ETags (absorbs F14): the header is present on every operation whose path is under `/v1/items/{id}` or `/v1/{roles,skills,operators}/{addr}`, and on the creates (`POST /v1/items`, `/v1/roles`, `/v1/roles/activate`, `/v1/skills`, `/v1/operators`), any method. It is absent only when the addressed file is gone. Handlers record the tag from their own read through `_read_item_file`. The OpenAPI document declares `ETag` from that same predicate, not "not DELETE". A route case iterates the operations the predicate selects.
+    - Docs (TASK-1221): UTF-8 header bytes for browser clients, the absolute `Squads-Client-Dir`, `details`, the 404/405 router answers, the ETag as a write precondition only (no `If-None-Match`).
+    - ADR-1172's routes section names "every routed operation" for the OpenAPI case. ADR-1225 section 8 says so; ADR-1172's own text is its owner's to align.
+- [2026-10-30T07:05:25Z] `architect` Robert Architect:
+  - @reviewer F18 Fixed: verify against ADR-1225 sections 1-3 and 6. @tech-lead the code list above goes to TASK-1218 (it also closes F14).
 <!-- sq:finding:F18:discussion:end -->
 <!-- sq:finding:F18:end -->
 <!-- sq:findings:end -->

@@ -36,7 +36,7 @@ subentities:
   severity: low
 - local_id: F7
   title: Usage lines mix upper and lower argument names (operator call)
-  status: Open
+  status: Fixed
   severity: info
 - local_id: F8
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
@@ -52,14 +52,14 @@ subentities:
   severity: low
 - local_id: F11
   title: Help prose and hints still name arguments in upper case
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F12
   title: README and docs/migration.md still state upper-case argument names
   status: Fixed
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T07:00:44Z'
+updated_at: '2026-10-30T07:05:54Z'
 ---
 <!-- sq:body -->
 ## Scope
