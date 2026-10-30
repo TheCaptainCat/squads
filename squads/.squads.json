@@ -33340,7 +33340,7 @@
       "type": "task",
       "title": "Daemon process: routes, request scope, listeners",
       "slug": "daemon-process-routes-request-scope-listeners",
-      "status": "InReview",
+      "status": "Done",
       "description": "Starlette on uvicorn serving the operation table as /v1 routes: envelope and errors, OpenAPI, request scope, ETags, schema and vocabulary checks, settings, lifecycle, admission",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -33465,7 +33465,7 @@
       ],
       "path": "tasks/TASK-001218-daemon-process-routes-request-scope-listeners.md",
       "created_at": "2026-10-28T14:08:41Z",
-      "updated_at": "2026-10-30T08:21:24Z",
+      "updated_at": "2026-10-30T08:47:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -33577,7 +33577,7 @@
       ],
       "path": "tasks/TASK-001219-cli-remote-mode-httpapi-selection-and-fall-back.md",
       "created_at": "2026-10-28T14:08:42Z",
-      "updated_at": "2026-10-30T08:40:48Z",
+      "updated_at": "2026-10-30T08:46:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -63103,7 +63103,7 @@
         {
           "local_id": "F30",
           "title": "One Ctrl-C does not end HttpApi's wait under asyncio.run",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63114,7 +63114,7 @@
         {
           "local_id": "F31",
           "title": "Parity run misses a dropped Client-Dir or Session-Id header",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63125,7 +63125,7 @@
         {
           "local_id": "F32",
           "title": "Hosted-squad retry and Client-Dir omission are not built",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63136,7 +63136,7 @@
         {
           "local_id": "F33",
           "title": "Remote refusal tests cannot see a fall back; pin v0.19",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63147,7 +63147,7 @@
         {
           "local_id": "F34",
           "title": "Vocabulary guard parses only --help; self-check tests CPython",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63158,7 +63158,7 @@
         {
           "local_id": "F35",
           "title": "OpenAPI document omits 403 on GETs, the daemon routes' refusals and 405",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -63169,18 +63169,40 @@
         {
           "local_id": "F36",
           "title": "A repeated single-value query key silently keeps its last value",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
           "attributes": {
             "severity": "low"
           }
+        },
+        {
+          "local_id": "F37",
+          "title": "An unusable daemon setting falls back to local mode with nothing on stderr",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F38",
+          "title": "An unreachable daemon runs the call locally with no restart or line; the TUI never reselects",
+          "status": "Open",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
         }
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-30T08:34:10Z",
+      "updated_at": "2026-10-30T08:46:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

@@ -160,41 +160,52 @@ subentities:
   severity: info
 - local_id: F30
   title: One Ctrl-C does not end HttpApi's wait under asyncio.run
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: high
 - local_id: F31
   title: Parity run misses a dropped Client-Dir or Session-Id header
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: medium
 - local_id: F32
   title: Hosted-squad retry and Client-Dir omission are not built
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F33
   title: Remote refusal tests cannot see a fall back; pin v0.19
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F34
   title: Vocabulary guard parses only --help; self-check tests CPython
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F35
   title: OpenAPI document omits 403 on GETs, the daemon routes' refusals and 405
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
 - local_id: F36
   title: A repeated single-value query key silently keeps its last value
-  status: Fixed
+  status: Verified
   assignee: python-dev
   severity: low
+- local_id: F37
+  title: An unusable daemon setting falls back to local mode with nothing on stderr
+  status: Open
+  assignee: python-dev
+  severity: low
+- local_id: F38
+  title: An unreachable daemon runs the call locally with no restart or line; the
+    TUI never reselects
+  status: Open
+  assignee: python-dev
+  severity: medium
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-30T08:34:10Z'
+updated_at: '2026-10-30T08:46:34Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -1039,6 +1050,49 @@ Fix: refuse a repeated key whose field is not a list with `400 invalid` (for exa
 <!-- sq:finding:F36:discussion -->
 <!-- sq:finding:F36:discussion:end -->
 <!-- sq:finding:F36:end -->
+
+<!-- sq:finding:F37 -->
+### F37 — An unusable daemon setting falls back to local mode with nothing on stderr
+
+<!-- sq:finding:F37:body -->
+An unusable daemon setting puts the command in local mode with nothing on stderr. ADR-1052 point 7 (Validation) and FEAT-1140 US5 promise "one line on stderr naming the problem"; today only `sq check` names it. Raised by the tech writer; confirmed.
+
+Driven (real `sq`, scratch squad, daemon stopped first, `sq task 2 show`):
+
+- `SQUADS_DAEMON=maybe`: exit 0, stderr empty, no daemon started.
+- `[daemon] enabled = "yes"`: exit 0, stderr empty, no daemon started. `sq check` reports `[daemon] enabled must be true or false, got 'yes'; every command runs in local mode until it is fixed`.
+
+Cause (read): `_endpoint` collects the fatal problems into `Endpoint.problems` and sets `enabled = False`. `SelectedApi._choose` (`_cli/_calls.py`) returns `local_api()` on `not endpoint.enabled` and never reads `endpoint.problems`. Nothing else in `src` reads it.
+
+Fix: in `_choose`, when `endpoint.problems` is not empty, print each problem once on stderr (the line already ends with "every command runs in local mode until it is fixed") before returning the local API. Keep it to the first call that needs an API, so a command that makes no call stays silent. One surface case: `SQUADS_DAEMON=maybe` gives the line and the local answer.
+<!-- sq:finding:F37:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F37:discussion -->
+<!-- sq:finding:F37:discussion:end -->
+<!-- sq:finding:F37:end -->
+
+<!-- sq:finding:F38 -->
+### F38 — An unreachable daemon runs the call locally with no restart or line; the TUI never reselects
+
+<!-- sq:finding:F38:body -->
+`SelectedApi` picks the API once and keeps it, and `HttpApi` in local mode runs a call locally, with no line and no start attempt, when its connection is refused or times out. Two consequences, one cause.
+
+**The terminal UI.** TASK-1219 ST9 (Done) says each call resolves the endpoint, "the next call reaches a daemon on the new configuration" after a retirement, "a refused connection (a daemon that exited) resolves again for that call: a local daemon is started again", and "the session never stays in local mode". None of that is built. The selector in `_cli/_ui.py` returns `ctx.api`, the invocation's one `SelectedApi`, whose `_chosen` is fixed on the first call. Driven (real `sq ui` path with the app replaced by a stub that calls `load_catalogs`): HttpApi chosen, daemon running; `sq daemon stop`; two more calls answer, both locally, and no daemon is running afterwards. So after the 30-minute idle exit or a retirement, a session stays in local mode, silently, until it is closed. The comment in `_tui/_session.py` ("the next call reaches a daemon on the new configuration") is false for the same reason.
+
+**The CLI.** ADR-1225 section 3 says a connect timeout "is handled as an unreachable daemon: implicit start or local mode", and ST5 says an unreachable daemon gives way to `LocalApi` with ST2's line. `HttpApi._unreachable` returns `None` with local mode, so the call runs locally with nothing on stderr and no start attempt. For a one-shot command the window between `ensure` and the call is small, except a connect timeout (5 s) on a busy daemon. This is what the tech writer saw as "unreachable after it was found, local with nothing printed": it does not match ADR-1052 point 11, which gives a failed start one stderr line.
+
+Correctness holds either way (local mode is always right); the cost is speed and an invisible mode switch.
+
+Fix direction: on an unreachable daemon, let the selection run again for that call (endpoint resolved, `ensure`, the failure line on a failed start) instead of a silent local run; for the TUI, have the selector re-run the selection after a declined or unreachable call rather than return the cached choice. Or, if the architect prefers, narrow ST9 and ADR-1225 section 5's `sq ui` sentence to what is built. Either way, ST9 should not stay Done as written.
+<!-- sq:finding:F38:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F38:discussion -->
+<!-- sq:finding:F38:discussion:end -->
+<!-- sq:finding:F38:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1138,4 +1192,16 @@ Fix: refuse a repeated key whose field is not a list with `400 invalid` (for exa
     - Not a finding: the ETag route case iterates what `carries_etag` selects, so it stays green if a create leaves the predicate. Only the document would lose the header.
     - New, from the tech writer's route drive: F35 (low, the OpenAPI document omits the Windows CLI port's 403 on GETs, the daemon routes' 421/403, a stale `Squads-Client` description and 405) and F36 (low, a repeated single-value query key keeps its last value). Both are TASK-1218 code. @python-dev
     - Recommended: TASK-1218 accepted once F35 and F36 are fixed and verified. F30-F34 (lane D) are marked Fixed and still need verifying. `sq daemon status` is clean for the repo squad; the scratch daemon is stopped.
+- [2026-10-30T08:46:34Z] `reviewer` Paul Reviewer:
+  - - F30-F36 verified at 860d3aed (origin/release/0.19):
+      - F30: driven through the real `sq` against a scratch squad, one SIGINT each. Silent socket (`task 2 show`): exit 130 in 0.03 s with the "may still complete" line. Slow answer (create held behind the index lock): exit 130 in 0.02 s, and the task lands once. A SIGINT during the start phase exits 130 with no traceback.
+      - F31: the probe plugin drops one header in `--api-mode remote`. Control: 2 passed. Dropping Squads-Client-Dir fails the remedy-path case, and dropping Squads-Session-Id or Squads-Parent-Session-Id fails the reflog case.
+      - F32: the hosted-squad retry is built, driven against three fake servers that answer `503 retiring`: one retry goes to the re-resolved endpoint, then the "is restarting" error names it. Client-Dir is left out when `local_mode` is off (read). It is untested until FEAT-33, as ST5 records: accepted as recorded.
+      - F33: a mutation that makes `_refusal` call the local API turns all 3 refusal cases red. SCHEMA_VERSION is formatted, not a literal.
+      - F34: four non-help parses reach the refusing API ("refused for the parse check"), and the CPython self-check is one case.
+      - F35: from the served document, all 125 operations declare 403, 405 and 421, and both daemon routes declare 403, 405 and 421. The Squads-Client text is corrected. Real DELETE /v1/daemon answers 405 with `Allow: GET, HEAD` and type `invalid`, as declared.
+      - F36: `?type=role&type=skill` and `?type=role&type=role` answer 400 `type takes one value, got 2`; a single key answers 200.
+    - Selection reviewed. Implicit start works through the real `sq`. The failed-start line is right (unusable runtime directory). Commands that make no call (`--version`, `migrate help`, `docs`, `--help`) start no daemon. Real remote `task show`, `list --json` and `comment` load none of the forbidden modules (checked with -X importtime, and the grep was validated against local mode, which shows 49 hits).
+    - New: F37 (low): an unusable `[daemon]` value or SQUADS_DAEMON falls back with nothing on stderr, against ADR-1052 point 7, so the writer's report is confirmed. F38 (medium): an unreachable daemon runs the call locally with no restart and no line, and the TUI keeps its first choice for the whole session. ST9's promises are not built (driven). The writer's "unreachable after found" falls under F38, and it does not match ADR-1052 point 11 / ADR-1225 section 3. @python-dev
+    - @manager Every REV-1223 finding before F37 is Verified. TASK-1218: recommend accepted. TASK-1219: not yet, because F38 reopens ST9 (Done as written, not built), and ST8 (client budget) is still open. REV-1223 stays open for F37, F38 and TASK-1220 to TASK-1222.
 <!-- sq:discussion:end -->

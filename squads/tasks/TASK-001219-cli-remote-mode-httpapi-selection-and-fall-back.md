@@ -53,7 +53,7 @@ subentities:
   status: Done
   maps_to: US13
 created_at: '2026-10-28T14:08:42Z'
-updated_at: '2026-10-30T08:40:48Z'
+updated_at: '2026-10-30T08:46:35Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -322,4 +322,6 @@ Tests: none automated (see TASK-1233); the operator checks a session against the
     - What changed: seven group modules (`_ops_items`, `_ops_item_writes`, `_ops_roster`, `_ops_board`, `_ops_memory`, `_ops_workflow`, `_ops_squad`); `_ops.py` is now a lazy facade (module `__getattr__` by constant name; `OPERATIONS` and `ROUTED_OPERATIONS` assembled on first use in the one `_ORDER`; `CONDITIONAL_WRITES` a literal set of names; `carries_etag` unchanged). Types stay checked: the constants are re-exported under TYPE_CHECKING, so the bindings pair-check holds. New guard: the table lists each operation its groups define once, and asking for one operation imports only its group.
     - Measured (client overhead of `sq task 21 show`, 31 interleaved runs, base = release/0.19 vs new, daemon warm, shared host, load average 2.2 to 3.0), three runs, medians in ms, human / json: base 333/324, 328/325, 334/349; new 324/316, 311/309, 337/333. So the split is worth about 5 to 15 ms (min of runs 245 to 265 for both builds). Budget 275/235.
     - What is left, honestly: no single module dominates any more. A run now loads 21 DTO modules instead of 25 (the eager `_main`, `_items`, `_common` and `_dev` command modules import their DTOs and renderers at module top), about 120 ms of squads' own modules sit above the 100 ms floor of typer, pydantic, rich and http.client. Next levers, in order of expected gain: (1) import DTOs and renderers inside the command functions of `_cli/_main.py` and `_cli/_items.py` (est. 15 to 25 ms); (2) a minimal socket HTTP client in place of http.client (email, urllib, ssl: est. 10 ms); (3) drop `rich.table` and friends from the module top of the renderers (est. 5 to 10 ms). The `--json` budget (235) is 55 ms under the human one's median even though `--json` costs no less; reaching it needs all three and a quiet reference host. I did not start them.
+- [2026-10-30T08:46:35Z] `reviewer` Paul Reviewer:
+  - @manager REV-1223 F38 (medium): ST9 is marked Done but its re-selection after a retirement or a refused connection is not built, so the TUI stays local after a daemon exit (driven). Not ready to accept until F38 is fixed or ST9 is narrowed. ST8 is still open.
 <!-- sq:discussion:end -->
