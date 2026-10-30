@@ -5,16 +5,14 @@ Each case runs the real `sq` console script against a scratch squad, as the cros
 """
 
 import json
-import os
-import shutil
 import subprocess
 import sys
 from collections.abc import Callable, Iterator
-from pathlib import Path
 
 import pytest
 
 from squads._paths import SquadPaths
+from tests.cross_process._sq import env, run, sq_command
 
 #: Takes the squad's lock with the store's own flags, reports it, then holds it for the seconds
 #: given (until killed when it is long) and releases it by exiting.
@@ -30,30 +28,13 @@ time.sleep(float(sys.argv[2]))
 """
 
 
-def _env() -> dict[str, str]:
-    env = dict(os.environ)
-    env.pop("FORCE_COLOR", None)
-    return env
-
-
-def _sq_command(project: SquadPaths, *args: str) -> list[str]:
-    """The `sq` console script of the running environment, on the project."""
-    script = shutil.which("sq", path=str(Path(sys.executable).parent))
-    assert script is not None, "the sq console script is not installed next to the interpreter"
-    return [script, "-C", str(project.root), *args]
-
-
 def _create(project: SquadPaths, title: str) -> list[str]:
-    return _sq_command(project, "create", "task", title, "--author", "manager", "--json")
-
-
-def _run(command: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, capture_output=True, text=True, env=_env(), check=False)
+    return sq_command(project, "create", "task", title, "--author", "manager", "--json")
 
 
 def _titles(project: SquadPaths) -> list[str]:
     """The titles of the tasks the squad holds, read back through `sq list`."""
-    listed = _run(_sq_command(project, "list", "--type", "task", "--json"))
+    listed = run(sq_command(project, "list", "--type", "task", "--json"))
     assert listed.returncode == 0, listed.stderr
     return [item["title"] for item in json.loads(listed.stdout)]
 
@@ -89,7 +70,7 @@ def test_concurrent_writers_serialise_and_leave_a_valid_index(project) -> None:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            env=_env(),
+            env=env(),
         )
         for n in range(4)
     ]
@@ -102,7 +83,7 @@ def test_concurrent_writers_serialise_and_leave_a_valid_index(project) -> None:
 
 def test_a_writer_finding_the_lock_held_says_so_then_proceeds_on_release(project, holder) -> None:
     holder(2.0)
-    result = _run(_create(project, "After the wait"))
+    result = run(_create(project, "After the wait"))
     assert (result.returncode, result.stderr) == (
         0,
         f"warning: waiting for the index lock {project.lock_path}…\n",
@@ -114,7 +95,7 @@ def test_a_writer_finding_the_lock_held_says_so_then_proceeds_on_release(project
 
 def test_a_lock_held_past_the_timeout_fails_the_command_and_writes_nothing(project, holder) -> None:
     holder(60.0)
-    result = _run(_create(project, "Never written"))
+    result = run(_create(project, "Never written"))
     assert (result.returncode, result.stdout, result.stderr) == (
         1,
         "",
@@ -129,7 +110,7 @@ def test_a_holder_killed_hard_releases_the_lock(project, holder) -> None:
     process = holder(60.0)
     process.kill()
     process.wait()
-    result = _run(_create(project, "After the kill"))
+    result = run(_create(project, "After the kill"))
     assert (result.returncode, result.stderr) == (0, "")
     created = json.loads(result.stdout)
     assert (created["id"], created["title"]) == ("TASK-2", "After the kill")

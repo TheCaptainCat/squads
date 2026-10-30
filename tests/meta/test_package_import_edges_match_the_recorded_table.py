@@ -273,6 +273,8 @@ _daemon -> _services top
 _daemon -> _spec_documents top
 _daemon -> squads top
 _daemon_link -> _endpoint top
+_daemon_start -> _daemon_link top
+_daemon_start -> _endpoint top
 _discussion -> _badges top
 _discussion -> _errors top
 _discussion -> _models top

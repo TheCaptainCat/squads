@@ -7,8 +7,6 @@ import socket
 import time
 from typing import Any
 
-from filelock import FileLock, Timeout
-
 from squads._endpoint import DaemonRecord, Endpoint, read_record
 
 #: Seconds a client waits for a daemon to answer an identity or stop request.
@@ -93,6 +91,8 @@ def lock_is_free(endpoint: Endpoint) -> bool:
     dead. A lock file nobody created is free."""
     if not endpoint.files.lock.exists():
         return True
+    from filelock import FileLock, Timeout
+
     probe = FileLock(
         str(endpoint.files.lock),
         thread_local=False,
