@@ -935,45 +935,6 @@ async def test_remove_refuses_an_actor_no_roster_entry_has(populated_project, in
 # --- the written sub-entity, with --json -----------------------------------------------------
 
 
-def _written_subtask(title: str, body: str, **outcome: Any) -> str:
-    """The populated task's second subtask as the written entry, with the write's *outcome*
-    beside it, as `--json` prints it: compared as text, so the key order is held as well as the
-    content."""
-    subtask = {
-        "local_id": f"{P.kind_prefix}2",
-        "title": title,
-        "status": "Todo",
-        "assignee": None,
-        "maps_to": None,
-        "deferred_to": None,
-        "body": body,
-        "badges": {},
-        "discussion": [],
-        "display": {
-            "type": "Subtask",
-            "status": {"badge": "⚪ Todo", "intent": "neutral"},
-            "badges": {},
-            "assignee": None,
-            "maps_to": None,
-            "maps_to_kind": {
-                "name": "story",
-                "label": "Story",
-                "plural": "stories",
-                "heading": "User Stories",
-            },
-            "carrier_title": None,
-            "kind": {
-                "name": P.kind,
-                "label": "Subtask",
-                "plural": P.kind_plural,
-                "heading": "Subtasks",
-            },
-            "discussion": None,
-        },
-    }
-    return json.dumps({"entry": subtask, **outcome}, indent=2) + "\n"
-
-
 @pytest.mark.covers("<type> <kind> remove", "--json")
 async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout(
     populated_project, invoke
