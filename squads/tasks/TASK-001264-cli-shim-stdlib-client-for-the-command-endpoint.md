@@ -3,7 +3,7 @@ id: TASK-1264
 sequence_id: 1264
 type: task
 title: 'CLI shim: stdlib client for the command endpoint'
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -42,7 +42,7 @@ subentities:
   status: Todo
   maps_to: US12
 created_at: '2026-10-30T20:30:30Z'
-updated_at: '2026-10-30T20:32:04Z'
+updated_at: '2026-10-30T21:36:25Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -197,4 +197,6 @@ Tests: none; the benchmark is a report.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-30T21:25:11Z] `python-dev` Elias Python:
+  - The shim must strip SQUADS_SPANS (and not forward SQUADS_DAEMON) from the environment it spawns the daemon with. A served command reads any name outside the sent list from the daemon own environment, so a daemon started under SQUADS_SPANS prints span lines into every served command stderr. The shim prints its own spans and the handler time (Server-Timing) itself.
 <!-- sq:discussion:end -->

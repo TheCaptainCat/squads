@@ -38,7 +38,7 @@ subentities:
   status: Done
   maps_to: US3
 created_at: '2026-10-30T20:30:24Z'
-updated_at: '2026-10-30T21:18:48Z'
+updated_at: '2026-10-30T21:36:24Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -192,4 +192,6 @@ Tests: no new case. Falsify: drop one `env` name, print one line outside the cap
     - Gaps for the architect: (a) Typer latches `FORCE_TERMINAL` and `TERMINAL_WIDTH` into module constants at import, from the daemon's environment, so a served `--help` or error box does not see the client's `FORCE_COLOR`/`PY_COLORS` and sizes itself from Rich's own detection in the daemon (80 columns when it has no terminal), not the client's terminal; my consoles (everything `common.console` prints) do use the client's. (b) The stdout/stderr outside a request fall back to the process's original streams (devnull for a detached daemon, pytest's capture in the test process), not to the daemon log. (c) A daemon spawned from a shell that exports `SQUADS_SPANS` still prints spans into served commands' stderr: the name is not on the sent list, so it reads the daemon's own. The shim should not pass it on when it spawns the daemon.
     - Test-suite changes outside the new files: `tests/cli/test_override.py` now reads the `--json` errors from `result.stderr` instead of the first two lines of the interleaved output (their position depended on the runner's stdout buffering; a served command keeps write order). `invoke` gains `routes` beside `remote`; `tests/_endpoint_client.py` is the harness's stand-in for the shim, to be replaced by the shim's own code in the next task.
     - Shared files touched (others may also edit): `src/squads/_services/_service.py` (`RequestScope.run` takes an optional `context`, new `command_context`), `src/squads/_context.py` (`ServedCommand`, `RequestContext.served`), `src/squads/_cli/_common.py`, `src/squads/_cli/__init__.py`, `tests/conftest.py`, `conftest.py`. Not touched: `_index/_store.py`, `_itemfile.py`.
+- [2026-10-30T21:36:24Z] `manager` Catherine Manager:
+  - Integrated on release/0.19 as fc95085f, fb353e94 and c6631735. Gates: pyright 0, ruff clean, manifest current, full suite 1925 passed, remote (endpoint) 999, routes 999, override 840, cross-process 22.
 <!-- sq:discussion:end -->

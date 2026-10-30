@@ -65714,7 +65714,7 @@
       ],
       "path": "tasks/TASK-001262-daemon-command-endpoint-cli-commands-served-in-process.md",
       "created_at": "2026-10-30T20:30:24Z",
-      "updated_at": "2026-10-30T21:18:48Z",
+      "updated_at": "2026-10-30T21:36:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -65782,7 +65782,7 @@
       "type": "task",
       "title": "CLI shim: stdlib client for the command endpoint",
       "slug": "cli-shim-stdlib-client-for-the-command-endpoint",
-      "status": "Draft",
+      "status": "Ready",
       "description": "squads.__main__ becomes a stdlib shim: lean endpoint path, local-only and file-argument tables, prompts, fall back before sending, Windows transport, CLI off HttpApi, the 100 ms budget",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -65859,7 +65859,7 @@
       ],
       "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
       "created_at": "2026-10-30T20:30:30Z",
-      "updated_at": "2026-10-30T20:32:04Z",
+      "updated_at": "2026-10-30T21:36:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
