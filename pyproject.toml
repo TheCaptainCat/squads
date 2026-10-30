@@ -94,7 +94,7 @@ src = ["src", "tests"]
 # .ts/node_modules there must never fail a Python run. squads/ holds sq-managed item files, never
 # reformatted by hand (ruff formats the Python blocks in Markdown); docs/backends.md keeps its
 # signature sketches as written.
-extend-exclude = ["clients", "squads", "docs/backends.md"]
+extend-exclude = ["clients", "./squads", "docs/backends.md"]
 
 [tool.ruff.lint]
 select = [

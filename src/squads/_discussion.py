@@ -368,10 +368,11 @@ def next_local_id(subentities: list[SubEntity], kind: str, spec: WorkflowSpec) -
     """The next free local id for ``kind``, computed from the parent's stored sub-entities.
 
     It takes the number past the highest on any entry, whatever its prefix, so a changed prefix
-    never allocates a number a stale id still holds. It uses the live set's max, not a persisted high-water mark (unlike the item-level counter).
-    Removing a sub-entity that is not the highest leaves a gap that is never reissued; removing the
-    highest frees its number for the next one added. That is accepted: a local id is a
-    within-parent label, not a durable cross-repo identity, so no persisted state closes it (see
+    never allocates a number a stale id still holds. It uses the live set's max, not a persisted
+    high-water mark (unlike the item-level counter). Removing a sub-entity that is not the
+    highest leaves a gap that is never reissued; removing the highest frees its number for the
+    next one added. That is accepted: a local id is a within-parent label, not a durable
+    cross-repo identity, so no persisted state closes it (see
     ``remove_block``).
     """
     prefix = spec.subentity_kinds[kind].local_prefix

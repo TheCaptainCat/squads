@@ -726,9 +726,7 @@ def _clear_field_param(field: Field) -> inspect.Parameter:
     return inspect.Parameter(
         f"no_{field.code}",
         inspect.Parameter.KEYWORD_ONLY,
-        default=typer.Option(
-            False, f"--no-{_flag(field.code)}", help=f"Clear {field.label}."
-        ),
+        default=typer.Option(False, f"--no-{_flag(field.code)}", help=f"Clear {field.label}."),
         annotation=bool,
     )
 

@@ -623,10 +623,7 @@ class _KindPlan:
             return {}
         out: dict[str, str | None] = {}
         for entry in item.subentities:
-            if (
-                entry.maps_to
-                and (renamed := self._renamed(entry.maps_to)) != entry.maps_to
-            ):
+            if entry.maps_to and (renamed := self._renamed(entry.maps_to)) != entry.maps_to:
                 out[entry.local_id] = renamed
         return out
 
