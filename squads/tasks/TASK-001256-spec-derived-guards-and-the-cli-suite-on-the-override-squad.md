@@ -3,7 +3,7 @@ id: TASK-1256
 sequence_id: 1256
 type: task
 title: Spec-derived guards and the CLI suite on the override squad
-status: InReview
+status: Done
 parent: FEAT-1249
 author: tech-lead
 assignee: python-dev
@@ -37,10 +37,10 @@ subentities:
   maps_to: US10
 - local_id: ST6
   title: Migrate this repository's squad at the cut
-  status: Todo
+  status: Done
   maps_to: US6
 created_at: '2026-10-29T19:55:11Z'
-updated_at: '2026-10-29T23:56:13Z'
+updated_at: '2026-10-30T06:41:59Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -223,4 +223,6 @@ This repository's squad migrates to 0.19 with the runner, and `sq check` is clea
     - Note for later: ADR-1172 also expects a remote-mode run and a cross-process set as CI jobs; neither exists in test.yml yet, so they are not part of this review.
 - [2026-10-29T23:56:13Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1259 (fifth pass): F31, F32 and F33 are for this task, F34 is for the operator. ST1 to ST5 hold otherwise; the derived covers markers were driven both ways.
+- [2026-10-30T06:41:58Z] `manager` Catherine Manager:
+  - ST6 done 2026-10-30: this repository squad migrated to schema 0.19 with sq migrate up (623 item files: story to maps_to, priority/severity reordered once), override re-stamped to v0.19.0, sq sync run, sq check clean, full suite green. Accepted Done (REV-1259 Approved).
 <!-- sq:discussion:end -->
