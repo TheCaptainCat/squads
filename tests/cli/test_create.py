@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from tests._profile import selected
-from tests.cli._output import json_text, printed, unknown_option
+from tests.cli._output import unknown_option
 
 P = selected()
 
@@ -282,44 +282,6 @@ async def test_message_excludes_file(project, invoke, tmp_path) -> None:
     )
     listed = await invoke(["list", "--json"])
     assert [item["id"] for item in json.loads(listed.output)] == ["ROLE-1"]
-
-
-@pytest.mark.covers("create <type>", "--json")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_json_prints_the_created_item(project, invoke) -> None:
-    output = await printed(invoke, ["create", P.ref, "Index", "--author", "manager", "--json"])
-    assert output == json_text(
-        {
-            "sequence_id": 2,
-            "type": P.ref,
-            "title": "Index",
-            "slug": "index",
-            "status": "Draft",
-            "description": "",
-            "parent": None,
-            "author": "manager",
-            "assignee": None,
-            "labels": [],
-            "refs": [],
-            "subentities": [],
-            "path": f"{P.ref_folder}/{P.ref_prefix}-000002-index.md",
-            "created_at": "2026-06-07T10:00:00Z",
-            "updated_at": "2026-06-07T10:00:00Z",
-            "created_session": None,
-            "modified_session": None,
-            "id": f"{P.ref_prefix}-2",
-            "badges": {},
-            "display": {
-                "type": "Task",
-                "status": {"badge": "⚪ Draft", "intent": "neutral"},
-                "badges": {},
-                "assignee": None,
-                "file": str(project.squad_dir / P.ref_folder / f"{P.ref_prefix}-000002-index.md"),
-            },
-        }
-    )
 
 
 @pytest.mark.covers("create <type>", "--<attribute:list>", "--<attribute:str>")

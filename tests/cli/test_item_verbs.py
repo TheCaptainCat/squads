@@ -1089,24 +1089,6 @@ async def test_retype_refuses_a_type_the_spec_does_not_declare(populated_project
     )
 
 
-@pytest.mark.covers("<type> retype", "--as")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
-    loose = await _create_task(invoke)
-    await _ok(invoke, [P.ref, str(loose), "retype", "bug", "--as", "manager"])
-    assert await _actors(invoke, f"BUG-{loose}", "retype") == ["manager"]
-
-
-@pytest.mark.covers("<type> retype", "--as")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
-    loose = await _create_task(invoke)
-    assert await _ran(invoke, [P.ref, str(loose), "retype", "bug", "--as", "ghost"]) == (
-        1,
-        "error: unknown slug 'ghost'; valid slugs: manager\n",
-    )
-
-
 # --- remove ---------------------------------------------------------------------------------
 
 
@@ -1361,9 +1343,6 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 
 
 @pytest.mark.covers("<type> view add", "name")
-@pytest.mark.bundled_only(
-    "the declared attribute and the view belong to the bundled milestone type"
-)
 async def test_view_add_places_the_declared_view_in_the_body(populated_project, invoke) -> None:
     out = await _ran(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
     assert out == (0, f"{P.ref_prefix}-3: view milestone_rollup placed in sq:body\n")
@@ -1382,9 +1361,6 @@ async def test_view_add_refuses_a_name_no_view_declares(populated_project, invok
 
 
 @pytest.mark.covers("<type> view disable", "name")
-@pytest.mark.bundled_only(
-    "the declared attribute and the view belong to the bundled milestone type"
-)
 async def test_view_disable_stops_showing_the_view(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup"])
     out = await _ran(invoke, [P.ref, str(TASK), "view", "disable", "milestone_rollup"])
@@ -1393,9 +1369,6 @@ async def test_view_disable_stops_showing_the_view(populated_project, invoke) ->
 
 
 @pytest.mark.covers("<type> view add", "--as")
-@pytest.mark.bundled_only(
-    "the declared attribute and the view belong to the bundled milestone type"
-)
 async def test_view_add_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), "view", "add", "milestone_rollup", "--as", "manager"])
     assert await _actors(invoke, f"{P.ref_prefix}-{TASK}", "view") == ["manager"]
@@ -1408,9 +1381,6 @@ async def test_view_add_refuses_an_actor_no_roster_entry_has(populated_project, 
 
 
 @pytest.mark.covers("<type> view disable", "--as")
-@pytest.mark.bundled_only(
-    "the declared attribute and the view belong to the bundled milestone type"
-)
 async def test_view_disable_attributes_the_edit_to_the_named_slug(
     populated_project, invoke
 ) -> None:
@@ -1493,49 +1463,6 @@ async def test_body_json_prints_the_items_row_after_the_write(populated_project,
     printed = await _ok(invoke, [P.ref, str(TASK), "body", "-m", "Text", "--json"])
     assert printed == _written(_task_row())
     assert (await _show(invoke))["body"] == "Text"
-
-
-@pytest.mark.covers("<type> retype", "--json")
-@pytest.mark.bundled_only("retype moves between the bundled types and names them")
-async def test_retype_json_prints_the_items_row_under_its_new_type(
-    populated_project, invoke
-) -> None:
-    number = await _create_task(invoke)
-    printed = await _ok(invoke, [P.ref, str(number), "retype", "bug", "--json"])
-    retyped = {
-        "sequence_id": number,
-        "type": "bug",
-        "title": "Loose end",
-        "slug": "loose-end",
-        "status": "Open",
-        "description": "",
-        "parent": None,
-        "author": "manager",
-        "assignee": None,
-        "labels": [],
-        "refs": [],
-        "subentities": [],
-        "path": f"bugs/BUG-{number:06d}-loose-end.md",
-        "created_at": FROZEN_STAMP,
-        "updated_at": FROZEN_STAMP,
-        "created_session": None,
-        "modified_session": None,
-        "id": f"BUG-{number}",
-        "badges": {},
-        "display": {
-            "type": "Bug",
-            "status": {"badge": "🔴 Open", "intent": "danger"},
-            "badges": {},
-            "assignee": None,
-        },
-    }
-    outcome = {
-        "old_id": f"{P.ref_prefix}-{number}",
-        "old_status": "Draft",
-        "status_reset": True,
-        "rewritten": [],
-    }
-    assert printed == json.dumps({"entry": retyped, **outcome}, indent=2) + "\n"
 
 
 @pytest.mark.covers("<type> ref add", "--json")

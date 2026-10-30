@@ -72,6 +72,13 @@ class Profile:
     list_attr: str
     str_type: str
     str_attr: str
+    #: A type retyped to another without parent or sub-entities, and the type it becomes.
+    retype_from: str
+    retype_from_prefix: str
+    retype_from_initial: str
+    retype_to: str
+    retype_to_prefix: str
+    retype_to_initial: str
     #: The types that cannot be created without a parent.
     needs_parent: tuple[str, ...]
     #: The status a reference item moves to from its initial status, and its initial status.
@@ -146,6 +153,12 @@ BUNDLED = Profile(
     list_attr="tags",
     str_type="guide",
     str_attr="tech",
+    retype_from="task",
+    retype_from_prefix="TASK",
+    retype_from_initial="Draft",
+    retype_to="bug",
+    retype_to_prefix="BUG",
+    retype_to_initial="Open",
     needs_parent=(),
     initial="Draft",
     moved="Ready",
@@ -198,6 +211,12 @@ OVERRIDE = Profile(
     list_attr="themes",
     str_type="job",
     str_attr="owner_team",
+    retype_from="record",
+    retype_from_prefix="REC",
+    retype_from_initial="Proposed",
+    retype_to="initiative",
+    retype_to_prefix="INI",
+    retype_to_initial="Draft",
     needs_parent=("job",),
     initial="Draft",
     moved="Ready",

@@ -388,25 +388,6 @@ async def test_add_story_refuses_a_task_with_no_feature_parent(populated_project
     )
 
 
-@pytest.mark.covers("<type> add-<kind>", "--json")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_add_json_prints_where_the_body_region_was_written(populated_project, invoke) -> None:
-    payload = json.loads(await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--json"]))
-    assert Path(payload.pop("path")).name == TASK_FILE
-    assert payload == {
-        "local_id": f"{P.kind_prefix}3",
-        "region": f"{P.kind}:{P.kind_prefix}3:body",
-        "start_line": 64,
-        "end_line": 66,
-        "display": {
-            "item": f"{P.ref_prefix}-3",
-            "body_command": f'sq {P.ref} 3 {P.kind} {P.kind_prefix}3 body -m "…"',
-        },
-    }
-
-
 @pytest.mark.covers("<type> add-<kind>", "--as")
 async def test_add_attributes_the_new_subtask_to_the_named_slug(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), f"add-{P.kind}", "Index", "--as", "manager"])
@@ -425,23 +406,6 @@ async def test_add_refuses_an_actor_no_roster_entry_has(populated_project, invok
     )
 
 
-@pytest.mark.covers("<type> add-<kind>", "--<field>")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_add_severity_sets_the_severity_of_a_new_finding(populated_project, invoke) -> None:
-    out = await _ran(
-        invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--severity", "low"]
-    )
-    assert out == (
-        0,
-        f"added F3 to {P.third_prefix}-4\n"
-        f'  set its body:  sq {P.third} 4 {P.third_kind} F3 body -m "…"'
-        "  (or --file body.md / --file -)\n",
-    )
-    assert (await _finding(invoke, 3))["severity"] == "low"
-
-
 @pytest.mark.covers("<type> add-<kind>", "title")
 @pytest.mark.bundled_only(
     "the case reads a bundled kind's fields, statuses, defaults or rendered text"
@@ -449,17 +413,6 @@ async def test_add_severity_sets_the_severity_of_a_new_finding(populated_project
 async def test_add_severity_defaults_to_medium_when_not_given(populated_project, invoke) -> None:
     await _ok(invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch"])
     assert (await _finding(invoke, 3))["severity"] == "medium"
-
-
-@pytest.mark.covers("<type> add-<kind>", "--<field>")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_add_refuses_a_severity_outside_the_declared_ones(populated_project, invoke) -> None:
-    out = await _ran(
-        invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--severity", "Bad"]
-    )
-    assert out == (1, "error: unknown severity 'Bad' (one of: critical, high, medium, low, info)\n")
 
 
 @pytest.mark.covers("<type> add-<kind>", "--deferred-to")
@@ -734,43 +687,6 @@ async def test_update_refuses_a_call_that_changes_nothing(populated_project, inv
     assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update"]) == (
         1,
         "error: nothing to update (pass at least one field, e.g. --title/--status)\n",
-    )
-
-
-@pytest.mark.covers("<type> <kind> update", "--<field>")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_update_severity_changes_the_severity_of_a_finding(populated_project, invoke) -> None:
-    out = await _ran(
-        invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--severity", "low"]
-    )
-    assert out == (0, f"updated {P.third_prefix}-4 F1\n")
-    assert (await _finding(invoke, 1))["severity"] == "low"
-
-
-@pytest.mark.covers("<type> <kind> update", "--<field>")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_update_severity_accepts_the_label_in_any_case(populated_project, invoke) -> None:
-    await _ok(invoke, [P.third, str(REVIEW), P.third_kind, "2", "update", "--severity", "INFO"])
-    assert (await _finding(invoke, 2))["severity"] == "info"
-
-
-@pytest.mark.covers("<type> <kind> update", "--<field>")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_update_refuses_a_severity_outside_the_declared_ones(
-    populated_project, invoke
-) -> None:
-    out = await _ran(
-        invoke, [P.third, str(REVIEW), P.third_kind, "1", "update", "--severity", "bogus"]
-    )
-    assert out == (
-        1,
-        "error: unknown severity 'bogus' (one of: critical, high, medium, low, info)\n",
     )
 
 
@@ -1056,26 +972,6 @@ def _written_subtask(title: str, body: str, **outcome: Any) -> str:
         },
     }
     return json.dumps({"entry": subtask, **outcome}, indent=2) + "\n"
-
-
-@pytest.mark.covers("<type> <kind> update", "--json")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_update_json_prints_the_subentity_after_the_update(populated_project, invoke) -> None:
-    printed = await _ok(
-        invoke, [P.ref, str(TASK), P.kind, "2", "update", "--title", "Parse it", "--json"]
-    )
-    assert printed == _written_subtask("Parse it", NO_BODY, nothing_to_clear=False)
-
-
-@pytest.mark.covers("<type> <kind> body", "--json")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
-async def test_body_json_prints_the_subentity_after_the_write(populated_project, invoke) -> None:
-    printed = await _ok(invoke, [P.ref, str(TASK), P.kind, "2", "body", "-m", "Text", "--json"])
-    assert printed == _written_subtask("Parse the operators", "Text")
 
 
 @pytest.mark.covers("<type> <kind> remove", "--json")

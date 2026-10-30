@@ -10,6 +10,7 @@ import pytest
 
 from tests._populated import REVIEW, TASK
 from tests._profile import selected
+from tests.cli._roster import forced_terminal
 
 pytestmark = pytest.mark.anyio
 
@@ -83,6 +84,8 @@ async def test_add_json_prints_the_entry_that_was_added(populated_project, invok
         await _ok(invoke, [P.third, str(REVIEW), f"add-{P.third_kind}", "Dead branch", "--json"])
     )
     assert printed["local_id"] == f"{P.third_kind_prefix}3"
+    assert printed["region"] == f"{P.third_kind}:{P.third_kind_prefix}3:body"
+    assert printed["display"]["item"] == THIRD_ID
 
 
 @pytest.mark.covers("<type> <kind> update", "--json")
@@ -121,7 +124,8 @@ async def test_show_adds_the_sub_entities_and_the_discussion_on_request(
     full = await _ok(invoke, [P.ref, str(TASK), "show", "--full"])
     discussed = await _ok(invoke, [P.ref, str(TASK), "show", "--comments"])
 
-    assert f"{P.kind_prefix}1 " in full
+    assert f"=== {P.kind_prefix}1 — " in full
+    assert f"=== {P.kind_prefix}1 — " not in await _ok(invoke, [P.ref, str(TASK), "show"])
     assert "Looks good" in discussed
 
 
@@ -133,33 +137,33 @@ async def test_the_bare_show_takes_the_same_views(populated_project, invoke) -> 
     discussed = await _ok(invoke, ["show", str(TASK), "--comments"])
     raw = await _ok(invoke, ["show", str(TASK), "--raw"])
 
-    assert (
-        f"{P.kind_prefix}1 " in full,
-        "Looks good" in discussed,
-        f"{P.ref_prefix}-3" in raw,
-    ) == (
-        True,
-        True,
-        True,
-    )
+    assert f"=== {P.kind_prefix}1 — " in full
+    assert "Looks good" in discussed
+    assert raw.startswith(f"# {P.ref_prefix}-3 — ")
+    assert not (await _ok(invoke, ["show", str(TASK)])).startswith("# ")
 
 
 @pytest.mark.covers("create <type>", "--json")
 async def test_create_json_prints_the_created_item(populated_project, invoke) -> None:
     args = ["create", P.ref, "Loose end", "--author", "manager", *P.parent_args(P.ref), "--json"]
     printed = json.loads(await _ok(invoke, args))
-    assert printed["type"] == P.ref
+    assert (printed["type"], printed["title"]) == (P.ref, "Loose end")
 
 
 @pytest.mark.covers("operator show", "--raw", "--comments")
-async def test_an_operator_shows_raw_and_with_its_discussion(populated_project, invoke) -> None:
+async def test_an_operator_shows_raw_and_with_its_discussion(
+    populated_project, invoke, monkeypatch
+) -> None:
     await _ok(invoke, ["operator", "add", "Alice Tester"])
     await _ok(invoke, ["operator", "op-alice", "comment", "--as", "manager", "-m", "Welcome."])
 
+    forced_terminal(monkeypatch)
     raw = await _ok(invoke, ["operator", "op-alice", "show", "--raw"])
+    rendered = await _ok(invoke, ["operator", "op-alice", "show"])
     discussed = await _ok(invoke, ["operator", "op-alice", "show", "--comments"])
 
-    assert raw == await _ok(invoke, ["operator", "op-alice", "show"])
+    assert raw != rendered
+    assert "**Operator (human)**" in raw
     assert "Welcome." in discussed
 
 
@@ -167,3 +171,60 @@ async def test_an_operator_shows_raw_and_with_its_discussion(populated_project, 
 async def test_the_squads_skill_shows(seeded_project, invoke) -> None:
     shown = await _ok(invoke, ["skill", "squads", "show"])
     assert f"sq {P.ref} " in shown
+
+
+async def _loose(invoke) -> int:
+    """Create an item of the type the profile retypes, with the parent it needs."""
+    args = ["create", P.retype_from, "Loose end", "--author", "manager"]
+    created = await _ok(invoke, [*args, *P.parent_args(P.retype_from)])
+    return int(created.split("-", 1)[1].split()[0])
+
+
+@pytest.mark.covers("<type> retype", "--as", "NEW-TYPE")
+async def test_retype_attributes_the_edit_to_the_named_slug(populated_project, invoke) -> None:
+    number = await _loose(invoke)
+    await _ok(invoke, [P.retype_from, str(number), "retype", P.retype_to, "--as", "manager"])
+
+    log = json.loads(
+        await _ok(
+            invoke,
+            ["reflog", "--item", f"{P.retype_to_prefix}-{number}", "--op", "retype", "--json"],
+        )
+    )
+
+    assert [entry["actor"] for entry in log] == ["manager"]
+
+
+@pytest.mark.covers("<type> retype", "--as")
+async def test_retype_refuses_an_actor_no_roster_entry_has(populated_project, invoke) -> None:
+    number = await _loose(invoke)
+    args = [P.retype_from, str(number), "retype", P.retype_to, "--as", "ghost"]
+    assert await _ran(invoke, args) == (1, "error: unknown slug 'ghost'; valid slugs: manager\n")
+
+
+@pytest.mark.covers("<type> retype", "--json")
+async def test_retype_json_prints_the_item_under_its_new_type(populated_project, invoke) -> None:
+    number = await _loose(invoke)
+    printed = json.loads(
+        await _ok(invoke, [P.retype_from, str(number), "retype", P.retype_to, "--json"])
+    )
+
+    entry = printed["entry"]
+    assert (entry["type"], entry["id"], entry["status"]) == (
+        P.retype_to,
+        f"{P.retype_to_prefix}-{number}",
+        P.retype_to_initial,
+    )
+    assert (printed["old_id"], printed["old_status"], printed["status_reset"]) == (
+        f"{P.retype_from_prefix}-{number}",
+        P.retype_from_initial,
+        True,
+    )
+
+
+@pytest.mark.covers("<type> <kind> update", "--<field>")
+async def test_update_accepts_the_value_in_any_case(populated_project, invoke) -> None:
+    args = [P.third, str(REVIEW), P.third_kind, "2", "update", FIELD_FLAG]
+    await _ok(invoke, [*args, P.third_other_value.upper()])
+    stored = (await _entry(invoke, 2))["badges"][P.third_field]
+    assert stored.lower() == P.third_other_value.lower()
