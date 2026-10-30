@@ -78,10 +78,9 @@ def test_a_remedy_path_is_spelled_from_the_client_directory_or_the_squad_root(
         return message.rsplit("--file ", 1)[1].rstrip("`")
 
     squad = project.squad_dir.name
-    assert remedy({}) == f"{squad}/.overrides/roles/ghost.toml"
+    ghost_path = str(Path(".overrides", "roles", "ghost.toml"))
+    assert remedy({}) == str(Path(squad, ghost_path))
     assert remedy({"Squads-Client-Dir": str(project.root.parent)}) == (
-        f"{project.root.name}/{squad}/.overrides/roles/ghost.toml"
+        str(Path(project.root.name, squad, ghost_path))
     )
-    assert Path(remedy({"Squads-Client-Dir": str(project.squad_dir)})) == Path(
-        ".overrides/roles/ghost.toml"
-    )
+    assert remedy({"Squads-Client-Dir": str(project.squad_dir)}) == ghost_path

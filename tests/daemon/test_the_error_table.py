@@ -4,6 +4,7 @@ partial read. Each case asserts the whole response; state is read back through t
 import json
 import logging
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from filelock import FileLock
@@ -200,7 +201,7 @@ def test_a_partial_read_answers_200_with_what_it_left_out(project: SquadPaths, s
             "data": {"items": [{"n": 1, **notice}]},
             "omitted": [
                 {
-                    "source": "board/BOARD-broken.md",
+                    "source": str(Path("board") / "BOARD-broken.md"),
                     "message": f"{broken} is not valid UTF-8: byte 0xff at offset 0 "
                     "— invalid start byte",
                     "code": "unreadable",

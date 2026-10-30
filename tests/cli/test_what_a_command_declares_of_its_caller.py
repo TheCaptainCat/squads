@@ -3,6 +3,7 @@ come from the directory it started in, and the reflog records the session lineag
 declares. In remote mode both reach the daemon only as headers, so dropping one fails these."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -28,7 +29,7 @@ async def test_a_remedy_path_is_spelled_from_the_directory_the_command_started_i
         1,
         "error: role 'ghost' is declared only by .overrides/roles/ghost.toml, which layers over "
         "a role and does not define one; create the role with `sq role add ghost --file "
-        ".overrides/roles/ghost.toml`\n",
+        f"{Path('.overrides', 'roles', 'ghost.toml')!s}`\n",
     )
 
 
