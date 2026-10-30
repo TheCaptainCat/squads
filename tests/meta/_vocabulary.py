@@ -102,12 +102,28 @@ def source_files(root: Path, *suffixes: str) -> Iterator[Path]:
             yield path
 
 
+def _is_command(node: ast.AST) -> bool:
+    """Whether *node* is a function registered as a command or group callback, whose docstring
+    Typer prints as `--help`."""
+    return isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and any(
+        isinstance(d, ast.Call)
+        and isinstance(d.func, ast.Attribute)
+        and d.func.attr in ("command", "callback")
+        for d in node.decorator_list
+    )
+
+
 def _docstring_ids(tree: ast.AST) -> set[int]:
+    """The docstrings that are developer prose: every one but those of commands."""
     ids: set[int] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Module | ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
             first = node.body[0] if node.body else None
-            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+            if (
+                isinstance(first, ast.Expr)
+                and isinstance(first.value, ast.Constant)
+                and not _is_command(node)
+            ):
                 ids.add(id(first.value))
     return ids
 

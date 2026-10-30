@@ -125,3 +125,21 @@ def test_only_the_defining_assignment_of_an_engine_constant_may_spell_its_word(
     }
 
     assert (word in found["defined"], word in found["spelled"]) == (False, True)
+
+
+def test_a_command_docstring_is_help_text_and_any_other_docstring_is_prose(tmp_path: Path) -> None:
+    prefix = _a_prefix()
+    help_text = f'"""Show it.\n\n    Pass `{prefix}-<n>`.\n    """'
+    _plant(
+        tmp_path / "command",
+        "_a.py",
+        f"@app.command()\ndef show() -> None:\n    {help_text}\n",
+    )
+    _plant(
+        tmp_path / "plain",
+        "_a.py",
+        f"def show() -> None:\n    {help_text}\n",
+    )
+
+    assert prefix in _found(tmp_path / "command", vocabulary.TYPE)
+    assert _found(tmp_path / "plain", vocabulary.TYPE) == []

@@ -23,7 +23,7 @@
 # ---------------------------------------------------------------------------
 
 [lifecycles.work]
-# Work items: Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)
+# Work items: Draft → Ready → InProgress → InReview → Done (+ Cancelled, Blocked)
 initial = "Draft"
 
 [lifecycles.work.transitions]
@@ -82,7 +82,7 @@ Approved = []
 Rejected = []
 
 [lifecycles.bug]
-# Bug: Open → InProgress → Fixed → Verified (+ WontFix, Blocked, Cancelled)
+# Bug: Open → InProgress → Fixed → Verified (+ WontFix, Cancelled, Blocked)
 initial = "Open"
 
 [lifecycles.bug.transitions]

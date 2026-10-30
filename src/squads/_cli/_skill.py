@@ -245,8 +245,8 @@ def skill_link_role(
 ) -> None:
     """Scope this skill to ROLE and update that role's pointer at once.
 
-    Prefer this to `ref add --kind scopes`, which writes the same ref but leaves
-    the role's pointer stale until the next `sq sync`.
+    Prefer this to adding the scoping ref by hand, which writes the same ref but
+    leaves the role's pointer stale until the next `sq sync`.
     """
     common.declare_actor(as_)
     request = SkillRoleRequest(addr=address_of(ctx), role=role)

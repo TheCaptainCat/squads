@@ -526,9 +526,9 @@ def _cmd_retype(item: typer.Typer) -> None:
     ):
         """Reclassify this item to a different type, keeping its number and body.
 
-        Only the prefix changes, as `TASK-<n>` to `BUG-<n>`, and every reference to
-        the item is rewritten. The status is kept when both types share a lifecycle,
-        and reset to the new type's first status otherwise.
+        Only the prefix changes, as `<PREFIX>-<n>` to `<NEW-PREFIX>-<n>`, and every
+        reference to the item is rewritten. The status is kept when both types share
+        a lifecycle, and reset to the new type's first status otherwise.
         """
         target = parse_type(new_type)
         wt = common.get_active_spec().non_roster_types()

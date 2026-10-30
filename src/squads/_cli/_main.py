@@ -369,10 +369,9 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 
     Closed items are hidden unless `--all` or `--status` is given. What counts as
     closed depends on the item's category: a work or roster item hides on a
-    terminal status, while a records item such as a decision stays visible on
-    `Accepted` or `Published` and hides once retired (`Superseded`, `Deprecated`,
-    `Cancelled`). Filters combine: an item is listed only when it matches every
-    one given.
+    terminal status, while a records item such as a decision stays visible while
+    it is in force and hides once retired. Filters combine: an item is listed only
+    when it matches every one given.
     """
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
@@ -792,8 +791,8 @@ def reflog(
 ):
     """Show the log of every command that changed the squad, latest last.
 
-    Filters combine: `--item TASK-<n> --op status` shows only that item's status
-    changes. A squad with no log yet prints nothing rather than an error.
+    Filters combine: `--item <PREFIX>-<n> --op status` shows only that item's
+    status changes. A squad with no log yet prints nothing rather than an error.
     """
     from squads import _clock as clock
 
