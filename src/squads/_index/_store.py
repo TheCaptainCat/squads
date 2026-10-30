@@ -73,7 +73,12 @@ from filelock import FileLock, Timeout
 from pydantic import ValidationError
 
 from squads import _aio
-from squads._errors import IndexLockTimeoutError, SquadsError, UndecodableFileError
+from squads._errors import (
+    IndexLockTimeoutError,
+    IndexLockUnavailableError,
+    SquadsError,
+    UndecodableFileError,
+)
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -336,13 +341,16 @@ class IndexStore:
         """Take Layer 3: wait up to :data:`_LOCK_NOTICE_AFTER` quietly, say so on stderr, then
         wait out the rest of the timeout.
 
-        Raises :class:`IndexLockTimeoutError` when the lock is still held at the end.
+        Raises :class:`IndexLockTimeoutError` when the lock is still held at the end, and
+        :class:`IndexLockUnavailableError` when the file system cannot take it.
         """
         first = min(_LOCK_NOTICE_AFTER, self._lock_timeout)
         try:
             await _aio.to_thread(partial(self._lock.acquire, timeout=first))
         except Timeout:
             await self._acquire_after_notice(first)
+        except OSError as exc:
+            raise IndexLockUnavailableError(self.lock_path, exc.strerror or str(exc)) from exc
 
     async def _acquire_after_notice(self, waited: float) -> None:
         """Say on stderr that the lock is being waited for, then wait out the timeout's rest."""
@@ -353,6 +361,8 @@ class IndexStore:
             )
         except Timeout:
             raise IndexLockTimeoutError(self.lock_path) from None
+        except OSError as exc:
+            raise IndexLockUnavailableError(self.lock_path, exc.strerror or str(exc)) from exc
 
     # ------------------------------------------------------------------ create / read
     def create_empty(self) -> SquadsDB:

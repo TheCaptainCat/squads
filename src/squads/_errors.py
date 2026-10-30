@@ -97,6 +97,18 @@ class IndexFullError(SquadsError):
         self.padding = padding
 
 
+class IndexLockUnavailableError(SquadsError):
+    """The file system cannot take the index lock, so the index cannot be guarded."""
+
+    def __init__(self, lock_path: Path, reason: str) -> None:
+        super().__init__(
+            f"cannot take the index lock {lock_path}: {reason}; this file system does not "
+            "support file locks, so sq cannot guard the index there, "
+            "move the squad to one that does"
+        )
+        self.lock_path = lock_path
+
+
 class IndexLockTimeoutError(SquadsError):
     """The index lock stayed held by another process for the whole wait."""
 
