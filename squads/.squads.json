@@ -63448,7 +63448,7 @@
       ],
       "path": "reviews/REV-001223-review-of-the-daemon-feature-s-delivered-tasks.md",
       "created_at": "2026-10-28T18:45:17Z",
-      "updated_at": "2026-10-29T16:24:02Z",
+      "updated_at": "2026-10-30T00:58:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -67006,7 +67006,7 @@
         {
           "local_id": "F3",
           "title": "No-flock filesystem ends in a traceback, not a SquadsError",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -67062,11 +67062,31 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "F9",
+          "title": "Lock error message claims nothing was written; sq init has",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F10",
+          "title": "Cross-process CI job gets 15 min on Windows; ADR-1172 says 10",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001260-review-of-the-dependency-upgrade.md",
       "created_at": "2026-10-30T00:20:29Z",
-      "updated_at": "2026-10-30T00:44:57Z",
+      "updated_at": "2026-10-30T00:57:38Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},

@@ -20,7 +20,7 @@ subentities:
   severity: medium
 - local_id: F3
   title: No-flock filesystem ends in a traceback, not a SquadsError
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Killed-holder case bounds wall-clock time; holder docstring wrong
@@ -42,8 +42,16 @@ subentities:
   title: CHANGELOG lists none of the upgrade's adopter-visible changes
   status: Verified
   severity: medium
+- local_id: F9
+  title: Lock error message claims nothing was written; sq init has
+  status: Open
+  severity: low
+- local_id: F10
+  title: Cross-process CI job gets 15 min on Windows; ADR-1172 says 10
+  status: Open
+  severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T00:44:57Z'
+updated_at: '2026-10-30T00:57:38Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -134,6 +142,11 @@ Fix: catch the `OSError` from the lock acquire in `_index/_store.py` and raise a
     - Fix: keep the "does not support file locks… move the squad" wording for `errno` ENOSYS (and ENOLCK/EOPNOTSUPP if you judge them the same case). Any other `OSError` gets a `SquadsError` that names the lock path and `strerror` with no claim about the file system. Add one surface case for the other branch (EACCES).
     - Marker: the case declares `covers("create <type>", "--author")`, but its subject is the refusal. As in F5, declare the bare key `covers("create <type>")`.
     - @python-dev
+- [2026-10-30T00:57:34Z] `reviewer` Paul Reviewer:
+  - - Verified at 32a8e94a (2a46569e), on a scratch export and scratch squads.
+    - Both branches driven on the real filelock path. A read-only `.squads.json.lock` (chmod 444) with `sq create task`: exit 1, `cannot take the index lock …: Permission denied; nothing was written`, no task file. `fcntl.flock` raising ENOLCK: exit 1, the "does not support file locks… move the squad" wording.
+    - Cases: both in tests/cli/test_repair.py with bare `covers("repair")`; the EACCES case also checks that `list --json` is unchanged. Both falsified: forcing the no-lock branch turns the EACCES case red, forcing the other branch turns the ENOSYS case red; restored, 2 passed.
+    - The new clause "nothing was written" is not true for every caller. That is F9, filed apart from this finding.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -219,6 +232,40 @@ Fix (tech writer): write the entries from the handback. If G3 lands, the no-floc
   - Fixed in the working tree (uncommitted); each item was checked at HEAD on a scratch squad. CHANGELOG 0.19.0 Changed has a BREAKING entry for the Typer 0.27.3 wording (braced and lower-case usage names, `Missing argument 'title'.` with declared names such as STATUS kept, `is not a valid int.`, the `<str>`/`<int>` help column and the Arguments panel), an index-lock entry (the file stays on disk; no fallback where the filesystem has no lock) and the raised minimum versions. Fixed has the plain-text option suggestion. The existing 0.19 entry that quoted `Missing argument 'TITLE'.` and the two quotes of `--impact TEXT` (overrides.md and CHANGELOG) now show the new text, and the README `sq search TEXT` synopsis reads `<text>`. The lock entry does not quote a message for the no-lock case: until F3 lands it ends in a traceback.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
+
+<!-- sq:finding:F9 -->
+### F9 — Lock error message claims nothing was written; sq init has
+
+<!-- sq:finding:F9:body -->
+The other-error branch of `IndexLockUnavailableError` (`_errors.py`) ends with "nothing was written". That holds for commands whose first write is inside the lock (create, repair), but not for every caller. Driven: `sq init` in an empty git repo with `FileLock.acquire` raising EACCES prints `cannot take the index lock …: Permission denied; nothing was written` and exits 1. It has already written `.squads.toml`, `.gitignore`, `squads/.squads.json`, `squads/.gitignore` and `.claude/settings.json`, because init takes the lock only when it seeds the skills. A rerun then finds a squad that the message said was never written.
+
+The trigger is rare (the lock has to fail in a directory init has just written to), but the sentence is unconditional and the store cannot know what its caller has written before.
+
+Fix: drop "; nothing was written" so the message names the lock path and the system text only, and keep the `list --json` check in the EACCES case. Optional, same lines: add `errno.ENOTSUP` to `_NO_FILE_LOCKS`. On Linux it is the same value as EOPNOTSUPP (95). On macOS they differ (45 and 102), and macOS flock(2) documents ENOTSUP. This is inferred from the man page and was not run on macOS.
+<!-- sq:finding:F9:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F9:discussion -->
+<!-- sq:finding:F9:discussion:end -->
+<!-- sq:finding:F9:end -->
+
+<!-- sq:finding:F10 -->
+### F10 — Cross-process CI job gets 15 min on Windows; ADR-1172 says 10
+
+<!-- sq:finding:F10:body -->
+Commit 28999c46 gives the `cross-process` job `timeout-minutes: ${{ matrix.os == 'windows-latest' && 15 || 10 }}`. ADR-1172 "Time bound" (refined in 8e8abce4, after that commit) says the cross-process set is a CI test job under the same targets, and that "the 15-minute bound is only for the Windows job that runs the full suite". That job is `test`. The cross-process job on Windows is bounded at 10.
+
+`test` (15 on Windows, 10 elsewhere), `override-squad` (10) and `lint` (10, not a test job) match the ADR.
+
+Fix: `timeout-minutes: 10` on `cross-process`, with no per-OS expression.
+<!-- sq:finding:F10:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F10:discussion -->
+<!-- sq:finding:F10:discussion:end -->
+<!-- sq:finding:F10:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -260,4 +307,8 @@ Fix (tech writer): write the entries from the handback. If G3 lands, the no-floc
     - Verdict: changes requested. Only F3 is left (one branch narrowed, one case added). Once it is verified, and with F7 left to op-pierre, I recommend Approved.
 - [2026-10-30T00:44:57Z] `python-dev` Elias Python:
   - F3 reopened and fixed in bb2ccde0: ENOSYS, ENOLCK and EOPNOTSUPP keep the file-system wording; any other OSError says cannot take the index lock PATH: SYSTEM TEXT; nothing was written. Cases moved to tests/cli/test_repair.py (repair takes the lock with no parameters, so the marker is the bare covers("repair"); a bare create key cannot be reached with a title), ENOSYS and EACCES, both falsified.
+- [2026-10-30T00:57:38Z] `reviewer` Paul Reviewer:
+  - - Third pass at 32a8e94a. F3 Verified (see its thread). Two new low findings: F9, "nothing was written" is false when `sq init` meets a lock error; F10, the cross-process job gets 15 min on Windows, but ADR-1172 keeps 15 for the full-suite Windows job only.
+    - CI timeout commit 28999c46 otherwise matches ADR-1172: `test` 15 on Windows and 10 elsewhere, `override-squad` 10, cross-process run with `-n0`.
+    - Verdict: changes requested on F9 and F10 only. Each is a one-line edit. When both are verified, and with F7 left to op-pierre, I recommend Approved. BUG-1192 stays Fixed until then. @python-dev
 <!-- sq:discussion:end -->

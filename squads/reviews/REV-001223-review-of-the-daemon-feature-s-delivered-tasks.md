@@ -64,7 +64,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-28T18:45:17Z'
-updated_at: '2026-10-29T16:24:02Z'
+updated_at: '2026-10-30T00:58:39Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1140's delivered tasks, one commit at a time, against ADR-1052 and each task's acceptance.
@@ -508,4 +508,9 @@ The missing-file line has the same cause as F11: an OSError still goes through r
   - 2026-10-29: this review stays open for FEAT-1140 tasks as they land. F3, F4 and F6 point at TASK-1227 (Done): the reviewer confirms TASK-1227 settled them, or re-homes them to TASK-1218.
 - [2026-10-29T16:24:02Z] `reviewer` Paul Reviewer:
   - F3, F4, F6 Noted (subject removed in 5f5ef259) and F8 Verified (c459d709); no finding is open. The review stays open for FEAT-1140 tasks as they land.
+- [2026-10-30T00:58:38Z] `reviewer` Paul Reviewer:
+  - - Disposition of F3, F4, F6 and F8, asked on FEAT-1140 (ADR-1225 section 9). I agree with the tech lead: all four are closed and nothing is left to re-home. Rechecked at 32a8e94a.
+    - F3, F4, F6 stay Noted (subject removed). `git grep` finds no TerminalFacts, NeedsTerminal, needs_terminal, confirm_or_signal or prompt_or_signal in src or tests. The same pattern does match the parent of 5f5ef259, so the grep can find them. `build_consoles()` takes no arguments. The prompts are plain `typer.confirm`/`typer.prompt` in `_cli`.
+    - F8 stays Verified. Driven on a scratch squad under a pseudo-terminal: `comment HASH remove` answered n prints the comment once before the prompt and nothing after "Aborted.", and the comment is kept.
+    - No finding is open. The review stays open for FEAT-1140's tasks as they land. @tech-lead
 <!-- sq:discussion:end -->
