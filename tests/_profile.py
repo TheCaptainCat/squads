@@ -56,6 +56,7 @@ class Profile:
     third_kind_plural: str
     third_field: str
     third_value: str
+    third_codes: str
     third_other_value: str
     #: A badge field of the reference type, a value of it, another value, and an unset marker.
     badge: str
@@ -64,12 +65,28 @@ class Profile:
     badge_codes: str
     badge_value: str
     badge_other_value: str
+    #: A type with a create-time date attribute, a list one and a string one, and their names.
+    date_type: str
+    date_attr: str
+    list_type: str
+    list_attr: str
+    str_type: str
+    str_attr: str
+    #: The types that cannot be created without a parent.
+    needs_parent: tuple[str, ...]
     #: The status a reference item moves to from its initial status, and its initial status.
     initial: str
     moved: str
     #: The status a sub-entity of the reference kind starts at and one it moves to.
     kind_initial: str
     kind_moved: str
+
+    def parent_args(self, item_type: str) -> list[str]:
+        """The arguments that give *item_type* the parent it needs, if it needs one."""
+        return ["--parent", str(HOST)] if item_type in self.needs_parent else []
+
+    def attr_flag(self, attribute: str) -> str:
+        return "--" + attribute.replace("_", "-")
 
     def ref_id(self, number: int) -> str:
         return f"{self.ref_prefix}-{number}"
@@ -115,6 +132,7 @@ BUNDLED = Profile(
     third_kind_plural="findings",
     third_field="severity",
     third_value="High",
+    third_codes="critical, high, medium, low, info",
     third_other_value="Low",
     badge="priority",
     badge_flag="--priority",
@@ -122,6 +140,13 @@ BUNDLED = Profile(
     badge_codes="urgent, high, medium, low",
     badge_value="high",
     badge_other_value="low",
+    date_type="milestone",
+    date_attr="target_date",
+    list_type="guide",
+    list_attr="tags",
+    str_type="guide",
+    str_attr="tech",
+    needs_parent=(),
     initial="Draft",
     moved="Ready",
     kind_initial="Todo",
@@ -159,6 +184,7 @@ OVERRIDE = Profile(
     third_kind_plural="actions",
     third_field="impact",
     third_value="large",
+    third_codes="large, small",
     third_other_value="small",
     badge="work_size",
     badge_flag="--work-size",
@@ -166,6 +192,13 @@ OVERRIDE = Profile(
     badge_codes="s, m, l",
     badge_value="m",
     badge_other_value="l",
+    date_type="initiative",
+    date_attr="horizon",
+    list_type="initiative",
+    list_attr="themes",
+    str_type="job",
+    str_attr="owner_team",
+    needs_parent=("job",),
     initial="Draft",
     moved="Ready",
     kind_initial="Todo",

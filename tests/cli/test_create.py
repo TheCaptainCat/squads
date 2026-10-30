@@ -193,24 +193,22 @@ async def test_assignee_refuses_a_slug_that_is_not_registered(project, invoke) -
 
 
 @pytest.mark.covers("create <type>", "--<field>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_priority_sets_the_priority(project, invoke) -> None:
-    result = await invoke(["create", P.ref, "Index", "--author", "manager", "--priority", "high"])
+async def test_a_field_flag_sets_the_value_of_the_squads_field(populated_project, invoke) -> None:
+    args = ["create", P.ref, "Index", "--author", "manager", *P.parent_args(P.ref)]
+    result = await invoke([*args, P.badge_flag, P.badge_value])
     assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, P.ref, 2))["priority"] == "high"
+    assert (await _shown(invoke, P.ref, 5))[P.badge] == P.badge_value
 
 
 @pytest.mark.covers("create <type>", "--<field>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_priority_refuses_a_code_the_collection_does_not_declare(project, invoke) -> None:
-    result = await invoke(["create", P.ref, "Index", "--author", "manager", "--priority", "nope"])
+async def test_a_field_flag_refuses_a_code_the_collection_does_not_declare(
+    populated_project, invoke
+) -> None:
+    args = ["create", P.ref, "Index", "--author", "manager", *P.parent_args(P.ref)]
+    result = await invoke([*args, P.badge_flag, "nope"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: invalid priority 'nope' (one of: urgent, high, medium, low)\n",
+        f"error: invalid {P.badge} 'nope' (one of: {P.badge_codes})\n",
     )
 
 
@@ -242,14 +240,12 @@ async def test_a_declared_field_flag_sets_the_value_the_squad_names(
 
 
 @pytest.mark.covers("create <type>", "--<field>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_priority_refuses_an_empty_value(project, invoke) -> None:
-    result = await invoke(["create", P.ref, "Index", "--author", "manager", "--priority", ""])
+async def test_a_field_flag_refuses_an_empty_value(populated_project, invoke) -> None:
+    args = ["create", P.ref, "Index", "--author", "manager", *P.parent_args(P.ref)]
+    result = await invoke([*args, P.badge_flag, ""])
     assert (result.exit_code, result.output) == (
         1,
-        "error: invalid priority '' (one of: urgent, high, medium, low)\n",
+        f"error: invalid {P.badge} '' (one of: {P.badge_codes})\n",
     )
 
 
@@ -324,30 +320,43 @@ async def test_json_prints_the_created_item(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("create <type>", "--<attribute:list>")
-@pytest.mark.covers("create <type>", "--<attribute:str>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_create_guide_stores_each_tag_in_order_and_the_tech(project, invoke) -> None:
+@pytest.mark.covers("create <type>", "--<attribute:list>", "--<attribute:str>")
+async def test_create_stores_each_list_value_in_order_and_the_string(
+    populated_project, invoke
+) -> None:
+    list_args = [P.attr_flag(P.list_attr), "ops", P.attr_flag(P.list_attr), "dev"]
     result = await invoke(
         [
             "create",
-            "guide",
+            P.list_type,
             "Setup",
             "--author",
             "manager",
-            "--tags",
-            "ops",
-            "--tags",
-            "dev",
-            "--tech",
-            "python",
+            *P.parent_args(P.list_type),
+            *list_args,
+            *([P.attr_flag(P.str_attr), "python"] if P.str_type == P.list_type else []),
         ]
     )
     assert result.exit_code == 0, result.output
-    shown = await _shown(invoke, "guide", 2)
-    assert (shown["tags"], shown["tech"]) == (["ops", "dev"], "python")
+    shown = await _shown(invoke, P.list_type, 5)
+    assert shown[P.list_attr] == ["ops", "dev"]
+    if P.str_type == P.list_type:
+        assert shown[P.str_attr] == "python"
+    else:
+        other = await invoke(
+            [
+                "create",
+                P.str_type,
+                "Owned",
+                "--author",
+                "manager",
+                *P.parent_args(P.str_type),
+                P.attr_flag(P.str_attr),
+                "python",
+            ]
+        )
+        assert other.exit_code == 0, other.output
+        assert (await _shown(invoke, P.str_type, 6))[P.str_attr] == "python"
 
 
 @pytest.mark.covers("create <type>", "--<field>")
@@ -386,53 +395,63 @@ async def test_review_target_ref_sets_the_reviewed_ref(populated_project, invoke
 
 
 @pytest.mark.covers("create <type>", "--<attribute:date>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_milestone_target_date_sets_the_date(project, invoke) -> None:
+async def test_a_date_attribute_flag_stores_the_date(populated_project, invoke) -> None:
     result = await invoke(
-        ["create", "milestone", "Ship", "--author", "manager", "--target-date", "2026-12-01"]
+        [
+            "create",
+            P.date_type,
+            "Ship",
+            "--author",
+            "manager",
+            *P.parent_args(P.date_type),
+            P.attr_flag(P.date_attr),
+            "2026-12-01",
+        ]
     )
     assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "milestone", 2))["target_date"] == "2026-12-01"
+    assert (await _shown(invoke, P.date_type, 5))[P.date_attr] == "2026-12-01"
 
 
 @pytest.mark.covers("create <type>", "--<attribute:date>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_milestone_target_date_refuses_a_value_that_is_not_a_date(project, invoke) -> None:
+async def test_a_date_attribute_flag_refuses_a_value_that_is_not_a_date(
+    populated_project, invoke
+) -> None:
     result = await invoke(
-        ["create", "milestone", "Ship", "--author", "manager", "--target-date", "soon"]
+        [
+            "create",
+            P.date_type,
+            "Ship",
+            "--author",
+            "manager",
+            *P.parent_args(P.date_type),
+            P.attr_flag(P.date_attr),
+            "soon",
+        ]
     )
     assert (result.exit_code, result.output) == (
         1,
-        "error: 'target_date' expects an ISO date (YYYY-MM-DD); got 'soon'\n",
+        f"error: '{P.date_attr}' expects an ISO date (YYYY-MM-DD); got 'soon'\n",
     )
 
 
 @pytest.mark.covers("create <type>", "--<attribute:list>")
-@pytest.mark.bundled_only(
-    "the case creates or reads a bundled type's own options, defaults or messages"
-)
-async def test_tags_split_on_commas_and_drop_blanks_as_update_set_does(project, invoke) -> None:
+async def test_list_attribute_values_split_on_commas_and_drop_blanks(
+    populated_project, invoke
+) -> None:
+    flag = P.attr_flag(P.list_attr)
     result = await invoke(
         [
             "create",
-            "guide",
+            P.list_type,
             "Setup",
             "--author",
             "manager",
-            "--tags",
-            "a,b",
-            "--tags",
-            " ",
-            "--tags",
-            "c",
+            *P.parent_args(P.list_type),
+            *[flag, "a,b", flag, " ", flag, "c"],
         ]
     )
     assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "guide", 2))["tags"] == ["a", "b", "c"]
+    assert (await _shown(invoke, P.list_type, 5))[P.list_attr] == ["a", "b", "c"]
 
 
 @pytest.mark.covers("create <type>", "title")

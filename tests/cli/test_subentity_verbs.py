@@ -565,21 +565,20 @@ async def test_update_refuses_a_status_the_spec_does_not_declare(populated_proje
 
 
 @pytest.mark.covers("<type> <kind> update", "--force")
-@pytest.mark.bundled_only(
-    "the case reads a bundled kind's fields, statuses, defaults or rendered text"
-)
 async def test_update_force_makes_a_move_the_lifecycle_refuses(populated_project, invoke) -> None:
     await _ok(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", "Done"])
-    refused = await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", "Cancelled"])
+    refused = await _ran(
+        invoke, [P.ref, str(TASK), P.kind, "1", "update", "--status", P.kind_initial]
+    )
     assert refused == (
         1,
-        f"error: {P.kind} {P.kind_prefix}1 cannot move Done → Cancelled (use --force to "
+        f"error: {P.kind} {P.kind_prefix}1 cannot move Done → {P.kind_initial} (use --force to "
         f"override)\n",
     )
     assert (await _subtask(invoke, 1))["status"] == "Done"
-    forced = [P.ref, str(TASK), P.kind, "1", "update", "--status", "Cancelled", "--force"]
+    forced = [P.ref, str(TASK), P.kind, "1", "update", "--status", P.kind_initial, "--force"]
     assert await _ran(invoke, forced) == (0, f"updated {P.ref_prefix}-3 {P.kind_prefix}1\n")
-    assert (await _subtask(invoke, 1))["status"] == "Cancelled"
+    assert (await _subtask(invoke, 1))["status"] == P.kind_initial
 
 
 @pytest.mark.covers("<type> <kind> update", "--assignee")
