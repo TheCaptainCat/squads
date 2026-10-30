@@ -49,9 +49,7 @@ def _breaches(loaded: list[str]) -> list[str]:
         if name == banned or name.startswith(banned + ".")
     ]
     found += [
-        name
-        for name in loaded
-        if name.startswith("squads._index") and name not in _INDEX_ALLOWED
+        name for name in loaded if name.startswith("squads._index") and name not in _INDEX_ALLOWED
     ]
     return sorted(set(found))
 

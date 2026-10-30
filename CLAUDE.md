@@ -32,9 +32,8 @@ goes through an operation.
 Every package-to-package import edge, with where it runs (module top, inside a function, or
 under `TYPE_CHECKING`), is recorded in
 `tests/meta/test_package_import_edges_match_the_recorded_table.py`; that table is the layering
-authority, and a new edge is a row in its diff. Six packages (`_badges`, `_interactions`,
-`_overrides`, `_paths`, `_rendering`, `_workflow`) import each other at module top, so
-the graph is not a strict stack; the guard pins that set too.
+authority, and a new edge is a row in its diff. No set of packages imports each other at module
+top, and the guard holds that too: an import that would close a cycle goes inside a function.
 
 **Module privacy convention.** Every implementation module and subpackage is **private** —
 leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …). Package

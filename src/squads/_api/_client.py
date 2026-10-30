@@ -59,6 +59,7 @@ class HttpApi:
         package_version: str,
         local: Callable[[], Api] | None,
         waiting: Callable[[str], None] | None = None,
+        resolve: Callable[[], tuple[Connect, str]] | None = None,
     ) -> None:
         self._connect = connect
         self._endpoint = endpoint
@@ -67,6 +68,7 @@ class HttpApi:
         self._package_version = package_version
         self._local = local
         self._waiting = waiting
+        self._resolve = resolve
         #: Whether the last call was declined by a daemon whose configuration had changed.
         self.declined = False
         #: The handler time the daemon reported for the last call, in milliseconds.
@@ -98,16 +100,25 @@ class HttpApi:
             return None
         method, target, body = encode_request(op, req)
         sent = self._request_headers(method, body)
-        conn = self._open()
-        if conn is None:
-            return self._unreachable("no daemon is listening")
-        try:
-            status, answer = self._exchange(conn, op, method, target, body, sent)
-        except OSError as exc:
-            raise self._lost(exc) from exc
-        finally:
-            conn.close()
-        if is_retiring(status, answer):
+        retried = False
+        while True:
+            conn = self._open()
+            if conn is None:
+                return self._unreachable("no daemon is listening")
+            try:
+                status, answer = self._exchange(conn, op, method, target, body, sent)
+            except OSError as exc:
+                raise self._lost(exc) from exc
+            finally:
+                conn.close()
+            if not is_retiring(status, answer):
+                break
+            # Nothing ran. A squad hosted elsewhere has no local mode: it is asked again, once,
+            # at the endpoint resolved afresh.
+            if self._local is None and self._resolve is not None and not retried:
+                self._connect, self._endpoint = self._resolve()
+                retried = True
+                continue
             return self._declined()
         if status != 200:
             raise self._refusal(status, answer)

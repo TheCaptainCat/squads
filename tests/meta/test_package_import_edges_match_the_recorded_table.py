@@ -239,8 +239,10 @@ _cli -> _context local
 _cli -> _context top
 _cli -> _daemon local
 _cli -> _daemon_link top
+_cli -> _daemon_start local
 _cli -> _discussion top
 _cli -> _docfiles local
+_cli -> _endpoint local
 _cli -> _endpoint top
 _cli -> _errors top
 _cli -> _index top
@@ -278,7 +280,7 @@ _daemon_start -> _endpoint top
 _discussion -> _badges top
 _discussion -> _errors top
 _discussion -> _models top
-_discussion -> _rendering top
+_discussion -> _rendering local
 _discussion -> _sections top
 _discussion -> _workflow top
 _docfiles -> _api top
@@ -298,7 +300,7 @@ _index -> _workflow top
 _interactions -> _badges top
 _interactions -> _errors top
 _interactions -> _models top
-_interactions -> _overrides top
+_interactions -> _overrides local
 _interactions -> _roles top
 _interactions -> _specload top
 _interactions -> _specmerge top
@@ -464,23 +466,14 @@ _workflow -> _errors local
 _workflow -> _errors top
 _workflow -> _models local
 _workflow -> _models top
-_workflow -> _overrides top
+_workflow -> _overrides local
 _workflow -> _specload top
 _workflow -> _specmerge top
 _workflow -> squads local
 """).splitlines()
 
 #: Nodes in the strongly connected component over the ``top`` edges.
-TOP_EDGE_COMPONENT: frozenset[str] = frozenset(
-    {
-        "_badges",
-        "_interactions",
-        "_overrides",
-        "_paths",
-        "_rendering",
-        "_workflow",
-    }
-)
+TOP_EDGE_COMPONENT: frozenset[str] = frozenset()
 
 #: Package inits that hold code, relative to ``src``.
 INITS_WITH_CODE: frozenset[str] = frozenset(
