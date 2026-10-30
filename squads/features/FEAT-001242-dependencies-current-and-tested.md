@@ -3,7 +3,7 @@ id: FEAT-1242
 sequence_id: 1242
 type: feature
 title: Dependencies current and tested
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - MILE-1241:targets
@@ -12,12 +12,12 @@ description: 'The versions an adopter installs are the versions the suite runs: 
 subentities:
 - local_id: US1
   title: Runtime dependencies upgraded, bounds raised to what is tested
-  status: InProgress
+  status: Done
 - local_id: US2
   title: Development tools current, gates clean
-  status: InProgress
+  status: Done
 created_at: '2026-10-29T12:59:18Z'
-updated_at: '2026-10-29T23:44:33Z'
+updated_at: '2026-10-30T07:14:06Z'
 priority: high
 ---
 <!-- sq:body -->

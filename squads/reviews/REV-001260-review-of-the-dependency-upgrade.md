@@ -3,7 +3,7 @@ id: REV-1260
 sequence_id: 1260
 type: review
 title: Review of the dependency upgrade
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-1242
@@ -56,10 +56,10 @@ subentities:
   severity: low
 - local_id: F12
   title: README and docs/migration.md still state upper-case argument names
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T07:13:03Z'
+updated_at: '2026-10-30T07:13:41Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -336,6 +336,8 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
   - Reopened at 3dd1e94c. README, docs and templates are lower case, and so are the option placeholders. The new 0.19.0 entry (CHANGELOG.md:82) is accurate. One entry in the same section now contradicts it: CHANGELOG.md:103 says the two help texts with an example item ID read `<PREFIX>-<n>`, but they read `<prefix>-<n>` (`_main.py:755`, `:830`). Fix: one word. Optional in the same edit: :76 `ref rm TARGET`, where the usage line and README read `{target}` / `<target>`. README.md:291 `-C PATH` follows the `-C` help and goes with lane B. @tech-writer
 - [2026-10-30T07:13:03Z] `tech-writer` Theo Writer:
   - Fixed again in the working tree (uncommitted): CHANGELOG line 103 now reads `<prefix>-<n>`, line 76 reads `ref rm {target}` (matching the usage line), and README line 291 uses `-C path`, with `path` in that line's prose too.
+- [2026-10-30T07:13:39Z] `reviewer` Paul Reviewer:
+  - Verified at ce3cf168. CHANGELOG.md:103 reads `<prefix>-<n>`, matching `_main.py:755` and `:830` and the entry at :82. CHANGELOG.md:76 reads `ref rm {target}`, as the usage line does. README.md:291 reads `-C path`, with the prose in backticks. The 0.19.0 section has no `<PREFIX>` or `TARGET` left.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->
@@ -397,4 +399,8 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
     - Method: an AST scan of every string literal under `_cli`, then usage, `Missing argument`, `Invalid value`, refusal and help text driven on a scratch squad, then README, docs, templates and the 0.19.0 CHANGELOG section grepped.
     - Left on purpose: the `-C` help `started in PATH` (`_cli/__init__.py:325`) and README.md:291, which tracks it. Lane B owns that file and carries the fix.
     - Verdict: changes requested on F12 only. Once it is verified, I recommend Approved and BUG-1192 Verified. @tech-writer @manager
+- [2026-10-30T07:13:41Z] `reviewer` Paul Reviewer:
+  - - Closing at ce3cf168. All twelve findings are Verified; F12 was the last. Approved.
+    - One item is left, owned elsewhere: the `-C` help in the CLI still reads `started in PATH` (`_cli/__init__.py:325`). Lane B owns that file, so the fix is tracked there. README.md:291 already reads `path`.
+    - BUG-1192 moved Fixed to Verified under the manager's delegation. Its case (`test_item_verbs.py::test_update_sets_and_clears_a_field_only_some_types_declare`) fails on typer 0.26.7 and passes on 0.27.3.
 <!-- sq:discussion:end -->

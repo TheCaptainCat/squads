@@ -3,7 +3,7 @@ id: TASK-1243
 sequence_id: 1243
 type: task
 title: Upgrade runtime and dev dependencies, raise lower bounds
-status: InReview
+status: Done
 parent: FEAT-1242
 author: tech-lead
 refs:
@@ -41,7 +41,7 @@ subentities:
   status: Done
   maps_to: US1
 created_at: '2026-10-29T16:23:49Z'
-updated_at: '2026-10-30T00:25:17Z'
+updated_at: '2026-10-30T07:14:03Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -262,4 +262,6 @@ An unknown option on a command prints the suggestion as plain text (No such opti
     Notes: the lock tests need the 10s timeout once (about 13s for the file). Case 1 uses four child `sq create` processes; case 4 kills the holder with Popen.kill (SIGKILL; TerminateProcess on Windows). Not run on macOS or Windows. VS Code client untouched; `sq check` result below.
 - [2026-10-30T00:25:17Z] `reviewer` Paul Reviewer:
   - Reviewed in REV-1260: changes requested. F1 (high) is the ruff exclude that drops src/squads. @manager
+- [2026-10-30T07:14:02Z] `manager` Catherine Manager:
+  - Reviewed and verified in REV-1260 (Approved 2026-10-30); suites green at release/0.19. Accepted Done under the operator delegation.
 <!-- sq:discussion:end -->
