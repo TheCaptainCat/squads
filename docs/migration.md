@@ -51,7 +51,7 @@ refused while the squad's schema differs from the package's).
 |---------|------|
 | `sq migrate up` | Rebuilds the index from the item files and checks the squad can be migrated (see [below](#before-the-first-runner)); runs every **automatic** migration whose target schema is newer than the squad's, in order; rebuilds the index; stamps the new `schema_version`. Then prints which (if any) leave **manual** steps. On a squad already at the current schema it changes nothing. |
 | `sq migrate help` | The **changelog index** — every shipped migration: release, schema bump, one-line summary, and whether it has manual steps. |
-| `sq migrate chlog vFROM..vTO` | The **complete manual steps** for migrations shipped in `(vFROM, vTO]` (release versions, exclusive-low; a prerelease bound such as `v0.14.0rc1` sorts below its release). This is the canonical place those runbooks live — not buried in prose. |
+| `sq migrate chlog vfrom..vto` | The **complete manual steps** for migrations shipped in `(vfrom, vto]` (release versions, exclusive-low; a prerelease bound such as `v0.14.0rc1` sorts below its release). This is the canonical place those runbooks live — not buried in prose. |
 
 ### What runs on an out-of-date squad
 
@@ -227,7 +227,7 @@ deliberately regenerates only the new type's surface, and leaves each role's own
 preload list to `sync`, which is where it belongs. On a squad that hasn't customised it, `sync`
 converges to the same result and changes nothing.
 
-Read the release's own entry with `sq migrate chlog vFROM..vTO` before running it; a type-adding
+Read the release's own entry with `sq migrate chlog vfrom..vto` before running it; a type-adding
 migration needs no manual step, and its entry says so rather than leaving you to guess.
 
 ---
@@ -1128,4 +1128,4 @@ migrations, in detail:
   `:summary` table are untouched. Fully automatic; idempotent.
 
 Every migration since, release by release, is in the live changelog — run `sq migrate help` for
-the index and `sq migrate chlog vFROM..vTO` for any given range's manual steps.
+the index and `sq migrate chlog vfrom..vto` for any given range's manual steps.

@@ -56,10 +56,10 @@ subentities:
   severity: low
 - local_id: F12
   title: README and docs/migration.md still state upper-case argument names
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-10-30T00:20:29Z'
-updated_at: '2026-10-30T06:57:56Z'
+updated_at: '2026-10-30T07:00:44Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -326,6 +326,8 @@ Line 1215 (`rename-status TYPE OLD_STATUS NEW_STATUS`) is a past release's entry
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
+- [2026-10-30T07:00:44Z] `tech-writer` Theo Writer:
+  - Fixed in the working tree (uncommitted). README `retype <new-type>`; docs/migration.md `chlog vfrom..vto` and `(vfrom, vto]` (three places). A second grep found more upper-case argument placeholders in README synopses, now lower case: `sq create … <title>`, `sq create guide <title>`, `status <status>`, `sq operator add "<name>"`, `sq skill add <name>`. Option-value placeholders (`--depth N`, `--priority CODE`, `--from N`) are left as they are.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->
