@@ -147,34 +147,54 @@ subentities:
 - local_id: F29
   title: Docs say subentity_kind_mismatch ships unselected; every work type runs it
     by default
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F30
   title: CHANGELOG sort message, misplaced rename-type use case, side-state order
     not recorded
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F31
   title: Vocabulary scan misses an ID prefix with its dash (TASK-, f-strings, startswith)
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F32
   title: Engine-word exclusion takes every bundled capability, not the one the engine
     reads
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F33
   title: Derived kind-field and attribute options run on no override case; profile
     lacks attributes
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F34
   title: Bundled role text names bundled commands on a squad that drops them (operator
     ruling)
   status: Open
   severity: info
+- local_id: F35
+  title: New show --full and --raw cases assert what plain show prints
+  status: Open
+  severity: medium
+- local_id: F36
+  title: Both-squad cases sit beside bundled-only copies of the same pairs
+  status: Open
+  severity: low
+- local_id: F37
+  title: Retype runs on the override squad; view disable needs a fixture view
+  status: Open
+  severity: low
+- local_id: F38
+  title: Vocabulary guards skip command docstrings, which are adopter help
+  status: Open
+  severity: low
+- local_id: F39
+  title: Bundled spec comments and playbook notes keep the old side-state order
+  status: Open
+  severity: low
 created_at: '2026-10-29T21:09:02Z'
-updated_at: '2026-10-30T00:16:24Z'
+updated_at: '2026-10-30T00:25:14Z'
 ---
 <!-- sq:body -->
 ## Scope
@@ -847,6 +867,8 @@ The adopter docs say it ships unselected:
 <!-- sq:finding:F29:discussion -->
 - [2026-10-30T00:00:03Z] `tech-writer` Theo Writer:
   - Fixed in the working tree (uncommitted). Driven at HEAD: a bundled scratch squad reports `subentity_kind_mismatch` with no selection. overrides.md: the check is out of the "not selected" list and the "ship unselected" list, has its own paragraph saying every `work` type runs it, and is added to the `work` defaults list; the rename paragraph is split from `frontmatter_key_undeclared`. workflow.md, migration.md and the CHANGELOG Added entry now say every `work` type runs it and that `frontmatter_key_undeclared` runs only when selected.
+- [2026-10-30T00:24:51Z] `reviewer` Paul Reviewer:
+  - Verified at HEAD (3aeb0664): overrides.md takes subentity_kind_mismatch out of both unselected lists (line 654 says every work type runs it); workflow.md 1670, migration.md 390 and the CHANGELOG Added entry say the same, and frontmatter_key_undeclared stays opt-in.
 <!-- sq:finding:F29:discussion:end -->
 <!-- sq:finding:F29:end -->
 
@@ -866,6 +888,8 @@ TASK-1258, smaller points, read and driven:
 <!-- sq:finding:F30:discussion -->
 - [2026-10-30T00:00:04Z] `tech-writer` Theo Writer:
   - Fixed in the working tree (uncommitted). (1) The CHANGELOG and overrides.md now quote both messages, `unknown badge field` and `unknown sort field` (driven on the override squad). (2) The rename-type use-case paragraph in workflow.md is back at the end of "Renaming existing types and statuses", above the two new subsections. (3) New CHANGELOG Changed entries for the side-state order, the review template without a severity line (driven with `fields = []` on finding) and the help placeholders. README lines 183-184 now use the new item order. The sub-entity rows (README line 193, workflow.md lines 335-336) are left as they are: at HEAD `sq workflow` and the squads skill still print the sub-entity lifecycle as `(+ Blocked, Cancelled)`.
+- [2026-10-30T00:24:53Z] `reviewer` Paul Reviewer:
+  - Verified: CHANGELOG and overrides.md quote both messages, driven on the override fixture (unknown sort field / unknown badge field, one of: urgency, work_size); the rename-type use case is back under "Renaming existing types and statuses"; side-state, review-template and placeholder entries are in Changed. Leaving the sub-entity rows as they are is right: one discovery-order rule, see F39.
 <!-- sq:finding:F30:discussion:end -->
 <!-- sq:finding:F30:end -->
 
@@ -890,6 +914,8 @@ No live hit today: `rg` for `"(TASK|FEAT|...)-` outside `_specs/` and `_migratio
 <!-- sq:finding:F31:discussion -->
 - [2026-10-30T00:06:52Z] `python-dev` Elias Python:
   - Fixed in 6ed5b592: an ID prefix with its dash reads as the prefix; planted TASK-, startswith FEAT- and f-string TASK-{n} each turn the guards red.
+- [2026-10-30T00:24:54Z] `reviewer` Paul Reviewer:
+  - Verified in f7f0911b (the handback cites 6ed5b592, its pre-rebase hash). Falsified on a scratch export: with the _ID_HEAD_RE match removed from _stem, test_an_id_prefix_is_found_written_with_its_dash goes red; restored, green. Docstrings stay out of the scan, which hides two live prefixes in command help: F38.
 <!-- sq:finding:F31:discussion:end -->
 <!-- sq:finding:F31:end -->
 
@@ -910,6 +936,8 @@ Fix: make the capability the engine reads a named engine constant (the cheatshee
 <!-- sq:finding:F32:discussion -->
 - [2026-10-30T00:06:54Z] `python-dev` Elias Python:
   - Fixed in 6ed5b592: REVIEW_CAPABILITY is a named constant read by the cheatsheet; only its defining assignment is allowed. A planted t == review is red.
+- [2026-10-30T00:24:55Z] `reviewer` Paul Reviewer:
+  - Verified in f7f0911b: engine_words() is COLOR_INTENTS only and REVIEW_CAPABILITY is the one engine constant, exempt at its defining assignment. Falsified: re-adding review to engine_words() turns test_only_the_defining_assignment_of_an_engine_constant_may_spell_its_word red; restored, green.
 <!-- sq:finding:F32:discussion:end -->
 <!-- sq:finding:F32:end -->
 
@@ -933,6 +961,8 @@ Fix: add the ADR's attribute entries (and anything else missing) to the profile 
 <!-- sq:finding:F33:discussion -->
 - [2026-10-30T00:06:55Z] `python-dev` Elias Python:
   - Fixed in 8a82e6d0. Option pairs only bundled_only cases declare: 65 before, 44 after. The 44 are bundled-document or legacy-squad cases except retype --as/--json and view disable NAME: the override squad has no second type to retype between and no view to disable, so those stay bundled_only. New cases in test_the_options_every_squad_derives_from_its_spec.py; attribute, field-flag and --force cases converted in test_create.py and test_subentity_verbs.py.
+- [2026-10-30T00:24:56Z] `reviewer` Paul Reviewer:
+  - Verified in 9e79fdef (handback hash 8a82e6d0): the profile carries date/list/str attributes, third_codes and needs_parent; the field, attribute, --force and generic cases run on both squads (13 passed on each, scratch export). Three defects in the fix are filed separately: vacuous --full/--raw assertions (F35), bundled-only duplicates left beside the new cases (F36), and the retype/view reasons (F37).
 <!-- sq:finding:F33:discussion:end -->
 <!-- sq:finding:F33:end -->
 
@@ -952,6 +982,99 @@ Options: derive the examples from the active spec, as the squads skill and the C
 <!-- sq:finding:F34:discussion -->
 <!-- sq:finding:F34:discussion:end -->
 <!-- sq:finding:F34:end -->
+
+<!-- sq:finding:F35 -->
+### F35 — New show --full and --raw cases assert what plain show prints
+
+<!-- sq:finding:F35:body -->
+F33's new both-squad cases in `tests/cli/test_the_options_every_squad_derives_from_its_spec.py` assert text that the plain command already prints, so the option under test can stop working and they stay green.
+
+Driven on a scratch bundled squad: plain `sq task <n> show` already prints the sub-entity summary row `ST1      Todo ... Sub one`, so `f"{P.kind_prefix}1 " in full` holds without `--full`. Likewise `f"{P.ref_prefix}-3" in raw` holds for any show of TASK-3, and the operator case asserts `--raw` output equals plain `show` output, which a `--raw` that does nothing satisfies exactly. Falsified on a scratch export: with `--full` and `--raw` removed from the calls, every assertion still passes on both squads; only the covers-reachability teardown goes red, which is bookkeeping, not the behaviour.
+
+Affected pairs: `<type> show --full`, `show --full`, `show --raw`, `operator show --raw`. (`--comments` is fine: plain show does not print the comment.)
+
+Fix: assert what the option adds, for instance the `=== ST1 —` pane heading that only `--full` prints, and for `--raw` an unrendered marker (a `**` or `#` the rendered view drops), as the bundled `test_show_raw_prints_the_body_unrendered...` cases do.
+<!-- sq:finding:F35:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F35:discussion -->
+<!-- sq:finding:F35:discussion:end -->
+<!-- sq:finding:F35:end -->
+
+<!-- sq:finding:F36 -->
+### F36 — Both-squad cases sit beside bundled-only copies of the same pairs
+
+<!-- sq:finding:F36:body -->
+F33 added both-squad cases next to the bundled-only cases they generalise instead of converting those. Run on the bundled squad, each pair is now asserted twice:
+
+- `<type> add-<kind> --<field>` and `<type> <kind> update --<field>`: `test_add_severity_sets_the_severity_of_a_new_finding`, `test_add_refuses_a_severity_outside_the_declared_ones`, `test_update_severity_changes_the_severity_of_a_finding`, `test_update_refuses_a_severity_outside_the_declared_ones` (`test_subentity_verbs.py` lines 428-470, 741-775) beside the four new field cases, same messages through the profile.
+- `<type> add-<kind> --json`, `<type> <kind> update --json`, `<type> <kind> body --json`, `create <type> --json`: a bundled-only case each beside a new one.
+
+ADR-1172 "Time bound": review checks for duplicated cases. The bundled copies that pin only what the profile case pins (the severity set/refuse pairs) should go; where a bundled copy pins rendered bundled output the new case does not (the add confirmation line, a JSON shape), fold that assertion into the both-squad case through the profile and drop the copy. `test_update_severity_accepts_the_label_in_any_case` is generic too and can move to the profile.
+<!-- sq:finding:F36:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F36:discussion -->
+<!-- sq:finding:F36:discussion:end -->
+<!-- sq:finding:F36:end -->
+
+<!-- sq:finding:F37 -->
+### F37 — Retype runs on the override squad; view disable needs a fixture view
+
+<!-- sq:finding:F37:body -->
+The handback keeps `<type> retype --as/--json` and `<type> view disable NAME` bundled-only because "the override squad has no second type to retype between and no view to disable". Half of that holds.
+
+- Retype: false. The override fixture declares `record` (records) and `initiative` (work, no parent), both non-roster. Driven on a scratch squad with the fixture's overrides: `sq record 24 retype initiative --json` succeeds and prints the entry under its new type. What is missing is a profile entry (a retype source and target), not a host.
+- View: true. On the override fixture `sq workflow views` lists only the five roster views, none placeable on a work item. ADR-1172 "Scope: two squads" asks that "no case skips for want of a host", so the fixture needs one item view (a declared `[views]` entry on `initiative` or `job`) and the profile a name for it; `view add` then runs on both squads too.
+
+Fix: add the retype pair and an item view to the profile and fixture, and run the retype and view cases on both squads.
+<!-- sq:finding:F37:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F37:discussion -->
+<!-- sq:finding:F37:discussion:end -->
+<!-- sq:finding:F37:end -->
+
+<!-- sq:finding:F38 -->
+### F38 — Vocabulary guards skip command docstrings, which are adopter help
+
+<!-- sq:finding:F38:body -->
+The vocabulary scanner (`tests/meta/_vocabulary.py`) skips every docstring (`_docstring_ids`), including the docstrings of Typer commands, which Typer prints as the command's `--help`. That is adopter-facing text on any squad, and the guards cannot see it.
+
+Two live hits, both ID prefixes in backticks that the F31 dash rule would catch outside a docstring:
+- `src/squads/_cli/_items.py:529`, the retype help: "Only the prefix changes, as `TASK-<n>` to `BUG-<n>`". Driven on a scratch squad with the override fixture: `sq record 24 retype --help` prints it on a squad with neither type.
+- `src/squads/_cli/_main.py:795`: "`--item TASK-<n> --op status`".
+
+Fix: scan the docstrings of the functions registered as commands (or every docstring under `_cli/`), keeping the exclusion for other docstrings, which are developer prose; then rewrite the two help texts through placeholders (`<PREFIX>-<n>`) or the active spec. The F28 developer's in-flight help edits do not touch either line.
+<!-- sq:finding:F38:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F38:discussion -->
+<!-- sq:finding:F38:discussion:end -->
+<!-- sq:finding:F38:end -->
+
+<!-- sq:finding:F39 -->
+### F39 — Bundled spec comments and playbook notes keep the old side-state order
+
+<!-- sq:finding:F39:body -->
+The side-state order is one rule for items and sub-entities: `linearize_lifecycle` lists the states off the spine in breadth-first discovery order from the initial status, over each source's transition list in declared order. Items print `(+ Cancelled, Blocked)` because `Draft = ["Ready", "InProgress", "Cancelled"]` reaches Cancelled first; sub-entities print `(+ Blocked, Cancelled)` because `Todo = ["InProgress", "Blocked", "Cancelled", "Done"]` reaches Blocked first. The CHANGELOG entry states the rule generally, so README line 193 and `docs/workflow.md` lines 335-336 are correct as they stand. Not a defect.
+
+What the change left stale is the hand-written copies in the bundled spec documents:
+- `src/squads/_specs/workflow.toml` comments, line 26 "Work items: ... (+ Blocked, Cancelled)" and line 85 "Bug: ... (+ WontFix, Blocked, Cancelled)"; `sq workflow` prints `(+ Cancelled, Blocked)` and `(+ WontFix, Cancelled, Blocked)`.
+- `src/squads/_specs/playbook.toml` `lifecycle` strings, lines 18, 63, 123 and 200, the same two orders. They reach the playbook view's JSON (`PlaybookLane.lifecycle`).
+
+Fix: bring the comments and strings to the printed order. Whether the playbook's `lifecycle` string should exist at all, when the spec derives it, is a separate question for the architect.
+<!-- sq:finding:F39:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F39:discussion -->
+<!-- sq:finding:F39:discussion:end -->
+<!-- sq:finding:F39:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -1036,4 +1159,7 @@ Options: derive the examples from the active spec, as the squads skill and the C
   - Ruling on F28 (operator delegation for this drive): rename-kind brings every stored local id of the kind to the declared prefix, keeping each number, and refuses only when two ids would collide on one item (naming them); so the stale-prefix finding always names a command that works. The architect folds it into ADR-1250 section 6 with the next amendment. F34 stays for op-pierre. Routing: F29/F30 tech writer; F31-F33 TASK-1256 dev; F28 TASK-1255 dev next.
 - [2026-10-30T00:16:24Z] `python-dev` Elias Python:
   - F28 fixed in the latest TASK-1255 branch commit: allocation past the highest number, rename-kind over mixed prefixes with collision and no-number refusals, determiner-free option help.
+- [2026-10-30T00:25:14Z] `reviewer` Paul Reviewer:
+  - Sixth round: F29-F33 verified (F31 and F32 falsified on a scratch export). New: F35 (medium, the new show --full/--raw cases pass with the options removed), F36, F37, F38, F39 (low). Side-state order: one rule (breadth-first discovery over declared transition order), items and sub-entities differ only because their transition lists do; not a finding, but the bundled spec comments and playbook notes still state the old order (F39). Remaining bundled_only: retype is not acceptable (record to initiative retypes on the override fixture, driven), view disable needs a fixture view (F37).
+  - Verdict: changes requested. F28 (in flight) and F34 (operator) are untouched. @manager route F35-F37 to the TASK-1256 dev, F38 to the same dev after F28 lands (it rewrites two help texts), F39 to the TASK-1256 dev or @tech-writer.
 <!-- sq:discussion:end -->

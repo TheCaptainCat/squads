@@ -42,7 +42,7 @@ subentities:
   status: Done
   story: US1
 created_at: '2026-10-29T16:23:49Z'
-updated_at: '2026-10-30T00:05:39Z'
+updated_at: '2026-10-30T00:25:17Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -260,4 +260,6 @@ An unknown option on a command prints the suggestion as plain text (No such opti
     Falsification: lock acquire/release made a no-op -> concurrent-writers, waiting-notice and timeout tests red (killed-holder test passes then, as it should); removing the stderr print -> the waiting-notice test red; not killing the holder -> the killed-holder test red (command waits 10s, exits 1); all restored and green. BUG-1192 test green on typer 0.27.3, red on `--with typer==0.26.7` (also the other unknown-option assertions).
     
     Notes: the lock tests need the 10s timeout once (about 13s for the file). Case 1 uses four child `sq create` processes; case 4 kills the holder with Popen.kill (SIGKILL; TerminateProcess on Windows). Not run on macOS or Windows. VS Code client untouched; `sq check` result below.
+- [2026-10-30T00:25:17Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1260: changes requested. F1 (high) is the ruff exclude that drops src/squads. @manager
 <!-- sq:discussion:end -->

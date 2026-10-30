@@ -1,6 +1,6 @@
 {
   "schema_version": "0.17",
-  "counter": 1259,
+  "counter": 1260,
   "padding": 6,
   "items": {
     "12": {
@@ -65233,7 +65233,7 @@
       ],
       "path": "tasks/TASK-001243-upgrade-runtime-and-dev-dependencies-raise-lower-bounds.md",
       "created_at": "2026-10-29T16:23:49Z",
-      "updated_at": "2026-10-30T00:05:39Z",
+      "updated_at": "2026-10-30T00:25:17Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66827,7 +66827,7 @@
         {
           "local_id": "F29",
           "title": "Docs say subentity_kind_mismatch ships unselected; every work type runs it by default",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66837,7 +66837,7 @@
         {
           "local_id": "F30",
           "title": "CHANGELOG sort message, misplaced rename-type use case, side-state order not recorded",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66847,7 +66847,7 @@
         {
           "local_id": "F31",
           "title": "Vocabulary scan misses an ID prefix with its dash (TASK-, f-strings, startswith)",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66857,7 +66857,7 @@
         {
           "local_id": "F32",
           "title": "Engine-word exclusion takes every bundled capability, not the one the engine reads",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "low",
           "story": null,
@@ -66867,7 +66867,7 @@
         {
           "local_id": "F33",
           "title": "Derived kind-field and attribute options run on no override case; profile lacks attributes",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "severity": "medium",
           "story": null,
@@ -66883,16 +66883,175 @@
           "story": null,
           "deferred_to": null,
           "extra": {}
+        },
+        {
+          "local_id": "F35",
+          "title": "New show --full and --raw cases assert what plain show prints",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F36",
+          "title": "Both-squad cases sit beside bundled-only copies of the same pairs",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F37",
+          "title": "Retype runs on the override squad; view disable needs a fixture view",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F38",
+          "title": "Vocabulary guards skip command docstrings, which are adopter help",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F39",
+          "title": "Bundled spec comments and playbook notes keep the old side-state order",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
         }
       ],
       "path": "reviews/REV-001259-review-of-the-bundled-vocabulary-feature.md",
       "created_at": "2026-10-29T21:09:02Z",
-      "updated_at": "2026-10-30T00:16:24Z",
+      "updated_at": "2026-10-30T00:25:14Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1259"
+    },
+    "1260": {
+      "sequence_id": 1260,
+      "type": "review",
+      "title": "Review of the dependency upgrade",
+      "slug": "review-of-the-dependency-upgrade",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "priority": null,
+      "severity": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1242",
+        "TASK-1243",
+        "BUG-1192"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Ruff exclude 'squads' also drops src/squads from check and format",
+          "status": "Open",
+          "assignee": null,
+          "severity": "high",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F2",
+          "title": "Index lock tests are cross-process cases in the surface suite",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F3",
+          "title": "No-flock filesystem ends in a traceback, not a SquadsError",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F4",
+          "title": "Killed-holder case bounds wall-clock time; holder docstring wrong",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F5",
+          "title": "BUG-1192 case duplicates four existing unknown-option cases",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F6",
+          "title": "ADR-1172 argument-name clause describes the pre-0.27 usage line",
+          "status": "Open",
+          "assignee": null,
+          "severity": "low",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F7",
+          "title": "Usage lines mix upper and lower argument names (operator call)",
+          "status": "Open",
+          "assignee": null,
+          "severity": "info",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        },
+        {
+          "local_id": "F8",
+          "title": "CHANGELOG lists none of the upgrade's adopter-visible changes",
+          "status": "Open",
+          "assignee": null,
+          "severity": "medium",
+          "story": null,
+          "deferred_to": null,
+          "extra": {}
+        }
+      ],
+      "path": "reviews/REV-001260-review-of-the-dependency-upgrade.md",
+      "created_at": "2026-10-30T00:20:29Z",
+      "updated_at": "2026-10-30T00:25:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1260"
     }
   }
 }
