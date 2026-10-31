@@ -3,7 +3,7 @@ id: TASK-1222
 sequence_id: 1222
 type: task
 title: Dogfood the daemon on this repository's board
-status: Ready
+status: InProgress
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -22,14 +22,16 @@ subentities:
   maps_to: US8
 - local_id: ST2
   title: Trial with SQUADS_DAEMON=on and record the result
-  status: Todo
+  status: InProgress
+  assignee: qa
   maps_to: US8
 - local_id: ST3
   title: Live check of remote timeouts and Ctrl-C
-  status: Todo
+  status: InProgress
+  assignee: qa
   maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-31T08:18:16Z'
+updated_at: '2026-10-31T08:21:06Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -126,4 +128,8 @@ Afterwards `sq repair` has nothing to fix, `sq check` is clean, and `sq daemon s
   - The dogfood trial waits until the ADR-1261 architecture (TASK-1262 to TASK-1266) is delivered (2026-10-30).
 - [2026-10-31T08:17:58Z] `op-pierre` Pierre Chat:
   - Go for the dogfood (2026-10-31): this repository's squad switches to daemon mode.
+- [2026-10-31T08:21:04Z] `qa` Mara Tester:
+  - trial probe A (daemon write)
+- [2026-10-31T08:21:06Z] `qa` Mara Tester:
+  - trial probe B (local write)
 <!-- sq:discussion:end -->
