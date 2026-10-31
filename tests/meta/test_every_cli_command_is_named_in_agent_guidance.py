@@ -24,6 +24,8 @@ from squads._workflow import bundled_spec
 #: directions — an unexempted command missing from the corpus fails, and an entry here whose
 #: command IS named fails as stale — so this list cannot quietly rot into decoration.
 _UNGUIDED_BY_DESIGN: dict[str, str] = {
+    "daemon": "the process that serves a squad starts and stops itself; the group is for the "
+    "person who runs the machine, and an agent's commands go through it without naming it",
     "ui": "an interactive full-screen TUI: an agent has no terminal to drive it and must not "
     "launch one",
     "init": "bootstrap — the class, not the one verb: generated guidance ships *inside* a squad "

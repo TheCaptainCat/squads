@@ -53,13 +53,12 @@ def _own_option_arity(cmd: Any, token: str) -> int | None:
     """How many extra tokens *token* consumes if it's one of *cmd*'s own declared options
     (0 for a bare flag, 1 for a value option), or None if it isn't one. Also recognizes the
     Click-auto-added help option via ``get_help_option_names``, never a hardcoded string."""
-    for p in getattr(cmd, "params", []):
+    ctx = cmd.make_context("sq", [], resilient_parsing=True)
+    for p in cmd.get_params(ctx) if hasattr(cmd, "get_params") else getattr(cmd, "params", []):
         if getattr(p, "param_type_name", None) == "option" and token in (p.opts or []):
             return 0 if getattr(p, "is_flag", False) else 1
-    if getattr(cmd, "add_help_option", False):
-        ctx = cmd.make_context("sq", [], resilient_parsing=True)
-        if token in cmd.get_help_option_names(ctx):
-            return 0
+    if getattr(cmd, "add_help_option", False) and token in cmd.get_help_option_names(ctx):
+        return 0
     return None
 
 

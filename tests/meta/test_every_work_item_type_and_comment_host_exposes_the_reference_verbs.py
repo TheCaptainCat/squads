@@ -13,6 +13,8 @@ import pytest
 import typer.core
 from typer._click.core import Context
 
+from squads._cli._create import CREATE_ATTRIBUTE_KINDS, attribute_flag
+from squads._cli._field_options import flag_name
 from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
 from tests._cli_surface import (
@@ -27,19 +29,14 @@ from tests._cli_surface import (
     ROSTER_SHARED_VERBS,
     ParamSignature,
     node_params,
-    param_name,
     param_signature,
+    raw_param_name,
 )
 from tests._help_tree import Node, command_nodes
 
 #: The work-item type every other type is held to: it hosts a kind and is not roster, so it
 #: carries every verb the builder mounts.
 REFERENCE_TYPE = "task"
-
-#: What every `create` command carries, including one that is written by hand rather than built.
-CREATE_CORE = frozenset(
-    {"TITLE", "--author", "--parent", "--desc", "--assignee", "--message", "--file", "--json"}
-)
 
 #: A command's parameters by name; ``None`` is a parameter the spec declares, which any signature
 #: satisfies.
@@ -81,7 +78,9 @@ class Tree:
         aliases: dict[tuple[str, ...], Signatures] = {}
         for node in nodes:
             path = tuple(s for s in node.path if s != ADDRESS_SEGMENT)
-            signatures: Signatures = {param_name(p): param_signature(p) for p in node_params(node)}
+            signatures: Signatures = {
+                raw_param_name(p): param_signature(p) for p in node_params(node)
+            }
             if _canonical(path, spec) != path:
                 aliases.setdefault(path, {}).update(signatures)
                 continue
@@ -130,9 +129,20 @@ def kind_options(kind: str, spec: WorkflowSpec, verb: tuple[str, ...]) -> set[st
     options = {f"--{f.code}" for f in spec.fields_for(kind)}
     if spec.subentity_deferred_statuses(kind):
         options.add("--deferred-to")
-    if spec.subentity_kinds[kind].maps_parent_story:
+    if spec.subentity_kinds[kind].maps_to_parent:
         options |= {"--story", "--no-story"} if updates else {"--story"}
     return options
+
+
+def field_options(item_type: str, spec: WorkflowSpec, verb: tuple[str, ...]) -> set[str]:
+    """The options *item_type*'s declared fields give `update`: a value option for each field and
+    a clearing option for each optional one."""
+    if verb != ("update",):
+        return set()
+    fields_ = spec.fields_for(item_type)
+    return {f"--{flag_name(f.code)}" for f in fields_} | {
+        f"--no-{flag_name(f.code)}" for f in fields_ if not f.required
+    }
 
 
 def expected_item_verbs(
@@ -152,6 +162,12 @@ def expected_item_verbs(
             } | dict.fromkeys(kind_options(kind, spec, verb))
         if verb and verb[0] in {"retype", "remove"} and spec.item_is_roster(item_type):
             continue
+        if verb == ("update",):
+            names = {
+                n: sig
+                for n, sig in names.items()
+                if n not in field_options(REFERENCE_TYPE, spec, verb)
+            } | dict.fromkeys(field_options(item_type, spec, verb))
         expected[verb] = names
     return expected
 
@@ -203,7 +219,7 @@ def item_verb_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
 
 def create_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
     """`create <type>` exists for exactly the non-roster types; a built command carries the
-    reference's options plus the field options its type declares, a hand-written one the core."""
+    reference's options plus the field and attribute options its type declares."""
     created = {p[1] for p in tree.params if len(p) == 2 and p[0] == "create"}
     found = (
         []
@@ -213,19 +229,18 @@ def create_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
     reference = ("create", REFERENCE_TYPE)
     for item_type in sorted(set(spec.non_roster_types()) & created):
         path = ("create", item_type)
-        fields_ = {f"--{f.code}": None for f in spec.fields_for(item_type) if f.code != "priority"}
-        actual = tree.params[path]
-        if tree.classes[path] == tree.classes[reference]:
-            found += differences(
-                f"create {item_type}", {(): tree.params[reference] | fields_}, {(): actual}
-            )
-        else:
-            core = {n: s for n, s in tree.params[reference].items() if n in CREATE_CORE}
-            found += differences(
-                f"create {item_type}",
-                {(): core},
-                {(): {n: s for n, s in actual.items() if n in CREATE_CORE}},
-            )
+        fields_ = {f"--{flag_name(f.code)}": None for f in spec.fields_for(item_type)}
+        fields_ |= {
+            f"--{attribute_flag(name)}": None
+            for name, attribute in spec.item_attributes(item_type).items()
+            if attribute.settable and attribute.kind in CREATE_ATTRIBUTE_KINDS
+        }
+        if tree.classes[path] != tree.classes[reference]:
+            found.append(f"create {item_type}: is not built by the shared create builder")
+            continue
+        found += differences(
+            f"create {item_type}", {(): tree.params[reference] | fields_}, {(): tree.params[path]}
+        )
     return found
 
 

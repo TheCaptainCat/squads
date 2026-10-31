@@ -1,5 +1,5 @@
-"""Repo-hygiene gate: under ``src/squads`` the process working directory is read in exactly one
-place, and never changed."""
+"""Repo-hygiene gate: under ``src/squads`` the process working directory is read in exactly two
+places, the command context's default and the shim's start, and never changed."""
 
 import ast
 import shutil
@@ -9,6 +9,7 @@ from pathlib import Path
 _ALLOWED: frozenset[tuple[str, str]] = frozenset(
     {
         ("src/squads/_paths.py", "process_dir"),
+        ("src/squads/_shim.py", "plan"),
     }
 )
 

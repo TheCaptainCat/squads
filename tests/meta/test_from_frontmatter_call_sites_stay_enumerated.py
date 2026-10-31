@@ -7,13 +7,14 @@ import ast
 from pathlib import Path
 from typing import TypeIs
 
-#: The three known call sites, transcribed from the code itself — not derived from a live
+#: The four known call sites, transcribed from the code itself — not derived from a live
 #: scan, so a call site quietly moving off this list (added elsewhere, removed here) is
 #: exactly what this guard exists to catch.
 _KNOWN_CALL_SITES: frozenset[tuple[str, str]] = frozenset(
     {
         ("src/squads/_itemfile.py", "frontmatter_skew"),
         ("src/squads/_services/_maintenance.py", "_rebuild_index_from_disk"),
+        ("src/squads/_services/_maintenance.py", "_rehint"),
         ("src/squads/_services/_check.py", "_scan_for_check"),
     }
 )
@@ -83,7 +84,7 @@ def _scan(root: Path) -> list[tuple[str, str]]:
     return hits
 
 
-def test_item_from_frontmatter_has_exactly_the_three_known_call_sites() -> None:
+def test_item_from_frontmatter_has_exactly_the_four_known_call_sites() -> None:
     hits = set(_scan(_repo_root()))
     extra = hits - _KNOWN_CALL_SITES
     missing = _KNOWN_CALL_SITES - hits

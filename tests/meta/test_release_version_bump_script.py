@@ -132,3 +132,14 @@ def test_dry_run_prints_the_plan_and_makes_no_file_or_subprocess_side_effects(
     assert "dry run" in out
     assert "999.999.999" in out
     assert "[7/7] summary" in out
+
+
+def test_set_init_version_replaces_only_the_version_literal() -> None:
+    text = '"""doc."""\n\n__version__ = "0.12.1"\n\n\ndef f() -> str:\n    return "0.12.1"\n'
+    rewritten = bump_version.set_init_version(text, "0.13.0")
+    assert rewritten == text.replace('__version__ = "0.12.1"', '__version__ = "0.13.0"')
+
+
+def test_set_init_version_rejects_a_module_with_no_version_literal() -> None:
+    with pytest.raises(ValueError, match="__version__"):
+        bump_version.set_init_version('"""doc."""\n', "0.13.0")

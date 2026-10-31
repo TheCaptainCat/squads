@@ -19,6 +19,13 @@ CONTEXTVAR_EXEMPTIONS: dict[str, frozenset[str]] = {
             "_context_var",
         }
     ),
+    "src/squads/_daemon/_proxies.py": frozenset(
+        {
+            # Set at the start of a served command on the worker thread it runs on, whose context
+            # is a copy: it ends with that thread's call and is never read by another request.
+            "CURRENT",
+        }
+    ),
     "src/squads/_index/_store.py": frozenset(
         {
             # set(...)/reset(token) paired in the same try/finally (IndexStore.transaction()) —

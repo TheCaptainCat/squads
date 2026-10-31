@@ -205,8 +205,7 @@ def inits_with_code(src: Path) -> frozenset[str]:
 
 #: ``importer -> imported kind``, one row per edge, sorted.
 EDGES = textwrap.dedent("""\
-__main__ -> _cli local
-__main__ -> squads top
+__main__ -> _shim top
 _actor -> _context top
 _aio -> _errors top
 _api -> _errors top
@@ -232,13 +231,18 @@ _board -> _models top
 _board -> _paths top
 _board -> _sections top
 _cli -> _actor top
+_cli -> _api local
 _cli -> _api top
 _cli -> _badges top
 _cli -> _clock local
 _cli -> _context local
 _cli -> _context top
+_cli -> _daemon local
+_cli -> _daemon_link top
+_cli -> _daemon_start top
 _cli -> _discussion top
 _cli -> _docfiles local
+_cli -> _endpoint top
 _cli -> _errors top
 _cli -> _index top
 _cli -> _migrations top
@@ -259,20 +263,40 @@ _cli -> _workflow top
 _cli -> squads top
 _clock -> _context top
 _context -> _api typing
+_context -> _parse_cache typing
 _context -> _spec_documents typing
 _context -> _workflow typing
+_daemon -> _aio top
+_daemon -> _api top
+_daemon -> _cli top
+_daemon -> _clock top
+_daemon -> _context top
+_daemon -> _endpoint top
+_daemon -> _errors top
+_daemon -> _models top
+_daemon -> _parse_cache top
+_daemon -> _services top
+_daemon -> _shim top
+_daemon -> _spec_documents top
+_daemon -> squads top
+_daemon_link -> _endpoint top
+_daemon_start -> _daemon_link top
+_daemon_start -> _endpoint top
 _discussion -> _badges top
 _discussion -> _errors top
 _discussion -> _models top
-_discussion -> _rendering top
+_discussion -> _rendering local
 _discussion -> _sections top
 _discussion -> _workflow top
 _docfiles -> _api top
 _docfiles -> _errors top
+_endpoint -> _windows_owner local
+_endpoint -> squads local
 _index -> _actor local
 _index -> _aio local
 _index -> _aio top
 _index -> _clock local
+_index -> _context top
 _index -> _errors top
 _index -> _models top
 _index -> _paths top
@@ -281,7 +305,7 @@ _index -> _workflow top
 _interactions -> _badges top
 _interactions -> _errors top
 _interactions -> _models top
-_interactions -> _overrides top
+_interactions -> _overrides local
 _interactions -> _roles top
 _interactions -> _specload top
 _interactions -> _specmerge top
@@ -304,6 +328,7 @@ _migrations -> _api top
 _migrations -> _backends top
 _migrations -> _clock top
 _migrations -> _discussion top
+_migrations -> _endpoint top
 _migrations -> _errors top
 _migrations -> _index top
 _migrations -> _interactions top
@@ -319,6 +344,7 @@ _migrations -> _view_tags top
 _migrations -> _views top
 _migrations -> _workflow top
 _models -> _clock top
+_models -> _endpoint top
 _models -> _errors top
 _models -> _util top
 _overrides -> _aio top
@@ -336,6 +362,7 @@ _overrides -> _view_tags local
 _overrides -> _workflow top
 _overrides -> squads top
 _paths -> _context top
+_paths -> _endpoint top
 _paths -> _errors top
 _paths -> _models top
 _paths -> _workflow top
@@ -358,6 +385,7 @@ _roles -> _pronouns top
 _roles -> _specload top
 _roles -> _specmerge top
 _roles -> _util top
+_sections -> _context top
 _sections -> _errors top
 _sections -> _models top
 _services -> _actor top
@@ -369,6 +397,7 @@ _services -> _board top
 _services -> _clock top
 _services -> _context top
 _services -> _discussion top
+_services -> _endpoint top
 _services -> _errors local
 _services -> _errors top
 _services -> _index local
@@ -381,6 +410,7 @@ _services -> _migrations top
 _services -> _models top
 _services -> _overrides local
 _services -> _overrides top
+_services -> _parse_cache top
 _services -> _paths top
 _services -> _pronouns top
 _services -> _rendering local
@@ -399,6 +429,12 @@ _services -> _views top
 _services -> _workflow top
 _services -> squads local
 _services -> squads top
+_shim -> _cli local
+_shim -> _daemon_start local
+_shim -> _endpoint top
+_shim -> squads local
+_spans -> _context top
+_spec_documents -> _api top
 _spec_documents -> _errors top
 _spec_documents -> _interactions top
 _spec_documents -> _roles top
@@ -438,27 +474,21 @@ _views -> _roles top
 _views -> _sections top
 _views -> _transform top
 _views -> _workflow top
+_workflow -> _context local
 _workflow -> _errors local
 _workflow -> _errors top
 _workflow -> _models local
 _workflow -> _models top
-_workflow -> _overrides top
+_workflow -> _overrides local
+_workflow -> _parse_cache local
+_workflow -> _parse_cache typing
 _workflow -> _specload top
 _workflow -> _specmerge top
 _workflow -> squads local
 """).splitlines()
 
 #: Nodes in the strongly connected component over the ``top`` edges.
-TOP_EDGE_COMPONENT: frozenset[str] = frozenset(
-    {
-        "_badges",
-        "_interactions",
-        "_overrides",
-        "_paths",
-        "_rendering",
-        "_workflow",
-    }
-)
+TOP_EDGE_COMPONENT: frozenset[str] = frozenset()
 
 #: Package inits that hold code, relative to ``src``.
 INITS_WITH_CODE: frozenset[str] = frozenset(
