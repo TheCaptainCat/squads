@@ -160,7 +160,6 @@ const TREE_NODE_KEYS = [
   'type',
   'title',
   'status',
-  'priority',
   'assignee',
   'blocked',
   'badges',
@@ -221,7 +220,7 @@ function flattenGraph(root: SqGraphNode): SqGraphNode[] {
  * generic-badge-axis surfaces) but is **not** modelled on the client's own `SqGraphNode` — a
  * documented, deliberate choice (`types.ts`'s file-level policy: hand-trimmed to the fields the
  * client actually reads, extra keys ignored rather than rejected), because `domain/graphDiagrams.ts`
- * renders `status`/`priority` for colour and never reads a badge. It is included here anyway,
+ * labels a node from `badges` and `display.badges`; the rest of `display` is unmodelled. It is included here anyway,
  * same as `edge_semantic`, so its removal still reddens this canary even though the shape guard
  * does not check its type.
  */
@@ -229,7 +228,6 @@ const GRAPH_NODE_KEYS = [
   'id',
   'type',
   'status',
-  'priority',
   'assignee',
   'edge_kind',
   'edge_semantic',
@@ -268,8 +266,6 @@ const LIST_ROW_CORE_KEYS = [
   'parent',
   'author',
   'assignee',
-  'priority',
-  'severity',
   'labels',
   'refs',
   'path',
@@ -325,7 +321,6 @@ describe('the tree-node key assertion', () => {
     type: 'task',
     title: 'A task',
     status: 'Ready',
-    priority: null,
     assignee: null,
     blocked: false,
     badges: {},
@@ -377,7 +372,6 @@ describe('the graph-node key assertion', () => {
     id: 'TASK-1',
     type: 'task',
     status: 'Ready',
-    priority: null,
     assignee: null,
     edge_kind: 'related',
     edge_semantic: null,
@@ -435,8 +429,6 @@ describe('the list-row key assertion', () => {
     parent: null,
     author: 'manager',
     assignee: null,
-    priority: null,
-    severity: null,
     labels: [],
     refs: [],
     path: 'tasks/TASK-000001-a-task.md',
@@ -499,6 +491,64 @@ describe('the list-row key assertion', () => {
   it('the shape guard accepts a stray key and an older sq nested extra object', () => {
     expect(isSqListItem({ ...modelled, path_only: false })).toBe(true);
     expect(isSqListItem({ ...modelled, extra: { slug: 'a-task' } })).toBe(true);
+  });
+});
+
+/** The keys every sub-entity object carries; a stored field of its kind sits flat beside them.
+ * `maps_to` is always present (`null` when unset); `story`, `severity` and `extra` are retired
+ * as fixed keys. */
+const SUBENTITY_CORE_KEYS = [
+  'local_id',
+  'title',
+  'status',
+  'assignee',
+  'maps_to',
+  'deferred_to',
+  'body',
+  'badges',
+  'discussion',
+  'display',
+] as const;
+
+function assertSubEntityKeys(entry: object, declaredFields: ReadonlySet<string>): void {
+  const core: ReadonlySet<string> = new Set(SUBENTITY_CORE_KEYS);
+  const keys = Object.keys(entry);
+  expect(keys.filter((key) => core.has(key)).sort()).toEqual([...SUBENTITY_CORE_KEYS].sort());
+  expect(keys.filter((key) => !core.has(key) && !declaredFields.has(key))).toEqual([]);
+}
+
+describe('the sub-entity key assertion', () => {
+  const modelled: Record<string, unknown> = {
+    local_id: 'AC1',
+    title: 't',
+    status: 'Todo',
+    assignee: null,
+    maps_to: null,
+    deferred_to: null,
+    body: '',
+    badges: {},
+    discussion: [],
+    display: {},
+  };
+  const fields: ReadonlySet<string> = new Set(['impact']);
+
+  it.each([
+    { name: 'the core set', payload: modelled, passes: true },
+    { name: 'a declared field, flat', payload: { ...modelled, impact: 'large' }, passes: true },
+    { name: 'the retired story key', payload: { ...modelled, story: null }, passes: false },
+    { name: 'the retired extra object', payload: { ...modelled, extra: {} }, passes: false },
+    { name: 'maps_to dropped', payload: { ...modelled, maps_to: undefined }, passes: false },
+  ])('$name', ({ payload, passes }) => {
+    const { maps_to: _drop, ...without } = payload;
+    const subject = 'maps_to' in payload && payload.maps_to === undefined ? without : payload;
+    const run = (): void => {
+      assertSubEntityKeys(subject, fields);
+    };
+    if (passes) {
+      expect(run).not.toThrow();
+    } else {
+      expect(run).toThrow();
+    }
   });
 });
 
@@ -658,7 +708,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         runSq(['task', number, 'subtask', '1', 'comment', '--as', 'manager', '-m', 'Sub note.']);
         const parsed = JSON.parse(runSq(['show', taskId, '--json'])) as {
           discussion: object[];
-          subentities: { discussion: object[] }[];
+          subentities: { discussion: object[]; maps_to: string | null; display: object }[];
         };
         expect(parsed.discussion.length).toBeGreaterThan(0);
         for (const entry of parsed.discussion) {
@@ -666,6 +716,10 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         }
         expect(parsed.subentities.length).toBeGreaterThan(0);
         for (const sub of parsed.subentities) {
+          assertSubEntityKeys(sub, new Set());
+          expect(sub).toHaveProperty('maps_to');
+          // The target kind the mapping line is labelled by: an object (the kind maps) or null.
+          expect(sub.display).toHaveProperty('maps_to_kind');
           expect(sub.discussion.length).toBeGreaterThan(0);
           for (const entry of sub.discussion) {
             assertDiscussionEntryKeys(entry);
@@ -897,7 +951,8 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
               'local_prefix',
               'container_heading',
               'completion',
-              'maps_parent_story',
+              'label',
+              'maps_to_parent',
               'fields',
             ]),
           );

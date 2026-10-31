@@ -1,0 +1,188 @@
+{
+  "sequence_id": 9,
+  "type": "job",
+  "title": "Write the onboarding guide",
+  "slug": "write-the-onboarding-guide",
+  "status": "Draft",
+  "description": "",
+  "parent": "INI-8",
+  "author": "manager",
+  "assignee": null,
+  "labels": [],
+  "refs": [],
+  "subentities": [
+    {
+      "local_id": "AC1",
+      "title": "Draft the outline",
+      "status": "Todo",
+      "assignee": null,
+      "maps_to": null,
+      "deferred_to": null,
+      "impact": "large",
+      "body": "Outline.",
+      "badges": {
+        "impact": "large"
+      },
+      "discussion": [],
+      "display": {
+        "type": "Action",
+        "status": {
+          "badge": "\u26aa Todo",
+          "intent": "neutral"
+        },
+        "badges": {
+          "impact": {
+            "label": "Impact",
+            "badge": "\ud83d\udd34 large",
+            "badge_label": "\ud83d\udd34 Large"
+          }
+        },
+        "assignee": null,
+        "maps_to": null,
+        "maps_to_kind": {
+          "name": "outcome",
+          "label": "Desired outcome",
+          "plural": "outcomes",
+          "heading": "Desired Outcomes"
+        },
+        "carrier_title": null
+      }
+    },
+    {
+      "local_id": "AC2",
+      "title": "Record the walkthrough",
+      "status": "Deferred",
+      "assignee": null,
+      "maps_to": null,
+      "deferred_to": "REC-10",
+      "body": "Moved to the hosting record.",
+      "badges": {},
+      "discussion": [],
+      "display": {
+        "type": "Action",
+        "status": {
+          "badge": "\ud83d\udfe3 Deferred",
+          "intent": "info"
+        },
+        "badges": {},
+        "assignee": null,
+        "maps_to": null,
+        "maps_to_kind": {
+          "name": "outcome",
+          "label": "Desired outcome",
+          "plural": "outcomes",
+          "heading": "Desired Outcomes"
+        },
+        "carrier_title": "Pick the hosting plan"
+      }
+    },
+    {
+      "local_id": "AC3",
+      "title": "Publish the guide",
+      "status": "Todo",
+      "assignee": null,
+      "maps_to": "OC1",
+      "deferred_to": null,
+      "body": "Ship it.",
+      "badges": {},
+      "discussion": [],
+      "display": {
+        "type": "Action",
+        "status": {
+          "badge": "\u26aa Todo",
+          "intent": "neutral"
+        },
+        "badges": {},
+        "assignee": null,
+        "maps_to": "OC1",
+        "maps_to_kind": {
+          "name": "outcome",
+          "label": "Desired outcome",
+          "plural": "outcomes",
+          "heading": "Desired Outcomes"
+        },
+        "carrier_title": null
+      }
+    }
+  ],
+  "path": "jobs/JOB-000009-write-the-onboarding-guide.md",
+  "created_at": "2026-10-29T23:08:09Z",
+  "updated_at": "2026-10-29T23:10:27Z",
+  "created_session": null,
+  "modified_session": null,
+  "id": "JOB-9",
+  "owner_team": "docs",
+  "needs_review": true,
+  "work_size": "m",
+  "body": "## Description\n\n_TODO: describe this job._",
+  "views": {},
+  "discussion": [],
+  "badges": {
+    "work_size": "m"
+  },
+  "display": {
+    "type": "Job",
+    "status": {
+      "badge": "\u26aa Draft",
+      "intent": "neutral"
+    },
+    "badges": {
+      "work_size": {
+        "label": "Work size",
+        "badge": "\u26aa m",
+        "badge_label": "\u26aa M"
+      }
+    },
+    "assignee": null,
+    "body": "## Description\n\n_TODO: describe this job._",
+    "summary": {
+      "kind": "action",
+      "columns": [
+        "Action",
+        "Impact",
+        "Status",
+        "Assignee",
+        "Title",
+        "Desired outcome"
+      ],
+      "rows": [
+        [
+          "AC1",
+          "\ud83d\udd34 large",
+          "Todo",
+          "",
+          "Draft the outline",
+          ""
+        ],
+        [
+          "AC2",
+          "",
+          "Deferred",
+          "",
+          "Record the walkthrough",
+          ""
+        ],
+        [
+          "AC3",
+          "",
+          "Todo",
+          "",
+          "Publish the guide",
+          "OC1"
+        ]
+      ]
+    },
+    "attributes": [
+      {
+        "key": "owner_team",
+        "label": "owner team",
+        "value": "docs"
+      },
+      {
+        "key": "needs_review",
+        "label": "needs review",
+        "value": "yes"
+      }
+    ]
+  }
+}

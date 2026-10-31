@@ -50,9 +50,18 @@ describe('buildMetaView', () => {
     const nodes = buildMetaView(LIST_FIXTURE);
     const [roles, skills, operators] = nodes;
 
-    expect(roles?.children.map((child) => child.itemId)).toEqual(['ROLE-1', 'ROLE-2']);
-    expect(skills?.children.map((child) => child.itemId)).toEqual(['SKILL-192', 'SKILL-193']);
-    expect(operators?.children.map((child) => child.itemId)).toEqual(['OP-10']);
+    expect(roles?.children.map((child) => child.itemId)).toEqual([
+      'ROLE-1',
+      'ROLE-2',
+      'ROLE-3',
+      'ROLE-4',
+      'ROLE-5',
+      'ROLE-6',
+      'ROLE-7',
+      'ROLE-8',
+    ]);
+    expect(skills?.children).toEqual([]);
+    expect(operators?.children.map((child) => child.itemId)).toEqual(['OP-16']);
   });
 
   it('never leaks a non-reserved (work-item) type into any bucket', () => {
@@ -356,8 +365,6 @@ function makeItem(id: string, type: string): SqListItem {
     parent: null,
     author: null,
     assignee: null,
-    priority: null,
-    severity: null,
     labels: [],
     refs: [],
     path: `${type}s/${id}.md`,

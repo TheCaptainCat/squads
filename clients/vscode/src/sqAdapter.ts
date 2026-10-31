@@ -183,10 +183,7 @@ function hasRequiredTreeNodeStrings(node: Record<string, unknown>): boolean {
 }
 
 function hasNullableTreeNodeStrings(node: Record<string, unknown>): boolean {
-  return (
-    (typeof node.priority === 'string' || node.priority === null) &&
-    (typeof node.assignee === 'string' || node.assignee === null)
-  );
+  return typeof node.assignee === 'string' || node.assignee === null;
 }
 
 /** Shape guard for one `sq tree --json` node (recursive). Exported so the integration
@@ -215,9 +212,23 @@ function hasRequiredGraphNodeStrings(node: Record<string, unknown>): boolean {
   );
 }
 
+/** `display` is read for badge labels only: absent, or an object whose `badges` (when present)
+ * is an object — anything else is a payload this client cannot label from. */
+function isOptionalGraphDisplay(value: unknown): boolean {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const badges = (value as Record<string, unknown>).badges;
+  return badges === undefined || (typeof badges === 'object' && badges !== null);
+}
+
 function hasNullableGraphNodeFields(node: Record<string, unknown>): boolean {
   return (
-    (typeof node.priority === 'string' || node.priority === null) &&
+    isOptionalBadgeMap(node.badges) &&
+    isOptionalGraphDisplay(node.display) &&
     (typeof node.assignee === 'string' || node.assignee === null) &&
     (typeof node.edge_kind === 'string' || node.edge_kind === null) &&
     // Optional: an older `sq` predates the field and simply omits it — tolerated, not rejected.
@@ -510,6 +521,22 @@ function hasOptionalDiscussion(entry: Record<string, unknown>): boolean {
   );
 }
 
+/** `display.maps_to_kind` is read for the mapping label: absent, null or a `{label}` object. */
+function isOptionalSubEntityDisplay(value: unknown): boolean {
+  if (value === undefined) {
+    return true;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const kind = (value as Record<string, unknown>).maps_to_kind;
+  return (
+    kind === undefined ||
+    kind === null ||
+    (typeof kind === 'object' && typeof (kind as Record<string, unknown>).label === 'string')
+  );
+}
+
 function isSqSubEntity(value: unknown): value is SqSubEntity {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -520,8 +547,9 @@ function isSqSubEntity(value: unknown): value is SqSubEntity {
     typeof entry.title === 'string' &&
     typeof entry.status === 'string' &&
     isStringOrNull(entry.assignee) &&
-    isStringOrNull(entry.story) &&
+    isStringOrNull(entry.maps_to) &&
     typeof entry.body === 'string' &&
+    isOptionalSubEntityDisplay(entry.display) &&
     isOptionalBadgeMap(entry.badges) &&
     hasOptionalDiscussion(entry)
   );

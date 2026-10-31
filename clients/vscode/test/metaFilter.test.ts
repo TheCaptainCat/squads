@@ -42,8 +42,6 @@ function makeItem(status: string): SqListItem {
     parent: null,
     author: null,
     assignee: null,
-    priority: null,
-    severity: null,
     labels: [],
     refs: [],
     path: 'roles/ROLE-1.md',

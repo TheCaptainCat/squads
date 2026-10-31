@@ -184,8 +184,6 @@ describe('itemLeaf / sortedItemLeaves', () => {
     parent: null,
     author: null,
     assignee: 'ada',
-    priority: null,
-    severity: null,
     labels: [],
     refs: [],
     path: '',

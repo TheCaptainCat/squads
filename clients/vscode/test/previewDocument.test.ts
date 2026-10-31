@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import * as path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { buildSubEntityFieldBindings } from '../src/domain/badgeCatalog';
@@ -233,7 +236,7 @@ describe('buildPreviewHtml', () => {
             title: 'A finding',
             status: 'Open',
             assignee: null,
-            story: null,
+            maps_to: null,
             body: '',
             badges: { severity: 'high' },
           },
@@ -797,7 +800,7 @@ describe('buildSubEntitiesHtml', () => {
     title: 'Preview omits the item’s sub-entities',
     status: 'Open',
     assignee: null,
-    story: null,
+    maps_to: null,
     body: 'Add a section listing sub-entities.',
     badges: { severity: 'high' },
   };
@@ -806,7 +809,7 @@ describe('buildSubEntitiesHtml', () => {
     title: 'Render sub-entities',
     status: 'InProgress',
     assignee: 'typescript-dev',
-    story: null,
+    maps_to: null,
     body: '',
   };
   /** The two catalogs joined into sub-entity field bindings, as the preview manager does. */
@@ -857,7 +860,34 @@ describe('buildSubEntitiesHtml', () => {
     expect(html).not.toContain('Story:');
   });
 
-  it('renders assignee and story on the head line when present', () => {
+  it('labels a set maps_to with the server-declared target kind label, bundled and overridden', () => {
+    const entities = (name: string): SqSubEntity[] =>
+      (
+        JSON.parse(readFileSync(path.join(__dirname, 'fixtures', name), 'utf8')) as {
+          subentities: SqSubEntity[];
+        }
+      ).subentities;
+    const bundled = buildSubEntitiesHtml({ entities: entities('show-json.json') });
+    const overridden = buildSubEntitiesHtml({ entities: entities('override-show-json.json') });
+
+    expect(bundled).toContain('Story: US1');
+    expect(overridden).toContain('Desired outcome: OC1');
+    expect(overridden).not.toContain('Story');
+    // Unmapped entries (maps_to null) get no mapping line, whatever their kind maps.
+    expect(bundled.match(/Story:/g)).toHaveLength(1);
+    expect(overridden.match(/Desired outcome:/g)).toHaveLength(1);
+  });
+
+  it('shows no mapping line when the sub-entity carries no maps_to_kind, and no fallback text', () => {
+    const withNull = buildSubEntitiesHtml({
+      entities: [{ ...story, maps_to: 'XX7', display: { maps_to_kind: null } }],
+    });
+    const without = buildSubEntitiesHtml({ entities: [{ ...story, maps_to: 'XX7' }] });
+    expect(withNull).not.toContain('XX7');
+    expect(without).not.toContain('XX7');
+  });
+
+  it('renders assignee on the head line when present', () => {
     const html = buildSubEntitiesHtml({ entities: [story] });
     expect(html).toContain('Status: InProgress');
     expect(html).toContain('Assignee: typescript-dev');
@@ -1187,8 +1217,6 @@ describe('item hover text reaches every rendered surface', () => {
       parent: null,
       author: null,
       assignee: null,
-      priority: null,
-      severity: null,
       labels: [],
       refs: [],
       path: 'tasks/x.md',
@@ -1243,7 +1271,7 @@ describe('item hover text reaches every rendered surface', () => {
             title: 'A finding',
             status: 'Open',
             assignee: null,
-            story: null,
+            maps_to: null,
             body: 'Traced to TASK-452.',
             discussion: [{ author: 'a', ts: '2026-01-01T00:00:00Z', body: 'Also TASK-452.' }],
           },

@@ -1,23 +1,19 @@
 [
   {
-    "id": "EPIC-99",
+    "id": "EPIC-9",
     "type": "epic",
-    "title": "VS Code extension — browse the squad in the editor",
-    "status": "Done",
-    "priority": "low",
+    "title": "Ship the widget",
+    "status": "Draft",
     "assignee": null,
     "blocked": false,
-    "badges": {
-      "priority": "low"
-    },
+    "badges": {},
     "anchor": false,
     "children": [
       {
-        "id": "FEAT-100",
+        "id": "FEAT-10",
         "type": "feature",
-        "title": "Read-only browse: sidebar tree + rendered preview",
-        "status": "Done",
-        "priority": "low",
+        "title": "Widget preview",
+        "status": "Draft",
         "assignee": null,
         "blocked": false,
         "badges": {
@@ -26,314 +22,51 @@
         "anchor": false,
         "children": [
           {
-            "id": "TASK-428",
+            "id": "TASK-11",
             "type": "task",
-            "title": "clients/vscode skeleton: isolated TS toolchain, sq discovery, --json adapter",
-            "status": "Done",
-            "priority": null,
-            "assignee": "typescript-dev",
+            "title": "Build the widget",
+            "status": "Draft",
+            "assignee": null,
             "blocked": false,
-            "badges": {},
+            "badges": {
+              "priority": "high"
+            },
             "anchor": false,
             "children": [],
             "display": {
               "type": "Task",
               "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
+                "badge": "\u26aa Draft",
+                "intent": "neutral"
               },
-              "badges": {},
-              "assignee": "Ada Typescript",
+              "badges": {
+                "priority": {
+                  "label": "Priority",
+                  "badge": "\ud83d\udfe0 high",
+                  "badge_label": "\ud83d\udfe0 High"
+                }
+              },
+              "assignee": null,
               "dimmed": false,
               "anchor": null,
               "pronouns": null
             },
             "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-16T18:33:18Z"
-          },
-          {
-            "id": "TASK-429",
-            "type": "task",
-            "title": "VS Code sidebar tree provider from sq tree --json",
-            "status": "Done",
-            "priority": null,
-            "assignee": "typescript-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Ada Typescript",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T11:23:20Z"
-          },
-          {
-            "id": "TASK-430",
-            "type": "task",
-            "title": "Open sq show --raw in a read-only squads: markdown preview",
-            "status": "Done",
-            "priority": null,
-            "assignee": "typescript-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Ada Typescript",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T07:41:47Z"
-          },
-          {
-            "id": "TASK-431",
-            "type": "task",
-            "title": "Tree filter/group by type and open/closed state, plus refresh command",
-            "status": "Done",
-            "priority": null,
-            "assignee": "typescript-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Ada Typescript",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T07:41:47Z"
-          },
-          {
-            "id": "TASK-432",
-            "type": "task",
-            "title": "Dev-time TS CI lane for clients/vscode (strict, non-gating for core)",
-            "status": "Done",
-            "priority": null,
-            "assignee": "devops",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Hugo Ops",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T07:41:48Z"
-          },
-          {
-            "id": "TASK-433",
-            "type": "task",
-            "title": "Bundle VSIX as a release asset at the unified version",
-            "status": "Done",
-            "priority": null,
-            "assignee": "devops",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Hugo Ops",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T11:46:05Z"
-          },
-          {
-            "id": "TASK-434",
-            "type": "task",
-            "title": "Core: clean sq show --raw + additive --json body/discussion keys",
-            "status": "Done",
-            "priority": null,
-            "assignee": "python-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Elias Python",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-16T18:27:00Z"
-          },
-          {
-            "id": "TASK-439",
-            "type": "task",
-            "title": "Core: additive title on tree --json + is_open on list/tree --json",
-            "status": "Done",
-            "priority": null,
-            "assignee": "python-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Elias Python",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T08:02:51Z"
-          },
-          {
-            "id": "TASK-440",
-            "type": "task",
-            "title": "Client: consume tree title + is_open, collapse to one sq tree call",
-            "status": "Done",
-            "priority": null,
-            "assignee": "typescript-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Ada Typescript",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T11:19:01Z"
-          },
-          {
-            "id": "TASK-441",
-            "type": "task",
-            "title": "Client: integration skew-canary CI layer (fixtures vs live sq)",
-            "status": "Done",
-            "priority": null,
-            "assignee": "typescript-dev",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Ada Typescript",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T09:08:32Z"
-          },
-          {
-            "id": "TASK-442",
-            "type": "task",
-            "title": "Devops: path-scope Python test.yml off TS-only changes",
-            "status": "Done",
-            "priority": null,
-            "assignee": "devops",
-            "blocked": false,
-            "badges": {},
-            "anchor": false,
-            "children": [],
-            "display": {
-              "type": "Task",
-              "status": {
-                "badge": "🟢 Done",
-                "intent": "positive"
-              },
-              "badges": {},
-              "assignee": "Hugo Ops",
-              "dimmed": false,
-              "anchor": null,
-              "pronouns": null
-            },
-            "notebook": null,
-            "closed": true,
-            "updated_at": "2026-07-17T08:02:53Z"
+            "closed": false,
+            "updated_at": "2026-10-29T23:09:26Z"
           }
         ],
         "display": {
           "type": "Feature",
           "status": {
-            "badge": "🟢 Done",
-            "intent": "positive"
+            "badge": "\u26aa Draft",
+            "intent": "neutral"
           },
           "badges": {
             "priority": {
               "label": "Priority",
-              "badge": "🟢 low",
-              "badge_label": "🟢 Low"
+              "badge": "\ud83d\udfe2 low",
+              "badge_label": "\ud83d\udfe2 Low"
             }
           },
           "assignee": null,
@@ -342,30 +75,24 @@
           "pronouns": null
         },
         "notebook": null,
-        "closed": true,
-        "updated_at": "2026-09-01T13:48:14Z"
+        "closed": false,
+        "updated_at": "2026-10-29T23:09:27Z"
       }
     ],
     "display": {
       "type": "Epic",
       "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
+        "badge": "\u26aa Draft",
+        "intent": "neutral"
       },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
+      "badges": {},
       "assignee": null,
       "dimmed": false,
       "anchor": null,
       "pronouns": null
     },
     "notebook": null,
-    "closed": true,
-    "updated_at": "2026-07-19T19:33:00Z"
+    "closed": false,
+    "updated_at": "2026-10-29T23:09:18Z"
   }
 ]

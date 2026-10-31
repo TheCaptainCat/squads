@@ -9,24 +9,21 @@
     "parent": null,
     "author": "manager",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
     "path": "agents/roles/ROLE-000001-manager.md",
-    "created_at": "2026-06-10T12:29:40Z",
-    "updated_at": "2026-07-31T10:58:52Z",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
     "created_session": null,
     "modified_session": null,
     "id": "ROLE-1",
-    "is_default": true,
     "origin": "system",
     "badges": {},
     "display": {
       "type": "Role",
       "status": {
-        "badge": "⚪ Active",
+        "badge": "\u26aa Active",
         "intent": "positive"
       },
       "badges": {},
@@ -43,25 +40,238 @@
     "parent": null,
     "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
     "path": "agents/roles/ROLE-000002-architect.md",
-    "created_at": "2026-06-10T12:29:40Z",
-    "updated_at": "2026-06-10T12:29:40Z",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
     "created_session": null,
     "modified_session": null,
     "id": "ROLE-2",
-    "is_default": false,
     "origin": "system",
     "badges": {},
     "display": {
       "type": "Role",
       "status": {
-        "badge": "⚪ Active",
+        "badge": "\u26aa Active",
         "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 3,
+    "type": "role",
+    "title": "Olivia Lead",
+    "slug": "tech-lead",
+    "status": "Active",
+    "description": "",
+    "parent": null,
+    "author": "tech-lead",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/roles/ROLE-000003-tech-lead.md",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "ROLE-3",
+    "origin": "system",
+    "badges": {},
+    "display": {
+      "type": "Role",
+      "status": {
+        "badge": "\u26aa Active",
+        "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 4,
+    "type": "role",
+    "title": "Paul Reviewer",
+    "slug": "reviewer",
+    "status": "Active",
+    "description": "",
+    "parent": null,
+    "author": "reviewer",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/roles/ROLE-000004-reviewer.md",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "ROLE-4",
+    "origin": "system",
+    "badges": {},
+    "display": {
+      "type": "Role",
+      "status": {
+        "badge": "\u26aa Active",
+        "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 5,
+    "type": "role",
+    "title": "Mara Tester",
+    "slug": "qa",
+    "status": "Active",
+    "description": "",
+    "parent": null,
+    "author": "qa",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/roles/ROLE-000005-qa.md",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "ROLE-5",
+    "origin": "system",
+    "badges": {},
+    "display": {
+      "type": "Role",
+      "status": {
+        "badge": "\u26aa Active",
+        "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 6,
+    "type": "role",
+    "title": "Hugo Ops",
+    "slug": "devops",
+    "status": "Active",
+    "description": "",
+    "parent": null,
+    "author": "devops",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/roles/ROLE-000006-devops.md",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "ROLE-6",
+    "origin": "system",
+    "badges": {},
+    "display": {
+      "type": "Role",
+      "status": {
+        "badge": "\u26aa Active",
+        "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 7,
+    "type": "role",
+    "title": "Nina Product",
+    "slug": "product-owner",
+    "status": "Active",
+    "description": "",
+    "parent": null,
+    "author": "product-owner",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/roles/ROLE-000007-product-owner.md",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "ROLE-7",
+    "origin": "system",
+    "badges": {},
+    "display": {
+      "type": "Role",
+      "status": {
+        "badge": "\u26aa Active",
+        "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 8,
+    "type": "role",
+    "title": "Theo Writer",
+    "slug": "tech-writer",
+    "status": "Active",
+    "description": "",
+    "parent": null,
+    "author": "tech-writer",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "agents/roles/ROLE-000008-tech-writer.md",
+    "created_at": "2026-10-29T23:09:10Z",
+    "updated_at": "2026-10-29T23:09:10Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "ROLE-8",
+    "origin": "system",
+    "badges": {},
+    "display": {
+      "type": "Role",
+      "status": {
+        "badge": "\u26aa Active",
+        "intent": "positive"
+      },
+      "badges": {},
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 9,
+    "type": "epic",
+    "title": "Ship the widget",
+    "slug": "ship-the-widget",
+    "status": "Draft",
+    "description": "",
+    "parent": null,
+    "author": "product-owner",
+    "assignee": null,
+    "labels": [],
+    "refs": [],
+    "subentities": [],
+    "path": "epics/EPIC-000009-ship-the-widget.md",
+    "created_at": "2026-10-29T23:09:18Z",
+    "updated_at": "2026-10-29T23:09:18Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "EPIC-9",
+    "badges": {},
+    "display": {
+      "type": "Epic",
+      "status": {
+        "badge": "\u26aa Draft",
+        "intent": "neutral"
       },
       "badges": {},
       "assignee": null
@@ -69,274 +279,238 @@
   },
   {
     "sequence_id": 10,
-    "type": "operator",
-    "title": "Pierre Chat",
-    "slug": "op-pierre",
-    "status": "Active",
+    "type": "feature",
+    "title": "Widget preview",
+    "slug": "widget-preview",
+    "status": "Draft",
+    "description": "",
+    "parent": "EPIC-9",
+    "author": "product-owner",
+    "assignee": null,
+    "labels": [],
+    "refs": [
+      "ADR-12"
+    ],
+    "subentities": [
+      {
+        "local_id": "US1",
+        "title": "Show the widget",
+        "status": "Todo",
+        "assignee": null,
+        "maps_to": null,
+        "deferred_to": null,
+        "badges": {}
+      },
+      {
+        "local_id": "US2",
+        "title": "Hide the widget",
+        "status": "Todo",
+        "assignee": null,
+        "maps_to": null,
+        "deferred_to": null,
+        "badges": {}
+      }
+    ],
+    "path": "features/FEAT-000010-widget-preview.md",
+    "created_at": "2026-10-29T23:09:19Z",
+    "updated_at": "2026-10-29T23:09:27Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "FEAT-10",
+    "priority": "low",
+    "badges": {
+      "priority": "low"
+    },
+    "display": {
+      "type": "Feature",
+      "status": {
+        "badge": "\u26aa Draft",
+        "intent": "neutral"
+      },
+      "badges": {
+        "priority": {
+          "label": "Priority",
+          "badge": "\ud83d\udfe2 low",
+          "badge_label": "\ud83d\udfe2 Low"
+        }
+      },
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 11,
+    "type": "task",
+    "title": "Build the widget",
+    "slug": "build-the-widget",
+    "status": "Draft",
+    "description": "",
+    "parent": "FEAT-10",
+    "author": "tech-lead",
+    "assignee": null,
+    "labels": [],
+    "refs": [
+      "ADR-12:addresses"
+    ],
+    "subentities": [
+      {
+        "local_id": "ST1",
+        "title": "Draw it",
+        "status": "Todo",
+        "assignee": null,
+        "maps_to": "US1",
+        "deferred_to": null,
+        "badges": {}
+      },
+      {
+        "local_id": "ST2",
+        "title": "Wire it",
+        "status": "Todo",
+        "assignee": null,
+        "maps_to": null,
+        "deferred_to": null,
+        "badges": {}
+      }
+    ],
+    "path": "tasks/TASK-000011-build-the-widget.md",
+    "created_at": "2026-10-29T23:09:20Z",
+    "updated_at": "2026-10-29T23:09:26Z",
+    "created_session": null,
+    "modified_session": null,
+    "id": "TASK-11",
+    "priority": "high",
+    "badges": {
+      "priority": "high"
+    },
+    "display": {
+      "type": "Task",
+      "status": {
+        "badge": "\u26aa Draft",
+        "intent": "neutral"
+      },
+      "badges": {
+        "priority": {
+          "label": "Priority",
+          "badge": "\ud83d\udfe0 high",
+          "badge_label": "\ud83d\udfe0 High"
+        }
+      },
+      "assignee": null
+    }
+  },
+  {
+    "sequence_id": 12,
+    "type": "decision",
+    "title": "Widget shape",
+    "slug": "widget-shape",
+    "status": "Proposed",
     "description": "",
     "parent": null,
-    "author": "op-pierre",
+    "author": "architect",
     "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
-    "path": "operators/OP-000010-op-pierre.md",
-    "created_at": "2026-06-10T12:29:53Z",
-    "updated_at": "2026-06-10T12:29:53Z",
+    "path": "adrs/ADR-000012-widget-shape.md",
+    "created_at": "2026-10-29T23:09:22Z",
+    "updated_at": "2026-10-29T23:09:22Z",
     "created_session": null,
     "modified_session": null,
-    "id": "OP-10",
+    "id": "ADR-12",
     "badges": {},
     "display": {
-      "type": "Operator",
+      "type": "Decision",
       "status": {
-        "badge": "⚪ Active",
-        "intent": "positive"
+        "badge": "\u26aa Proposed",
+        "intent": "neutral"
       },
       "badges": {},
       "assignee": null
     }
   },
   {
-    "sequence_id": 11,
-    "type": "bug",
-    "title": "sq check flags operator authors/assignees as unregistered",
-    "slug": "sq-check-flags-operator-authors-assignees-as-unregistered",
-    "status": "Verified",
-    "description": "check() validates author/assignee against roles only, while the write gate accepts operators too",
-    "parent": null,
-    "author": "op-pierre",
-    "assignee": "python-dev",
-    "priority": "high",
-    "severity": "medium",
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "bugs/BUG-000011-sq-check-flags-operator-authors-assignees-as-unregistered.md",
-    "created_at": "2026-06-10T12:30:52Z",
-    "updated_at": "2026-06-10T12:32:14Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-11",
-    "badges": {
-      "priority": "high",
-      "severity": "medium"
-    },
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        },
-        "severity": {
-          "label": "Severity",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": "Elias Python"
-    }
-  },
-  {
-    "sequence_id": 12,
-    "type": "epic",
-    "title": "Road to 1.0",
-    "slug": "road-to-1-0",
-    "status": "Done",
-    "description": "Define and prove the 1.0 stability promise across our public surfaces",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "high",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "BUG-22:depends-on",
-      "BUG-21:depends-on"
-    ],
-    "subentities": [],
-    "path": "epics/EPIC-000012-road-to-1-0.md",
-    "created_at": "2026-06-10T12:40:41Z",
-    "updated_at": "2026-07-06T11:33:35Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-12",
-    "badges": {
-      "priority": "high"
-    },
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
     "sequence_id": 13,
-    "type": "feature",
-    "title": "Stability contract documentation",
-    "slug": "stability-contract-documentation",
-    "status": "Done",
-    "description": "docs/stability.md + README tiering the public surfaces and what each promises through 1.0",
-    "parent": "EPIC-12",
-    "author": "product-owner",
+    "type": "review",
+    "title": "Review the widget",
+    "slug": "review-the-widget",
+    "status": "Requested",
+    "description": "",
+    "parent": null,
+    "author": "reviewer",
     "assignee": null,
-    "priority": "high",
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [
       {
-        "local_id": "US1",
-        "title": "Migration promise for 0.x squads reaching 1.0",
-        "status": "Done",
+        "local_id": "F1",
+        "title": "Label drifts",
+        "status": "Open",
         "assignee": null,
-        "severity": null,
-        "story": null,
+        "maps_to": null,
         "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "SemVer-stable CLI and --json surfaces documented",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US3",
-        "title": "Internals explicitly marked non-public",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
+        "severity": "high",
+        "badges": {
+          "severity": "high"
+        }
       }
     ],
-    "path": "features/FEAT-000013-stability-contract-documentation.md",
-    "created_at": "2026-06-10T12:40:59Z",
-    "updated_at": "2026-07-06T10:06:26Z",
+    "path": "reviews/REV-000013-review-the-widget.md",
+    "created_at": "2026-10-29T23:09:22Z",
+    "updated_at": "2026-10-29T23:09:24Z",
     "created_session": null,
     "modified_session": null,
-    "id": "FEAT-13",
-    "badges": {
-      "priority": "high"
-    },
+    "id": "REV-13",
+    "badges": {},
     "display": {
-      "type": "Feature",
+      "type": "Review",
       "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
+        "badge": "\u26aa Requested",
+        "intent": "neutral"
       },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
+      "badges": {},
       "assignee": null
     }
   },
   {
     "sequence_id": 14,
-    "type": "feature",
-    "title": "Project-level template and role overrides",
-    "slug": "project-level-template-and-role-overrides",
-    "status": "Done",
-    "description": "squads/.templates/ overrides; lookup path and precedence join the durable contract, so it must land before 1.0",
-    "parent": "EPIC-12",
-    "author": "product-owner",
+    "type": "bug",
+    "title": "Widget flickers",
+    "slug": "widget-flickers",
+    "status": "Open",
+    "description": "",
+    "parent": null,
+    "author": "qa",
     "assignee": null,
-    "priority": "high",
-    "severity": null,
     "labels": [],
-    "refs": [
-      "PRD-859:implements"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "Override item templates from squads/.templates/",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "As a project lead, I want to add or override role definitions for my project, so that the squad matches my actual team",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US3",
-        "title": "Defined precedence and staleness behaviour for overrides",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US4",
-        "title": "Supply agent names at init and role creation",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000014-project-level-template-and-role-overrides.md",
-    "created_at": "2026-06-10T12:41:06Z",
-    "updated_at": "2026-09-01T13:47:18Z",
+    "refs": [],
+    "subentities": [],
+    "path": "bugs/BUG-000014-widget-flickers.md",
+    "created_at": "2026-10-29T23:09:23Z",
+    "updated_at": "2026-10-29T23:09:23Z",
     "created_session": null,
     "modified_session": null,
-    "id": "FEAT-14",
+    "id": "BUG-14",
+    "priority": "high",
+    "severity": "high",
     "badges": {
-      "priority": "high"
+      "priority": "high",
+      "severity": "high"
     },
     "display": {
-      "type": "Feature",
+      "type": "Bug",
       "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
+        "badge": "\ud83d\udd34 Open",
+        "intent": "danger"
       },
       "badges": {
         "priority": {
           "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
+          "badge": "\ud83d\udfe0 high",
+          "badge_label": "\ud83d\udfe0 High"
+        },
+        "severity": {
+          "label": "Severity",
+          "badge": "\ud83d\udfe0 high",
+          "badge_label": "\ud83d\udfe0 High"
         }
       },
       "assignee": null
@@ -344,2099 +518,62 @@
   },
   {
     "sequence_id": 15,
-    "type": "feature",
-    "title": "Machine-readable surface audit",
-    "slug": "machine-readable-surface-audit",
-    "status": "Done",
-    "description": "--json on every read command, documented exit codes, golden-file tests freezing the JSON shapes",
-    "parent": "EPIC-12",
-    "author": "product-owner",
+    "type": "guide",
+    "title": "Widget guide",
+    "slug": "widget-guide",
+    "status": "Draft",
+    "description": "",
+    "parent": null,
+    "author": "architect",
     "assignee": null,
-    "priority": "high",
-    "severity": null,
     "labels": [],
-    "refs": [
-      "PRD-862:implements"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "--json on every read command including blocked, mine, workload, inbox",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "As a CI pipeline author, I want documented exit codes, so that I can gate builds on commands like sq check",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US3",
-        "title": "As a tool builder, I want the JSON shapes frozen by tests, so that an sq upgrade can't break my parser unannounced",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000015-machine-readable-surface-audit.md",
-    "created_at": "2026-06-10T12:41:11Z",
-    "updated_at": "2026-09-01T13:47:29Z",
+    "refs": [],
+    "subentities": [],
+    "path": "guides/GUIDE-000015-widget-guide.md",
+    "created_at": "2026-10-29T23:09:23Z",
+    "updated_at": "2026-10-29T23:09:23Z",
     "created_session": null,
     "modified_session": null,
-    "id": "FEAT-15",
-    "badges": {
-      "priority": "high"
-    },
+    "id": "GUIDE-15",
+    "badges": {},
     "display": {
-      "type": "Feature",
+      "type": "Guide",
       "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
+        "badge": "\u26aa Draft",
+        "intent": "neutral"
       },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
+      "badges": {},
       "assignee": null
     }
   },
   {
     "sequence_id": 16,
-    "type": "feature",
-    "title": "Second backend: generic AGENTS.md",
-    "slug": "second-backend-generic-agents-md",
-    "status": "Done",
-    "description": "Prove the AgentBackend ABC with a cross-tool AGENTS.md implementation before the ABC freezes",
-    "parent": "EPIC-12",
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "medium",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "PRD-861:implements"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "AGENTS.md backend for non-Claude agent tooling",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "Backend conformance test suite for AgentBackend implementers",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000016-second-backend-generic-agents-md.md",
-    "created_at": "2026-06-10T12:41:16Z",
-    "updated_at": "2026-09-01T13:47:30Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "FEAT-16",
-    "badges": {
-      "priority": "medium"
-    },
-    "display": {
-      "type": "Feature",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 21,
-    "type": "bug",
-    "title": "Slug arguments not validated: sq mine accepts unknown agents and silently defaults to manager",
-    "slug": "slug-arguments-not-validated-sq-mine-accepts-unknown-agents",
-    "status": "Verified",
-    "description": "sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager; slug args should be required and validated against the roster across commands",
-    "parent": null,
-    "author": "op-pierre",
-    "assignee": null,
-    "priority": "medium",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-19"
-    ],
-    "subentities": [],
-    "path": "bugs/BUG-000021-slug-arguments-not-validated-sq-mine-accepts-unknown-agents.md",
-    "created_at": "2026-06-10T13:35:26Z",
-    "updated_at": "2026-06-11T13:19:21Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-21",
-    "badges": {
-      "priority": "medium"
-    },
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 22,
-    "type": "bug",
-    "title": "Counter can regress, allowing sequence-number reuse after an item file disappears",
-    "slug": "counter-can-regress-allowing-sequence-number-reuse-after-an",
-    "status": "Verified",
-    "description": "Hand-edited or repair-rebuilt indexes accept a regressed counter, so deleted items' numbers get reused; repair sets counter to max-found, ignoring the previous high-water mark",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "high",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-19",
-      "FEAT-23"
-    ],
-    "subentities": [],
-    "path": "bugs/BUG-000022-counter-can-regress-allowing-sequence-number-reuse-after-an.md",
-    "created_at": "2026-06-10T13:51:32Z",
-    "updated_at": "2026-06-11T20:40:07Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-22",
-    "badges": {
-      "priority": "high"
-    },
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 25,
-    "type": "bug",
-    "title": "show prints a redundant 'Body' literal before the body",
-    "slug": "show-prints-a-redundant-body-literal-before-the-body",
-    "status": "Verified",
-    "description": "sq <type> <n> show prefixes the body with a bare 'Body' label; the body is self-evident after the metadata panel and usually opens with its own headings",
-    "parent": null,
-    "author": "op-pierre",
-    "assignee": null,
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-26"
-    ],
-    "subentities": [],
-    "path": "bugs/BUG-000025-show-prints-a-redundant-body-literal-before-the-body.md",
-    "created_at": "2026-06-10T14:52:35Z",
-    "updated_at": "2026-06-11T20:40:08Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-25",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 28,
-    "type": "epic",
-    "title": "sq ui — a terminal UI for browsing the squad",
-    "slug": "sq-ui-a-terminal-ui-for-browsing-the-squad",
-    "status": "InProgress",
-    "description": "An sq ui command opening a TUI: navigate the tree, read items with tabs for stories/body/discussion; browse-first, mutations a later increment",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-15:depends-on",
-      "FEAT-19:depends-on"
-    ],
-    "subentities": [],
-    "path": "epics/EPIC-000028-sq-ui-a-terminal-ui-for-browsing-the-squad.md",
-    "created_at": "2026-06-10T15:15:37Z",
-    "updated_at": "2026-07-21T11:26:52Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-28",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟡 In Progress",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 29,
-    "type": "epic",
-    "title": "sq web — a local web view of the squad",
-    "slug": "sq-web-a-local-web-view-of-the-squad",
-    "status": "InProgress",
-    "description": "An sq web command serving the squad in a browser through the daemon's /v1 routes; read-only first, with full CRUD as a possible long-term destination",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "EPIC-28",
-      "FEAT-15:depends-on"
-    ],
-    "subentities": [],
-    "path": "epics/EPIC-000029-sq-web-a-local-web-view-of-the-squad.md",
-    "created_at": "2026-06-10T15:16:05Z",
-    "updated_at": "2026-10-28T22:07:54Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-29",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟡 In Progress",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 31,
-    "type": "epic",
-    "title": "Squads backend",
-    "slug": "squads-backend",
-    "status": "Draft",
-    "description": "Umbrella for technical work on the sq engine itself — services, index, models, workflow, rendering, agent-backend plumbing — as opposed to product surfaces like the CLI grammar, TUI or web",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "epics/EPIC-000031-squads-backend.md",
-    "created_at": "2026-06-10T15:21:51Z",
-    "updated_at": "2026-06-10T15:21:51Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-31",
-    "badges": {},
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "⚪ Draft",
-        "intent": "neutral"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 32,
-    "type": "feature",
-    "title": "Pluggable index store: SQLite / SQL databases behind the index",
-    "slug": "pluggable-index-store-sqlite-sql-databases-behind-the-index",
-    "status": "Draft",
-    "description": "Abstract the index behind a store interface and offer SQLite (and real databases via SQLAlchemy) as alternatives to .squads.json — the .md files stay the only source of truth",
-    "parent": "EPIC-31",
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "medium",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-13",
-      "BUG-22:depends-on",
-      "FEAT-17:depends-on"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "Real transactions for parallel sq calls without global file lock",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "Indexed store keeps list/tree/search fast at thousands of items",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US3",
-        "title": "Store switching via config plus sq repair, reversible both ways",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000032-pluggable-index-store-sqlite-sql-databases-behind-the-index.md",
-    "created_at": "2026-06-10T15:24:10Z",
-    "updated_at": "2026-06-23T10:01:14Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "FEAT-32",
-    "badges": {
-      "priority": "medium"
-    },
-    "display": {
-      "type": "Feature",
-      "status": {
-        "badge": "⚪ Draft",
-        "intent": "neutral"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 33,
-    "type": "feature",
-    "title": "Remote mode: the sq CLI as a client to a remote daemon",
-    "slug": "remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon",
-    "status": "Draft",
-    "description": "The CLI and terminal UI as clients of a squad hosted on another machine: a client-side address, authentication, no local fall back, built on the daemon's routes",
-    "parent": "EPIC-29",
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "medium",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-15",
-      "FEAT-13",
-      "FEAT-1140:depends-on",
-      "ADR-1225"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "Hosted squad refuses callers it cannot identify",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "Parity: where the squad lives never changes how I work",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US3",
-        "title": "Hosted squad address set on the client; local is the default",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US4",
-        "title": "Clear errors when the hosted squad is restarting or unreachable",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US5",
-        "title": "A checkout out of line with the hosted squad is refused",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US6",
-        "title": "Agents on another machine load their persona from the squad",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000033-remote-mode-the-sq-cli-as-a-client-to-a-remote-daemon.md",
-    "created_at": "2026-06-10T15:33:16Z",
-    "updated_at": "2026-10-28T22:06:04Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "FEAT-33",
-    "badges": {
-      "priority": "medium"
-    },
-    "display": {
-      "type": "Feature",
-      "status": {
-        "badge": "⚪ Draft",
-        "intent": "neutral"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 38,
-    "type": "epic",
-    "title": "CLI frontend",
-    "slug": "cli-frontend",
-    "status": "Done",
-    "description": "The daily terminal experience of sq: complete and rendered reading, graph navigation, and the ergonomics of driving a squad from the command line",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "epics/EPIC-000038-cli-frontend.md",
-    "created_at": "2026-06-11T07:57:10Z",
-    "updated_at": "2026-07-19T19:34:46Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-38",
-    "badges": {},
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 42,
-    "type": "task",
-    "title": "Fix counter regression and sequence-number reuse (BUG-000022)",
-    "slug": "fix-counter-regression-and-sequence-number-reuse-bug-000022",
-    "status": "Done",
-    "description": "",
-    "parent": null,
-    "author": "tech-lead",
-    "assignee": "python-dev",
-    "priority": "high",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "BUG-22:fixes"
-    ],
-    "subentities": [
-      {
-        "local_id": "ST1",
-        "title": "Repair keeps high-water mark: counter = max(previous counter, max found on disk)",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST2",
-        "title": "Load-time counter validation: repair upward when stored counter is below max item sequence",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST3",
-        "title": "Report items missing from disk vs the previous index in repair/check",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST4",
-        "title": "Regression tests (service + CLI) covering both regression routes",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "tasks/TASK-000042-fix-counter-regression-and-sequence-number-reuse-bug-000022.md",
-    "created_at": "2026-06-11T12:14:51Z",
-    "updated_at": "2026-07-06T15:17:28Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-42",
-    "badges": {
-      "priority": "high"
-    },
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
-      "assignee": "Elias Python"
-    }
-  },
-  {
-    "sequence_id": 43,
-    "type": "task",
-    "title": "Validate slug arguments across mine/inbox and slug-accepting surfaces (BUG-000021)",
-    "slug": "validate-slug-arguments-across-mine-inbox-and-slug-accepting",
-    "status": "Done",
-    "description": "",
-    "parent": null,
-    "author": "tech-lead",
-    "assignee": "python-dev",
-    "priority": "medium",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "BUG-21:fixes"
-    ],
-    "subentities": [
-      {
-        "local_id": "ST1",
-        "title": "Add resolve_slug_or_raise helper to _cli/_common.py",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST2",
-        "title": "Make sq mine require slug argument",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST3",
-        "title": "Validate slug on inbox, workload, comment --as, update --assignee/--author",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST4",
-        "title": "Add service-level and CLI smoke tests",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "tasks/TASK-000043-validate-slug-arguments-across-mine-inbox-and-slug-accepting.md",
-    "created_at": "2026-06-11T12:14:52Z",
-    "updated_at": "2026-07-06T15:17:38Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-43",
-    "badges": {
-      "priority": "medium"
-    },
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": "Elias Python"
-    }
-  },
-  {
-    "sequence_id": 44,
-    "type": "task",
-    "title": "Cosmetic cleanup: drop redundant show 'Body' label and add tree separator (BUG-000025, BUG-000030)",
-    "slug": "cosmetic-cleanup-drop-redundant-show-body-label-and-add-tree",
-    "status": "Done",
-    "description": "",
-    "parent": null,
-    "author": "tech-lead",
-    "assignee": "python-dev",
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "BUG-25:fixes",
-      "BUG-30:fixes"
-    ],
-    "subentities": [],
-    "path": "tasks/TASK-000044-cosmetic-cleanup-drop-redundant-show-body-label-and-add-tree.md",
-    "created_at": "2026-06-11T12:14:53Z",
-    "updated_at": "2026-06-11T12:50:23Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-44",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": "Elias Python"
-    }
-  },
-  {
-    "sequence_id": 45,
-    "type": "task",
-    "title": "Clear pre-existing lint/format debt on the release branch (F401 + format drift)",
-    "slug": "clear-pre-existing-lint-format-debt-on-the-release-branch-f4",
-    "status": "Done",
-    "description": "",
-    "parent": null,
-    "author": "tech-lead",
-    "assignee": "tech-lead",
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "tasks/TASK-000045-clear-pre-existing-lint-format-debt-on-the-release-branch-f4.md",
-    "created_at": "2026-06-11T12:49:16Z",
-    "updated_at": "2026-06-11T12:50:45Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-45",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": "Olivia Lead"
-    }
-  },
-  {
-    "sequence_id": 48,
-    "type": "review",
-    "title": "FEAT-000019 — uniform item addressing",
-    "slug": "feat-000019-uniform-item-addressing",
-    "status": "Approved",
-    "description": "",
-    "parent": null,
-    "author": "reviewer",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-19:addresses"
-    ],
-    "subentities": [
-      {
-        "local_id": "F1",
-        "title": "Type-mismatch wording differs between full-ID and bare-number forms",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "medium",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F2",
-        "title": "Unknown-item error wording drifts across the four resolver branches",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "medium",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F3",
-        "title": "Dead code: old resolve_item_id; lexical munging now written 3x",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F4",
-        "title": "Grammar: 'not a operator'/'not a epic' a/an agreement in mismatch msgs",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "reviews/REV-000048-feat-000019-uniform-item-addressing.md",
-    "created_at": "2026-06-11T14:19:22Z",
-    "updated_at": "2026-06-23T09:59:52Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "REV-48",
-    "badges": {},
-    "display": {
-      "type": "Review",
-      "status": {
-        "badge": "⚪ Approved",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 49,
-    "type": "decision",
-    "title": "Ref-kind vocabulary is closed in 1.0, with the extension point reserved for post-1.0",
-    "slug": "ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin",
-    "status": "Superseded",
-    "description": "",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-35",
-      "FEAT-13",
-      "FEAT-14",
-      "GUIDE-79",
-      "ADR-492"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000049-ref-kind-vocabulary-is-closed-in-1-0-with-the-extension-poin.md",
-    "created_at": "2026-06-11T20:19:55Z",
-    "updated_at": "2026-10-16T13:04:33Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-49",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Superseded",
-        "intent": "muted"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 52,
-    "type": "review",
-    "title": "FEAT-000035 — typed ref vocabulary",
-    "slug": "feat-000035-typed-ref-vocabulary",
-    "status": "Approved",
-    "description": "",
-    "parent": null,
-    "author": "reviewer",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-35:addresses"
-    ],
-    "subentities": [
-      {
-        "local_id": "F1",
-        "title": "Function-local Status import in _check_decisions; hoist to module top",
-        "status": "WontFix",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "reviews/REV-000052-feat-000035-typed-ref-vocabulary.md",
-    "created_at": "2026-06-11T20:41:00Z",
-    "updated_at": "2026-10-25T19:39:29Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "REV-52",
-    "badges": {},
-    "display": {
-      "type": "Review",
-      "status": {
-        "badge": "⚪ Approved",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 61,
-    "type": "review",
-    "title": "Review: FEAT-000026 rendered show output",
-    "slug": "review-feat-000026-rendered-show-output",
-    "status": "Approved",
-    "description": "",
-    "parent": null,
-    "author": "reviewer",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-26:addresses"
-    ],
-    "subentities": [
-      {
-        "local_id": "F1",
-        "title": "Plain-output escaping leak: sub-entity pane titles double-escaped in piped/NO_COLOR/--raw path",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "medium",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F2",
-        "title": "Nit: badge/column duplication between _common.py and _discussion.py",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F3",
-        "title": "Nit: test gap — no assertion for literal-bracket fidelity in plain pane titles",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "reviews/REV-000061-review-feat-000026-rendered-show-output.md",
-    "created_at": "2026-06-12T09:32:57Z",
-    "updated_at": "2026-10-25T19:39:32Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "REV-61",
-    "badges": {},
-    "display": {
-      "type": "Review",
-      "status": {
-        "badge": "⚪ Approved",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 67,
-    "type": "review",
-    "title": "FEAT-000064: negative-path error UX leaks the internal _addr subgroup and fails 'error comprehensibly'",
-    "slug": "feat-000064-negative-path-error-ux-leaks-the-internal-addr-s",
-    "status": "Approved",
-    "description": "AddressDispatchGroup routes every unknown token to the hidden _addr subgroup; removed/typo'd/old-grammar invocations produce baffling errors that leak _addr and omit the documented migration hint.",
-    "parent": "FEAT-64",
-    "author": "reviewer",
-    "assignee": null,
-    "priority": "high",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "TASK-65"
-    ],
-    "subentities": [
-      {
-        "local_id": "F1",
-        "title": "Removed list commands do not error comprehensibly (US3 acceptance)",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "high",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F2",
-        "title": "The hidden _addr name leaks into every negative-path usage/error line",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "high",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F3",
-        "title": "show/regen/rm are undiscoverable from sq role / --help (US1 spirit)",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "medium",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F4",
-        "title": "N1 slug shadowing: slug matching a group verb is unaddressable by slug",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F5",
-        "title": "N2 resolver duplication: resolve_agent_addr iterates db.items inline instead of reusing item helpers",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F6",
-        "title": "N3 empty-body hint inaccurate: suggests a 'body' verb the groups do not have",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F7",
-        "title": "N4 inline shape check: _resolve_addr reimplements full-ID detection instead of _is_full_id_shape",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F8",
-        "title": "N5 stale comment: SKIL-000002 should be SKILL-000002 in test_skill_item_first_grammar",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F9",
-        "title": "N6 test coverage: no direct test for REV-000061 bracket/no-backslash fidelity on the new body path",
-        "status": "Verified",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "F10",
-        "title": "N7 sq dev consistency: still uses the old listing shape, reads inconsistently against the flipped groups",
-        "status": "WontFix",
-        "assignee": null,
-        "severity": "low",
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "reviews/REV-000067-feat-000064-negative-path-error-ux-leaks-the-internal-addr-s.md",
-    "created_at": "2026-06-12T12:46:41Z",
-    "updated_at": "2026-06-12T13:18:41Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "REV-67",
-    "badges": {
-      "priority": "high"
-    },
-    "display": {
-      "type": "Review",
-      "status": {
-        "badge": "⚪ Approved",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 71,
-    "type": "decision",
-    "title": "Frontmatter is the source of truth; the index is rebuildable",
-    "slug": "frontmatter-is-the-source-of-truth-the-index-is-rebuildable",
-    "status": "Accepted",
-    "description": "Item state lives in .md frontmatter; .squads.json is a derived index that sq repair reconstructs",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "GUIDE-79",
-      "ADR-104",
-      "ADR-955"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000071-frontmatter-is-the-source-of-truth-the-index-is-rebuildable.md",
-    "created_at": "2026-06-12T14:22:53Z",
-    "updated_at": "2026-10-25T21:37:00Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-71",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Accepted",
-        "intent": "info"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 72,
-    "type": "decision",
-    "title": "One global monotonic ID counter across all item types",
-    "slug": "one-global-monotonic-id-counter-across-all-item-types",
-    "status": "Accepted",
-    "description": "A single counter makes every ID number globally unique; allocation only inside the index transaction",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "ADR-71",
-      "GUIDE-79"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000072-one-global-monotonic-id-counter-across-all-item-types.md",
-    "created_at": "2026-06-12T14:22:56Z",
-    "updated_at": "2026-10-25T21:37:02Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-72",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Accepted",
-        "intent": "info"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 73,
-    "type": "decision",
-    "title": "Forward-only refs with computed backrefs",
-    "slug": "forward-only-refs-with-computed-backrefs",
-    "status": "Accepted",
-    "description": "Items store outgoing refs with kind inline; backrefs are computed by inversion, never persisted",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "GUIDE-79"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000073-forward-only-refs-with-computed-backrefs.md",
-    "created_at": "2026-06-12T14:23:00Z",
-    "updated_at": "2026-10-25T21:37:03Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-73",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Accepted",
-        "intent": "info"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 79,
-    "type": "guide",
-    "title": "squads architecture: layering, data model, and the marker mechanism",
-    "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
-    "status": "Published",
-    "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "ADR-71",
-      "ADR-72",
-      "ADR-73",
-      "ADR-74",
-      "ADR-75",
-      "ADR-76",
-      "ADR-77",
-      "ADR-78",
-      "ADR-49"
-    ],
-    "subentities": [],
-    "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
-    "created_at": "2026-06-12T14:25:59Z",
-    "updated_at": "2026-10-15T20:49:19Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "GUIDE-79",
-    "tech": "python",
-    "tags": [
-      "architecture"
-    ],
-    "badges": {},
-    "display": {
-      "type": "Guide",
-      "status": {
-        "badge": "⚪ Published",
-        "intent": "info"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 100,
-    "type": "feature",
-    "title": "Read-only browse: sidebar tree + rendered preview",
-    "slug": "read-only-browse-sidebar-tree-rendered-preview",
-    "status": "Done",
-    "description": "VS Code activity-bar tree from sq tree --json; clicking an item opens sq show --raw (clean markdown) in the markdown preview; filter/group + refresh",
-    "parent": "EPIC-99",
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "PRD-863:implements"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "Squad hierarchy in VS Code sidebar with status and blocked-state",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "Clicking a tree node opens sq show --raw in markdown preview",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US3",
-        "title": "Filter and group tree by type/state, refresh on demand",
-        "status": "Done",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000100-read-only-browse-sidebar-tree-rendered-preview.md",
-    "created_at": "2026-06-14T20:45:15Z",
-    "updated_at": "2026-09-01T13:48:14Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "FEAT-100",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Feature",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 123,
-    "type": "feature",
-    "title": "Exclusive work leases / claims",
-    "slug": "exclusive-work-leases-claims",
-    "status": "Draft",
-    "description": "",
-    "parent": "EPIC-121",
-    "author": "product-owner",
-    "assignee": null,
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-125:depends-on"
-    ],
-    "subentities": [
-      {
-        "local_id": "US1",
-        "title": "Clear conflict error on concurrent item mutation",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "US2",
-        "title": "Manager visibility into all active leases",
-        "status": "Todo",
-        "assignee": null,
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "features/FEAT-000123-exclusive-work-leases-claims.md",
-    "created_at": "2026-06-15T11:56:12Z",
-    "updated_at": "2026-06-16T09:52:28Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "FEAT-123",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Feature",
-      "status": {
-        "badge": "⚪ Draft",
-        "intent": "neutral"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 179,
-    "type": "decision",
-    "title": "Parameterized item-file storage: prefix scope vs layout, and the ItemStore locator seam",
-    "slug": "parameterized-item-file-storage-prefix-scope-vs-layout-and-t",
-    "status": "Rejected",
-    "description": "Global prefix changes the ID prefix only; folder layout is a separate knob; both plug into a shared ItemStore locator",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-176:addresses",
-      "ADR-180"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000179-parameterized-item-file-storage-prefix-scope-vs-layout-and-t.md",
-    "created_at": "2026-06-23T12:58:51Z",
-    "updated_at": "2026-08-03T13:26:28Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-179",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Rejected",
-        "intent": "muted"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 180,
-    "type": "decision",
-    "title": "Format-neutral item-file storage contract: codec seam + named body/prose regions",
-    "slug": "format-neutral-item-file-storage-contract-codec-seam-named-b",
-    "status": "Proposed",
-    "description": "Split the store into a format-agnostic locator and a pluggable codec; define body regions as named fields, not text spans, so the two invariants hold across markdown/JSON/XML",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-177:addresses",
-      "ADR-179"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000180-format-neutral-item-file-storage-contract-codec-seam-named-b.md",
-    "created_at": "2026-06-23T12:59:22Z",
-    "updated_at": "2026-08-03T08:53:35Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-180",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Proposed",
-        "intent": "neutral"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 183,
-    "type": "bug",
-    "title": "sq --json emits ANSI and breaks JSON parsing when FORCE_COLOR is set",
-    "slug": "sq-json-emits-ansi-and-breaks-json-parsing-when-force-color",
-    "status": "Verified",
-    "description": "",
-    "parent": null,
-    "author": "manager",
-    "assignee": null,
-    "priority": null,
-    "severity": "medium",
-    "labels": [],
-    "refs": [
-      "FEAT-15"
-    ],
-    "subentities": [],
-    "path": "bugs/BUG-000183-sq-json-emits-ansi-and-breaks-json-parsing-when-force-color.md",
-    "created_at": "2026-06-24T09:46:27Z",
-    "updated_at": "2026-07-19T19:05:16Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-183",
-    "badges": {
-      "severity": "medium"
-    },
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {
-        "severity": {
-          "label": "Severity",
-          "badge": "🟡 medium",
-          "badge_label": "🟡 Medium"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 192,
-    "type": "skill",
-    "title": "greeting",
-    "slug": "greeting",
+    "type": "operator",
+    "title": "Alice Tester",
+    "slug": "op-alice",
     "status": "Active",
-    "description": "Start of a conversation with a human: detect & register the operator, then greet them — match their tone, say how you help, and give a quick read of the project. Use when a person opens a session; skip it when spawned as a subagent for a job.",
-    "parent": null,
-    "author": "greeting",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "agents/skills/SKILL-000192-greeting.md",
-    "created_at": "2026-06-24T20:14:34Z",
-    "updated_at": "2026-06-24T20:14:34Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "SKILL-192",
-    "origin": "system",
-    "badges": {},
-    "display": {
-      "type": "Skill",
-      "status": {
-        "badge": "⚪ Active",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 193,
-    "type": "skill",
-    "title": "sq-bug",
-    "slug": "sq-bug",
-    "status": "Active",
-    "description": "Working with bug items in this squad: lifecycle, commands, and role-specific guidance.",
-    "parent": null,
-    "author": "sq-bug",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "agents/skills/SKILL-000193-sq-bug.md",
-    "created_at": "2026-06-24T20:14:34Z",
-    "updated_at": "2026-06-24T20:14:34Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "SKILL-193",
-    "origin": "system",
-    "badges": {},
-    "display": {
-      "type": "Skill",
-      "status": {
-        "badge": "⚪ Active",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 206,
-    "type": "epic",
-    "title": "Config-driven workflow engine: custom types, statuses, state machines",
-    "slug": "config-driven-workflow-engine-custom-types-statuses-state-ma",
-    "status": "Done",
     "description": "",
     "parent": null,
-    "author": "product-owner",
+    "author": "op-alice",
     "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "EPIC-31"
-    ],
-    "subentities": [],
-    "path": "epics/EPIC-000206-config-driven-workflow-engine-custom-types-statuses-state-ma.md",
-    "created_at": "2026-06-25T13:04:19Z",
-    "updated_at": "2026-07-02T13:07:22Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-206",
-    "badges": {},
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 213,
-    "type": "bug",
-    "title": "Package version duplicated in pyproject and __init__ (bumps half-apply)",
-    "slug": "package-version-duplicated-in-pyproject-and-init-bumps-half",
-    "status": "Verified",
-    "description": "",
-    "parent": null,
-    "author": "op-pierre",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
     "labels": [],
     "refs": [],
     "subentities": [],
-    "path": "bugs/BUG-000213-package-version-duplicated-in-pyproject-and-init-bumps-half.md",
-    "created_at": "2026-06-25T13:34:04Z",
-    "updated_at": "2026-07-19T19:05:18Z",
+    "path": "operators/OP-000016-op-alice.md",
+    "created_at": "2026-10-29T23:09:53Z",
+    "updated_at": "2026-10-29T23:09:53Z",
     "created_session": null,
     "modified_session": null,
-    "id": "BUG-213",
+    "id": "OP-16",
     "badges": {},
     "display": {
-      "type": "Bug",
+      "type": "Operator",
       "status": {
-        "badge": "🟢 Verified",
+        "badge": "\u26aa Active",
         "intent": "positive"
       },
       "badges": {},
       "assignee": null
-    }
-  },
-  {
-    "sequence_id": 247,
-    "type": "task",
-    "title": "Eliminate pre-existing reportPrivateUsage suppressions across service mixins",
-    "slug": "eliminate-pre-existing-reportprivateusage-suppressions-acros",
-    "status": "Done",
-    "description": "Tech-debt: replace 29 cross-module private reach-ins in src/ with public APIs/accessors",
-    "parent": null,
-    "author": "tech-lead",
-    "assignee": null,
-    "priority": "low",
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "TASK-666:depends-on",
-      "TASK-664:depends-on"
-    ],
-    "subentities": [
-      {
-        "local_id": "ST1",
-        "title": "Public store logging API and its 23 call sites",
-        "status": "Done",
-        "assignee": "python-dev",
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST2",
-        "title": "Roster accessor, shared type-change helpers, full-ID predicate",
-        "status": "Done",
-        "assignee": "python-dev",
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      },
-      {
-        "local_id": "ST3",
-        "title": "Prove the suppressions are gone and hold the gate",
-        "status": "Done",
-        "assignee": "python-dev",
-        "severity": null,
-        "story": null,
-        "deferred_to": null,
-        "extra": {}
-      }
-    ],
-    "path": "tasks/TASK-000247-eliminate-pre-existing-reportprivateusage-suppressions-acros.md",
-    "created_at": "2026-06-30T08:51:11Z",
-    "updated_at": "2026-07-28T07:24:40Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-247",
-    "badges": {
-      "priority": "low"
-    },
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟢 low",
-          "badge_label": "🟢 Low"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 280,
-    "type": "epic",
-    "title": "Custom sub-entity kinds & vocabulary rename migrations",
-    "slug": "custom-sub-entity-kinds-vocabulary-rename-migrations",
-    "status": "Done",
-    "description": "",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "EPIC-206"
-    ],
-    "subentities": [],
-    "path": "epics/EPIC-000280-custom-sub-entity-kinds-vocabulary-rename-migrations.md",
-    "created_at": "2026-07-02T09:24:53Z",
-    "updated_at": "2026-07-10T01:56:48Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-280",
-    "badges": {},
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 316,
-    "type": "epic",
-    "title": "Shared team knowledge — agent memory and the bulletin board",
-    "slug": "shared-team-knowledge-agent-memory-and-the-bulletin-board",
-    "status": "InProgress",
-    "description": "",
-    "parent": null,
-    "author": "product-owner",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "epics/EPIC-000316-shared-team-knowledge-agent-memory-and-the-bulletin-board.md",
-    "created_at": "2026-07-06T16:08:36Z",
-    "updated_at": "2026-09-14T12:11:28Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "EPIC-316",
-    "badges": {},
-    "display": {
-      "type": "Epic",
-      "status": {
-        "badge": "🟡 In Progress",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 320,
-    "type": "decision",
-    "title": "Introduce the contract (PRD) item type — the living functional contract",
-    "slug": "introduce-the-contract-prd-item-type-the-living-functional-c",
-    "status": "Accepted",
-    "description": "Add a first-class contract/PRD type: the living functional twin of the ADR set",
-    "parent": null,
-    "author": "architect",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "ADR-541",
-      "ADR-322",
-      "ADR-263",
-      "ADR-323",
-      "ADR-775",
-      "ADR-604"
-    ],
-    "subentities": [],
-    "path": "adrs/ADR-000320-introduce-the-contract-prd-item-type-the-living-functional-c.md",
-    "created_at": "2026-07-07T08:32:44Z",
-    "updated_at": "2026-10-25T21:57:03Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "ADR-320",
-    "badges": {},
-    "display": {
-      "type": "Decision",
-      "status": {
-        "badge": "⚪ Accepted",
-        "intent": "info"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 324,
-    "type": "bug",
-    "title": "gen_template_manifest.py breaks after BUG-213's importlib.metadata version fix",
-    "slug": "gen-template-manifest-py-breaks-after-bug-213-s-importlib-me",
-    "status": "Verified",
-    "description": "The template-manifest generator parses squads/__init__.py as text to read __version__; it now returns the literal source line instead of a version string, breaking CI's manifest-freshness check and the release write-path.",
-    "parent": null,
-    "author": "devops",
-    "assignee": null,
-    "priority": "high",
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "bugs/BUG-000324-gen-template-manifest-py-breaks-after-bug-213-s-importlib-me.md",
-    "created_at": "2026-07-07T13:06:59Z",
-    "updated_at": "2026-07-19T19:05:20Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-324",
-    "badges": {
-      "priority": "high"
-    },
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {
-        "priority": {
-          "label": "Priority",
-          "badge": "🟠 high",
-          "badge_label": "🟠 High"
-        }
-      },
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 378,
-    "type": "bug",
-    "title": "Help width-pin test counts ANSI escape bytes, fails on color-forcing CI",
-    "slug": "help-width-pin-test-counts-ansi-escape-bytes-fails-on-color",
-    "status": "Verified",
-    "description": "",
-    "parent": null,
-    "author": "qa",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [],
-    "subentities": [],
-    "path": "bugs/BUG-000378-help-width-pin-test-counts-ansi-escape-bytes-fails-on-color.md",
-    "created_at": "2026-07-15T21:34:25Z",
-    "updated_at": "2026-07-19T19:05:21Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "BUG-378",
-    "badges": {},
-    "display": {
-      "type": "Bug",
-      "status": {
-        "badge": "🟢 Verified",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 435,
-    "type": "task",
-    "title": "Drop per-type lifecycle mermaid from the agent-facing squads skill",
-    "slug": "drop-per-type-lifecycle-mermaid-from-the-agent-facing-squads",
-    "status": "Done",
-    "description": "Skill-only: drop the 7 per-type lifecycle stateDiagram-v2 blocks from the squads skill; keep them in sq workflow",
-    "parent": null,
-    "author": "tech-lead",
-    "assignee": null,
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "FEAT-377:addresses"
-    ],
-    "subentities": [],
-    "path": "tasks/TASK-000435-drop-per-type-lifecycle-mermaid-from-the-agent-facing-squads.md",
-    "created_at": "2026-07-16T16:03:20Z",
-    "updated_at": "2026-07-17T11:46:06Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-435",
-    "badges": {},
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": null
-    }
-  },
-  {
-    "sequence_id": 440,
-    "type": "task",
-    "title": "Client: consume tree title + is_open, collapse to one sq tree call",
-    "slug": "client-consume-tree-title-is-open-collapse-to-one-sq-tree-ca",
-    "status": "Done",
-    "description": "Rewire extension onto enriched surface; drop title-join + list diff; single sq tree call; recapture fixtures",
-    "parent": "FEAT-100",
-    "author": "tech-lead",
-    "assignee": "typescript-dev",
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "ADR-427:addresses",
-      "REV-438:addresses",
-      "TASK-439:depends-on"
-    ],
-    "subentities": [],
-    "path": "tasks/TASK-000440-client-consume-tree-title-is-open-collapse-to-one-sq-tree-ca.md",
-    "created_at": "2026-07-17T07:45:19Z",
-    "updated_at": "2026-07-17T11:19:01Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-440",
-    "badges": {},
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": "Ada Typescript"
-    }
-  },
-  {
-    "sequence_id": 441,
-    "type": "task",
-    "title": "Client: integration skew-canary CI layer (fixtures vs live sq)",
-    "slug": "client-integration-skew-canary-ci-layer-fixtures-vs-live-sq",
-    "status": "Done",
-    "description": "ADR-427 #3 skew canary: real sq --json/show --raw vs committed fixtures as own npm script, wired into CI lane",
-    "parent": "FEAT-100",
-    "author": "tech-lead",
-    "assignee": "typescript-dev",
-    "priority": null,
-    "severity": null,
-    "labels": [],
-    "refs": [
-      "ADR-427:addresses",
-      "REV-438:addresses",
-      "TASK-440:depends-on"
-    ],
-    "subentities": [],
-    "path": "tasks/TASK-000441-client-integration-skew-canary-ci-layer-fixtures-vs-live-sq.md",
-    "created_at": "2026-07-17T07:45:20Z",
-    "updated_at": "2026-07-17T09:08:32Z",
-    "created_session": null,
-    "modified_session": null,
-    "id": "TASK-441",
-    "badges": {},
-    "display": {
-      "type": "Task",
-      "status": {
-        "badge": "🟢 Done",
-        "intent": "positive"
-      },
-      "badges": {},
-      "assignee": "Ada Typescript"
     }
   }
 ]

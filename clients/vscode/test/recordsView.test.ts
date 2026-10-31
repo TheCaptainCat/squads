@@ -41,8 +41,6 @@ function makeItem(id: string, type: string, status = 'Ready'): SqListItem {
     parent: null,
     author: null,
     assignee: null,
-    priority: null,
-    severity: null,
     labels: [],
     refs: [],
     path: `${type}s/${id}.md`,
