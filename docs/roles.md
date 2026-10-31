@@ -585,7 +585,7 @@ live, who to ask. It is shown beside the definition, never parsed, and overrides
 the mission, responsibilities and the rest still come from the role's base. The agent reads it
 through `sq role <slug> show`, the command its pointer names, which prints the definition and
 then the prose. The `.claude/agents/<slug>.md` pointer, the roster in the managed `CLAUDE.md` or
-`AGENTS.md` section and the `sq role <slug> show --json` card do not carry it; `sq show <ID>
+`AGENTS.md` section and the `sq role <slug> show --json` card do not carry it; `sq show <id>
 --json` has it in `body`, after the view tag.
 
 A role or operator body may hold prose, and `sq check` accepts it, with the role's view tag or

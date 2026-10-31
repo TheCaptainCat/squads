@@ -12,9 +12,11 @@ clear message):
 
   1. Read the CURRENT version from ``pyproject.toml`` ``[project].version``
      (the "prior" version, needed for step 5's tag lookup).
-  2. Rewrite ``pyproject.toml`` ``version`` -> the new version.
+  2. Rewrite ``pyproject.toml`` ``version`` and the ``__version__`` literal
+     of ``src/squads/__init__.py`` -> the new version.
   3. Rewrite ``clients/vscode/package.json`` ``version`` -> the new version.
-  4. ``uv sync --all-extras`` so ``squads.__version__`` reflects the bump.
+  4. ``uv sync --all-extras`` so the installed distribution's metadata and the
+     lock follow the bump.
   5. Template-manifest gotcha: ``git checkout v<prior> --
      src/squads/_rendering/templates_manifest.json`` (restoring the prior
      release's entry byte-identical to its tag), then run
@@ -38,6 +40,7 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 _PACKAGE_JSON_PATH = _REPO_ROOT / "clients" / "vscode" / "package.json"
+_INIT_PATH = _REPO_ROOT / "src" / "squads" / "__init__.py"
 _MANIFEST_REL_PATH = Path("src") / "squads" / "_rendering" / "templates_manifest.json"
 _GEN_MANIFEST_SCRIPT = Path("scripts") / "gen_template_manifest.py"
 
@@ -84,6 +87,21 @@ def set_pyproject_version(text: str, new_version: str) -> str:
     new_section = _PYPROJECT_VERSION_LINE_RE.sub(f'version = "{new_version}"', section, count=1)
     start, end = section_match.span(1)
     return text[:start] + new_section + text[end:]
+
+
+_INIT_VERSION_RE = re.compile(r'(?m)^(__version__\s*=\s*")([^"]*)(")')
+
+
+def set_init_version(text: str, new_version: str) -> str:
+    """Return ``squads/__init__.py`` text with its ``__version__`` literal rewritten.
+
+    Raises ``ValueError`` if the module holds no such literal.
+    """
+    match = _INIT_VERSION_RE.search(text)
+    if match is None:
+        raise ValueError("squads/__init__.py: no __version__ literal found")
+    start, end = match.span()
+    return text[:start] + f"{match.group(1)}{new_version}{match.group(3)}" + text[end:]
 
 
 _PACKAGE_JSON_VERSION_RE = re.compile(r'("version"\s*:\s*")([^"]*)(")')
@@ -161,13 +179,20 @@ def _step1_read_current_version() -> tuple[str, str]:
 
 
 def _step2_bump_pyproject(pyproject_text: str, new_version: str, *, dry_run: bool) -> None:
-    _step(2, f"bump pyproject.toml -> {new_version}")
+    _step(2, f"bump pyproject.toml and squads/__init__.py -> {new_version}")
+    init_text = _INIT_PATH.read_text(encoding="utf-8")
+    try:
+        new_init = set_init_version(init_text, new_version)
+    except ValueError as exc:
+        raise BumpError(str(exc)) from exc
     if dry_run:
-        print("  [dry-run] would rewrite pyproject.toml")
+        print("  [dry-run] would rewrite pyproject.toml and src/squads/__init__.py")
         return
     new_text = set_pyproject_version(pyproject_text, new_version)
     _PYPROJECT_PATH.write_text(new_text, encoding="utf-8")
     print(f"  wrote {_PYPROJECT_PATH.relative_to(_REPO_ROOT)}")
+    _INIT_PATH.write_text(new_init, encoding="utf-8")
+    print(f"  wrote {_INIT_PATH.relative_to(_REPO_ROOT)}")
 
 
 def _step3_bump_package_json(new_version: str, *, dry_run: bool) -> None:
@@ -242,6 +267,7 @@ def _print_summary(current_version: str, new_version: str, *, dry_run: bool) -> 
     suffix = " (dry-run — nothing was written)" if dry_run else ""
     rows = [
         ("pyproject.toml [project].version", current_version, new_version),
+        ("src/squads/__init__.py __version__", current_version, new_version),
         ("clients/vscode/package.json version", current_version, new_version),
     ]
     print(f"Summary{suffix}:")

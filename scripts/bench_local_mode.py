@@ -26,8 +26,15 @@ def commands(task: int) -> dict[str, list[str]]:
     return {"show": ["task", str(task), "show"], "list": ["list"], "tree": ["tree"]}
 
 
-def run_once(sq: str, args: list[str], squad: Path, *, spans: bool = False) -> tuple[float, str]:
-    env = {**os.environ, "NO_COLOR": "1"}
+def run_once(
+    sq: str,
+    args: list[str],
+    squad: Path,
+    *,
+    spans: bool = False,
+    extra_env: dict[str, str] | None = None,
+) -> tuple[float, str]:
+    env = {**os.environ, "NO_COLOR": "1", **(extra_env or {})}
     env.pop("FORCE_COLOR", None)
     env.pop("SQUADS_SPANS", None)
     if spans:
