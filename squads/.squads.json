@@ -33697,7 +33697,7 @@
       "type": "task",
       "title": "Dogfood the daemon on this repository's board",
       "slug": "dogfood-the-daemon-on-this-repository-s-board",
-      "status": "InReview",
+      "status": "Done",
       "description": "enabled = false committed with a switch-on step, SQUADS_DAEMON=on trial, result recorded before enabling",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -33714,8 +33714,8 @@
       "subentities": [
         {
           "local_id": "ST1",
-          "title": "Commit enabled = false and the switch-on step",
-          "status": "Todo",
+          "title": "Contributor docs for daemon mode on this squad",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US8",
           "deferred_to": null,
@@ -33742,7 +33742,7 @@
       ],
       "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
       "created_at": "2026-10-28T14:08:45Z",
-      "updated_at": "2026-10-31T08:31:46Z",
+      "updated_at": "2026-10-31T08:32:57Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -35666,7 +35666,7 @@
       ],
       "path": "tasks/TASK-001267-hyphenate-cli-argument-names-and-guard-against-underscores.md",
       "created_at": "2026-10-31T08:20:14Z",
-      "updated_at": "2026-10-31T08:29:25Z",
+      "updated_at": "2026-10-31T08:32:41Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {

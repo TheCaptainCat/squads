@@ -3,7 +3,7 @@ id: TASK-1222
 sequence_id: 1222
 type: task
 title: Dogfood the daemon on this repository's board
-status: InReview
+status: Done
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -17,8 +17,8 @@ description: enabled = false committed with a switch-on step, SQUADS_DAEMON=on t
   result recorded before enabling
 subentities:
 - local_id: ST1
-  title: Commit enabled = false and the switch-on step
-  status: Todo
+  title: Contributor docs for daemon mode on this squad
+  status: Done
   maps_to: US8
 - local_id: ST2
   title: Trial with SQUADS_DAEMON=on and record the result
@@ -31,7 +31,7 @@ subentities:
   assignee: qa
   maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-31T08:31:46Z'
+updated_at: '2026-10-31T08:32:57Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -67,15 +67,17 @@ _Add with `sq task 1222 add-subtask "<title>"`; track with `sq task 1222 subtask
 <!-- sq:subtasks -->
 
 <!-- sq:subtask:ST1 -->
-### ST1 — Commit enabled = false and the switch-on step
+### ST1 — Contributor docs for daemon mode on this squad
 
 <!-- sq:subtask:ST1:body -->
-Set `[daemon] enabled = false` in this repository's `.squads.toml` and document in contributor documentation: the switch-on step (`SQUADS_DAEMON=on` trial, then `enabled = true`), that a daemon started from a development checkout serves the code it started with until `sq daemon stop`, and that `SQUADS_DAEMON=off` keeps a session in local mode. Nothing detects an editable install (ADR-1052 point 13). `sq check` stays clean.
+Document in `CONTRIBUTING.md` that this repository's squad runs in daemon mode (`[daemon] enabled = true`), that board work goes through the installed tool, and that a daemon belongs to one installation: `uv run sq` from the dev tree or a worktree's `.venv` starts a second daemon on the same squad, which serves the code it started with until it idles out or is stopped. Dev-tree runs against this squad use `SQUADS_DAEMON=off`, or `uv run sq daemon stop` afterwards. `sq check` stays clean.
 <!-- sq:subtask:ST1:body:end -->
 
 #### Discussion
 
 <!-- sq:subtask:ST1:discussion -->
+- [2026-10-31T08:32:37Z] `tech-writer` Theo Writer:
+  - Done in 3769bd08: CONTRIBUTING.md states the squad runs in daemon mode, board work goes through the installed tool, and dev-tree runs use SQUADS_DAEMON=off or `uv run sq daemon stop`. Per-installation checked against docs/daemon.md (Lifecycle) and `_endpoint.squad_key` (key = squad path, version, package dir): the dev tree and the installed 0.19.0 tool resolve keys f8aa0a9dd198 and 14f3fbcf9376 for this squad (read only, no daemon started). @manager
 <!-- sq:subtask:ST1:discussion:end -->
 <!-- sq:subtask:ST1:end -->
 
@@ -164,4 +166,6 @@ Afterwards `sq repair` has nothing to fix, `sq check` is clean, and `sq daemon s
     Not tested, or only partly: `sq ui` (the uv-tool build has no `tui` extra: `error: the sq ui terminal UI needs the optional 'tui' extra`, so browsing through the daemon and a stop while it is open were not run); a real interactive Tab in zsh (a pty session was inconclusive; only the completion protocol in both shells was checked); the changed-screen re-ask of a confirmed removal (row 7); `renumber` dry run; native Windows.
     
     Observations, not defects: (a) the 16 trial comments I wrote on this task were not removed. My cleanup loop was blocked by a safety check, so they stay for the operator or the author to remove: they start with "trial probe", "interleave", "par " and "cmt via stdin". (b) With `enabled = true` here, a dev-tree `uv run sq` or a worktree build starts its own daemon on this squad: I saw two (the repository `.venv` and `.claude/worktrees/agent-*`) beside the uv-tool one, each serving the code it started with. It is the documented behaviour, but it now applies to every contributor session in this checkout, so SQUADS_DAEMON=off for dev-tree runs may be worth stating in the contributor notes (ST1). (c) I did not touch ST1.
+- [2026-10-31T08:32:56Z] `manager` Catherine Manager:
+  - Accepted (2026-10-31): the trial on this squad found no defect, ST1-ST3 are Done, and the contributor note is in CONTRIBUTING.md (3769bd08). Not covered: sq ui through the daemon (the installed tool lacks the tui extra).
 <!-- sq:discussion:end -->
