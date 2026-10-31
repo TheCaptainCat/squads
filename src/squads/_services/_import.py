@@ -25,10 +25,7 @@ from squads._models._participants import refuse_system_actor, require_valid_slug
 from squads._services._base import reject_markers, reject_non_view_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
-    AddFindingEvent,
-    AddStoryEvent,
     AddSubEvent,
-    AddSubtaskEvent,
     AssignEvent,
     BodyEvent,
     CommentEvent,
@@ -40,7 +37,6 @@ from squads._services._import_model import (
     SubBodyEvent,
     SubStatusEvent,
     UpdateEvent,
-    generic_add_sub,
     parse_events,
     utc_now_floor,
 )
@@ -69,7 +65,7 @@ _COLLECTIBLE: tuple[type[Exception], ...] = (SquadsError, ValidationError)
 class HandleMap:
     """Client-handle resolution: ``handle -> allocated item id`` and, for sub-entities,
     ``handle -> (parent item id, local id)`` — built up as creating events are (simulated or
-    really) applied, in file order. A later event's ``target``/``to``/``parent``/``story``
+    really) applied, in file order. A later event's ``target``/``to``/``parent``/``maps_to``
     resolves against this first, falling back to the literal token when it names no handle."""
 
     items: dict[str, str] = field(default_factory=lambda: dict[str, str]())
@@ -128,24 +124,12 @@ def _event_target_token(event: ImportEvent) -> str | None:
 def _comment_selector(
     handles: HandleMap, target: str, event: CommentEvent
 ) -> tuple[str, str] | None:
-    """The one ``(kind, local_id)`` a comment event addresses, or ``None`` for the item itself.
-    The import format's per-kind selectors fold into the generic pair; naming more than one is
-    refused."""
-    named = [
-        (kind, handles.resolve_local(target, local))
-        for kind, local in (
-            ("story", event.story),
-            ("subtask", event.subtask),
-            ("finding", event.finding),
-        )
-        if local
-    ]
-    if event.sub is not None:
-        sub_kind, local_or_handle = event.sub
-        named.append((sub_kind, handles.resolve_local(target, local_or_handle)))
-    if len(named) > 1:
-        raise SquadsError("a comment event names at most one of story / subtask / finding / sub")
-    return named[0] if named else None
+    """The one ``(kind, local_id)`` a comment event addresses, or ``None`` for the item itself;
+    a handle resolves to its local id."""
+    if event.sub is None:
+        return None
+    kind, local_or_handle = event.sub
+    return kind, handles.resolve_local(target, local_or_handle)
 
 
 def _field_for(spec: WorkflowSpec, type_or_kind: str, code: str) -> Field | None:
@@ -202,7 +186,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         effective_default_at = default_at if default_at is not None else utc_now_floor()
 
         events, parse_issues = parse_events(
-            text, default_at=effective_default_at, default_as=default_as
+            text, spec=self.spec, default_at=effective_default_at, default_as=default_as
         )
         plan = await self._plan_import(events)
         # Parse-time issues (bad JSON, an unrecognised op, …) merge into the pre-pass's own
@@ -236,7 +220,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         # default ref kinds must fail the call once, not be re-reported as a per-event ImportIssue.
         default_kind = self.spec.default_ref_kind()
         for ev in events:
-            counts.bump(ev.event.op)
+            counts.bump(ev.op_name)
             try:
                 await self._check_target_skew(
                     shadow,
@@ -328,8 +312,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             from_id = handles.resolve_item(event.target)
             to_id = handles.resolve_item(event.to)
             self._add_ref_model(shadow, from_id, to_id, kind=event.kind, now=ev.at)
-        elif isinstance(event, AddSubEvent | AddStoryEvent | AddSubtaskEvent | AddFindingEvent):
-            self._sim_add_sub(shadow, handles, ev, generic_add_sub(event))
+        elif isinstance(event, AddSubEvent):
+            self._sim_add_sub(shadow, handles, ev, event)
         elif isinstance(event, SubStatusEvent):
             target = handles.resolve_item(event.target)
             local_id = handles.resolve_local(target, event.local)
@@ -414,8 +398,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         target = handles.resolve_item(event.target)
         parent_item = shadow.get(target)
         story = (
-            handles.resolve_local(parent_item.parent if parent_item else None, event.story)
-            if event.story
+            handles.resolve_local(parent_item.parent if parent_item else None, event.maps_to)
+            if event.maps_to
             else None
         )
         resolved_fields = _resolve_fields(self.spec, event.kind, event.fields)
@@ -424,7 +408,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             target,
             event.kind,
             event.title,
-            story=story,
+            maps_to=story,
             fields=resolved_fields,
             assignee=event.assignee,
             status=event.status,
@@ -497,7 +481,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         touched_ids: set[str] = set()
         async with self.store.transaction() as db, self._deferred_item_writes():
             for ev in events:
-                counts.bump(ev.event.op)
+                counts.bump(ev.op_name)
                 prior = get_context()
                 try:
                     clock.set_now(ev.at)
@@ -583,8 +567,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             to_id = handles.resolve_item(event.to)
             item = await self._add_ref_core(db, from_id, to_id, kind=event.kind)
             return {item.id}
-        if isinstance(event, AddSubEvent | AddStoryEvent | AddSubtaskEvent | AddFindingEvent):
-            return await self._apply_add_sub(db, handles, generic_add_sub(event), warnings)
+        if isinstance(event, AddSubEvent):
+            return await self._apply_add_sub(db, handles, event, warnings)
         if isinstance(event, SubStatusEvent):
             target = handles.resolve_item(event.target)
             local_id = handles.resolve_local(target, event.local)
@@ -631,8 +615,8 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         target = handles.resolve_item(event.target)
         parent_item = db.get(target)
         story = (
-            handles.resolve_local(parent_item.parent if parent_item else None, event.story)
-            if event.story
+            handles.resolve_local(parent_item.parent if parent_item else None, event.maps_to)
+            if event.maps_to
             else None
         )
         resolved_fields = _resolve_fields(self.spec, event.kind, event.fields)
@@ -641,7 +625,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             target,
             event.kind,
             event.title,
-            story=story,
+            maps_to=story,
             fields=resolved_fields,
             assignee=event.assignee,
             status=event.status,

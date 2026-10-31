@@ -62,7 +62,7 @@ def malformed_id_message(fid: object) -> str:
     is the only remedy it names.
     """
     return (
-        f"frontmatter `id` {fid!r} is malformed -- an `id:` must read `<PREFIX>-<number>`, and "
+        f"frontmatter `id` {fid!r} is malformed -- an `id:` must read `<prefix>-<number>`, and "
         "the prefix half of the item's identity is read from this line, with nothing else in the "
         "file supplying it. Correct the `id:` line to match this file's `sequence_id` and its "
         "type's prefix; removing the line is reported too, so it is not a fix."

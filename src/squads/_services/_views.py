@@ -154,6 +154,7 @@ class ViewsMixin(ServiceCore):
             raise SquadsError(
                 f"no declared view {view_name!r}; see `sq workflow views` for the declared set"
             )
+        item_id = await self.resolve_any_id(item_id)
         db = await self.store.load()
         item = require_item(db, item_id)
         result = views.resolve_source(

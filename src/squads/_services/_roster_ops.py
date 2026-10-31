@@ -141,6 +141,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         item = await self.roster_item(kind, token)
         if item is None:
             raise ItemNotFoundError(f"no {kind} with slug, ID, or number {addr!r}{missing}")
+        await self._address_and_read(item)
         return item
 
     async def _live_role(self, addr: str) -> Item:
@@ -257,6 +258,8 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             if _id_shaped(token)
             else await self.roster_item(ROSTER_ROLE, token)
         )
+        if it is not None:
+            await self._address_and_read(it)
         slug = it.slug if it is not None else req.addr
         base = materialised_base(it, self.catalog) if it is not None else None
         base_resolves = it is None or role_base_from_item(it, self.catalog) is not None

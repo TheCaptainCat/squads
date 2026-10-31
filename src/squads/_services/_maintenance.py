@@ -51,6 +51,7 @@ from squads._itemfile import (
 )
 from squads._migrations._config_text import ConfigRewrite, plan_config_rewrite
 from squads._migrations._context import MigrationContext
+from squads._migrations._outcome import EntriesRefused
 from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
 from squads._models import _attributes as attrs
 from squads._models import _markers as markers
@@ -60,6 +61,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import (
     DEFAULT_ID_PADDING,
     DISPLAY_ID_PADDING,
+    MAX_ID_PADDING,
     Item,
     format_item_id,
     prefix_from_id,
@@ -68,6 +70,7 @@ from squads._models._metadata import RETIRED_ROLE_KEYS
 from squads._models._schema import SCHEMA_VERSION, schema_tuple
 from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
+from squads._rendering._engine import creation_template_name, render
 from squads._roles._loader import LEGACY_DEV_TABLE_MESSAGE, ROLES_OVERRIDE_FILENAME
 from squads._roles._projection import RoleView
 from squads._sections import join_frontmatter
@@ -86,11 +89,18 @@ from squads._services._corpus_files import (
 )
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
+    SHARED_NUMBER_REMEDY,
+    LeftReference,
+    MovedFile,
     RenumberScope,
     SameIdRenumber,
     duplicate_groups,
+    duplicate_id_remedy,
     normalized_id,
+    references_left,
     renumber_same_id_groups,
+    renumberable,
+    shared_number_groups,
 )
 from squads._services._results import (
     MigrationRun,
@@ -889,8 +899,9 @@ class MaintenanceMixin(ServiceCore):
                 text += (
                     f"\nRebuild the index with the repair command of {_reader_phrase(disk)} first."
                 )
+        note = "" if isinstance(exc, EntriesRefused) else _earlier_steps_note(running, applied)
         return SquadsError(
-            f"{text}\n{_earlier_steps_note(running, applied)}"
+            f"{text}\n{note}"
             f"The squad is still at schema v{disk}: fix the cause, then re-run "
             "`sq migrate up`, which rebuilds the index from the files first."
         )
@@ -1353,7 +1364,7 @@ class MaintenanceMixin(ServiceCore):
         default_kind = self.spec.default_ref_kind()
         skills = SkillScan()
         duplicated = await self._duplicated_files()
-        for item_type, md in self._iter_item_files():
+        for item_type, md in self._iter_item_files(reads_frontmatter=True):
             if md in duplicated:
                 max_n, max_filename_width = self._carry_duplicate(
                     db,
@@ -1466,11 +1477,16 @@ class MaintenanceMixin(ServiceCore):
                 pass
 
         renumbered = SameIdRenumber()
+        references: list[LeftReference] = []
         if renumber:
             renumbered = await self._renumber_same_id(
                 previous_counter, previous_padding, known_corpus
             )
-            await self._renumber()
+            renumbered.moved += await self._renumber()
+            references = await references_left(
+                self.paths.squad_dir, self._all_item_files(), renumbered.ids
+            )
+        await self.refuse_shared_numbers()
 
         db, unreadable, canonicalized, stripped = await self._rebuild_index_from_disk(
             rerun=rerun,
@@ -1510,8 +1526,58 @@ class MaintenanceMixin(ServiceCore):
             unreadable=unreadable,
             canonicalized=canonicalized,
             stripped=stripped,
-            renumber_report=renumbered.lines,
-            references_left=renumbered.references_left,
+            renumbered=renumbered.moved,
+            references=references,
+        )
+
+    async def refuse_shared_numbers(
+        self,
+        remedy: str = SHARED_NUMBER_REMEDY,
+        *,
+        same_id: bool = False,
+        renumbering: bool = False,
+        merge_then: str = "sq repair",
+    ) -> None:
+        """Refuse, before the index is rebuilt, a number carried by files of different ids: the
+        index is keyed by number, so the rebuild would keep one file and hide the other. With
+        *same_id*, an id carried by several files is refused too: *remedy* when a renumber can
+        resolve it, the merge-by-hand remedy (ending with *merge_then*) when not. *renumbering*
+        says the caller renumbers, so only what a renumber cannot resolve is refused. *remedy* is
+        the command the message names."""
+        carriers = await self._id_carriers()
+        lines = [
+            f"  - {self._shared_number_message(number, files, remedy)}"
+            for number, files in sorted(shared_number_groups(carriers).items())
+            if not renumbering
+        ]
+        if same_id:
+            scope = self._renumber_scope(None)
+            for key, files in sorted(duplicate_groups(carriers).items()):
+                fixable = await renumberable(files, prefix_from_id(key), scope)
+                named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
+                if fixable and renumbering:
+                    continue
+                how = remedy if fixable else duplicate_id_remedy(merge_then)
+                lines.append(f"  - {len(files)} files carry the id {key} ({named}); {how}")
+        if lines:
+            body = "\n".join(lines)
+            raise SquadsError(f"refusing to rebuild the index: it keys items by number:\n{body}")
+
+    def _renumber_scope(self, known_corpus: SquadsDB | None) -> RenumberScope:
+        """Where the same-id renumber may act, with the previous index's files as the kept ones."""
+        previous: list[Item] = list(known_corpus.items.values()) if known_corpus else []
+        indexed: dict[str, Path] = {}
+        for it in previous:
+            key = normalized_id(it.id)
+            if key is not None:
+                indexed[key] = self.paths.abspath(it.path)
+        return RenumberScope(
+            folder_for_prefix={
+                ts.prefix: self.paths.squad_dir / ts.folder for ts in self.spec.items.values()
+            },
+            indexed_paths=indexed,
+            list_files=self._all_item_files,
+            rehint=lambda text, fm, path, old: self._rehint(text, fm, path, old_number=old),
         )
 
     async def _renumber_same_id(
@@ -1527,19 +1593,7 @@ class MaintenanceMixin(ServiceCore):
             run = stem_digit_run(md, item_type, self.spec)
             if run is not None:
                 numbers.append(int(run))
-        previous: list[Item] = list(known_corpus.items.values()) if known_corpus else []
-        indexed: dict[str, Path] = {}
-        for it in previous:
-            key = normalized_id(it.id)
-            if key is not None:
-                indexed[key] = self.paths.abspath(it.path)
-        scope = RenumberScope(
-            folder_for_prefix={
-                ts.prefix: self.paths.squad_dir / ts.folder for ts in self.spec.items.values()
-            },
-            indexed_paths=indexed,
-            list_files=self._all_item_files,
-        )
+        scope = self._renumber_scope(known_corpus)
         return await renumber_same_id_groups(
             squad_dir=self.paths.squad_dir,
             groups=groups,
@@ -1562,6 +1616,11 @@ class MaintenanceMixin(ServiceCore):
         afterwards to rebuild the index with the new padding and paths. Returns the number of files
         renamed.
         """
+        if new_padding > MAX_ID_PADDING:
+            raise SquadsError(
+                f"new padding {new_padding} is above the maximum of {MAX_ID_PADDING} digits; "
+                "padding can only increase, so a width that wide could not be taken back"
+            )
         db = await self.store.load(fresh=True)
         current = db.padding
         if new_padding <= current:
@@ -1627,7 +1686,7 @@ class MaintenanceMixin(ServiceCore):
 
     async def _scan_records(self) -> list[_FileRec]:
         records: list[_FileRec] = []
-        for item_type, md in list(self._iter_item_files()):
+        for item_type, md in list(self._iter_item_files(reads_frontmatter=True)):
             try:
                 text = await _aio.read_text(md)
             except FileNotFoundError as exc:
@@ -1693,32 +1752,71 @@ class MaintenanceMixin(ServiceCore):
         paths: Iterable[Path],
         remap: dict[str, str],
         renames: list[tuple[Path, str, str, str]],
-    ) -> None:
+    ) -> dict[Path, Path]:
         """Shared renumber apply path, driven by ``repair --renumber`` (:meth:`_renumber`) and ``sq
         renumber`` (:meth:`renumber`): ``rewrite_ids`` substitutes each old id in ``remap`` with its
         unpadded display id across *paths*, the files in ``renames`` get the padded filename stem,
         and each renamed file's ``sequence_id`` is resynced. It never touches ``SquadsDB.counter``,
-        each caller reconciling it its own way, and is a no-op for an empty ``remap``.
+        each caller reconciling it its own way, and is a no-op for an empty ``remap``. Returns each
+        renamed file's old and new path.
         """
+        moved: dict[Path, Path] = {}
         if not remap:
-            return
+            return moved
         await rewrite_ids(list(paths), remap)
-        for old_path, _item_type, slug, new_id in renames:
+        for old_path, item_type, slug, new_id in renames:
             new_name = f"{new_id}-{slug}.md" if slug else f"{new_id}.md"
             # Use the parent directory of the existing file — avoids resolving the type
             # through folder_for and works for both built-in and custom types.
             new_path = old_path.parent / new_name
             await _aio.path_rename(old_path, new_path)
+            moved[old_path] = new_path
             text = await _aio.read_text(new_path)
             fm, _ = sections.split_frontmatter(text, source=str(new_path))
             if fm:
                 fm["sequence_id"] = number_for_id(new_id)
-                await write_text(
-                    new_path, sections.replace_frontmatter(text, fm, source=str(new_path))
+                text = sections.replace_frontmatter(text, fm, source=str(new_path))
+                text = self._rehint(
+                    text, fm, new_path, old_number=stem_digit_run(old_path, item_type, self.spec)
                 )
+                await write_text(new_path, text)
+        return moved
 
-    async def _renumber(self) -> dict[str, str]:
-        """Resolve duplicate global ID numbers from a merge: reassign + rewrite references."""
+    def _rehint(self, text: str, fm: dict[str, Any], path: Path, *, old_number: str | None) -> str:
+        """*text* with the lines its creation template renders from the item's number moved from
+        the old number to the new one. A line the author has since edited no longer matches and is
+        left alone."""
+        if old_number is None:
+            return text
+        try:
+            item = Item.from_frontmatter(
+                fm, path=path.name, default_kind=self.spec.default_ref_kind()
+            )
+            template = creation_template_name(item.type, self.spec, from_squad=self.paths.squad_dir)
+            stale = item.model_copy(update={"sequence_id": int(old_number)})
+            old_lines, new_lines = (
+                render(
+                    template,
+                    from_squad=self.paths.squad_dir,
+                    item=it,
+                    description=it.description,
+                    spec=self.spec,
+                ).splitlines()
+                for it in (stale, item)
+            )
+        except SquadsError:
+            return text
+        if len(old_lines) != len(new_lines):
+            return text
+        lines = text.split("\n")
+        for old, new in zip(old_lines, new_lines, strict=True):
+            if old != new and old in lines:
+                lines[lines.index(old)] = new
+        return "\n".join(lines)
+
+    async def _renumber(self) -> list[MovedFile]:
+        """Resolve duplicate global ID numbers from a merge: reassign + rewrite references. Returns
+        each file given a new number."""
         records = await self._scan_records()
         # An id carried by several files is not a number collision: no reference to it can be
         # attributed to one copy, so those files are left to the same-id handling.
@@ -1733,9 +1831,19 @@ class MaintenanceMixin(ServiceCore):
         )
         remap, renames = self._renumber_plan(records, padding)
         if not remap:
-            return {}
-        await self._apply_remap((md for _, md, *_ in records), remap, renames)
-        return remap
+            return []
+        paths = await self._apply_remap((md for _, md, *_ in records), remap, renames)
+        squad = self.paths.squad_dir
+        return [
+            MovedFile(
+                fid,
+                remap[fid],
+                md.relative_to(squad).as_posix(),
+                paths[md].relative_to(squad).as_posix(),
+            )
+            for fid, md, *_ in records
+            if md in paths
+        ]
 
     # ------------------------------------------------------------------ renumber pre-merge
     @staticmethod

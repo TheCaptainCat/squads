@@ -62,12 +62,13 @@ class SubentityKindRow(DTO):
     """A declared sub-entity kind."""
 
     subentity_kind: str
+    label: str
     lifecycle: str
     plural: str
     local_prefix: str
     container_heading: str
     completion: str
-    maps_parent_story: bool
+    maps_to_parent: bool
     fields: list[FieldEntry]
 
 
@@ -232,6 +233,7 @@ class ItemShowWithSpec(ItemShow):
         "badges",
         "spec",
         "display",
+        "etag",
     )
 
     spec: SpecIdentity

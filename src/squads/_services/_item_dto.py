@@ -1,7 +1,7 @@
 """Items projected onto their DTOs, with the display content the spec and the roster decide."""
 
 from collections.abc import Callable, Mapping, Sequence
-from typing import cast
+from typing import Any, cast
 
 from squads import _badges as badges
 from squads import _discussion as discussion
@@ -11,6 +11,7 @@ from squads._api._dto._items import (
     Comment,
     ItemRow,
     ItemShowDisplay,
+    KindDisplay,
     Subentity,
     SubentityDisplay,
     SubentitySummary,
@@ -23,17 +24,24 @@ from squads._services._results import SubentityDetail
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
 
-#: The columns of the ``list`` table, each keyed by the path to the value its cell shows. The
-#: priority column is the dedicated ``--priority`` field's badge.
-LIST_COLUMNS: tuple[Column, ...] = (
-    Column(key="id", header="ID"),
-    Column(key="type", header="Type"),
-    Column(key="status", header="Status"),
-    Column(key="display.badges.priority.badge", header="Priority"),
-    Column(key="title", header="Title"),
-    Column(key="parent", header="Parent"),
-    Column(key="assignee", header="Assignee"),
-)
+
+def list_columns(spec: WorkflowSpec) -> list[Column]:
+    """The columns of the ``list`` table, each keyed by the path to the value its cell shows.
+
+    One badge column sits after the status: the first field on an ordered collection, headed by
+    its label, and none when no type declares one.
+    """
+    field = badges.first_ordered_field(spec)
+    badge = [Column(key=f"display.badges.{field.code}.badge", header=field.label)] if field else []
+    return [
+        Column(key="id", header="ID"),
+        Column(key="type", header="Type"),
+        Column(key="status", header="Status"),
+        *badge,
+        Column(key="title", header="Title"),
+        Column(key="parent", header="Parent"),
+        Column(key="assignee", header="Assignee"),
+    ]
 
 
 def participant_names(db: SquadsDB, pronouns: Mapping[str, str | None]) -> dict[str, str]:
@@ -78,11 +86,23 @@ def item_display(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> Di
     )
 
 
+def row_fields(item: Item, spec: WorkflowSpec) -> dict[str, Any]:
+    """*item*'s row keys, each sub-entity with its badges by field code (none when the type hosts
+    no kind)."""
+    row = item.to_row()
+    kind = spec.item_subentity_kind(item.type)
+    row["subentities"] = [
+        {**stored, "badges": badges.resolve_badges(spec, kind, sub.badge_value) if kind else {}}
+        for stored, sub in zip(row["subentities"], item.subentities, strict=True)
+    ]
+    return row
+
+
 def item_row(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> ItemRow:
     """*item* as a listing row."""
     return ItemRow.model_validate(
         {
-            **item.to_row(),
+            **row_fields(item, spec),
             "badges": badges.resolve_badges(spec, item.type, item.badge_value),
             "display": item_display(item, spec, names),
         }
@@ -92,6 +112,16 @@ def item_row(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> ItemRo
 def comment_dtos(comments: Sequence[discussion.Comment]) -> list[Comment]:
     """A discussion's entries, each with its hash shown at the scope's length."""
     return [Comment.model_validate(entry) for entry in discussion.comments_json(comments)]
+
+
+def kind_display(kind: str, spec: WorkflowSpec) -> KindDisplay:
+    """How sub-entity *kind* is named."""
+    return KindDisplay(
+        name=kind,
+        label=spec.kind_label(kind),
+        plural=spec.subentity_plural(kind),
+        heading=spec.subentity_container_heading(kind),
+    )
 
 
 def subentity_display(
@@ -105,11 +135,14 @@ def subentity_display(
     carries its deferred work."""
     kind_spec = spec.subentity_kinds.get(kind)
     return SubentityDisplay(
-        type=kind.title(),
+        type=spec.kind_label(kind),
         status=status_display(sub.status, spec),
         badges=badge_displays(spec, kind, sub.badge_value),
         assignee=names.get(sub.assignee) if sub.assignee else None,
-        story=sub.story if kind_spec is not None and kind_spec.maps_parent_story else None,
+        maps_to=sub.maps_to if kind_spec is not None and kind_spec.maps_to_parent else None,
+        maps_to_kind=kind_display(target, spec)
+        if (target := spec.mapping_target_kind(kind))
+        else None,
         carrier_title=carrier_title,
     )
 

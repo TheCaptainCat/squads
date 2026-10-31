@@ -178,7 +178,6 @@ def _build_graph_node(
             id=item_id,
             type="",
             status="",
-            priority=None,
             assignee=None,
             edge_kind=edge_kind,
             edge_semantic=_edge_semantic(ctx.spec, edge_kind),
@@ -191,12 +190,10 @@ def _build_graph_node(
     already_seen = item.id in ctx.seen
     ctx.seen.add(item.id)
 
-    priority_val = item.priority
     node = GraphNode(
         id=item.id,
         type=item.type,
         status=item.status,
-        priority=priority_val,
         assignee=item.assignee,
         edge_kind=edge_kind,
         edge_semantic=_edge_semantic(ctx.spec, edge_kind),
@@ -224,7 +221,6 @@ def _build_graph_node(
         id=node.id,
         type=node.type,
         status=node.status,
-        priority=node.priority,
         assignee=node.assignee,
         edge_kind=node.edge_kind,
         edge_semantic=node.edge_semantic,
@@ -299,7 +295,8 @@ class RefsMixin(ServiceCore):
     async def rm_ref(self, from_id: str, to_id: str, *, kind: str | None = None) -> Item:
         """Remove a forward ref edge from *from_id* to *to_id*. ``kind=None`` drops every edge to
         *to_id*; an explicit ``kind`` removes only edges of that kind, the primitive
-        :meth:`unlink_role` and the retirement gate's ``--unlink`` build on.
+        :meth:`unlink_role` and the retirement gate's ``--unlink`` build on. Removing an edge the
+        item lacks is refused.
         """
         async with self.store.transaction() as db:
             src = require_item(db, from_id)
@@ -323,7 +320,11 @@ class RefsMixin(ServiceCore):
                     rid, rkind = split_ref(r)
                     return rid == to_id and (kind is None or rkind == kind)
 
-            src.refs = [r for r in src.refs if not _matches(r)]
+            kept = [r for r in src.refs if not _matches(r)]
+            if len(kept) == len(src.refs):
+                what = "ref" if kind is None else f"{kind} ref"
+                raise SquadsError(f"{src.id} has no {what} to {to_id}")
+            src.refs = kept
             src.updated_at = clock.now()
             src.modified_session, _ = actor.current_session()
             await self._update_item_frontmatter(src, base)
@@ -343,19 +344,19 @@ class RefsMixin(ServiceCore):
         """
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
-            raise SquadsError(f"{role_id} is a {role.type}; link-role targets a role")
+            raise SquadsError(f"{role_id} has type {role.type}; link-role targets roles")
         updated = await self.add_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self.roster_projection.resync_role_skills(role.slug)
         return updated
 
     async def unlink_role(self, skill_id: str, role_id: str) -> Item:
         """Remove a skill's ``scopes`` edge to a role and resync that role's pointer and body; other
-        kinds of edge between the two are left alone. Idempotent: unlinking a role never scoped is a
-        no-op. A thin wrapper over the kind-aware :meth:`rm_ref` and the partial resync.
+        kinds of edge between the two are left alone. Refused when the skill is not scoped to the
+        role. A thin wrapper over the kind-aware :meth:`rm_ref` and the partial resync.
         """
         role = await self.get(role_id)
         if role.type != ROSTER_ROLE:
-            raise SquadsError(f"{role_id} is a {role.type}; unlink-role targets a role")
+            raise SquadsError(f"{role_id} has type {role.type}; unlink-role targets roles")
         updated = await self.rm_ref(skill_id, role_id, kind=self.spec.preload_ref_kind())
         await self.roster_projection.resync_role_skills(role.slug)
         return updated
@@ -432,7 +433,6 @@ class RefsMixin(ServiceCore):
                 id=root_item.id,
                 type=root_item.type,
                 status=root_item.status,
-                priority=root_item.priority,
                 assignee=root_item.assignee,
                 edge_kind=None,
                 edge_semantic=None,

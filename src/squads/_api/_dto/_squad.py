@@ -5,6 +5,8 @@ rename, import, init and adopt did, each as one report.
 after ``error:``; ``notice`` is the announcement that a rebuild rewrote item content, ``None``
 when it rewrote nothing."""
 
+from pydantic import Field
+
 from squads._api._dto._base import DTO
 
 
@@ -14,17 +16,39 @@ class RepairRequest(DTO):
     renumber: bool = False
 
 
+class MovedFile(DTO):
+    """One file given a new number: its id before and after, and its path before and after,
+    relative to the squad folder. Files that shared an id have the same *old*."""
+
+    old: str
+    new: str
+    file: str
+    target: str
+
+
+class LeftReference(DTO):
+    """One reference to an old id that a renumber left unchanged: the id, the file holding it,
+    where in the file (a frontmatter key, ``body:<line>`` or ``comment:<line>``) and the text."""
+
+    id: str
+    file: str
+    where: str
+    text: str
+
+
 class RepairReport(DTO):
     """The rebuilt index's size and counter, the indexed items whose file is gone, the files it
-    could not read, the renumbering it did, and whether refs are left to check by hand."""
+    could not read, each file the renumbering moved, the references to an old id it left to check
+    by hand, and whether there are any."""
 
     indexed: int
     counter: int
     notice: str | None
     missing: list[str]
     unreadable: list[str]
-    renumbered: list[str]
+    renumbered: list[MovedFile]
     references_left: bool
+    references: list[LeftReference]
 
 
 class RenumberRequest(DTO):
@@ -120,6 +144,32 @@ class RenameStatusRequest(DTO):
     new_status: str
 
 
+class RenameFieldRequest(DTO):
+    """Move the stored values under key *old* to key *new*, on items and sub-entity entries; *types*
+    and *kinds* limit the move to the items of those types and the entries of those kinds (the
+    union of both), and name nothing to move everything."""
+
+    old: str
+    new: str
+    types: list[str] = Field(default_factory=list[str])
+    kinds: list[str] = Field(default_factory=list[str])
+
+
+class RenameKindRequest(DTO):
+    """Bring the stored spellings of kind *old* to the declaration of kind *new*."""
+
+    old: str
+    new: str
+
+
+class RenameKindReport(DTO):
+    """The two kind names and how many items were rewritten."""
+
+    old: str
+    new: str
+    items: int
+
+
 class RenamedId(DTO):
     """One item a type rename moved: its id before and after."""
 
@@ -143,6 +193,15 @@ class RenameStatusReport(DTO):
     old_status: str
     new_status: str
     renamed: int
+
+
+class RenameFieldReport(DTO):
+    """The two keys and how many items and sub-entity entries were moved."""
+
+    old: str
+    new: str
+    items: int
+    entries: int
 
 
 class ImportRequest(DTO):
@@ -214,17 +273,19 @@ class InitReport(DTO):
 
 class AdoptRequest(DTO):
     """Bring the squad folder in the request's directory under squads; *squad_dir* applies when
-    no configuration names one."""
+    no configuration names one. *renumber* gives files that share a number new ones first."""
 
     squad_dir: str
     backends: list[str]
     roles: str
     no_claude: bool
+    renumber: bool
 
 
 class AdoptReport(DTO):
     """The squad adopted: its folder, how many items it held, the roles newly activated, the
-    rebuild's content notice and unreadable files, and the scaffolding notices."""
+    rebuild's content notice, unreadable files and renumbering lines, and the scaffolding
+    notices."""
 
     squad: str
     imported: int
@@ -232,3 +293,5 @@ class AdoptReport(DTO):
     notice: str | None
     unreadable: list[str]
     warnings: list[str]
+    renumbered: list[MovedFile]
+    references: list[LeftReference]

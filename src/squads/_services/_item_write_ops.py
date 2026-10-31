@@ -2,8 +2,8 @@
 verbs of every discussion host, and the sub-entity writes, each answering with the resource it
 wrote."""
 
-from collections.abc import Sized
-from typing import cast
+from collections.abc import Mapping, Sized
+from typing import Any, cast
 
 from squads import _actor as actor
 from squads import _badges as badges
@@ -57,7 +57,8 @@ from squads._api._dto._subentities import SubentityRequest, SubentityShow
 from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item, make_ref, split_ref
-from squads._services._item_dto import comment_dtos, item_display, item_row
+from squads._models._metadata import coerce_attribute, require_settable
+from squads._services._item_dto import comment_dtos, item_display, item_row, row_fields
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
 from squads._services._results import FoundComment
@@ -128,6 +129,23 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
 
     # ------------------------------------------------------------------------- items
 
+    def _coerced_create_attributes(
+        self, item_type: str, given: Mapping[str, str | list[str]]
+    ) -> dict[str, Any] | None:
+        """The attributes a create request carries, each checked as ``update --set`` checks it:
+        settable on the type and parsed to its kind by the same function (a list splits on commas
+        and drops blanks, a date is ISO). A list of values is refused for a single-valued
+        attribute."""
+        declared = self.spec.item_attributes(item_type)
+        out: dict[str, Any] = {}
+        for key, value in given.items():
+            if isinstance(value, list):
+                if require_settable(item_type, key, declared).kind != "list":
+                    raise SquadsError(f"{key!r} takes one value, not a list")
+                value = ",".join(value)
+            out[key] = coerce_attribute(item_type, key, value, declared)
+        return out or None
+
     async def create_item(self, req: ItemCreateRequest) -> Response[ItemCreated]:
         """Create the item, written by its author, who must be a live participant."""
         author = await self.resolve_participant(req.author)
@@ -147,15 +165,14 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             labels=req.labels or None,
             refs=refs or None,
             assignee=assignee,
-            priority=req.priority,
             fields=req.fields or None,
-            attributes=dict(req.attributes) or None,
+            attributes=self._coerced_create_attributes(req.type, req.attributes),
             body=req.body,
         )
         names = await self.display_names()
         created = ItemCreated.model_validate(
             {
-                **res.item.to_row(),
+                **row_fields(res.item, self.spec),
                 "lane_warning": res.lane_warning,
                 "badges": badges.resolve_badges(self.spec, res.item.type, res.item.badge_value),
                 "display": {
@@ -175,7 +192,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
         if clear_assignee and item.assignee is None:
             others = (
                 req.title, req.description, req.author, req.status, req.parent, req.clear_parent,
-                req.priority, req.clear_priority, req.add_labels, req.rm_labels,
+                req.add_labels, req.rm_labels,
                 req.set_attributes, req.unset_attributes,
             )  # fmt: skip
             if not _asked(*others):
@@ -192,8 +209,6 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             description=req.description,
             assignee=assignee,
             clear_assignee=clear_assignee,
-            priority=req.priority,
-            clear_priority=req.clear_priority,
             add_labels=req.add_labels or None,
             rm_labels=req.rm_labels or None,
             author=author,
@@ -499,7 +514,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             item.id,
             req.kind,
             req.title,
-            story=req.story,
+            maps_to=req.maps_to,
             fields=fields or None,
             assignee=assignee,
             status=req.status,
@@ -528,7 +543,8 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
         nothing = False
         if clear_assignee and current.assignee is None:
             others = (
-                req.title, req.fields, req.story, req.clear_story, req.status, req.deferred_to,
+                req.title, req.fields, req.unset_fields, req.maps_to, req.clear_maps_to,
+                req.status, req.deferred_to,
             )  # fmt: skip
             nothing = not _asked(*others)
             clear_assignee = False
@@ -541,8 +557,9 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
                 req.local,
                 title=req.title,
                 fields=dict(req.fields) or None,
-                story=req.story,
-                clear_story=req.clear_story,
+                unset_fields=req.unset_fields or None,
+                maps_to=req.maps_to,
+                clear_maps_to=req.clear_maps_to,
                 assignee=assignee,
                 clear_assignee=clear_assignee,
                 status=req.status,

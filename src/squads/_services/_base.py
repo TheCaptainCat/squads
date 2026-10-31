@@ -24,6 +24,7 @@ from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._backends._base import AgentBackend, BackendContext
+from squads._context import etag_of, get_context
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
@@ -166,8 +167,7 @@ class ItemFilter:
     #: declares it, and never matches without ``spec``, like ``badge_min``. The value is
     #: validated at the CLI edge against ``squads._workflow.CATEGORIES``.
     category: str | None = None
-    #: Exact badge-field filters, keyed by field CODE (e.g. ``priority``, or a project's own
-    #: custom axis) — generic over ``fields_for()``, not a hand-written priority-only param.
+    #: Exact badge-field filters, keyed by field CODE — generic over ``fields_for()``.
     badges: tuple[tuple[str, str], ...] = ()
     #: Threshold badge-field filters (ordered collections only): (field code, minimum code).
     #: Resolving "at least as high as" needs the field's declared collection, so this variant
@@ -371,12 +371,6 @@ def require_title(title: str, what: str = "title") -> None:
         raise SquadsError(f"{what} must not be empty")
 
 
-def subentity_title(title: str) -> str:
-    """A sub-entity's stored title: *title*, or the empty title when it is blank. A sub-entity
-    may have no title, so a blank one is stored as none rather than refused."""
-    return "" if is_blank(title) else title
-
-
 def reject_markers(text: str, what: str = "body") -> None:
     """Raise ``SquadsError`` when *text* contains a well-formed sq marker tag. Every prose input
     landing inside a marker region passes through it before a write; *what* names the input in the
@@ -557,7 +551,6 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
         attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -581,7 +574,6 @@ class ServiceCore:
                 labels=labels,
                 refs=refs,
                 assignee=assignee,
-                priority=priority,
                 attributes=attributes,
                 status=status,
                 slug=slug,
@@ -703,7 +695,6 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
         attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -714,9 +705,9 @@ class ServiceCore:
         """The pure half of create: every check, the id allocation and the ``Item``, with no file
         I/O, returning ``(item, lane_warning)``. Shared by :meth:`_create_core` and the bulk
         importer's pre-pass, which runs it on a throwaway ``db`` copy so the allocation stays within
-        invariant #2, passing the event's ``at`` as *now*. ``fields`` (a badge-code map) is applied
-        after ``priority``, so it wins on a repeated code. ``author`` is required in practice and
-        keyword-with-default only to keep test call sites type-correct.
+        invariant #2, passing the event's ``at`` as *now*. ``fields`` is a badge-code map.
+        ``author`` is required in practice and keyword-with-default only to keep test call sites
+        type-correct.
         """
         item_type = str(item_type)  # coerce StrEnum members to plain str
         # Membership gate: later lookups index `self.spec.items[item_type]` unguarded, so a type
@@ -774,12 +765,6 @@ class ServiceCore:
         filename = f"{item_id}-{slug}.md"
         squad_rel = self.paths.squad_relative(item_type, filename, spec=self.spec)
         sid, _psid = actor.current_session()
-        # The dedicated `priority` kwarg is the same axis as `--set priority=<code>` — route
-        # it through the identical declared-field gate rather than assigning it unconditionally
-        # (a type whose `fields` doesn't declare `priority` must refuse it here too).
-        checked_priority = (
-            self._check_priority(item_type, priority) if priority is not None else None
-        )
         item = Item(
             sequence_id=db.counter,
             type=str(item_type),
@@ -791,7 +776,6 @@ class ServiceCore:
             parent=parent,
             author=author,
             assignee=assignee,
-            priority=checked_priority,
             labels=labels or [],
             refs=refs or [],
             path=squad_rel,
@@ -858,7 +842,6 @@ class ServiceCore:
         labels: list[str] | None = None,
         refs: list[str] | None = None,
         assignee: str | None = None,
-        priority: str | None = None,
         attributes: dict[str, Any] | None = None,
         status: str | None = None,
         slug: str | None = None,
@@ -882,13 +865,13 @@ class ServiceCore:
             labels=labels,
             refs=refs,
             assignee=assignee,
-            priority=priority,
             attributes=attributes,
             status=status,
             slug=slug,
             body=body,
             fields=fields,
         )
+        self._address(item, replace=True)
         item_type = item.type
         # ``agents/role.md.j2`` is only the file scaffold: a `sq:body` seeding the
         # ``sq:view:role_definition`` tag. The definition renders at read time
@@ -1042,10 +1025,52 @@ class ServiceCore:
         """
         held = self.store.held_item_files()
         if held is None:
-            return await read_item_text(path, item.id)
-        if path in held.texts:
+            text = await read_item_text(path, item.id)
+        elif path in held.texts:
             return held.texts[path]
-        return await read_item_text(held.disk_path(path), item.id)
+        else:
+            text = await read_item_text(held.disk_path(path), item.id)
+        pre = get_context().preconditions
+        if pre is not None:
+            pre.note_read(item.sequence_id, text)
+        return text
+
+    def _address(self, item: Item, *, replace: bool = False) -> None:
+        """Make *item* the one the request's conditional-request state follows: its ``If-Match``
+        is compared against the item's file, and its ETag is the one the answer carries. The
+        first item a request addresses is the route's, unless *replace* says another is."""
+        pre = get_context().preconditions
+        if pre is None:
+            return
+        sequence = item.sequence_id
+
+        async def read(db: SquadsDB) -> tuple[str, str | None]:
+            current = db.items.get(sequence)
+            if current is None:
+                return item.id, None
+            try:
+                return current.id, await _aio.read_text(item_file(self.paths, current))
+            except FileNotFoundError:
+                return current.id, None
+
+        pre.address(sequence, read, replace=replace)
+
+    async def _address_and_read(self, item: Item) -> None:
+        """:meth:`_address` *item*, then read its file once, ahead of the handler's own reads, so
+        the ETag the answer carries is never newer than the data it was built from. A request
+        outside the daemon has no conditional-request state and reads nothing; a missing file is
+        the handler's to report."""
+        self._address(item)
+        if get_context().preconditions is None:
+            return
+        try:
+            await self._read_item_file(item, item_file(self.paths, item))
+        except SquadsError:
+            return
+
+    async def item_etag(self, item: Item) -> str:
+        """The ETag of *item*'s file as it stands."""
+        return etag_of(await self._read_item_file(item, item_file(self.paths, item)))
 
     async def _write_item_file(self, path: Path, text: str) -> None:
         """Write *text* to the existing item file at *path*, or hold it for the flush of
@@ -1306,7 +1331,7 @@ class ServiceCore:
 
     def _badge_field(self, item_type: str, key: str) -> Field | None:
         """The declared field for *key* on *item_type*, generic over every axis (``--set
-        <field>=<code>``): priority/severity/a project's own custom axis alike — not a
+        <field>=<code>``): every declared axis alike — not a
         hand-maintained allowlist of attribute-backed codes."""
         return next((f for f in self.spec.fields_for(item_type) if f.code == key), None)
 
@@ -1331,19 +1356,6 @@ class ServiceCore:
             choices = ", ".join(b.code for b in coll.badges)
             raise SquadsError(f"invalid {field.code} {raw!r} (one of: {choices})")
         return code
-
-    def _check_priority(self, item_type: str, raw: str) -> str:
-        """Gate the dedicated ``--priority`` kwarg through the same declared-field check as
-        the generic ``--set priority=<code>`` door (:meth:`_badge_field`/:meth:`_parse_badge_code`)
-        — a type that doesn't declare ``priority`` in its ``fields`` must refuse it here too,
-        not just on the ``--set`` path. Two doors into the same axis, one gate."""
-        field = self._badge_field(item_type, "priority")
-        if field is None:
-            valid = ", ".join(f.code for f in self.spec.fields_for(item_type)) or "(none)"
-            raise SquadsError(
-                f"'priority' is not a settable field on a {item_type}; valid: {valid}"
-            )
-        return self._parse_badge_code(field, raw)
 
     # ------------------------------------------------------------------ shared helpers
     async def _locked_section_edit(
@@ -1575,13 +1587,13 @@ class ServiceCore:
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
         return SelfRemedied(f"{len(files)} files carry this id ({named}); {DUPLICATE_ID_REMEDY}")
 
-    def _shared_number_message(self, number: int, files: list[Path]) -> str:
-        """The report line for a number carried under different ids, naming every file."""
+    def _shared_number_message(
+        self, number: int, files: list[Path], remedy: str = SHARED_NUMBER_REMEDY
+    ) -> str:
+        """The report line for a number carried under different ids, naming every file and the
+        *remedy* to run."""
         named = ", ".join(f.relative_to(self.paths.squad_dir).as_posix() for f in files)
-        return (
-            f"{len(files)} files carry number {number} under different ids ({named}); "
-            f"{SHARED_NUMBER_REMEDY}"
-        )
+        return f"{len(files)} files carry number {number} under different ids ({named}); {remedy}"
 
     async def _missing_id_message(self, md: Path, item_type: str, scan: SkillScan) -> str:
         """The "no ``id``" report line; a stamped managed-skill file also names the remedy that
@@ -1591,12 +1603,23 @@ class ServiceCore:
         return SelfRemedied(f"{msg}; {remedy}") if remedy else msg
 
     # ------------------------------------------------------------------ scan helpers
-    def _iter_item_files(self) -> Iterator[tuple[str, Path]]:
+    def _iter_item_files(self, *, reads_frontmatter: bool = False) -> Iterator[tuple[str, Path]]:
         """Yield (item_type, markdown path) for every item file, for every type the active spec
         declares in ``ItemSpec.order`` then type name, which fixes the scan order collision
         resolution relies on. Skill files match the ``PREFIX-*.md`` glob and legacy slug-named files
-        are yielded too, for the repair/check callers to skip when they lack an ``id``.
+        are yielded too, for the repair/check callers to skip when they lack an ``id``. A walk
+        that reads every file's frontmatter (*reads_frontmatter*) and reaches its end tells the
+        daemon's parse cache which item files exist.
         """
+        cache = get_context().parse_cache if reads_frontmatter else None
+        if cache is not None:
+            cache.begin_scan()
+        yield from self._walk_item_files()
+        if cache is not None:
+            cache.end_scan()
+
+    def _walk_item_files(self) -> Iterator[tuple[str, Path]]:
+        """The walk :meth:`_iter_item_files` brackets."""
         for item_type, ts, folder in self._type_folders():
             prefix = ts.prefix
             if item_type == ROSTER_SKILL:
