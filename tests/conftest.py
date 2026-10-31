@@ -5,6 +5,7 @@ The leak guards are autouse; the squad fixtures copy a template built once per m
 """
 
 import functools
+import os
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -19,9 +20,13 @@ from squads._context import RequestContext, bind_context, get_context
 from squads._paths import SquadPaths
 from squads._rendering._engine import _env_cache
 from squads._workflow import bundled_spec
+from squads._workflow._loader import load_workflow_spec
+from squads._workflow._models import WorkflowSpec
 from tests import _cli_surface as cli_surface
 from tests import _write_guard
+from tests._endpoint_client import EndpointClient
 from tests._helpers import make_service
+from tests._parity import ParityApi
 from tests._squads import (
     FROZEN,
     Builder,
@@ -142,6 +147,43 @@ def seeded_project(copy_squad) -> SquadPaths:
 
 
 @pytest.fixture
+def serve():
+    """Serve a squad's daemon application on a thread, as `serve(paths)`; every one is stopped at
+    the end of the test."""
+    from contextlib import ExitStack
+
+    from tests._daemon_harness import serve_squad
+
+    with ExitStack() as stack:
+        yield lambda paths, **kw: stack.enter_context(serve_squad(paths, **kw))
+
+
+@pytest.fixture
+def daemon_runtime(monkeypatch):
+    """A runtime directory of the test's own, short enough for a socket path, that the endpoint
+    resolution picks up in place of the user's."""
+    import sys
+    import tempfile
+
+    variable = {"win32": "LOCALAPPDATA", "darwin": "TMPDIR"}.get(sys.platform, "XDG_RUNTIME_DIR")
+    with tempfile.TemporaryDirectory(prefix="sqd") as base:
+        monkeypatch.setenv(variable, base)
+        yield Path(base)
+
+
+@pytest.fixture
+def run_daemon(daemon_runtime):
+    """Run a squad's daemon, lifecycle and listeners included, as `run_daemon(paths)`; every one is
+    stopped at the end of the test."""
+    from contextlib import ExitStack
+
+    from tests._daemon_process import running_daemon
+
+    with ExitStack() as stack:
+        yield lambda paths: stack.enter_context(running_daemon(paths))
+
+
+@pytest.fixture
 def svc(project):
     """A `Service` over the `project` squad."""
     return make_service(project)
@@ -175,25 +217,60 @@ def _covers_markers_need_invoke(request: pytest.FixtureRequest):  # pyright: ign
         )
 
 
+def _squad_spec() -> WorkflowSpec:
+    """The workflow spec of the squad in the working directory, the bundled one outside a squad."""
+    try:
+        return load_workflow_spec(paths_of(Path.cwd()).squad_dir)
+    except Exception:  # pylint: disable=broad-except  # no squad here, or its override is broken
+        return bundled_spec()
+
+
+def _reached(
+    args: list[str], spec: WorkflowSpec, refusal: str | None = None
+) -> set[cli_surface.Pair]:
+    """The pairs *args* reach on the tree, read with *spec* as the active spec as a run binds it."""
+    prior = get_context()
+    bind_context(replace(prior, active_spec=spec))
+    try:
+        known = None if spec == bundled_spec() else cli_surface.bundled_known()
+        return cli_surface.reached_pairs(args, spec, refusal, known=known)
+    finally:
+        bind_context(prior)
+
+
 @pytest.fixture
 def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     """`runner.invoke` on a worker thread with a fresh template cache, so an async test can call
-    the CLI.
+    the CLI. In the remote modes the command goes to the daemon application of the squad, through
+    its command endpoint (`remote`) or an `HttpApi` handed to the root callback (`routes`).
 
     Each call records the pairs it reaches (`reached_pairs`, given a failed call's output too);
     at teardown the test fails when a pair its `covers` markers declare was not reached.
     """
     reached: set[cli_surface.Pair] = set()
+    mode = os.environ.get("SQUADS_TEST_MODE")
+    parity = ParityApi() if mode == "routes" else None
+    endpoint = EndpointClient() if mode == "remote" else None
 
     async def _invoke(args: list[str], **kw: Any) -> Any:
-        reached.update(cli_surface.reached_pairs(args, bundled_spec()))
+        if parity is not None:
+            bind_context(replace(get_context(), api=parity))
+        spec = _squad_spec()
+        reached.update(_reached(args, spec))
         _env_cache.clear()
-        result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
+        if endpoint is not None:
+            result = await _aio.to_thread(functools.partial(endpoint.invoke, runner, args, **kw))
+        else:
+            result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
         if result.exit_code != 0:
-            reached.update(cli_surface.reached_pairs(args, bundled_spec(), result.output))
+            reached.update(_reached(args, spec, result.output))
         return result
 
     yield _invoke
+    if parity is not None:
+        parity.close()
+    if endpoint is not None:
+        endpoint.close()
     missing = _declared_pairs(request.node) - reached
     if missing:
         listed = ", ".join(

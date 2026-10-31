@@ -1,12 +1,18 @@
 """`sq skill …`: creating skills, and the addressed verbs (show, update, status, refs, role links,
 regen, remove, body, views and the comment listing)."""
 
+import re
 from typing import Any
 
 import pytest
 
+from squads._workflow import bundled_spec
+from squads._workflow._loader import load_workflow_spec
+from tests._profile import selected
 from tests.cli._output import entry_text, json_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
@@ -49,7 +55,7 @@ def _no_skill(slug: str) -> str:
 # ------------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("skill add", "NAME")
+@pytest.mark.covers("skill add", "name")
 async def test_add_creates_a_skill_with_the_scaffold_body_and_its_pointer(project, invoke) -> None:
     result = await invoke(["skill", "add", "Deploy Notes"])
     assert (result.exit_code, result.output) == (
@@ -79,7 +85,7 @@ async def test_add_creates_a_skill_with_the_scaffold_body_and_its_pointer(projec
     assert _pointer(project).exists()
 
 
-@pytest.mark.covers("skill add", "NAME")
+@pytest.mark.covers("skill add", "name")
 async def test_add_refuses_a_name_whose_slug_a_skill_already_has(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", "add", "Deploy Notes"])
@@ -89,15 +95,15 @@ async def test_add_refuses_a_name_whose_slug_a_skill_already_has(project, invoke
     )
 
 
-@pytest.mark.covers("skill add", "NAME")
+@pytest.mark.covers("skill add", "name")
 async def test_add_needs_a_name(project, invoke) -> None:
     result = await invoke(["skill", "add"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq skill add [OPTIONS] NAME",
+            "Usage: sq skill add [OPTIONS] {name}",
             "sq skill add --help",
-            "Missing argument 'NAME'.",
+            "Missing argument 'name'.",
         ),
     )
 
@@ -197,7 +203,10 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_a_skill(
     populated_project, invoke
 ) -> None:
     result = await invoke(["skill", "3", "show"])
-    assert (result.exit_code, result.output) == (1, "error: 3 is TASK-3 (task), not a skill\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: 3 is {P.ref_prefix}-3 ({P.ref}), not of type skill\n",
+    )
 
 
 # ------------------------------------------------------------------------------------ show
@@ -416,7 +425,7 @@ async def test_refs_in_and_out_together_show_both_directions(project, invoke) ->
 # ------------------------------------------------------------------------------- ref add/rm
 
 
-@pytest.mark.covers("skill ref add", "TARGET")
+@pytest.mark.covers("skill ref add", "target")
 async def test_ref_add_links_the_skill_to_the_item_with_the_default_kind(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "1"])
@@ -426,7 +435,7 @@ async def test_ref_add_links_the_skill_to_the_item_with_the_default_kind(project
     }
 
 
-@pytest.mark.covers("skill ref add", "TARGET")
+@pytest.mark.covers("skill ref add", "target")
 async def test_ref_add_takes_the_kind_after_a_colon(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "1:blocks"])
@@ -436,7 +445,7 @@ async def test_ref_add_takes_the_kind_after_a_colon(project, invoke) -> None:
     ]
 
 
-@pytest.mark.covers("skill ref add", "TARGET")
+@pytest.mark.covers("skill ref add", "target")
 async def test_ref_add_refuses_a_number_no_item_has(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "99"])
@@ -454,6 +463,7 @@ async def test_ref_add_kind_sets_the_kind_of_the_ref(project, invoke) -> None:
 
 
 @pytest.mark.covers("skill ref add", "--kind")
+@pytest.mark.bundled_only("the case reads the bundled ref kinds, review gate and dropped names")
 async def test_ref_add_kind_refuses_a_kind_the_workflow_does_not_declare(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "add", "1", "--kind", "bogus"])
@@ -477,7 +487,7 @@ async def test_ref_add_as_refuses_a_slug_that_is_not_registered(project, invoke)
     )
 
 
-@pytest.mark.covers("skill ref rm", "TARGET")
+@pytest.mark.covers("skill ref rm", "target")
 async def test_ref_rm_drops_every_ref_to_the_item(project, invoke) -> None:
     await _two_skills_with_a_ref(invoke)
     result = await invoke(["skill", SLUG, "ref", "rm", "3"])
@@ -485,7 +495,7 @@ async def test_ref_rm_drops_every_ref_to_the_item(project, invoke) -> None:
     assert await read_json(invoke, ["skill", SLUG, "refs", "--json"]) == {"out": []}
 
 
-@pytest.mark.covers("skill ref rm", "TARGET")
+@pytest.mark.covers("skill ref rm", "target")
 async def test_ref_rm_refuses_a_number_no_item_has(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "ref", "rm", "99"])
@@ -512,7 +522,7 @@ async def test_ref_rm_as_refuses_a_slug_that_is_not_registered(project, invoke) 
 # ------------------------------------------------------------------------- link/unlink role
 
 
-@pytest.mark.covers("skill link-role", "ROLE")
+@pytest.mark.covers("skill link-role", "role")
 async def test_link_role_scopes_the_skill_to_the_role_and_updates_its_pointer(
     project, invoke
 ) -> None:
@@ -527,7 +537,7 @@ async def test_link_role_scopes_the_skill_to_the_role_and_updates_its_pointer(
     )
 
 
-@pytest.mark.covers("skill link-role", "ROLE")
+@pytest.mark.covers("skill link-role", "role")
 async def test_link_role_refuses_a_role_that_does_not_exist(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "link-role", "nobody"])
@@ -537,11 +547,14 @@ async def test_link_role_refuses_a_role_that_does_not_exist(project, invoke) -> 
     )
 
 
-@pytest.mark.covers("skill link-role", "ROLE")
+@pytest.mark.covers("skill link-role", "role")
 async def test_link_role_refuses_the_number_of_an_item_that_is_not_a_role(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "link-role", "2"])
-    assert (result.exit_code, result.output) == (1, "error: 2 is SKILL-2 (skill), not a role\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: 2 is SKILL-2 (skill), not of type role\n",
+    )
 
 
 @pytest.mark.covers("skill link-role", "--as")
@@ -561,7 +574,7 @@ async def test_link_role_as_refuses_a_slug_that_is_not_registered(project, invok
     )
 
 
-@pytest.mark.covers("skill unlink-role", "ROLE")
+@pytest.mark.covers("skill unlink-role", "role")
 async def test_unlink_role_unscopes_the_skill_and_updates_the_pointer(project, invoke) -> None:
     await _add(invoke)
     await invoke(["skill", SLUG, "link-role", "manager"])
@@ -576,7 +589,7 @@ async def test_unlink_role_unscopes_the_skill_and_updates_the_pointer(project, i
     )
 
 
-@pytest.mark.covers("skill unlink-role", "ROLE")
+@pytest.mark.covers("skill unlink-role", "role")
 async def test_unlink_role_refuses_a_role_that_does_not_exist(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "unlink-role", "nobody"])
@@ -584,6 +597,13 @@ async def test_unlink_role_refuses_a_role_that_does_not_exist(project, invoke) -
         1,
         "error: no role with slug, ID, or number 'nobody'\n",
     )
+
+
+@pytest.mark.covers("skill unlink-role", "role")
+async def test_unlink_role_refuses_a_role_the_skill_is_not_scoped_to(project, invoke) -> None:
+    await _add(invoke)
+    result = await invoke(["skill", SLUG, "unlink-role", "manager"])
+    assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no scopes ref to ROLE-1\n")
 
 
 @pytest.mark.covers("skill unlink-role", "--as")
@@ -627,7 +647,7 @@ async def test_regen_refuses_a_skill_that_does_not_exist(project, invoke) -> Non
 # ----------------------------------------------------------------------------------- status
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_refuses_to_retire_a_skill_still_scoped_to_a_live_role(
     project, invoke
 ) -> None:
@@ -670,7 +690,7 @@ async def test_remove_purge_deletes_the_skill_and_its_pointer(project, invoke) -
 # ------------------------------------------------------------------------------------ views
 
 
-@pytest.mark.covers("skill view add", "NAME")
+@pytest.mark.covers("skill view add", "name")
 async def test_view_add_places_a_declared_view_in_the_body_and_a_repeat_changes_nothing(
     project, invoke
 ) -> None:
@@ -688,7 +708,7 @@ async def test_view_add_places_a_declared_view_in_the_body_and_a_repeat_changes_
     )
 
 
-@pytest.mark.covers("skill view add", "NAME")
+@pytest.mark.covers("skill view add", "name")
 async def test_view_add_refuses_a_view_the_spec_does_not_declare(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "view", "add", "nosuch"])
@@ -716,7 +736,7 @@ async def test_view_add_as_refuses_a_slug_that_is_not_registered(project, invoke
     )
 
 
-@pytest.mark.covers("skill view disable", "NAME")
+@pytest.mark.covers("skill view disable", "name")
 async def test_view_disable_keeps_the_tag_disabled_and_a_repeat_changes_nothing(
     project, invoke
 ) -> None:
@@ -734,7 +754,7 @@ async def test_view_disable_keeps_the_tag_disabled_and_a_repeat_changes_nothing(
     )
 
 
-@pytest.mark.covers("skill view disable", "NAME")
+@pytest.mark.covers("skill view disable", "name")
 async def test_view_disable_of_a_name_without_a_tag_places_it_disabled(project, invoke) -> None:
     await _add(invoke)
     result = await invoke(["skill", SLUG, "view", "disable", "nosuch"])
@@ -744,7 +764,7 @@ async def test_view_disable_of_a_name_without_a_tag_places_it_disabled(project, 
     )
 
 
-@pytest.mark.covers("skill view disable", "NAME")
+@pytest.mark.covers("skill view disable", "name")
 async def test_view_disable_is_refused_on_a_system_skill_whose_view_is_declared(
     seeded_project, invoke
 ) -> None:
@@ -887,3 +907,69 @@ async def test_view_disable_json_prints_the_skill_and_the_tag_it_placed_disabled
     assert output == json_text(
         {"entry": SKILL_ROW, "view": "greeting_skill", "changed": True, "was_present": False}
     )
+
+
+@pytest.mark.covers("skill unlink-role", "role")
+async def test_unlink_role_refuses_a_skill_whose_only_ref_to_the_role_is_another_kind(
+    project, invoke
+) -> None:
+    await _add(invoke)
+    await invoke(["skill", SLUG, "ref", "add", "1", "--kind", "related"])
+    result = await invoke(["skill", SLUG, "unlink-role", "manager"])
+    assert (result.exit_code, result.output) == (1, "error: SKILL-2 has no scopes ref to ROLE-1\n")
+    assert (await read_json(invoke, ["skill", SLUG, "refs", "--json"]))["out"] != []
+
+
+def _vocabulary(spec) -> set[str]:
+    """Every type, alias, sub-entity kind and plural, badge field and collection *spec* declares."""
+    names = set(spec.items) | set(spec.subentity_kinds) | set(spec.collections)
+    for item in spec.items.values():
+        names |= set(item.aliases) | {f.code for f in item.fields}
+    for kind in spec.subentity_kinds.values():
+        names |= {kind.plural} | {f.code for f in kind.fields}
+    return names
+
+
+def _references(text: str, names: set[str]) -> list[str]:
+    """The *names* that *text* uses as vocabulary: inside a code span, where a command, option or id
+    is written. The same word in running prose is ordinary English."""
+    spans = " ".join(re.findall(r"`[^`]*`", text))
+    return sorted(n for n in names if re.search(rf"(?<![\w-]){re.escape(n)}(?![\w-])", spans))
+
+
+async def _generated_texts(project, invoke) -> dict[str, str]:
+    return {
+        "the squads skill": await printed(invoke, ["skill", "squads", "show"]),
+        "the CLAUDE.md section": (project.root / "CLAUDE.md").read_text(encoding="utf-8"),
+    }
+
+
+@pytest.mark.covers("skill show")
+@pytest.mark.bundled_only("the case reads the bundled ref kinds, review gate and dropped names")
+async def test_generated_agent_text_refers_to_no_vocabulary_the_squad_dropped(
+    override_project, invoke
+) -> None:
+    dropped = {
+        name
+        for name in _vocabulary(bundled_spec())
+        - _vocabulary(load_workflow_spec(override_project.squad_dir))
+        if len(name) > 1  # a one-letter alias reads as English
+    }
+    assert {P.host, P.target_kind, "priority", "feat"} <= dropped
+    texts = await _generated_texts(override_project, invoke)
+    for where, text in texts.items():
+        assert _references(text, dropped) == [], f"{where} refers to dropped vocabulary"
+    assert "(status / urgency / assignee / blocked per node)" in texts["the CLAUDE.md section"]
+
+
+@pytest.mark.covers("skill show")
+@pytest.mark.bundled_only("the case reads the bundled ref kinds, review gate and dropped names")
+async def test_generated_agent_text_names_the_review_gate_the_spec_declares(
+    full_project, invoke
+) -> None:
+    claude = (await _generated_texts(full_project, invoke))["the CLAUDE.md section"]
+    assert "(status / priority / assignee / blocked per node)" in claude
+    assert f"item/{P.third} status, new {P.third_kind_plural}, whether" in claude
+    assert f"every linked {P.third} resolved" in claude
+    assert f"author items and {P.third} points" in claude
+    assert f"the reviewer's {P.third_kind}" in claude

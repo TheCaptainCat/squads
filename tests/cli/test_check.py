@@ -51,6 +51,7 @@ async def test_json_prints_an_empty_array_for_a_clean_squad(project, invoke) -> 
 
 
 @pytest.mark.covers("check")
+@pytest.mark.bundled_only("the damaged squad and its messages are the bundled task type's")
 async def test_check_names_each_issue_and_exits_3_on_an_error(damaged_project, invoke) -> None:
     result = await invoke(["check"])
     assert (result.exit_code, result.output) == (
@@ -60,6 +61,7 @@ async def test_check_names_each_issue_and_exits_3_on_an_error(damaged_project, i
 
 
 @pytest.mark.covers("check", "--json")
+@pytest.mark.bundled_only("the damaged squad and its messages are the bundled task type's")
 async def test_json_prints_one_object_per_issue_and_exits_3_on_an_error(
     damaged_project, invoke
 ) -> None:
@@ -73,3 +75,47 @@ async def test_check_exits_0_when_the_issues_are_warnings(populated_project, inv
     result = await invoke(["check", "--json"])
     assert result.exit_code == 0
     assert {issue["level"] for issue in json.loads(result.output)} == {"warn"}
+
+
+async def _check_issues(invoke) -> list[dict[str, str]]:
+    return json.loads((await invoke(["check", "--json"])).output)
+
+
+@pytest.mark.covers("check", "--json")
+@pytest.mark.covers("repair")
+@pytest.mark.covers("<type> <kind>", "local-id")
+async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
+    override_project, invoke
+) -> None:
+    mapped = await invoke(["job", "9", "action", "1", "update", "--outcome", "1"])
+    assert mapped.exit_code == 0, mapped.output
+    job = next((override_project.squad_dir / "jobs").glob("JOB-*.md"))
+    job.write_text(job.read_text("utf-8").replace("maps_to: OC1", "maps_to: OC9"), "utf-8")
+    assert (await invoke(["repair"])).exit_code == 0
+
+    assert await _check_issues(invoke) == [
+        {
+            "level": "error",
+            "item": "JOB-9",
+            "message": "action AC1 maps to outcome OC9, missing from INI-8",
+            "rule": "subentity_mapping",
+        }
+    ]
+
+
+@pytest.mark.covers("check", "--json")
+@pytest.mark.covers("<type> status", "status")
+async def test_a_superseded_record_names_the_declared_supersession_kind(
+    override_project, invoke
+) -> None:
+    moved = await invoke(["record", "10", "status", "Superseded", "--force"])
+    assert moved.exit_code == 0, moved.output
+
+    assert await _check_issues(invoke) == [
+        {
+            "level": "warn",
+            "item": "REC-10",
+            "message": "status is Superseded but no incoming replaces edge found",
+            "rule": "supersedes_incoming",
+        }
+    ]

@@ -45,6 +45,7 @@ def _cached_get_command(app_obj: Any) -> Any:
 
 
 typer.main.get_command = _cached_get_command
+_cached_get_command.cache_clear = _build_command.cache_clear  # type: ignore[attr-defined]
 # typer.testing binds its own alias at import, so patching typer.main alone misses invoke().
 _typer_testing: Any = typer.testing
 _typer_testing._get_command = _cached_get_command
@@ -61,6 +62,24 @@ def fresh_command_tree():
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
+        "--squad",
+        action="store",
+        default=os.environ.get("SQUADS_TEST_SQUAD", "bundled"),
+        choices=("bundled", "override"),
+        help="the squad the tests/cli surface suite runs on: the bundled one, or the override "
+        "test squad that shares none of its vocabulary (default: $SQUADS_TEST_SQUAD, else bundled)",
+    )
+    parser.addoption(
+        "--api-mode",
+        action="store",
+        default=os.environ.get("SQUADS_TEST_MODE", "local"),
+        choices=("local", "remote", "routes"),
+        help="how the tests/cli surface suite runs its commands: in this process (local), through "
+        "the command endpoint of the daemon's application served on a thread (remote), or in this "
+        "process with the operations sent to that application over HTTP (routes); it combines "
+        "with --squad (default: $SQUADS_TEST_MODE, else local)",
+    )
+    parser.addoption(
         "--run-slow",
         action="store_true",
         default=False,
@@ -76,9 +95,32 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Publish the selected squad to the modules that read it at import time."""
+    os.environ["SQUADS_TEST_SQUAD"] = str(config.getoption("--squad"))
+    os.environ["SQUADS_TEST_MODE"] = str(config.getoption("--api-mode"))
+    # No test starts a daemon unless it says so; one that exercises the daemon sets it itself.
+    os.environ["SQUADS_DAEMON"] = "off"
+
+
+def _skip_other_squad(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Skip a case about the other squad's own spelling; its marker states why."""
+    selected = config.getoption("--squad")
+    for item in items:
+        for squad in ("bundled", "override"):
+            marker = item.get_closest_marker(f"{squad}_only")
+            if marker is None:
+                continue
+            if not marker.args or not isinstance(marker.args[0], str) or not marker.args[0]:
+                pytest.fail(f"{item.nodeid}: {squad}_only needs a reason", pytrace=False)
+            if squad != selected:
+                item.add_marker(pytest.mark.skip(reason=f"{squad} squad only: {marker.args[0]}"))
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Skip slow tests unless `--run-slow`, and shuffle by seed when `--shuffle-seed` is given
     (the same seed gives every xdist worker the same order)."""
+    _skip_other_squad(config, items)
     seed = config.getoption("--shuffle-seed")
     if seed is not None:
         random.Random(seed).shuffle(items)

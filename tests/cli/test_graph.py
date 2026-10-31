@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from tests.cli._readable import init_readable, lines
+from tests._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
 
@@ -25,7 +25,7 @@ async def _graph(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
-@pytest.mark.covers("graph", "ID")
+@pytest.mark.covers("graph", "id")
 async def test_graph_draws_the_items_linked_to_the_item_a_few_levels_out(readable, invoke) -> None:
     expected = (
         0,
@@ -41,7 +41,7 @@ async def test_graph_draws_the_items_linked_to_the_item_a_few_levels_out(readabl
     assert await _graph(invoke, "TASK-4") == expected
 
 
-@pytest.mark.covers("graph", "ID")
+@pytest.mark.covers("graph", "id")
 async def test_graph_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _graph(invoke, "99") == (
         1,
@@ -63,10 +63,10 @@ async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) ->
     assert await _graph(invoke, "4", "--depth", "deep") == (
         2,
         [
-            "Usage: sq graph [OPTIONS] ID",
+            "Usage: sq graph [OPTIONS] {id}",
             "Try 'sq graph --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--depth' / '-d': 'deep' is not a valid integer.           │",
+            "│ Invalid value for '--depth' / '-d': 'deep' is not a valid int.               │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
@@ -189,7 +189,6 @@ async def test_json_prints_the_root_with_its_nested_children(readable, invoke) -
         "id": "TASK-4",
         "type": "task",
         "status": "Draft",
-        "priority": "low",
         "badges": {"priority": "low"},
         "assignee": None,
         "edge_kind": None,
@@ -201,7 +200,6 @@ async def test_json_prints_the_root_with_its_nested_children(readable, invoke) -
                 "id": "TASK-3",
                 "type": "task",
                 "status": "InProgress",
-                "priority": "urgent",
                 "badges": {"priority": "urgent"},
                 "assignee": "manager",
                 "edge_kind": "depends-on",
@@ -222,7 +220,6 @@ async def test_json_prints_the_root_with_its_nested_children(readable, invoke) -
                 "id": "REV-7",
                 "type": "review",
                 "status": "Requested",
-                "priority": None,
                 "badges": {},
                 "assignee": None,
                 "edge_kind": "related",
@@ -271,3 +268,17 @@ MERMAID = (
     "    TASK_002d4 -->|related| REV_002d7\n"
     "    TASK_002d4 -->|depends on| TASK_002d3\n"
 )
+
+
+@pytest.mark.covers("graph", "--depth")
+async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
+    assert await _graph(invoke, "4", "--depth", "-1") == (
+        2,
+        [
+            "Usage: sq graph [OPTIONS] {id}",
+            "Try 'sq graph --help' for help.",
+            "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
+            "│ Invalid value for '--depth' / '-d': must be 0 or more                        │",
+            "╰──────────────────────────────────────────────────────────────────────────────╯",
+        ],
+    )

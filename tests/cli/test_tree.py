@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from tests.cli._output import json_text
-from tests.cli._readable import init_readable, lines
+from tests._readable import init_readable, lines
+from tests.cli._output import json_text, unknown_option
 
 pytestmark = pytest.mark.anyio
 
@@ -56,7 +56,7 @@ async def test_tree_draws_the_open_items_under_their_parents(readable, invoke) -
     )
 
 
-@pytest.mark.covers("tree", "ROOT_ID")
+@pytest.mark.covers("tree", "root-id")
 async def test_root_id_draws_one_item_and_what_is_below_it(readable, invoke) -> None:
     assert await _tree(invoke, "2") == (
         0,
@@ -65,7 +65,7 @@ async def test_root_id_draws_one_item_and_what_is_below_it(readable, invoke) -> 
     assert await _tree(invoke, "TASK-3") == (0, _drawn(f"└── {PARSER}"))
 
 
-@pytest.mark.covers("tree", "ROOT_ID")
+@pytest.mark.covers("tree", "root-id")
 async def test_root_id_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _tree(invoke, "99") == (
         1,
@@ -146,7 +146,7 @@ async def test_category_refuses_an_unknown_category(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("tree", "--priority")
+@pytest.mark.covers("tree", "--<field>")
 async def test_priority_keeps_the_items_of_exactly_that_priority_in_context(
     readable, invoke
 ) -> None:
@@ -156,7 +156,7 @@ async def test_priority_keeps_the_items_of_exactly_that_priority_in_context(
     )
 
 
-@pytest.mark.covers("tree", "--priority")
+@pytest.mark.covers("tree", "--<field>")
 async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _tree(invoke, "--priority", "ghost") == (
         1,
@@ -164,7 +164,7 @@ async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("tree", "--min-priority")
+@pytest.mark.covers("tree", "--min-<field>")
 async def test_min_priority_keeps_the_items_at_least_that_urgent_in_context(
     readable, invoke
 ) -> None:
@@ -174,7 +174,7 @@ async def test_min_priority_keeps_the_items_at_least_that_urgent_in_context(
     )
 
 
-@pytest.mark.covers("tree", "--min-priority")
+@pytest.mark.covers("tree", "--min-<field>")
 async def test_min_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _tree(invoke, "--min-priority", "ghost") == (
         1,
@@ -194,7 +194,7 @@ async def test_badge_keeps_the_items_whose_field_has_the_value_in_context(readab
 async def test_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _tree(invoke, "--badge", "priority") == (
         1,
-        ["error: expected CODE=VALUE, got 'priority'"],
+        ["error: expected code=value, got 'priority'"],
     )
 
 
@@ -210,7 +210,7 @@ async def test_min_badge_keeps_the_items_at_least_that_rank_in_context(readable,
 async def test_min_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _tree(invoke, "--min-badge", "priority") == (
         1,
-        ["error: expected CODE=VALUE, got 'priority'"],
+        ["error: expected code=value, got 'priority'"],
     )
 
 
@@ -243,10 +243,10 @@ async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) ->
     assert await _tree(invoke, "--depth", "deep") == (
         2,
         [
-            "Usage: sq tree [OPTIONS] [ROOT_ID]",
+            "Usage: sq tree [OPTIONS] [root-id]",
             "Try 'sq tree --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--depth': 'deep' is not a valid integer.                  │",
+            "│ Invalid value for '--depth': 'deep' is not a valid int.                      │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
@@ -282,7 +282,6 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
             "type": "feature",
             "title": "Search",
             "status": "Draft",
-            "priority": "high",
             "assignee": "manager",
             "blocked": False,
             "badges": {"priority": "high"},
@@ -293,7 +292,6 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                     "type": "task",
                     "title": "Parse queries",
                     "status": "InProgress",
-                    "priority": "urgent",
                     "assignee": "manager",
                     "blocked": False,
                     "badges": {"priority": "urgent"},
@@ -323,7 +321,6 @@ async def test_json_prints_the_root_nodes_with_their_children(readable, invoke) 
                     "type": "task",
                     "title": "Rank results",
                     "status": "Draft",
-                    "priority": "low",
                     "assignee": None,
                     "blocked": True,
                     "badges": {"priority": "low"},
@@ -404,7 +401,6 @@ async def test_json_gives_a_skill_sharing_a_roles_slug_neither_its_notebook_nor_
     skill = {"id": "SKILL-8", "type": "skill", "title": "Manager", "status": "Active"}
     skill_node = {
         **skill,
-        "priority": None,
         "assignee": None,
         "blocked": False,
         "badges": {},
@@ -433,7 +429,6 @@ def _role_node(pronouns: str | None) -> dict[str, Any]:
         "type": "role",
         "title": "Catherine Manager",
         "status": "Active",
-        "priority": None,
         "assignee": None,
         "blocked": False,
         "badges": {},
@@ -457,7 +452,54 @@ def _role_node(pronouns: str | None) -> dict[str, Any]:
 # --- interactions ---------------------------------------------------------------------------
 
 
-@pytest.mark.covers("tree", "--priority", "--min-priority")
+@pytest.mark.covers("tree", "--<field>")
+@pytest.mark.covers("tree", "--min-<field>")
+async def test_a_field_only_some_types_declare_filters_exactly_and_by_threshold(
+    readable, invoke
+) -> None:
+    assert await _roots(invoke, "--all", "--severity", "medium") == ["BUG-6"]
+    assert await _roots(invoke, "--all", "--min-severity", "high") == []
+
+
+@pytest.mark.covers("tree", "--<field>", "--min-<field>")
+async def test_a_derived_filter_means_exactly_its_generic_form(override_project, invoke) -> None:
+    created = await invoke(
+        ["create", "initiative", "Later one", "--author", "manager", "--urgency", "later"]
+    )
+    assert created.exit_code == 0, created.output
+    for derived, generic in (
+        (["--urgency", "later"], ["--badge", "urgency=later"]),
+        (["--min-urgency", "soon"], ["--min-badge", "urgency=soon"]),
+    ):
+        ids = await _roots(invoke, *derived)
+        assert ids == await _roots(invoke, *generic)
+        assert ids == (["INI-11"] if "later" in derived else ["INI-8"])
+    refused = await invoke(["tree", "--json", "--priority", "high"])
+    assert (refused.exit_code, refused.output) == (
+        2,
+        unknown_option(
+            "tree [OPTIONS] [root-id]", "tree", "--priority", " (Possible options: --sort)"
+        ),
+    )
+
+
+@pytest.mark.covers("tree", "--json")
+async def test_a_generic_form_refuses_a_code_no_type_declares_naming_the_declared_ones(
+    override_project, invoke
+) -> None:
+    for option, value, what in (
+        ("--badge", "priority=high", "badge field"),
+        ("--min-badge", "priority=high", "badge field"),
+        ("--sort", "priority", "sort field"),
+    ):
+        result = await invoke(["tree", "--json", option, value])
+        assert (result.exit_code, result.output) == (
+            1,
+            f"error: unknown {what} 'priority' (one of: urgency, work_size)\n",
+        )
+
+
+@pytest.mark.covers("tree", "--<field>", "--min-<field>")
 async def test_priority_and_min_priority_both_apply_to_one_tree(readable, invoke) -> None:
     both = await _tree(invoke, "--priority", "urgent", "--min-priority", "high")
     assert both == (0, _drawn(f"└── {FEATURE}", f"    └── {PARSER}"))
@@ -477,3 +519,39 @@ async def test_badge_and_min_badge_both_apply_to_one_tree(readable, invoke) -> N
 async def test_sort_decides_the_order_of_the_json_roots(readable, invoke) -> None:
     assert await _roots(invoke, "--sort", "priority") == ["FEAT-2", "ROLE-1", "ADR-5", "REV-7"]
     assert await _roots(invoke) == ["ROLE-1", "FEAT-2", "ADR-5", "REV-7"]
+
+
+@pytest.mark.covers("tree", "--depth")
+async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
+    assert await _tree(invoke, "--depth", "-1") == (
+        2,
+        [
+            "Usage: sq tree [OPTIONS] [root-id]",
+            "Try 'sq tree --help' for help.",
+            "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
+            "│ Invalid value for '--depth': must be 0 or more                               │",
+            "╰──────────────────────────────────────────────────────────────────────────────╯",
+        ],
+    )
+
+
+@pytest.mark.covers("tree", "--json")
+async def test_a_tree_node_carries_its_fields_in_badges_and_no_priority_key(
+    override_project, invoke
+) -> None:
+    roots = json.loads((await invoke(["tree", "--json"])).output)
+    initiative = next(node for node in roots if node["id"] == "INI-8")
+    assert list(initiative)[:9] == [
+        "id",
+        "type",
+        "title",
+        "status",
+        "assignee",
+        "blocked",
+        "badges",
+        "anchor",
+        "children",
+    ]
+    assert initiative["badges"] == {"urgency": "now"}
+    assert initiative["children"][0]["badges"] == {"work_size": "m"}
+    assert "priority" not in initiative

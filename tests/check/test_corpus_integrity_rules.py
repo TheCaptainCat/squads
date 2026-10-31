@@ -28,7 +28,7 @@ from tests.check._arrange import (
 pytestmark = pytest.mark.anyio
 
 MALFORMED_ID = (
-    "frontmatter `id` 'nope' is malformed -- an `id:` must read `<PREFIX>-<number>`, and the "
+    "frontmatter `id` 'nope' is malformed -- an `id:` must read `<prefix>-<number>`, and the "
     "prefix half of the item's identity is read from this line, with nothing else in the file "
     "supplying it. Correct the `id:` line to match this file's `sequence_id` and its type's "
     "prefix; removing the line is reported too, so it is not a fix."

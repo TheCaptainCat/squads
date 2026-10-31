@@ -84,7 +84,8 @@ def _entry(name: str, kind: str, base: str | None, state: str) -> dict[str, Any]
 # ---------------------------------------------------------------------------------- scaffold
 
 
-@pytest.mark.covers("override scaffold", "NAME")
+@pytest.mark.covers("override scaffold", "name")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_copies_the_named_template_under_the_current_stamp(project, invoke) -> None:
     result = await invoke(["override", "scaffold", TASK])
     dest = _path(project, f"templates/{TASK}")
@@ -98,7 +99,8 @@ async def test_scaffold_copies_the_named_template_under_the_current_stamp(projec
     assert _changes(diffed["delta_mine"]) == [f"+{STAMP}"]
 
 
-@pytest.mark.covers("override scaffold", "NAME")
+@pytest.mark.covers("override scaffold", "name")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_takes_the_documents_by_their_names(project, invoke) -> None:
     for name in ("workflow", "playbook", "roles"):
         await _scaffold(invoke, name)
@@ -110,6 +112,7 @@ async def test_scaffold_takes_the_documents_by_their_names(project, invoke) -> N
 
 
 @pytest.mark.covers("override scaffold", "--role")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_role_copies_the_bundled_role_fields_commented_out(project, invoke) -> None:
     result = await invoke(["override", "scaffold", "--role", "architect"])
     dest = _path(project, "roles/architect.toml")
@@ -172,6 +175,7 @@ async def test_scaffold_role_for_a_role_added_by_hand_copies_its_own_fields(
 
 
 @pytest.mark.covers("override scaffold", "--workflow")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_workflow_starts_the_workflow_override(project, invoke) -> None:
     result = await invoke(["override", "scaffold", "--workflow"])
     dest = _path(project, "workflow.toml")
@@ -193,6 +197,7 @@ async def test_scaffold_workflow_starts_the_workflow_override(project, invoke) -
 
 
 @pytest.mark.covers("override scaffold", "--playbook")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_playbook_starts_the_playbook_override(project, invoke) -> None:
     result = await invoke(["override", "scaffold", "--playbook"])
     dest = _path(project, "playbook.toml")
@@ -214,6 +219,7 @@ async def test_scaffold_playbook_starts_the_playbook_override(project, invoke) -
 
 
 @pytest.mark.covers("override scaffold", "--roles-catalog")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_roles_catalog_starts_the_role_catalog_override(project, invoke) -> None:
     result = await invoke(["override", "scaffold", "--roles-catalog"])
     dest = _path(project, "roles.toml")
@@ -254,6 +260,7 @@ async def test_scaffold_force_replaces_an_override_that_exists(project, invoke) 
 
 
 @pytest.mark.covers("override scaffold", "--new")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_refuses_the_retired_new_option_and_names_the_replacement(
     project, invoke
 ) -> None:
@@ -267,7 +274,8 @@ async def test_scaffold_refuses_the_retired_new_option_and_names_the_replacement
     assert await _entries(invoke) == []
 
 
-@pytest.mark.covers("override scaffold", "NAME")
+@pytest.mark.covers("override scaffold", "name")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_refuses_a_template_the_bundle_does_not_have(project, invoke) -> None:
     result = await invoke(["override", "scaffold", "nope.md.j2"])
     assert (result.exit_code, result.output) == (
@@ -279,6 +287,7 @@ async def test_scaffold_refuses_a_template_the_bundle_does_not_have(project, inv
 
 
 @pytest.mark.covers("override scaffold", "--role")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_scaffold_role_refuses_a_role_that_is_neither_bundled_nor_added(
     project, invoke
 ) -> None:
@@ -298,7 +307,7 @@ async def test_scaffold_refuses_a_command_line_that_names_nothing_to_scaffold(
     result = await invoke(["override", "scaffold"])
     assert (result.exit_code, result.output) == (
         2,
-        "Usage: sq override scaffold [OPTIONS] [NAME]\n"
+        "Usage: sq override scaffold [OPTIONS] [name]\n"
         "Try 'sq override scaffold --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
         "│ Invalid value: provide a template name (e.g. 'items/<type>.md.j2'),          │\n"
@@ -313,6 +322,7 @@ async def test_scaffold_refuses_a_command_line_that_names_nothing_to_scaffold(
 
 
 @pytest.mark.covers("override list", "--json")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_list_json_gives_each_override_its_kind_base_version_and_state(
     project, invoke
 ) -> None:
@@ -328,6 +338,7 @@ async def test_list_json_gives_each_override_its_kind_base_version_and_state(
 
 
 @pytest.mark.covers("override list", "--json")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_list_json_still_prints_a_broken_override_and_exits_1(project, invoke) -> None:
     _path(project, f"templates/{FEATURE}").parent.mkdir(parents=True)
     _path(project, f"templates/{FEATURE}").write_text("no markers here", encoding="utf-8")
@@ -340,6 +351,7 @@ async def test_list_json_still_prints_a_broken_override_and_exits_1(project, inv
 
 
 @pytest.mark.covers("override list")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_list_says_when_there_are_no_overrides(project, invoke) -> None:
     result = await invoke(["override", "list"])
     assert (result.exit_code, result.output) == (
@@ -350,6 +362,7 @@ async def test_list_says_when_there_are_no_overrides(project, invoke) -> None:
 
 
 @pytest.mark.covers("override list")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_list_prints_a_table_and_the_cause_of_an_unreadable_override(project, invoke) -> None:
     await _scaffold(invoke, "--playbook")
     _restamp(_path(project, "playbook.toml"), OLD)
@@ -368,7 +381,8 @@ async def test_list_prints_a_table_and_the_cause_of_an_unreadable_override(proje
 # ------------------------------------------------------------------------------------- diff
 
 
-@pytest.mark.covers("override diff", "NAME")
+@pytest.mark.covers("override diff", "name")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_diff_names_a_template_and_compares_it_with_the_bundled_default(
     project, invoke
 ) -> None:
@@ -419,6 +433,7 @@ async def test_diff_role_compares_the_role_file_with_the_bundled_role(project, i
 
 
 @pytest.mark.covers("override diff", "--workflow")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_diff_workflow_compares_the_workflow_file_with_the_bundled_spec(
     project, invoke
 ) -> None:
@@ -441,6 +456,7 @@ async def test_diff_workflow_compares_the_workflow_file_with_the_bundled_spec(
 
 
 @pytest.mark.covers("override diff", "--playbook")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_diff_playbook_compares_the_playbook_file_with_the_bundled_playbook(
     project, invoke
 ) -> None:
@@ -529,7 +545,8 @@ async def test_diff_without_a_name_says_when_nothing_drifted(project, invoke) ->
     assert (result.exit_code, result.output) == (0, "no drifted overrides found\n")
 
 
-@pytest.mark.covers("override diff", "NAME")
+@pytest.mark.covers("override diff", "name")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_diff_prints_both_deltas_under_the_override_name(project, invoke) -> None:
     await _scaffold(invoke, "--playbook")
     result = await invoke(["override", "diff", "playbook"])
@@ -566,15 +583,16 @@ async def test_diff_without_a_name_names_a_broken_override_and_exits_1_after_the
     ]
     result = await invoke(["override", "diff", "--json"])
     assert result.exit_code == 1
-    assert result.output.splitlines()[:2] == expected
+    assert result.stderr.splitlines() == expected
     result = await invoke(["override", "diff"])
     assert result.exit_code == 1
     assert result.output.splitlines()[-2:] == expected
 
 
-@pytest.mark.covers("override diff", "NAME")
+@pytest.mark.covers("override diff", "name")
 @pytest.mark.covers("override diff", "--role")
 @pytest.mark.covers("override diff", "--playbook")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_diff_refuses_an_override_that_is_not_there(project, invoke) -> None:
     for args, line in (
         (["nope"], "no template override for 'nope' (run `sq override scaffold nope` first)"),
@@ -599,7 +617,7 @@ async def test_diff_refuses_an_override_that_is_not_there(project, invoke) -> No
         assert (result.exit_code, result.output) == (1, f"error: {line}\n")
 
 
-@pytest.mark.covers("override diff", "NAME")
+@pytest.mark.covers("override diff", "name")
 async def test_diff_refuses_an_override_file_that_is_not_utf8(project, invoke) -> None:
     broken = _path(project, f"templates/{TASK}")
     _break_utf8(broken)
@@ -610,7 +628,8 @@ async def test_diff_refuses_an_override_file_that_is_not_utf8(project, invoke) -
 # ----------------------------------------------------------------------------------- update
 
 
-@pytest.mark.covers("override update", "NAME")
+@pytest.mark.covers("override update", "name")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_restamps_the_named_template_and_keeps_its_content(project, invoke) -> None:
     await _drift(invoke, project, TASK, path=f"templates/{TASK}", version=OLD_TEMPLATE)
     await _bystander(invoke, project, workflow=True)
@@ -631,6 +650,7 @@ async def test_update_restamps_the_named_template_and_keeps_its_content(project,
 
 
 @pytest.mark.covers("override update", "--role")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_role_restamps_the_role_file(project, invoke) -> None:
     await _drift(invoke, project, "--role", "architect", path="roles/architect.toml")
     await _bystander(invoke, project)
@@ -647,6 +667,7 @@ async def test_update_role_restamps_the_role_file(project, invoke) -> None:
 
 
 @pytest.mark.covers("override update", "--workflow")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_workflow_restamps_the_workflow_file(project, invoke) -> None:
     await _drift(invoke, project, "--workflow", path="workflow.toml")
     await _bystander(invoke, project)
@@ -663,6 +684,7 @@ async def test_update_workflow_restamps_the_workflow_file(project, invoke) -> No
 
 
 @pytest.mark.covers("override update", "--playbook")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_playbook_restamps_the_playbook_file(project, invoke) -> None:
     await _drift(invoke, project, "--playbook", path="playbook.toml")
     await _bystander(invoke, project)
@@ -679,6 +701,7 @@ async def test_update_playbook_restamps_the_playbook_file(project, invoke) -> No
 
 
 @pytest.mark.covers("override update", "--roles-catalog")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_roles_catalog_restamps_the_catalog_file(project, invoke) -> None:
     await _drift(invoke, project, "--roles-catalog", path="roles.toml")
     await _bystander(invoke, project)
@@ -695,6 +718,7 @@ async def test_update_roles_catalog_restamps_the_catalog_file(project, invoke) -
 
 
 @pytest.mark.covers("override update")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_without_a_name_restamps_every_valid_override(project, invoke) -> None:
     await _drift(invoke, project, TASK, path=f"templates/{TASK}", version=OLD_TEMPLATE)
     await _drift(invoke, project, "--workflow", path="workflow.toml")
@@ -711,6 +735,7 @@ async def test_update_without_a_name_restamps_every_valid_override(project, invo
 
 
 @pytest.mark.covers("override update")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_without_a_name_skips_an_unreadable_override_and_exits_1(
     project, invoke
 ) -> None:
@@ -731,6 +756,7 @@ async def test_update_without_a_name_skips_an_unreadable_override_and_exits_1(
 
 
 @pytest.mark.covers("override update")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_without_a_name_names_the_unreadable_override_when_nothing_else_is_valid(
     project, invoke
 ) -> None:
@@ -741,6 +767,7 @@ async def test_update_without_a_name_names_the_unreadable_override_when_nothing_
 
 
 @pytest.mark.covers("override update")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_without_a_name_says_when_there_is_nothing_to_update(project, invoke) -> None:
     result = await invoke(["override", "update"])
     assert (result.exit_code, result.output) == (
@@ -749,11 +776,12 @@ async def test_update_without_a_name_says_when_there_is_nothing_to_update(projec
     )
 
 
-@pytest.mark.covers("override update", "NAME")
+@pytest.mark.covers("override update", "name")
 @pytest.mark.covers("override update", "--role")
 @pytest.mark.covers("override update", "--workflow")
 @pytest.mark.covers("override update", "--playbook")
 @pytest.mark.covers("override update", "--roles-catalog")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_refuses_an_override_that_is_not_there(project, invoke) -> None:
     for args, line in (
         (
@@ -777,7 +805,7 @@ async def test_update_refuses_an_override_that_is_not_there(project, invoke) -> 
         assert (result.exit_code, result.output) == (1, f"error: {line}\n")
 
 
-@pytest.mark.covers("override update", "NAME")
+@pytest.mark.covers("override update", "name")
 async def test_update_refuses_a_template_that_lost_its_required_markers(project, invoke) -> None:
     _path(project, f"templates/{FEATURE}").parent.mkdir(parents=True)
     _path(project, f"templates/{FEATURE}").write_text("no markers here", encoding="utf-8")
@@ -791,7 +819,7 @@ async def test_update_refuses_a_template_that_lost_its_required_markers(project,
     assert _changes(diffed["delta_mine"])[-1] == "+no markers here"
 
 
-@pytest.mark.covers("override update", "NAME")
+@pytest.mark.covers("override update", "name")
 async def test_update_refuses_an_override_file_that_is_not_utf8(project, invoke) -> None:
     broken = _path(project, f"templates/{TASK}")
     _break_utf8(broken)
@@ -824,6 +852,7 @@ async def test_scaffold_json_prints_the_override_written(project, invoke) -> Non
 
 
 @pytest.mark.covers("override update", "--json")
+@pytest.mark.bundled_only("scaffolds and diffs the bundled documents")
 async def test_update_json_prints_the_overrides_restamped_and_the_unreadable_ones(
     project, invoke
 ) -> None:

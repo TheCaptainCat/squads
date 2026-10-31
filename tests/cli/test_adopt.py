@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from tests._squadwide import agent_files, flat, listed, region
 from tests.cli._output import json_text
-from tests.cli._squadwide import agent_files, flat, listed, region
 
 pytestmark = pytest.mark.anyio
 
@@ -50,6 +50,7 @@ def _adopted(root: Path, folder: str, activated: str) -> str:
 
 
 @pytest.mark.covers("adopt", "--squad-dir")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
 async def test_squad_dir_names_the_folder_to_adopt(adoptable, invoke) -> None:
     shutil.move(adoptable / "squads", adoptable / "other")
     result = await invoke(["adopt", "--roles", "core", "--squad-dir", "other"])
@@ -58,7 +59,35 @@ async def test_squad_dir_names_the_folder_to_adopt(adoptable, invoke) -> None:
     assert await _held(invoke) == [*EXISTING, *CORE_ROLES]
 
 
+@pytest.mark.covers("adopt", "--squad-dir")
+async def test_squad_dir_refuses_a_folder_outside_the_project(adoptable, invoke) -> None:
+    result = await invoke(["adopt", "--roles", "core", "--squad-dir", "../up"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: --squad-dir must stay inside the project root, got '../up'\n",
+    )
+    assert not (adoptable / ".squads.toml").exists()
+
+
+@pytest.mark.covers("adopt", "--renumber")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
+async def test_renumber_gives_a_shared_number_a_new_one_and_adopts(adoptable, invoke) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_text(encoding="utf-8")
+    (squad / "features/FEAT-000003-twin.md").write_text(
+        original.replace("id: TASK-3", "id: FEAT-3"), encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "core", "--renumber"])
+    assert result.exit_code == 0, result.output
+    assert flat(result.output) == _adopted(
+        adoptable, "squads", "architect,tech-lead,reviewer"
+    ).replace("imported:4", "imported:5").replace(
+        TAIL, "renumberedTASK-3->TASK-5(tasks/TASK-000005-build-the-query-parser.md)" + TAIL
+    )
+
+
 @pytest.mark.covers("adopt", "--roles")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
 async def test_roles_activates_the_roles_the_folder_does_not_hold_yet(adoptable, invoke) -> None:
     result = await invoke(["adopt", "--roles", "architect,qa"])
     assert result.exit_code == 0, result.output
@@ -81,6 +110,7 @@ async def test_roles_refuses_a_name_that_is_neither_a_bundle_nor_a_role(adoptabl
 
 
 @pytest.mark.covers("adopt", "--json")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
 async def test_json_prints_the_squad_adopted_and_what_it_held(adoptable, invoke) -> None:
     (adoptable / "squads/tasks/TASK-000009-broken.md").write_text(
         "---\n: : bad\n", encoding="utf-8"
@@ -99,6 +129,8 @@ async def test_json_prints_the_squad_adopted_and_what_it_held(adoptable, invoke)
                     "entry, if any, was carried forward as-is; fix the file and repair again"
                 ],
                 "warnings": [],
+                "renumbered": [],
+                "references": [],
             }
         ),
     )
@@ -113,6 +145,7 @@ async def test_backend_agents_md_writes_the_agents_md_region(adoptable, invoke) 
 
 
 @pytest.mark.covers("adopt", "--backend")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
 async def test_backend_none_writes_no_agent_files(adoptable, invoke) -> None:
     result = await invoke(["adopt", "--roles", "core", "--backend", "none"])
     assert result.exit_code == 0, result.output
@@ -127,6 +160,9 @@ async def test_backend_refuses_a_name_that_is_not_registered(adoptable, invoke) 
         1,
         "error: unknown backend 'bogus' (available: claude_code, agents_md)\n",
     )
+    assert not (adoptable / ".squads.toml").exists()
+    retried = await invoke(["adopt", "--roles", "core", "--backend", "claude_code"])
+    assert retried.exit_code == 0, retried.output
 
 
 @pytest.mark.covers("adopt", "--no-claude")
@@ -153,3 +189,76 @@ async def test_adopt_writes_settings_and_claude_md_by_default(adoptable, invoke)
         ".claude/settings.json",
         "CLAUDE.md",
     ]
+
+
+@pytest.mark.covers("adopt", "--renumber")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
+async def test_renumber_json_lists_the_items_that_moved(adoptable, invoke) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_text(encoding="utf-8")
+    (squad / "features/FEAT-000003-twin.md").write_text(
+        original.replace("id: TASK-3", "id: FEAT-3"), encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "core", "--renumber", "--json"])
+    assert (result.exit_code, result.output) == (
+        0,
+        json_text(
+            {
+                "squad": str(squad),
+                "imported": 5,
+                "roles": ["architect", "tech-lead", "reviewer"],
+                "notice": None,
+                "unreadable": [],
+                "warnings": [],
+                "renumbered": [
+                    {
+                        "old": "TASK-3",
+                        "new": "TASK-5",
+                        "file": "tasks/TASK-000003-build-the-query-parser.md",
+                        "target": "tasks/TASK-000005-build-the-query-parser.md",
+                    }
+                ],
+                "references": [],
+            }
+        ),
+    )
+
+
+@pytest.mark.covers("adopt", "--roles")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
+async def test_a_same_id_pair_is_refused_before_anything_is_written(adoptable, invoke) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_text(encoding="utf-8")
+    (squad / "tasks/TASK-000003-twin.md").write_text(
+        original.replace("title: Build the query parser", "title: Twin parser"), encoding="utf-8"
+    )
+    result = await invoke(["adopt", "--roles", "core"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
+        "tasks/TASK-000003-twin.md); run `sq adopt --renumber` to give one of them a new "
+        "number and adopt\n",
+    )
+    assert not (adoptable / ".squads.toml").exists()
+    assert not (squad / ".squads.json").exists()
+
+
+@pytest.mark.covers("adopt", "--renumber")
+@pytest.mark.bundled_only("adopts files written in the bundled vocabulary")
+async def test_renumber_refuses_identical_copies_before_anything_is_written(
+    adoptable, invoke
+) -> None:
+    squad = adoptable / "squads"
+    original = (squad / "tasks/TASK-000003-build-the-query-parser.md").read_bytes()
+    (squad / "tasks/TASK-000003-copy.md").write_bytes(original)
+    result = await invoke(["adopt", "--roles", "core", "--renumber"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: refusing to rebuild the index: it keys items by number:\n"
+        "  - 2 files carry the id TASK-3 (tasks/TASK-000003-build-the-query-parser.md, "
+        "tasks/TASK-000003-copy.md); merge the content you want into one file, delete the "
+        "other by hand, then run `sq adopt`\n",
+    )
+    assert not (adoptable / ".squads.toml").exists()
+    assert not (squad / ".squads.json").exists()

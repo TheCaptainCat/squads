@@ -5,8 +5,8 @@ import json
 
 import pytest
 
+from tests._readable import init_readable_with_operator, lines
 from tests.cli._output import json_text
-from tests.cli._readable import init_readable_with_operator, lines
 
 pytestmark = pytest.mark.anyio
 
@@ -34,7 +34,7 @@ async def _run(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
-@pytest.mark.covers("inbox", "ROLE")
+@pytest.mark.covers("inbox", "role")
 async def test_inbox_lists_the_open_items_that_mention_the_slug(readable, invoke) -> None:
     assert await _run(invoke, "inbox", "manager") == (
         0,
@@ -46,12 +46,12 @@ async def test_inbox_lists_the_open_items_that_mention_the_slug(readable, invoke
     )
 
 
-@pytest.mark.covers("inbox", "ROLE")
+@pytest.mark.covers("inbox", "role")
 async def test_inbox_says_when_nothing_mentions_the_slug(populated_project, invoke) -> None:
     assert await _run(invoke, "inbox", "manager") == (0, ["nothing for @manager"])
 
 
-@pytest.mark.covers("inbox", "ROLE")
+@pytest.mark.covers("inbox", "role")
 async def test_inbox_refuses_a_slug_no_roster_entry_has(readable, invoke) -> None:
     assert await _run(invoke, "inbox", "ghost") == (
         1,
@@ -85,19 +85,19 @@ async def test_inbox_json_prints_one_object_per_item_with_the_mentioning_lines(
     assert result.output == json.dumps(expected, indent=2) + "\n"
 
 
-@pytest.mark.covers("mine", "ROLE")
+@pytest.mark.covers("mine", "role")
 async def test_mine_lists_the_open_items_assigned_directly_or_through_a_sub_entity(
     readable, invoke
 ) -> None:
     assert await _run(invoke, "mine", "manager") == (0, MANAGER_ROWS)
 
 
-@pytest.mark.covers("mine", "ROLE")
+@pytest.mark.covers("mine", "role")
 async def test_mine_says_when_nothing_is_assigned(readable, invoke) -> None:
     assert await _run(invoke, "mine", "op-pierre") == (0, ["nothing assigned to op-pierre"])
 
 
-@pytest.mark.covers("mine", "ROLE")
+@pytest.mark.covers("mine", "role")
 async def test_mine_refuses_a_slug_no_roster_entry_has(readable, invoke) -> None:
     assert await _run(invoke, "mine", "ghost") == (
         1,
@@ -130,8 +130,6 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
             "parent": None,
             "author": "manager",
             "assignee": "manager",
-            "priority": "high",
-            "severity": None,
             "labels": ["core"],
             "refs": [],
             "subentities": [
@@ -140,20 +138,18 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "title": "Query the index",
                     "status": "Todo",
                     "assignee": None,
-                    "severity": None,
-                    "story": None,
+                    "maps_to": None,
                     "deferred_to": None,
-                    "extra": {},
+                    "badges": {},
                 },
                 {
                     "local_id": "US2",
                     "title": "Rank the results",
                     "status": "Todo",
                     "assignee": None,
-                    "severity": None,
-                    "story": None,
+                    "maps_to": None,
                     "deferred_to": None,
-                    "extra": {},
+                    "badges": {},
                 },
             ],
             "path": "features/FEAT-000002-search.md",
@@ -162,6 +158,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
             "created_session": None,
             "modified_session": None,
             "id": "FEAT-2",
+            "priority": "high",
             "matched_subentities": [],
             "display": {
                 "type": "Feature",
@@ -183,8 +180,6 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
             "parent": "FEAT-2",
             "author": "manager",
             "assignee": "manager",
-            "priority": "urgent",
-            "severity": None,
             "labels": ["parser"],
             "refs": [],
             "subentities": [
@@ -193,20 +188,18 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "title": "Tokenise the input",
                     "status": "Todo",
                     "assignee": None,
-                    "severity": None,
-                    "story": "US1",
+                    "maps_to": "US1",
                     "deferred_to": None,
-                    "extra": {},
+                    "badges": {},
                 },
                 {
                     "local_id": "ST2",
                     "title": "Parse the operators",
                     "status": "Done",
                     "assignee": None,
-                    "severity": None,
-                    "story": None,
+                    "maps_to": None,
                     "deferred_to": None,
-                    "extra": {},
+                    "badges": {},
                 },
             ],
             "path": "tasks/TASK-000003-parse-queries.md",
@@ -215,6 +208,7 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
             "created_session": None,
             "modified_session": None,
             "id": "TASK-3",
+            "priority": "urgent",
             "matched_subentities": [],
             "display": {
                 "type": "Task",
@@ -240,8 +234,6 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
             "parent": None,
             "author": "manager",
             "assignee": None,
-            "priority": None,
-            "severity": None,
             "labels": ["parser"],
             "refs": ["BUG-6"],
             "subentities": [
@@ -250,10 +242,10 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
                     "title": "Unbounded recursion",
                     "status": "Open",
                     "assignee": "manager",
-                    "severity": "high",
-                    "story": None,
+                    "maps_to": None,
                     "deferred_to": None,
-                    "extra": {},
+                    "severity": "high",
+                    "badges": {"severity": "high"},
                 }
             ],
             "path": "reviews/REV-000007-review-the-parser.md",

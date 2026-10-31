@@ -46,6 +46,43 @@ def init_seeded(root: Path) -> None:
     asyncio.run(service.init(root=root, roles_spec="minimal"))
 
 
+def init_full(root: Path) -> None:
+    """The squad with every bundled role and the bundled skills seeded."""
+    asyncio.run(service.init(root=root, roles_spec="all"))
+
+
+def init_overridden(
+    root: Path,
+    source: Path,
+    *,
+    roles_spec: str = "minimal",
+    squad_dir: str = "squads",
+    backend: list[str] | None = None,
+    seed_skills: bool = True,
+) -> None:
+    """A squad initialised under the override documents in the directory *source*, stamped as the
+    current release writes them; bundled skills seeded unless *seed_skills* is false, the `minimal`
+    roster unless *roles_spec* says otherwise."""
+    from squads import __version__
+
+    overrides = root / squad_dir / ".overrides"
+    overrides.mkdir(parents=True)
+    for document in sorted(source.glob("*.toml")):
+        (overrides / document.name).write_text(
+            f"# squads:override-base:{__version__}\n" + document.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    asyncio.run(
+        service.init(
+            root=root,
+            roles_spec=roles_spec,
+            squad_dir=squad_dir,
+            backend=backend,
+            _skip_skill_seed=not seed_skills,
+        )
+    )
+
+
 def restore(template: Path, dest: Path) -> Path:
     """Copy the built squad to *dest* (a fresh directory) and return it."""
     shutil.copytree(template, dest, symlinks=True, dirs_exist_ok=True)

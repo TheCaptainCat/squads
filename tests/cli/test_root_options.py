@@ -7,6 +7,9 @@ import shutil
 import pytest
 
 from squads import __version__
+from tests._profile import selected
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
@@ -58,10 +61,10 @@ async def test_c_refuses_a_path_that_does_not_exist(invoke, outside) -> None:
 @pytest.mark.covers("", "--at")
 async def test_at_stamps_what_the_command_writes_with_the_given_time(project, invoke) -> None:
     created = await invoke(
-        ["--at", "2020-01-02T03:04:05Z", "create", "task", "Stamped", "--author", "manager"]
+        ["--at", "2020-01-02T03:04:05Z", "create", P.ref, "Stamped", "--author", "manager"]
     )
     assert created.exit_code == 0, created.output
-    shown = await invoke(["task", "2", "show", "--json"])
+    shown = await invoke([P.ref, "2", "show", "--json"])
     item = json.loads(shown.output)
     assert (item["created_at"], item["updated_at"]) == ("2020-01-02T03:04:05Z",) * 2
 
@@ -94,6 +97,7 @@ async def test_dir_is_refused_naming_c_as_the_replacement(project, invoke) -> No
 
 
 @pytest.mark.covers("", "-C")
+@pytest.mark.bundled_only("the case shapes a squad from the bundled aliases and types")
 async def test_c_help_of_one_squad_does_not_change_the_next_squads_verbs(
     project, invoke, outside, tmp_path_factory, fresh_command_tree
 ) -> None:
@@ -102,17 +106,38 @@ async def test_c_help_of_one_squad_does_not_change_the_next_squads_verbs(
     overrides = overridden / "squads" / ".overrides"
     overrides.mkdir()
     (overrides / "workflow.toml").write_text(
-        '# squads:override-base:0.18.0\n[items.bug]\nsubentity_kind = "subtask"\n',
+        f'# squads:override-base:0.18.0\n[items.bug]\nsubentity_kind = "{P.third_kind}"\n',
         encoding="utf-8",
     )
 
-    await invoke(["-C", str(overridden), "task", "1", "show", "--help"])
-    result = await invoke(["-C", str(project.root), "bug", "1", "add-subtask", "x"])
+    await invoke(["-C", str(overridden), P.ref, "1", "show", "--help"])
+    result = await invoke(["-C", str(project.root), "bug", "1", f"add-{P.third_kind}", "x"])
     assert (result.exit_code, result.output) == (
         2,
-        "Usage: sq bug [OPTIONS] N COMMAND [ARGS]...\n"
+        "Usage: sq bug [OPTIONS] {n} COMMAND [ARGS]...\n"
         "Try 'sq bug --help' for help.\n"
         "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ No such command 'add-subtask'.                                               │\n"
+        f"│ No such command 'add-{P.third_kind}'.                                               │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )
+
+
+@pytest.mark.covers("<type> show")
+async def test_an_alias_of_a_dropped_type_runs_the_type_that_now_declares_it(
+    override_project, invoke
+) -> None:
+    result = await invoke(["f", "8", "show"])
+    assert result.exit_code == 0, result.output
+    assert "INI-8  (initiative)" in result.output
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("the case shapes a squad from the bundled aliases and types")
+async def test_an_alias_of_a_kept_type_cannot_be_given_to_another_type(project, invoke) -> None:
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir()
+    (overrides / "workflow.toml").write_text("[items.bug]\naliases = ['f']\n", encoding="utf-8")
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1, result.output
+    messages = [e["message"] for e in json.loads(result.output)["errors"]]
+    assert f"duplicate alias 'f': used by '{P.host}' and 'bug'" in "\n".join(messages)
