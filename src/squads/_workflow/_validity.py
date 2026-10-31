@@ -13,7 +13,7 @@ import warnings
 from collections.abc import Callable, Iterator
 from re import compile as re_compile
 
-from squads._models._attributes import ROW_ADDED_KEYS, AttributeKey
+from squads._models._attributes import ROW_ADDED_KEYS, SUBENTITY_ROW_ADDED_KEYS, AttributeKey
 from squads._workflow._models import (
     COLOR_INTENTS,
     FALLBACK_ROLE_NAME,
@@ -35,7 +35,6 @@ from squads._workflow._models import (
     ViewSpec,
     ViewTransform,
     parse_view_position,
-    reserved_alias_owner,
 )
 from squads._workflow._validator_names import (
     ACTIVE_ITEM_SQUAD_GLOBAL_NAMES,
@@ -305,6 +304,39 @@ def check_completion_status(
             )
 
 
+def _mapping_target_errors(
+    items: dict[str, ItemSpec], subentity_kinds: dict[str, SubentityKindSpec]
+) -> list[str]:
+    """A mapping kind needs a target: its host type declares ``parent_required`` and that type
+    hosts a kind. Each refusal names the type and both remedies."""
+    errors: list[str] = []
+    for t, ts in sorted(items.items()):
+        ks = subentity_kinds.get(ts.subentity_kind) if ts.subentity_kind else None
+        if ks is None or not ks.maps_to_parent:
+            continue
+        remedy = f"drop maps_to_parent on {ts.subentity_kind!r}"
+        if ts.parent_required is None:
+            errors.append(
+                f"item {t!r}: hosts subentity kind {ts.subentity_kind!r}, which declares "
+                f"maps_to_parent, but {t!r} has no parent_required, so there is no kind to map "
+                f"onto — declare parent_required on {t!r}, or {remedy}"
+            )
+            continue
+        parent = items.get(ts.parent_required)
+        if parent is not None and parent.subentity_kind is None:
+            errors.append(
+                f"item {t!r}: hosts subentity kind {ts.subentity_kind!r}, which declares "
+                f"maps_to_parent, but its parent_required type {ts.parent_required!r} hosts no "
+                f"sub-entity kind to map onto — declare subentity_kind on "
+                f"{ts.parent_required!r}, or {remedy}"
+            )
+    return errors
+
+
+#: The name of the generic sub-entity selector, which a declared kind may not take.
+GENERIC_SUBENTITY_VERB = "sub"
+
+
 def check_subentity_kinds(
     items: dict[str, ItemSpec],
     subentity_kinds: dict[str, SubentityKindSpec],
@@ -319,10 +351,16 @@ def check_subentity_kinds(
         for t, ts in sorted(items.items())
         if ts.subentity_kind and ts.subentity_kind not in subentity_kinds
     )
+    errors.extend(_mapping_target_errors(items, subentity_kinds))
 
     seen_plurals: dict[str, str] = {}
     seen_prefixes: dict[str, str] = {}
     for kind, ks in subentity_kinds.items():
+        if kind == GENERIC_SUBENTITY_VERB:
+            errors.append(
+                f"subentity kind {kind!r}: the name is the generic sub-entity verb; "
+                "rename the kind in the workflow override"
+            )
         if ks.lifecycle not in all_lifecycle_names:
             errors.append(
                 f"subentity kind {kind!r}: lifecycle {ks.lifecycle!r} not declared in lifecycles"
@@ -415,13 +453,6 @@ def check_item_refs(
                 "(its whole per-type verb surface, `sq <type> <n> <verb>`, becomes unreachable "
                 "behind the built-in)"
             )
-        name_alias_owner = reserved_alias_owner(t)
-        if name_alias_owner is not None:
-            errors.append(
-                f"item {t!r}: shadows the built-in `sq {t}` alias of the {name_alias_owner!r} "
-                f"command — rename the type (`sq {t} <n> <verb>` and `sq create {t}` both "
-                f"dispatch into {name_alias_owner!r}'s command tree, not this type's)"
-            )
         errors.extend(
             f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` command — rename "
             "or drop the alias"
@@ -429,10 +460,10 @@ def check_item_refs(
             if alias in RESERVED_CLI_VERBS
         )
         errors.extend(
-            f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` alias of the "
-            f"{owner!r} command — rename or drop the alias"
+            f"item {t!r}: alias {alias!r} is the name of the declared type {alias!r} — rename "
+            "or drop the alias"
             for alias in ts.aliases
-            if (owner := reserved_alias_owner(alias)) is not None and owner != t
+            if alias in items and alias != t
         )
         if ts.prefix in seen_prefixes:
             errors.append(
@@ -820,7 +851,7 @@ def _clause_parent_reachable(
     (only the empty ``roster`` bundle), leaving ``parents`` declared but unread. Two further
     contradictions: ``parent_present`` with ``no_parent`` in one set refuses every item whichever
     way it is created, and ``parent_required`` naming a type the ``parents`` allowlist excludes
-    makes ``subtask_story_mapping`` dead in both directions (an empty ``parents`` is the lenient
+    makes ``subentity_mapping`` dead in both directions (an empty ``parents`` is the lenient
     "any parent" and excludes nothing).
 
     ``parent_required`` is absent from the reachability audit because it has a live consumer under
@@ -916,29 +947,29 @@ def _clause_supersedes_checked(
     ]
 
 
-def _clause_story_mapping_reachable(
+def _clause_subentity_mapping_reachable(
     t: str,
     ts: ItemSpec,
     effective: frozenset[str],
     kinds: dict[str, SubentityKindSpec],
     _ref_kinds: dict[str, RefKindSpec],
 ) -> list[str]:
-    """Guards ``subtask_story_mapping``, whose gate is the hosted kind's ``maps_parent_story``
+    """Guards ``subentity_mapping``, whose gate is the hosted kind's ``maps_to_parent``
     capability rather than anything on the item type itself — which is why it is not one of
     :data:`SUBENTITY_VALIDATOR_NAMES` and needs its own clause. Reachable independently of
     :func:`_clause_subentity_checked`: an adopter who satisfies that one by naming a sub-entity
     check back would otherwise still lose the mapping check with no report.
     """
     ks = kinds.get(ts.subentity_kind) if ts.subentity_kind is not None else None
-    if ks is None or not ks.maps_parent_story or "subtask_story_mapping" in effective:
+    if ks is None or not ks.maps_to_parent or "subentity_mapping" in effective:
         return []
     return [
         f"item {t!r}: hosts subentity_kind {ts.subentity_kind!r}, which declares "
-        f"maps_parent_story, but category {ts.category!r} turns on no validator for it "
-        f"('subtask_story_mapping'), so a {ts.subentity_kind} mapping to a story its parent "
-        f"does not have would go unreported. Drop maps_parent_story on "
+        f"maps_to_parent, but category {ts.category!r} turns on no validator for it "
+        f"('subentity_mapping'), so a mapping of {ts.subentity_kind!r} to a sub-entity its "
+        f"parent does not have would go unreported. Drop maps_to_parent on "
         f"{ts.subentity_kind!r}, leave {t!r} in a category that checks the mapping, or name "
-        f"'subtask_story_mapping' in its own 'validators' list"
+        f"'subentity_mapping' in its own 'validators' list"
     ]
 
 
@@ -959,7 +990,7 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
     (frozenset({"parent_in"}), _clause_parent_reachable),
     (_BUNDLED_SUBENTITY_VALIDATOR_NAMES, _clause_subentity_checked),
     (frozenset({"supersedes_incoming"}), _clause_supersedes_checked),
-    (frozenset({"subtask_story_mapping"}), _clause_story_mapping_reachable),
+    (frozenset({"subentity_mapping"}), _clause_subentity_mapping_reachable),
 )
 
 
@@ -1002,6 +1033,7 @@ UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "settled_requires_discussion",
         "external_id_not_in_title",
         "frontmatter_key_undeclared",
+        "subentity_kind_mismatch",
         "pronouns_valid",
     }
 )
@@ -1037,38 +1069,29 @@ def check_category_consistency(
             errors.extend(clause(t, ts, effective, kinds, ref_kinds))
 
 
-#: Field codes exempt from the reserved-key check below because this schema models them by field
-#: code on purpose: ``priority``/``severity`` keep their literal key (``Item.priority``,
-#: ``Item.severity`` and ``SubEntity.severity`` are the badge-code storage itself), so frontmatter
-#: round-trips unchanged.
-_FIELD_ELIGIBLE_ITEM_KEYS: frozenset[str] = frozenset({"priority", "severity"})
-
-
-_FIELD_ELIGIBLE_SUBENTITY_KEYS: frozenset[str] = frozenset({"severity"})
-
-
-def _reserved_item_keys() -> frozenset[str]:
+def reserved_item_keys() -> frozenset[str]:
     """Names a field code or an attribute may not take: the model's own fields (derived from
-    ``Item``, never hand-copied), the names a ``--json`` row adds, and ``extra``. ``path`` and
-    ``prefix`` are model fields that are not frontmatter, and are refused for the same reason: a
-    key of that name is never read back as the user's value."""
+    ``Item``, never hand-copied) and the names a ``--json`` row adds. ``path`` and ``prefix`` are
+    model fields that are not frontmatter, and are refused for the same reason: a key of that name
+    is never read back as the user's value."""
     from squads._models._item import Item
 
     keys = set(Item.model_fields) | set(Item.model_computed_fields)
-    return frozenset(keys | set(ROW_ADDED_KEYS) | {"extra"})
+    return frozenset(keys | set(ROW_ADDED_KEYS))
 
 
-def _reserved_kind(name: str) -> str:
-    """What reserves *name*: a key every ``--json`` item row adds, or a frontmatter key."""
-    return "key every --json item row adds" if name in ROW_ADDED_KEYS else "frontmatter key"
+def _reserved_kind(name: str, row_added: tuple[str, ...], row: str) -> str:
+    """What reserves *name*: a key every ``--json`` *row* adds, or a frontmatter key."""
+    return f"key every --json {row} adds" if name in row_added else "frontmatter key"
 
 
-def _reserved_subentity_keys() -> frozenset[str]:
-    """Sub-entity frontmatter keys a field code may not shadow (mirrors ``_reserved_item_keys``)."""
+def reserved_subentity_keys() -> frozenset[str]:
+    """Sub-entity keys a field code may not shadow: the entry's own fields (derived from
+    ``SubEntity``) and the names a ``--json`` sub-entity object adds."""
     from squads._models._subentity import SubEntity
 
     keys = set(SubEntity.model_fields) | set(SubEntity.model_computed_fields)
-    return frozenset(keys - _FIELD_ELIGIBLE_SUBENTITY_KEYS)
+    return frozenset(keys | set(SUBENTITY_ROW_ADDED_KEYS))
 
 
 def _iter_field_owners(
@@ -1090,11 +1113,16 @@ def check_field_codes(
     errors: list[str],
 ) -> None:
     """Field-code uniqueness per owner + reserved-frontmatter-key collision."""
-    reserved_item = _reserved_item_keys()
-    reserved_subentity = _reserved_subentity_keys()
+    reserved_item = reserved_item_keys()
+    reserved_subentity = reserved_subentity_keys()
     for owner, is_item, fields in _iter_field_owners(items, subentity_kinds):
         seen: set[str] = set()
-        reserved = (reserved_item - _FIELD_ELIGIBLE_ITEM_KEYS) if is_item else reserved_subentity
+        reserved = reserved_item if is_item else reserved_subentity
+        added, row = (
+            (ROW_ADDED_KEYS, "item row")
+            if is_item
+            else (SUBENTITY_ROW_ADDED_KEYS, "sub-entity object")
+        )
         for f in fields:
             if f.code in seen:
                 errors.append(f"{owner!r}: duplicate field code {f.code!r}")
@@ -1102,7 +1130,8 @@ def check_field_codes(
             if f.code in reserved:
                 errors.append(
                     f"{owner!r}: field code {f.code!r} shadows a reserved "
-                    f"{_reserved_kind(f.code)} — rename the field in the workflow override"
+                    f"{_reserved_kind(f.code, added, row)} — rename the field in the "
+                    "workflow override"
                 )
 
 
@@ -1134,13 +1163,14 @@ PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
 def check_attributes(items: dict[str, ItemSpec], errors: list[str]) -> None:
     """Attribute names are free of reserved keys and badge codes, and each roster type declares
     its pinned attributes with the pinned kind."""
-    reserved = _reserved_item_keys()
+    reserved = reserved_item_keys()
     for owner, ts in items.items():
         codes = {f.code for f in ts.fields}
         for name in ts.attributes:
             if name in reserved:
                 errors.append(
-                    f"{owner!r}: attribute {name!r} is a reserved {_reserved_kind(name)} — "
+                    f"{owner!r}: attribute {name!r} is a reserved "
+                    f"{_reserved_kind(name, ROW_ADDED_KEYS, 'item row')} — "
                     "rename the attribute in the workflow override and in the items that "
                     "store it"
                 )
@@ -1315,7 +1345,7 @@ def subentity_source_reason(
         return None
     hosted_desc = repr(hosted) if hosted else "none"
     return (
-        f"view {view_name!r} sources {kind!r} sub-entities, but a {item_type!r} item hosts "
+        f"view {view_name!r} sources {kind!r} sub-entities, but {item_type!r} items host "
         f"{hosted_desc}"
     )
 

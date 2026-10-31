@@ -2,9 +2,14 @@
 example block is built from.
 """
 
-from typing import TypedDict
+from collections.abc import Iterable, Mapping
+from typing import Any, TypedDict
 
 from squads import _badges as badges
+from squads._interactions._models import PlaybookSpec
+from squads._interactions._playbook import authoring_owners
+from squads._interactions._role_guidance import role_like
+from squads._roles._models import REVIEW_CAPABILITY
 from squads._workflow._models import Field, WorkflowSpec
 
 
@@ -33,6 +38,46 @@ def cheatsheet_anchor_type(spec: WorkflowSpec) -> str | None:
 
     best = max(score(t) for t in types)
     return next(t for t in types if score(t) == best)
+
+
+def cheatsheet_alias_example(spec: WorkflowSpec) -> str:
+    """A runnable ``sq <alias> 26 <kind> 4 show`` line built from the first non-roster type that
+    declares an alias, with the sub-entity kind it hosts when it hosts one. Without an aliased
+    type it names the anchor type, or ``<type>``, so the line never names a vocabulary the
+    squad lacks.
+    """
+    for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
+        aliases = spec.items[item_type].aliases
+        if aliases:
+            kind = spec.item_subentity_kind(item_type)
+            return f"sq {aliases[-1]} 26 {kind} 4 show" if kind else f"sq {aliases[-1]} 26 show"
+    return f"sq {cheatsheet_anchor_type(spec) or '<type>'} 26 show"
+
+
+class ReviewGate(TypedDict):
+    """Return shape of :func:`cheatsheet_review_gate`."""
+
+    type: str | None
+    kind: str | None
+
+
+def cheatsheet_review_gate(
+    spec: WorkflowSpec,
+    roster: Iterable[Mapping[str, Any]] | None,
+    playbook: PlaybookSpec,
+) -> ReviewGate:
+    """The type a live role holding the ``review`` capability authors, and the sub-entity kind that
+    type hosts, so generated guidance can name what gates a piece of work. Both are ``None`` when
+    the spec, playbook and roster declare no such type or kind.
+    """
+    live = [role_like(r) for r in roster or ()]
+    titles = {r.slug: r.title for r in live}
+    reviewers = {r.slug for r in live if REVIEW_CAPABILITY in r.capabilities}
+    for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
+        owners = authoring_owners(item_type, live, playbook, titles)
+        if any(slug in reviewers for slug, _title in owners):
+            return {"type": item_type, "kind": spec.item_subentity_kind(item_type)}
+    return {"type": None, "kind": None}
 
 
 class CheatsheetAnchorContext(TypedDict):

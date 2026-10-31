@@ -8,18 +8,6 @@ if TYPE_CHECKING:
     from squads._workflow._models import Lifecycle
 
 
-# Canonical priority for well-known side states: those in the side-state list sort by this (lower is
-# earlier, Blocked before Cancelled) regardless of BFS discovery; absent states keep BFS order via
-# the fallback rank ``len(_SIDE_PRIORITY)``.
-_SIDE_PRIORITY: dict[str, int] = {
-    "WontFix": 0,
-    "Blocked": 1,
-    "Cancelled": 2,
-    "Rejected": 3,
-    "Deprecated": 4,
-}
-
-
 def lifecycle_spine(machine: Lifecycle) -> list[str]:
     """The "happy-path" chain through *machine*: a greedy forward walk from ``initial`` following
     the first unvisited outgoing transition until nothing new is reachable, e.g. ``["Draft",
@@ -51,9 +39,8 @@ def lifecycle_spine(machine: Lifecycle) -> list[str]:
 def linearize_lifecycle(machine: Lifecycle) -> str:
     """Derive a readable lifecycle string from a transition graph, deterministically: the spine
     (:func:`lifecycle_spine`) as ``A → B → C``, then the side states (reachable from
-    ``machine.initial`` but off the spine) sorted by :data:`_SIDE_PRIORITY` so TOML transition order
-    does not matter, unknown ones keeping BFS order after, as ``A → B → C (+ D, E)``, or without the
-    suffix when there are none. E.g. ``"Draft → Published → Deprecated"``.
+    ``machine.initial`` but off the spine) in discovery order, as ``A → B → C (+ D, E)``, or
+    without the suffix when there are none. E.g. ``"Draft → Published → Deprecated"``.
     """
     initial = machine.initial
     transitions = machine.transitions
@@ -71,15 +58,9 @@ def linearize_lifecycle(machine: Lifecycle) -> str:
                 bfs_order.append(nxt)
                 queue.append(nxt)
 
-    # Side states = reachable but not on the spine, sorted into canonical order.
-    # Known states sort by their explicit priority; unknown states sort after them
-    # in BFS-discovery order (secondary key = bfs position).
+    # Side states = reachable but not on the spine, in discovery order.
     spine_set: set[str] = set(spine)
-    _unknown_rank = len(_SIDE_PRIORITY)
-    side: list[str] = sorted(
-        (s for s in bfs_order if s not in spine_set),
-        key=lambda s: (_SIDE_PRIORITY.get(s, _unknown_rank), bfs_order.index(s)),
-    )
+    side: list[str] = [s for s in bfs_order if s not in spine_set]
 
     chain = " → ".join(spine)
     if side:

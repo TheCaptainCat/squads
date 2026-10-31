@@ -10,8 +10,7 @@ import re
 from collections.abc import Callable
 from typing import Any, cast
 
-import yaml
-
+from squads._context import get_context
 from squads._errors import SquadsError
 from squads._models import _markers as markers
 
@@ -31,17 +30,26 @@ def split_frontmatter(text: str, *, source: str | None = None) -> tuple[dict[str
 
     Raises :class:`SquadsError` when the block between intact ``---`` delimiters is not valid YAML
     (a hand-edit, an unresolved merge conflict). *source* names the file in the message; a caller
-    holding only text leaves it unset and the message is the parse failure alone.
+    holding only text leaves it unset and the message is the parse failure alone. A named
+    *source* lets a daemon's parse cache supply the mapping, as a fresh copy.
     """
     m = _FRONTMATTER_RE.match(text)
     if not m:
         return {}, text
-    try:
-        loaded = yaml.safe_load(m.group(1))
-    except yaml.YAMLError as exc:
-        where = f" in {source}" if source else ""
-        raise SquadsError(f"malformed frontmatter{where}: {exc}") from exc
-    data: dict[str, Any] = cast("dict[str, Any]", loaded) if isinstance(loaded, dict) else {}
+    block = m.group(1)
+
+    def parse() -> dict[str, Any]:
+        import yaml
+
+        try:
+            loaded = yaml.safe_load(block)
+        except yaml.YAMLError as exc:
+            where = f" in {source}" if source else ""
+            raise SquadsError(f"malformed frontmatter{where}: {exc}") from exc
+        return cast("dict[str, Any]", loaded) if isinstance(loaded, dict) else {}
+
+    cache = get_context().parse_cache if source else None
+    data = parse() if cache is None or not source else cache.frontmatter(source, block, parse)
     return data, text[m.end() :]
 
 
@@ -60,6 +68,8 @@ def strip_frontmatter(text: str) -> str:
 def join_frontmatter(data: dict[str, Any], body: str, *, eol: str = "\n") -> str:
     """The frontmatter block of *data* followed by *body*, with *eol* as the line terminator of
     the block (and of the separator added when *body* does not open with one)."""
+    import yaml
+
     front = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
     if eol != "\n":
         front = front.replace("\n", eol)
@@ -144,6 +154,22 @@ def iter_marker_spans(text: str) -> list[tuple[str, int, int]]:
     substitution is never scanned a second time.
     """
     return [(m.group(1), m.start(), m.end()) for m in MARKER_RE.finditer(text)]
+
+
+def retag_markers(text: str, retag: Callable[[str], str | None]) -> str:
+    """*text* with the tag of each marker *retag* answers for replaced, and every other byte
+    kept: the marker line's own spacing and the content between markers are untouched. *retag*
+    receives a tag as :func:`iter_marker_spans` reports it and answers its replacement, or ``None``
+    to keep it."""
+    parts: list[str] = []
+    last = 0
+    for tag, start, end in iter_marker_spans(text):
+        renamed = retag(tag)
+        if renamed is None or renamed == tag:
+            continue
+        parts += [text[last:start], text[start:end].replace(tag, renamed, 1)]
+        last = end
+    return "".join(parts) + text[last:]
 
 
 def get_section(text: str, tag: str) -> str | None:

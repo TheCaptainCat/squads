@@ -5,6 +5,8 @@ from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from squads._endpoint import CONFIG_FILENAME as CONFIG_FILENAME  # the name others import from here
+from squads._endpoint import DaemonSettings, parse_daemon
 from squads._models._schema import SCHEMA_VERSION
 from squads._util import NonEmpty
 
@@ -79,22 +81,33 @@ class SquadsConfig(BaseModel):
     display: DisplaySettings = Field(default_factory=DisplaySettings)
     #: What was unusable in the ``[display]`` table that was read; never written back.
     display_problems: list[str] = Field(default_factory=list[str], exclude=True)
+    #: The daemon's switches; written under ``[daemon]``.
+    daemon: DaemonSettings = Field(default_factory=DaemonSettings)
+    #: What was unusable in the ``[daemon]`` table that was read; never written back.
+    daemon_problems: list[str] = Field(default_factory=list[str], exclude=True)
 
-    model_config = {"extra": "ignore"}
+    model_config = ConfigDict(extra="ignore", arbitrary_types_allowed=True)
 
     @model_validator(mode="before")
     @classmethod
-    def _tolerate_display(cls, data: Any) -> Any:
-        """Read ``display`` without ever failing: the unusable parts fall back to defaults and
-        are recorded in ``display_problems``."""
+    def _tolerate_tables(cls, data: Any) -> Any:
+        """Read ``display`` and ``daemon`` without ever failing: the unusable parts fall back to
+        defaults and are recorded in ``display_problems`` and ``daemon_problems``."""
         if not isinstance(data, dict):
             return data
-        # The problems are derived from `display`, never read from the file.
-        table = {k: v for k, v in cast("dict[str, Any]", data).items() if k != "display_problems"}
-        if "display" not in table or isinstance(table["display"], DisplaySettings):
-            return table
-        settings, problems = parse_display(table["display"])
-        return {**table, "display": settings, "display_problems": problems}
+        # The problems are derived from the tables, never read from the file.
+        table = {
+            k: v
+            for k, v in cast("dict[str, Any]", data).items()
+            if k not in ("display_problems", "daemon_problems")
+        }
+        if "display" in table and not isinstance(table["display"], DisplaySettings):
+            settings, problems = parse_display(table["display"])
+            table = {**table, "display": settings, "display_problems": problems}
+        if "daemon" in table and not isinstance(table["daemon"], DaemonSettings):
+            daemon, found = parse_daemon(table["daemon"])
+            table = {**table, "daemon": daemon, "daemon_problems": [p.text for p in found]}
+        return table
 
     @field_validator("active_backends", mode="after")
     @classmethod
@@ -116,6 +129,10 @@ class SquadsConfig(BaseModel):
         if self.display != DisplaySettings():
             lines.append("[display]")
             lines.extend(f"{k} = {str(v).lower()}" for k, v in self.display.model_dump().items())
+            lines.append("")
+        if self.daemon != DaemonSettings():
+            lines.append("[daemon]")
+            lines.extend(f"{k} = {str(v).lower()}" for k, v in self.daemon.as_dict().items())
             lines.append("")
         if self.init_names:
             lines.append("[init.names]")
@@ -150,6 +167,5 @@ class SquadsConfig(BaseModel):
         return cls.model_validate(flat)
 
 
-CONFIG_FILENAME = ".squads.toml"
 INDEX_FILENAME = ".squads.json"
 LOCK_FILENAME = ".squads.json.lock"

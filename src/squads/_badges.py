@@ -49,6 +49,22 @@ def first_ordered_field(spec: WorkflowSpec) -> Field | None:
     return None
 
 
+def filterable_fields(spec: WorkflowSpec, *, ordered: bool = False) -> list[Field]:
+    """The badge fields some non-roster type declares, once per code, in type declaration order.
+
+    The fields a cross-type filter or sort can name; with *ordered*, only those bound to an
+    ordered collection.
+    """
+    found: dict[str, Field] = {}
+    for item_type in sorted(spec.non_roster_types(), key=lambda t: (spec.items[t].order, t)):
+        for f in spec.fields_for(item_type):
+            coll = spec.collections.get(f.collection)
+            if coll is None or (ordered and not coll.ordered):
+                continue
+            found.setdefault(f.code, f)
+    return list(found.values())
+
+
 def status_badge(status_value: str, spec: WorkflowSpec) -> str:
     """``"InProgress"`` → ``"🟡 In Progress"`` (emoji + spaced label) for the header.
 
@@ -61,16 +77,13 @@ def status_badge(status_value: str, spec: WorkflowSpec) -> str:
     return f"{emoji} {label}".strip()
 
 
-def primary_field_code(kind: str, spec: WorkflowSpec, *, default: str = "severity") -> str:
+def primary_field_code(kind: str, spec: WorkflowSpec) -> str:
     """The first field a sub-entity *kind* (or item type) declares, shown beside its container.
 
-    Templates must not hardcode the code (``'severity'``): a spec that replaces the kind's field
-    (``finding`` to ``impact``) still has a first field. Falls back to *default* only when the
-    kind declares none, as :func:`field_label`/:func:`field_default` do, so the template still
-    renders.
+    Empty when the kind declares none, so a template shows no field line.
     """
     fields = spec.fields_for(kind)
-    return fields[0].code if fields else default
+    return fields[0].code if fields else ""
 
 
 def declared_collection(type_or_kind: str, field_code: str, spec: WorkflowSpec) -> str | None:

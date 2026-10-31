@@ -8,6 +8,7 @@ documents and the override text (:class:`~squads._specload.OverrideFiles`) they 
 from dataclasses import dataclass
 from pathlib import Path
 
+from squads._api._vocabulary import VocabularyHash, vocabulary_hash
 from squads._errors import PlaybookConfigError, SquadsError
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
 from squads._interactions._models import PlaybookSpec
@@ -18,7 +19,7 @@ from squads._roles._models import CatalogSource, RoleCatalogSpec
 from squads._specload import Lazy, OverrideFiles, override_present
 from squads._workflow import _loader as workflow_loader
 from squads._workflow import bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, bundled_workflow_bytes
 from squads._workflow._models import WorkflowSpec
 
 
@@ -35,10 +36,12 @@ class SpecDocuments:
 @dataclass(frozen=True)
 class SpecSources:
     """The documents of one squad that more than one attempt to build a service may need, each
-    read on first use and then kept: the squad's workflow spec and its role catalog."""
+    read on first use and then kept: the squad's workflow spec, its role catalog and the hash of
+    the vocabulary the workflow spec was read from."""
 
     workflow: Lazy[WorkflowSpec]
     catalog: Lazy[RoleCatalogSpec]
+    vocabulary: Lazy[VocabularyHash]
     files: OverrideFiles
 
 
@@ -48,8 +51,17 @@ def spec_sources(squad_dir: Path) -> SpecSources:
     return SpecSources(
         workflow=Lazy(lambda: resolve_workflow(squad_dir, files)),
         catalog=Lazy(lambda: resolve_catalog(squad_dir, files)),
+        vocabulary=Lazy(lambda: resolve_vocabulary(squad_dir, files)),
         files=files,
     )
+
+
+def resolve_vocabulary(squad_dir: Path, files: OverrideFiles) -> VocabularyHash:
+    """The hash of the vocabulary of *squad_dir*, over the bytes the workflow spec is parsed from:
+    the packaged file and, through *files*, the override text."""
+    path = squad_dir / WORKFLOW_OVERRIDE_FILENAME
+    override = files.text(path) if override_present(path) else None
+    return vocabulary_hash(bundled_workflow_bytes(), override)
 
 
 def resolve_workflow(squad_dir: Path, files: OverrideFiles | None = None) -> WorkflowSpec:

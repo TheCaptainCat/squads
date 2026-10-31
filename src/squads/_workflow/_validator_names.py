@@ -27,10 +27,11 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "dangling_ref",
         "ref_kind_valid",
         "agent_registered",
-        "subtask_story_mapping",
+        "subentity_mapping",
         "subentity_status_valid",
         "subentity_container_marker",
         "subentity_body_written",
+        "subentity_title_present",
         "subentity_title_max",
         "subentity_deferral_resolved",
         "subentities_settled_with_parent",
@@ -48,6 +49,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "external_id_not_in_title",
         "attribute_valid",
         "frontmatter_key_undeclared",
+        "subentity_kind_mismatch",
         "pronouns_valid",
     }
 )
@@ -67,6 +69,7 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "role_definition_shadowed",
         "playbook_guide_role_live",
         "display_config_valid",
+        "daemon_config_valid",
         "working_language_valid",
         "view_transform_resolves",
         "type_has_live_author",
@@ -92,6 +95,7 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
         "role_definition_shadowed",
         "playbook_guide_role_live",
         "display_config_valid",
+        "daemon_config_valid",
         "working_language_valid",
         "view_transform_resolves",
     }
@@ -124,6 +128,7 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "role_definition_shadowed": "warn",
     "playbook_guide_role_live": "warn",
     "display_config_valid": "warn",
+    "daemon_config_valid": "warn",
     "working_language_valid": "warn",
     "view_transform_resolves": "error",
     "type_has_live_author": "warn",
@@ -284,10 +289,11 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "dangling_ref": "warn",
     "ref_kind_valid": "warn",
     "agent_registered": "warn",
-    "subtask_story_mapping": "error",
+    "subentity_mapping": "error",
     "subentity_status_valid": "error",
     "subentity_container_marker": "error",
     "subentity_body_written": "warn",
+    "subentity_title_present": "warn",
     "subentity_title_max": "warn",
     "subentity_deferral_resolved": "warn",
     "subentities_settled_with_parent": "warn",
@@ -305,6 +311,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "external_id_not_in_title": "warn",
     "attribute_valid": "error",
     "frontmatter_key_undeclared": "warn",
+    "subentity_kind_mismatch": "warn",
     "pronouns_valid": "error",
 }
 
@@ -325,7 +332,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
 #: The rest are not load-bearing. ``parent_in``/``no_parent``: nothing downstream relies on
 #: parent-type eligibility, only on the chain terminating. ``item_status_valid``: rendering reads
 #: the global status catalog, not the per-type graph, and ``--force`` on a status update is a
-#: designed recovery. ``subtask_story_mapping``: it affects grouping display only and stays
+#: designed recovery. ``subentity_mapping``: it affects grouping display only and stays
 #: visible where rendered. ``subentity_status_valid``: the same as ``item_status_valid``, since
 #: the sub-entity vocabulary gate runs first and unconditionally, so a non-member stays
 #: recoverable.
@@ -363,8 +370,10 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
         "subentity_status_valid",
         "subentity_container_marker",
         "subentity_body_written",
+        "subentity_title_present",
         "subentity_deferral_resolved",
-        "subtask_story_mapping",
+        "subentity_mapping",
+        "subentity_kind_mismatch",
     ),
     "records": ("no_parent", "supersedes_incoming"),
 }
@@ -373,14 +382,15 @@ CATEGORY_BUNDLES: dict[str, tuple[str, ...]] = {
 #: The validators whose subject is a type's declared ``subentity_kind``: a type that declares a kind
 #: but whose effective set holds none has sub-entities nothing can check
 #: (:func:`check_category_consistency`). ``subentity_title_max`` is a member although no bundle
-#: supplies it, so a type may satisfy the clause by naming it alone. ``subtask_story_mapping`` is
-#: absent, as it belongs to one kind's ``maps_parent_story`` capability and has its own clause
+#: supplies it, so a type may satisfy the clause by naming it alone. ``subentity_mapping`` is
+#: absent, as it belongs to one kind's ``maps_to_parent`` capability and has its own clause
 #: (:func:`_clause_story_mapping_reachable`).
 SUBENTITY_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "subentity_status_valid",
         "subentity_container_marker",
         "subentity_body_written",
+        "subentity_title_present",
         "subentity_title_max",
         "subentity_deferral_resolved",
     }

@@ -56,7 +56,6 @@ from squads._models._participants import (
     is_valid_slug,
     reserved_role_slug_problem,
 )
-from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
 from squads._roles._models import CAPABILITY_NAME_PATTERN, malformed_capability_names
 from squads._specload import (
     OverrideFiles,
@@ -479,6 +478,8 @@ def playbook_stamp_finding(
                 "`sq override update playbook` to re-stamp",
             )
         return None
+    from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
+
     if stamp != __version__ and artifact_changed_since(PLAYBOOK_KEY, stamp):
         return (
             "warn",

@@ -59,7 +59,6 @@ about which side is ahead.
 
 import asyncio
 import contextlib
-import sys
 import threading
 from collections.abc import AsyncGenerator, Generator
 from contextvars import ContextVar, Token
@@ -73,7 +72,14 @@ from filelock import FileLock, Timeout
 from pydantic import ValidationError
 
 from squads import _aio
-from squads._errors import IndexLockTimeoutError, SquadsError, UndecodableFileError
+from squads._context import etag_of, get_context, if_match_allows, record_notice
+from squads._errors import (
+    ChangedSinceReadError,
+    IndexLockTimeoutError,
+    IndexLockUnavailableError,
+    SquadsError,
+    UndecodableFileError,
+)
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
@@ -304,8 +310,17 @@ class IndexStore:
         self.lock_path = lock_path
         self._spec = spec
         # Layer 3 — cross-process file lock. thread_local=False is safe because Layer 2
-        # guarantees single-threaded entry, so its shared-state race is unreachable.
-        self._lock = FileLock(str(lock_path), timeout=lock_timeout, thread_local=False)
+        # guarantees single-threaded entry, so its shared-state race is unreachable. The lock must
+        # be the OS lock, which dies with its holder: fallback_to_soft=False fails loudly where it
+        # is unavailable rather than degrading to a marker file that outlives a killed process,
+        # and preserve_lock_file=True keeps the file on disk after release on every platform.
+        self._lock = FileLock(
+            str(lock_path),
+            timeout=lock_timeout,
+            thread_local=False,
+            fallback_to_soft=False,
+            preserve_lock_file=True,
+        )
         self._lock_timeout = lock_timeout
         # Layer 2 — proc-mutex: one OS thread in the file-lock section at a time.
         self._proc_mutex: threading.Lock = threading.Lock()
@@ -327,23 +342,28 @@ class IndexStore:
         """Take Layer 3: wait up to :data:`_LOCK_NOTICE_AFTER` quietly, say so on stderr, then
         wait out the rest of the timeout.
 
-        Raises :class:`IndexLockTimeoutError` when the lock is still held at the end.
+        Raises :class:`IndexLockTimeoutError` when the lock is still held at the end, and
+        :class:`IndexLockUnavailableError` when the file system cannot take it.
         """
         first = min(_LOCK_NOTICE_AFTER, self._lock_timeout)
         try:
             await _aio.to_thread(partial(self._lock.acquire, timeout=first))
         except Timeout:
             await self._acquire_after_notice(first)
+        except OSError as exc:
+            raise IndexLockUnavailableError(self.lock_path, exc) from exc
 
     async def _acquire_after_notice(self, waited: float) -> None:
-        """Say on stderr that the lock is being waited for, then wait out the timeout's rest."""
-        print(f"waiting for the index lock {self.lock_path}…", file=sys.stderr)
+        """Record that the lock is being waited for, then wait out the timeout's rest."""
+        record_notice(f"waiting for the index lock {self.lock_path}…")
         try:
             await _aio.to_thread(
                 partial(self._lock.acquire, timeout=max(self._lock_timeout - waited, 0.0))
             )
         except Timeout:
             raise IndexLockTimeoutError(self.lock_path) from None
+        except OSError as exc:
+            raise IndexLockUnavailableError(self.lock_path, exc) from exc
 
     # ------------------------------------------------------------------ create / read
     def create_empty(self) -> SquadsDB:
@@ -366,7 +386,7 @@ class IndexStore:
     def exists(self) -> bool:
         return self.index_path.is_file()
 
-    async def _read_from_disk(self, *, validate_vocab: bool) -> SquadsDB:
+    async def _read_from_disk(self, *, validate_vocab: bool, cached: bool = False) -> SquadsDB:
         """Read and validate the index straight from disk: the one implementation behind
         :meth:`load` (the scope-aware wrapper) and :meth:`transaction` (which must never consult or
         fill the read scope). A
@@ -374,11 +394,18 @@ class IndexStore:
         a number (invariant 2 keeps allocation inside ``transaction()``). ``validate_vocab=False``
         skips only the semantic checks and is passed solely by ``sq repair``'s pre-rebuild read, to
         recover the prior counter and corpus after vocab drift; a structurally unreadable index
-        raises either way.
+        raises either way. *cached* lets a daemon's parse cache skip the parse of text it has
+        already parsed; the file is read either way.
         """
         try:
             raw = await _aio.read_text(self.index_path)
-            db = SquadsDB.model_validate_json(raw)
+            cache = get_context().parse_cache if cached else None
+            if cache is None:
+                db = SquadsDB.model_validate_json(raw)
+            else:
+                db = cache.index(
+                    str(self.index_path), raw, lambda: SquadsDB.model_validate_json(raw)
+                )
         except FileNotFoundError as exc:
             # No index on disk is a different story from a corrupt one (fresh clone of a gitignored
             # index, wrong directory, half-finished adopt) but the same cause and remedy, so the
@@ -414,14 +441,14 @@ class IndexStore:
         fail-closed check, and ``fresh`` callers (``_confirm_cross_source``) need a real re-read.
         """
         if not validate_vocab or fresh:
-            return await self._read_from_disk(validate_vocab=validate_vocab)
+            return await self._read_from_disk(validate_vocab=validate_vocab, cached=True)
         scope = _read_scope.get()
         if scope is None:
-            return await self._read_from_disk(validate_vocab=True)
+            return await self._read_from_disk(validate_vocab=True, cached=True)
         cached = scope.snapshots.get(self)
         if cached is not None:
             return cached
-        db = await self._read_from_disk(validate_vocab=True)
+        db = await self._read_from_disk(validate_vocab=True, cached=True)
         scope.snapshots[self] = db
         return db
 
@@ -456,6 +483,7 @@ class IndexStore:
                     # publishes, so there is no separate pre-lock load to discard. Always
                     # the disk, never the read scope — see the docstring above.
                     ctx = _TransactionCtx(db=await self._read_from_disk(validate_vocab=True))
+                    await self._compare_if_match(ctx.db)
                     token = _active_transaction.set(_ActiveTransaction(store=self, ctx=ctx))
                     yield ctx.db
                     await self._atomic_write(ctx.db)
@@ -478,10 +506,8 @@ class IndexStore:
                                     parent_session_id=entry.parent_session_id,
                                 )
                         except Exception as exc:  # never fail a committed mutation
-                            print(
-                                f"[squads reflog] warning: reflog append failed: {exc}",
-                                file=sys.stderr,
-                            )
+                            record_notice(f"reflog append failed: {exc}")
+                    await self._record_etag(ctx.db)
                 finally:
                     # Unconditional, commit or raise: drop any snapshot this store filed so a later
                     # read in the invocation cannot see pre-mutation state. On the raise path it
@@ -496,6 +522,31 @@ class IndexStore:
                     await _aio.to_thread(self._lock.release)  # Layer 3 released first
             finally:
                 await _aio.to_thread(self._proc_mutex.release)  # Layer 2; Layer 1 by async-with
+
+    @staticmethod
+    async def _compare_if_match(db: SquadsDB) -> None:
+        """Refuse, before anything is written, a write whose ``If-Match`` the addressed item's
+        file no longer matches. It runs once per request, under the lock and after the re-read."""
+        pre = get_context().preconditions
+        if pre is None or pre.if_match is None or pre.reader is None or pre.compared:
+            return
+        pre.compared = True
+        item_id, text = await pre.reader(db)
+        if not if_match_allows(pre.if_match, None if text is None else etag_of(text)):
+            raise ChangedSinceReadError(item_id)
+
+    @staticmethod
+    async def _record_etag(db: SquadsDB) -> None:
+        """Record the addressed item's ETag from the bytes its file holds as the transaction
+        ends, still under the lock; ``None`` when the item is gone."""
+        pre = get_context().preconditions
+        if pre is None or pre.reader is None:
+            return
+        try:
+            _, text = await pre.reader(db)
+        except Exception:  # never fail a committed mutation
+            return
+        pre.etag = None if text is None else etag_of(text)
 
     def log(self, op: str, target: str, delta: dict[str, Any]) -> None:
         """Buffer a reflog entry on the active transaction context so it is emitted after the

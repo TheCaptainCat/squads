@@ -1,19 +1,18 @@
 """Build collaboration content: comments, and the presentation of sub-entity blocks.
 
-A sub-entity's machine state (status, assignee, severity, mapped story) lives in the parent
+A sub-entity's machine state (status, assignee, field values, mapping) lives in the parent
 item's frontmatter, see :class:`squads._models._subentity.SubEntity`. This module owns its
 prose and presentation, scaffolded as marker-scoped regions in the parent's body:
   - a heading line (``### US<n> — title``), rendered from the stored title,
-  - an sq-owned ``…:head`` region, a human-readable badge mirror of the state,
   - a ``…:body`` region the agent writes freely, and
   - a ``…:discussion`` region ``sq`` appends comments to.
-The parent's sq-managed ``:summary`` table rolls up its children's state. Only the migrations
-touch the legacy body-stored ``:meta`` regions, via ``_migrations._meta_compat``.
+Only the migrations write the ``…:head`` badge mirror and the parent's ``:summary`` table, or touch
+the legacy body-stored ``:meta`` regions (via ``_migrations._meta_compat``).
 """
 
 import hashlib
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
@@ -25,7 +24,6 @@ from squads._models import _markers as markers
 from squads._models._item import Item
 from squads._models._participants import SLUG_PATTERN, require_valid_slug
 from squads._models._subentity import SubEntity
-from squads._rendering._engine import render
 from squads._sections import (
     append_to_section,
     find_markers,
@@ -368,18 +366,16 @@ def local_id_for(kind: str, token: str, spec: WorkflowSpec) -> str:
 def next_local_id(subentities: list[SubEntity], kind: str, spec: WorkflowSpec) -> str:
     """The next free local id for ``kind``, computed from the parent's stored sub-entities.
 
-    It uses the live set's max, not a persisted high-water mark (unlike the item-level counter).
-    Removing a sub-entity that is not the highest leaves a gap that is never reissued; removing the
-    highest frees its number for the next one added. That is accepted: a local id is a
-    within-parent label, not a durable cross-repo identity, so no persisted state closes it (see
+    It takes the number past the highest on any entry, whatever its prefix, so a changed prefix
+    never allocates a number a stale id still holds. It uses the live set's max, not a persisted
+    high-water mark (unlike the item-level counter). Removing a sub-entity that is not the
+    highest leaves a gap that is never reissued; removing the highest frees its number for the
+    next one added. That is accepted: a local id is a within-parent label, not a durable
+    cross-repo identity, so no persisted state closes it (see
     ``remove_block``).
     """
     prefix = spec.subentity_kinds[kind].local_prefix
-    nums = [
-        int(s.local_id[len(prefix) :])
-        for s in subentities
-        if s.local_id.startswith(prefix) and s.local_id[len(prefix) :].isdigit()
-    ]
+    nums = [int(found.group()) for s in subentities if (found := re.search(r"\d+$", s.local_id))]
     return f"{prefix}{(max(nums) + 1) if nums else 1}"
 
 
@@ -418,12 +414,13 @@ def build_block(
     spec: WorkflowSpec,
     from_squad: Path | None,
 ) -> str:
-    """A sub-entity block: heading + empty ``:head`` + ``:body`` + ``:discussion``.
+    """A sub-entity block: heading + ``:body`` + ``:discussion``, with no ``:head`` region.
 
-    State (status/assignee/severity/story) lives in the parent's frontmatter, not here. The skeleton
-    lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``); the ``:head`` is
-    filled by :func:`set_head` right after.
+    State (status, assignee, field values, mapping) lives in the parent's frontmatter, not here.
+    The skeleton lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``).
     """
+    from squads._rendering._engine import render
+
     heading = f"### {local_id} — {title}".rstrip()
     return render(
         "subentities/block.md.j2",
@@ -461,35 +458,45 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
     local_id: str,
     *,
     status: str | None = None,
-    severity: str | None = None,
-    story: str | None = None,
+    field_values: Mapping[str, str] | None = None,
+    mapping: str | None = None,
     assignee_name: str | None = None,
     spec: WorkflowSpec,
     from_squad: Path | None,
 ) -> str:
-    """(Re)render the human-readable ``:head`` region under a block's heading.
+    """Render the ``:head`` region under a block's heading; only the migrations call this.
 
-    A presentation mirror of the frontmatter state: status and severity as coloured badges, the
-    implemented story as ``USn — title``, the assignee's full name. The layout is
-    ``templates/subentities/head.md.j2``; add an attribute by passing a value here and a line
-    there. New blocks ship the region empty (from ``block.md.j2``); a legacy block that lacks it
-    gets it created just before the block's ``:body`` marker. ``spec`` resolves the status badge and
-    the severity axis's label (:func:`squads._badges.status_badge`, :func:`field_label`).
+    The layout is ``templates/subentities/head.md.j2``, which receives ``status``, ``assignee``,
+    ``fields`` (a list of ``code``, ``label`` and ``badge``, in declared order) and ``mapping``
+    (``label`` and ``value``, or ``None``). A block without the region gets it just before its
+    ``:body`` marker.
     """
     head_tag = _head_tag(kind, local_id)
+    held = field_values or {}
+    target = spec.mapping_target_kind(kind)
+    from squads._rendering._engine import render
+
     inner = render(
         "subentities/head.md.j2",
         from_squad=from_squad,
         status=badges.status_badge(status, spec) if status else None,
-        severity=(
-            badges.badge_render(
-                badges.resolve_collection(kind, "severity", spec), severity, spec, as_label=True
-            )
-            if severity
-            else None
-        ),
-        severity_label=badges.field_label(kind, "severity", spec) if severity else None,
-        story=story,
+        fields=[
+            {
+                "code": f.code,
+                "label": f.label,
+                "badge": badges.badge_render(
+                    badges.resolve_collection(kind, f.code, spec),
+                    held[f.code],
+                    spec,
+                    as_label=True,
+                ),
+            }
+            for f in spec.fields_for(kind)
+            if held.get(f.code)
+        ],
+        mapping={"label": spec.kind_label(target), "value": mapping}
+        if mapping and target
+        else None,
         assignee=assignee_name,
     )
     if get_section(text, head_tag) is None:
@@ -509,25 +516,25 @@ def summary_columns(kind: str, spec: WorkflowSpec) -> list[str]:
 
     A fixed base (local-id column headed by the kind name, then Status/Assignee/Title), one column
     per declared ``Field`` headed by its ``label`` and inserted right after the local-id column, and
-    a trailing Story column iff the kind declares ``maps_parent_story``. The body summary table and
+    a trailing column headed by the target kind iff the kind declares ``maps_to_parent``. The body
+    summary table and
     the CLI list/show tables share this derivation.
     """
     field_labels = [f.label for f in spec.fields_for(kind)]
-    cols = [kind.title(), *field_labels, "Status", "Assignee", "Title"]
-    ks = spec.subentity_kinds.get(kind)
-    if ks is not None and ks.maps_parent_story:
-        cols.append("Story")
+    cols = [spec.kind_label(kind), *field_labels, "Status", "Assignee", "Title"]
+    target = spec.mapping_target_kind(kind)
+    if target is not None:
+        cols.append(spec.kind_label(target))
     return cols
 
 
 def _field_value(sub: SubEntity, code: str) -> str | None:
-    """The stored badge code for a declared field — ``severity``'s typed attribute or any
-    other declared field's generic store (:meth:`SubEntity.badge_value`)."""
+    """The stored badge code for a declared field (:meth:`SubEntity.badge_value`)."""
     return sub.badge_value(code)
 
 
 def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
-    """One row aligned to :func:`summary_columns`: local id, field badges, base, then story.
+    """One row aligned to :func:`summary_columns`: local id, field badges, base, then the mapping.
 
     A field cell renders through :func:`~squads._badges.badge_render`'s default
     (``as_label=False``), emoji plus raw code (``"🔴 critical"``). A project's own view over the
@@ -542,21 +549,24 @@ def summary_row(kind: str, sub: SubEntity, spec: WorkflowSpec) -> list[str]:
     ]
     row = [sub.local_id, *field_cells, sub.status, sub.assignee or "", sub.title]
     ks = spec.subentity_kinds.get(kind)
-    if ks is not None and ks.maps_parent_story:
-        row.append(sub.story or "")
+    if ks is not None and ks.maps_to_parent:
+        row.append(sub.maps_to or "")
     return row
 
 
 def render_summary(
     kind: str, subentities: list[SubEntity], spec: WorkflowSpec, *, from_squad: Path | None
 ) -> str:
-    """The sq-managed roll-up table for a parent's sub-entities (empty until there are any).
+    """The roll-up table for a parent's sub-entities (empty until there are any); only the
+    migrations write it into a file.
 
     The table layout lives in ``templates/subentities/summary.md.j2``.
     """
     if not subentities:
         return ""
     cols = summary_columns(kind, spec)
+    from squads._rendering._engine import render
+
     return render(
         "subentities/summary.md.j2",
         from_squad=from_squad,
