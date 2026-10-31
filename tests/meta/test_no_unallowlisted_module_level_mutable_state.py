@@ -25,12 +25,6 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         # retired-key load/lint check; never mutated after module import
         {"_RETIRED_VIEW_KEY_REASONS"}
     ),
-    "src/squads/_workflow/_models.py": frozenset(
-        {"_BUNDLED_CONTAINER_HEADINGS"}  # fixed bundled sub-entity container heading table
-    ),
-    "src/squads/_workflow/_lifecycle_order.py": frozenset(
-        {"_SIDE_PRIORITY"}  # fixed side-status sort-priority lookup table
-    ),
     "src/squads/_workflow/_validator_names.py": frozenset(
         {
             "CATEGORY_BUNDLES",  # fixed category -> default-bundle table; the load-time checks
@@ -47,6 +41,12 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         {
             "PINNED_ROSTER_ATTRIBUTES",  # fixed roster type -> attributes the engine
             # materialises into agent-host files; the loader refuses a spec that lacks one
+        }
+    ),
+    "src/squads/_workflow/_derived_names.py": frozenset(
+        {
+            "FIXED_OPTIONS",  # fixed command -> options the derived flags are checked against
+            "FIXED_IMPORT_KEYS",  # fixed import op -> keys the derived keys are checked against
         }
     ),
     "src/squads/_rendering/_engine.py": frozenset(

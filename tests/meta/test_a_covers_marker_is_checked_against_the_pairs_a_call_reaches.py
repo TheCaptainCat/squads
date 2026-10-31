@@ -15,55 +15,59 @@ CASES: dict[str, Case] = {
         ["-C", "x", "t", "5", "show", "--json"],
         {
             ("", "-C"),
-            ("<type>", "N"),
+            ("<type>", "n"),
             ("<type> show", "--json"),
         },
     ),
     "a sub-entity verb with its address": (
         ["task", "3", "subtask", "ST1", "update", "--story", "US1"],
         {
-            ("<type>", "N"),
-            ("<type> <kind>", "LOCAL-ID"),
-            ("<type> <kind> update", "--story"),
+            ("<type>", "n"),
+            ("<type> <kind>", "local-id"),
+            ("<type> <kind> update", "--<target-kind>"),
         },
     ),
     "an item comment group given a message": (
         ["task", "3", "comment", "-m", "x", "--as", "me"],
-        {("<type>", "N"), ("<host> comment", "--message"), ("<host> comment", "--as")},
+        {("<type>", "n"), ("<host> comment", "--message"), ("<host> comment", "--as")},
     ),
     "a roster comment addressed by a hash": (
         ["role", "pierre", "comment", "abcd", "edit", "-m", "x"],
         {
             ("role", "<slug|id|n>"),
-            ("<host> comment", "HASH"),
+            ("<host> comment", "hash"),
             ("<host> comment edit", "--message"),
         },
     ),
     "a create option a type adds, the author left out": (
         ["create", "bug", "T", "--severity", "S1"],
         {
-            ("create <type>", "TITLE"),
-            ("create <type>", "--severity"),
+            ("create <type>", "title"),
+            ("create <type>", "--<field>"),
             ("create <type>", "--author"),
         },
     ),
     "a parameterless leaf": (["sync"], {("sync", None)}),
     "a leaf that has parameters, called with none": (
         ["task", "3", "show"],
-        {("<type>", "N"), ("<type> show", None)},
+        {("<type>", "n"), ("<type> show", None)},
     ),
-    "a leaf with its argument missing": (["search"], {("search", None), ("search", "TEXT")}),
+    "a leaf with its argument missing": (["search"], {("search", None), ("search", "text")}),
     "a built create with its title missing": (
         ["create", "task"],
-        {("create <type>", None), ("create <type>", "TITLE")},
+        {("create <type>", None), ("create <type>", "title")},
     ),
-    "a hand-written create keeps its own key": (
-        ["create", "guide", "G", "--tag", "ops"],
-        {("create guide", "TITLE"), ("create guide", "--tag"), ("create guide", "--author")},
+    "a create option an attribute adds": (
+        ["create", "guide", "G", "--tags", "ops"],
+        {
+            ("create <type>", "title"),
+            ("create <type>", "--<attribute:list>"),
+            ("create <type>", "--author"),
+        },
     ),
-    "a hidden create alias of the hand-written create": (
+    "a hidden create alias of a built create": (
         ["create", "g", "G"],
-        {("create guide", "TITLE"), ("create guide", "--author")},
+        {("create <type>", "title"), ("create <type>", "--author")},
     ),
     "a group with its address missing": (["task"], set()),
     "a roster comment with the hash missing is read as a slug": (
@@ -72,17 +76,17 @@ CASES: dict[str, Case] = {
     ),
     "options after an eager help": (
         ["task", "3", "update", "--help", "--title", "x"],
-        {("<type>", "N")},
+        {("<type>", "n")},
     ),
     "options before an eager help": (
         ["task", "3", "update", "--title", "x", "--help"],
-        {("<type>", "N")},
+        {("<type>", "n")},
     ),
     "a shared roster verb folds onto the reference host": (
         ["skill", "s", "status", "Archived", "--unlink"],
         {
             ("skill", "<slug|id|n>"),
-            ("role status", "STATUS"),
+            ("role status", "status"),
             ("role status", "--unlink"),
         },
     ),
@@ -111,7 +115,7 @@ def test_a_parameter_that_is_not_given_is_not_reached() -> None:
 
 def test_a_level_that_does_not_parse_keeps_the_pairs_of_the_levels_before_it() -> None:
     reached = reached_pairs(["task", "3", "show", "--no-such-option"], bundled_spec())
-    assert reached == {("<type>", "N")}
+    assert reached == {("<type>", "n")}
 
 
 def test_an_unknown_command_reaches_nothing_beyond_the_root() -> None:
