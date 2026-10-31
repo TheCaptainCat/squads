@@ -3,7 +3,7 @@ id: MILE-1241
 sequence_id: 1241
 type: milestone
 title: squads 0.19 - the daemon and the overridable vocabulary
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - MILE-1152:depends-on
@@ -12,7 +12,7 @@ description: The daemon serving the command layer's operations as resource route
   the bundled vocabulary fully overridable on generic storage, a bug batch, and dependencies
   upgraded and tested
 created_at: '2026-10-29T12:59:12Z'
-updated_at: '2026-10-31T15:55:20Z'
+updated_at: '2026-10-31T16:57:21Z'
 ---
 <!-- sq:body -->
 The 0.19 release: the daemon that serves the command layer's operations as 
@@ -135,4 +135,6 @@ them.
     ```
     
     On the GitHub runner the client-budget job reported 35-36 ms (run 41141368085) and 53-55 ms (run 41145415746).
+- [2026-10-31T16:57:21Z] `manager` Catherine Manager:
+  - Released as v0.19.0 on 2026-10-31 (PR #30, tag v0.19.0 at ddabb25b).
 <!-- sq:discussion:end -->
