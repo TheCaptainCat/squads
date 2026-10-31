@@ -1,9 +1,10 @@
 {
-  "id": "FEAT-449",
+  "id": "FEAT-10",
   "type": "feature",
-  "status": "Done",
-  "priority": null,
-  "badges": {},
+  "status": "Draft",
+  "badges": {
+    "priority": "low"
+  },
   "assignee": null,
   "edge_kind": null,
   "edge_semantic": null,
@@ -11,13 +12,10 @@
   "seen": false,
   "children": [
     {
-      "id": "FEAT-100",
-      "type": "feature",
-      "status": "Done",
-      "priority": "low",
-      "badges": {
-        "priority": "low"
-      },
+      "id": "ADR-12",
+      "type": "decision",
+      "status": "Proposed",
+      "badges": {},
       "assignee": null,
       "edge_kind": "related",
       "edge_semantic": "default",
@@ -25,59 +23,12 @@
       "seen": false,
       "children": [
         {
-          "id": "ADR-427",
-          "type": "decision",
-          "status": "Accepted",
-          "priority": null,
-          "badges": {},
-          "assignee": null,
-          "edge_kind": "related",
-          "edge_semantic": "default",
-          "direction": "in",
-          "seen": false,
-          "children": [],
-          "display": {
-            "type": "Decision",
-            "status": {
-              "badge": "⚪ Accepted",
-              "intent": "info"
-            },
-            "badges": {},
-            "assignee": null,
-            "edge": "related",
-            "edge_label": "Related"
-          }
-        },
-        {
-          "id": "REV-448",
-          "type": "review",
-          "status": "Approved",
-          "priority": null,
-          "badges": {},
-          "assignee": null,
-          "edge_kind": "related",
-          "edge_semantic": "default",
-          "direction": "in",
-          "seen": false,
-          "children": [],
-          "display": {
-            "type": "Review",
-            "status": {
-              "badge": "⚪ Approved",
-              "intent": "positive"
-            },
-            "badges": {},
-            "assignee": null,
-            "edge": "related",
-            "edge_label": "Related"
-          }
-        },
-        {
-          "id": "FEAT-449",
+          "id": "FEAT-10",
           "type": "feature",
-          "status": "Done",
-          "priority": null,
-          "badges": {},
+          "status": "Draft",
+          "badges": {
+            "priority": "low"
+          },
           "assignee": null,
           "edge_kind": "related",
           "edge_semantic": "default",
@@ -87,66 +38,79 @@
           "display": {
             "type": "Feature",
             "status": {
-              "badge": "🟢 Done",
-              "intent": "positive"
+              "badge": "\u26aa Draft",
+              "intent": "neutral"
             },
-            "badges": {},
+            "badges": {
+              "priority": {
+                "label": "Priority",
+                "badge": "\ud83d\udfe2 low",
+                "badge_label": "\ud83d\udfe2 Low"
+              }
+            },
             "assignee": null,
             "edge": "related",
             "edge_label": "Related"
           }
+        },
+        {
+          "id": "TASK-11",
+          "type": "task",
+          "status": "Draft",
+          "badges": {
+            "priority": "high"
+          },
+          "assignee": null,
+          "edge_kind": "addresses",
+          "edge_semantic": null,
+          "direction": "in",
+          "seen": false,
+          "children": [],
+          "display": {
+            "type": "Task",
+            "status": {
+              "badge": "\u26aa Draft",
+              "intent": "neutral"
+            },
+            "badges": {
+              "priority": {
+                "label": "Priority",
+                "badge": "\ud83d\udfe0 high",
+                "badge_label": "\ud83d\udfe0 High"
+              }
+            },
+            "assignee": null,
+            "edge": "addresses",
+            "edge_label": "Addresses"
+          }
         }
       ],
       "display": {
-        "type": "Feature",
+        "type": "Decision",
         "status": {
-          "badge": "🟢 Done",
-          "intent": "positive"
-        },
-        "badges": {
-          "priority": {
-            "label": "Priority",
-            "badge": "🟢 low",
-            "badge_label": "🟢 Low"
-          }
-        },
-        "assignee": null,
-        "edge": "related",
-        "edge_label": "Related"
-      }
-    },
-    {
-      "id": "REV-448",
-      "type": "review",
-      "status": "Approved",
-      "priority": null,
-      "badges": {},
-      "assignee": null,
-      "edge_kind": "addresses",
-      "edge_semantic": null,
-      "direction": "out",
-      "seen": true,
-      "children": [],
-      "display": {
-        "type": "Review",
-        "status": {
-          "badge": "⚪ Approved",
-          "intent": "positive"
+          "badge": "\u26aa Proposed",
+          "intent": "neutral"
         },
         "badges": {},
         "assignee": null,
-        "edge": "addresses",
-        "edge_label": "Addresses"
+        "edge": "related",
+        "edge_label": "Related"
       }
     }
   ],
   "display": {
     "type": "Feature",
     "status": {
-      "badge": "🟢 Done",
-      "intent": "positive"
+      "badge": "\u26aa Draft",
+      "intent": "neutral"
     },
-    "badges": {},
+    "badges": {
+      "priority": {
+        "label": "Priority",
+        "badge": "\ud83d\udfe2 low",
+        "badge_label": "\ud83d\udfe2 Low"
+      }
+    },
     "assignee": null,
     "edge": null,
     "edge_label": null

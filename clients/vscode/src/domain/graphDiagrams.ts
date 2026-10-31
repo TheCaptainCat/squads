@@ -148,8 +148,20 @@ function edgeLabel(edgeKind: string, edgeSemantic: string | null, direction: 'in
   return edgeKind;
 }
 
+/** The node's lead badge: the first field of its `badges` map, shown by the label `display`
+ * resolved for it, else by the raw badge code (an older `sq`, or a field `display` omits). */
+function leadBadgeLabel(node: SqGraphNode): string | null {
+  const first = Object.entries(node.badges ?? {})[0];
+  if (first === undefined) {
+    return null;
+  }
+  const [field, code] = first;
+  return node.display?.badges?.[field]?.badge_label ?? code;
+}
+
 function graphNodeLabel(node: SqGraphNode): string {
-  const badgeSuffix = node.priority !== null ? `, ${node.priority}` : '';
+  const lead = leadBadgeLabel(node);
+  const badgeSuffix = lead !== null ? `, ${lead}` : '';
   return `${node.id} (${node.type}${badgeSuffix}): ${node.status}`;
 }
 

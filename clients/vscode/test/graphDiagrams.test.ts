@@ -21,7 +21,6 @@ function treeNode(overrides: Partial<SqTreeNode> & { id: string; title: string }
   return {
     type: 'task',
     status: 'Ready',
-    priority: null,
     assignee: null,
     blocked: false,
     children: [],
@@ -33,7 +32,6 @@ function graphNode(overrides: Partial<SqGraphNode> & { id: string }): SqGraphNod
   return {
     type: 'task',
     status: 'Ready',
-    priority: null,
     assignee: null,
     edge_kind: null,
     edge_semantic: null,
@@ -157,9 +155,9 @@ describe('buildSubtreeMermaid', () => {
 
     expect(lines[0]).toBe('flowchart TD');
     expect(lines.length).toBe(1 + total + (total - 1));
-    expect(source).toContain('EPIC_002d99[');
-    expect(source).toContain('EPIC_002d99 --> FEAT_002d100');
-    expect(source).toContain('FEAT_002d100 --> TASK_002d428');
+    expect(source).toContain('EPIC_002d9[');
+    expect(source).toContain('EPIC_002d9 --> FEAT_002d10');
+    expect(source).toContain('FEAT_002d10 --> TASK_002d11');
   });
 });
 
@@ -185,7 +183,7 @@ describe('buildRefGraphMermaid', () => {
           id: 'TASK-12',
           type: 'bug',
           status: 'Open',
-          priority: 'high',
+          badges: { priority: 'high' },
           edge_kind: 'requires',
           edge_semantic: 'dependency',
           direction: 'in',
@@ -269,7 +267,6 @@ describe('buildRefGraphMermaid', () => {
       id: 'TASK-2',
       type: 'task',
       status: 'Ready',
-      priority: null,
       assignee: null,
       edge_kind: 'depends-on',
       direction: 'out',
@@ -280,7 +277,6 @@ describe('buildRefGraphMermaid', () => {
       id: 'TASK-1',
       type: 'task',
       status: 'Ready',
-      priority: null,
       assignee: null,
       edge_kind: null,
       direction: null,
@@ -306,21 +302,38 @@ describe('buildRefGraphMermaid', () => {
     expect(lines.filter((line) => line.includes('-->'))).toHaveLength(1);
   });
 
-  it('builds the real FEAT-449 ref-graph fixture (includes a revisit back to the root)', () => {
+  it('labels a node by its lead badge from badges and display, with no bundled field name', () => {
+    const job = fixture('override-graph.json') as SqGraphNode;
+    expect(isSqGraphNode(job)).toBe(true);
+    expect(buildRefGraphMermaid(job)).toContain('JOB-9 (job, ⚪ M): Draft');
+
+    const urgent = graphNode({
+      id: 'INI-8',
+      type: 'initiative',
+      badges: { urgency: 'now' },
+      display: { badges: { urgency: { badge_label: '🔴 Now' } } },
+    });
+    expect(buildRefGraphMermaid(urgent)).toContain('INI-8 (initiative, 🔴 Now): Ready');
+  });
+
+  it('falls back to the raw badge code when display carries no label for it', () => {
+    const node = graphNode({ id: 'INI-8', type: 'initiative', badges: { urgency: 'now' } });
+    expect(buildRefGraphMermaid(node)).toContain('INI-8 (initiative, now): Ready');
+    expect(buildRefGraphMermaid(graphNode({ id: 'INI-9', badges: {} }))).toContain('(task): Ready');
+  });
+
+  it('builds the real ref-graph fixture, labelling each node by its lead badge', () => {
     const root = fixture('graph.json') as SqGraphNode;
 
     expect(buildRefGraphMermaid(root)).toBe(
       [
         'flowchart LR',
-        '  FEAT_002d449["`FEAT-449 (feature): Done`"]',
-        '  FEAT_002d100["`FEAT-100 (feature, low): Done`"]',
-        '  ADR_002d427["`ADR-427 (decision): Accepted`"]',
-        '  REV_002d448["`REV-448 (review): Approved`"]',
-        '  FEAT_002d100 -->|related| ADR_002d427',
-        '  FEAT_002d100 -->|related| FEAT_002d449',
-        '  FEAT_002d100 -->|related| REV_002d448',
-        '  FEAT_002d449 -->|related| FEAT_002d100',
-        '  FEAT_002d449 -->|addresses| REV_002d448',
+        '  FEAT_002d10["`FEAT-10 (feature, 🟢 Low): Draft`"]',
+        '  ADR_002d12["`ADR-12 (decision): Proposed`"]',
+        '  TASK_002d11["`TASK-11 (task, 🟠 High): Draft`"]',
+        '  ADR_002d12 -->|related| FEAT_002d10',
+        '  ADR_002d12 -->|addresses| TASK_002d11',
+        '  FEAT_002d10 -->|related| ADR_002d12',
       ].join('\n'),
     );
   });

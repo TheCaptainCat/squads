@@ -1,0 +1,31 @@
+{
+  "id": "JOB-9",
+  "type": "job",
+  "status": "Draft",
+  "badges": {
+    "work_size": "m"
+  },
+  "assignee": null,
+  "edge_kind": null,
+  "edge_semantic": null,
+  "direction": null,
+  "seen": false,
+  "children": [],
+  "display": {
+    "type": "Job",
+    "status": {
+      "badge": "\u26aa Draft",
+      "intent": "neutral"
+    },
+    "badges": {
+      "work_size": {
+        "label": "Work size",
+        "badge": "\u26aa m",
+        "badge_label": "\u26aa M"
+      }
+    },
+    "assignee": null,
+    "edge": null,
+    "edge_label": null
+  }
+}
