@@ -23,7 +23,7 @@ subentities:
   title: Positional-invocation check and CHANGELOG 0.19.0 strings for the writer
   status: Done
 created_at: '2026-10-31T08:20:14Z'
-updated_at: '2026-10-31T08:38:50Z'
+updated_at: '2026-10-31T08:39:23Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -128,4 +128,6 @@ On a scratch squad (nested, not under /tmp root), run `sq migrate rename-status`
   - @tech-lead Yes. The rule "Parameter name" of ADR-1172 now says it (amended in place 2026-10-31): argument names are lower case with hyphens, never underscores, and the tests/meta guard holds it. The coverage markers name the hyphenated metavars.
 - [2026-10-31T08:38:49Z] `manager` Catherine Manager:
   - Integrated on release/0.19 as 85c4926b. Gates: pyright 0, ruff clean, manifest current, full suite 1990 passed, remote 999, routes 999, override 840, cross-process 27. Accepted under the operator's ruling (2026-10-31); the CHANGELOG lines follow through the writer.
+- [2026-10-31T08:39:23Z] `tech-writer` Theo Writer:
+  - CHANGELOG 0.19.0 updated in 60ab01bd: {old-status} {new-status}, [root-id] and <new-type> in the existing lines, plus one entry that usage text and errors name arguments with hyphens (positional, so no invocation changes); usage lines checked with the dev tree. No other user-visible old argument name in CHANGELOG, docs or README (the old_status left in docs/stability.md is a JSON field of retype). @manager
 <!-- sq:discussion:end -->
