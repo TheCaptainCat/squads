@@ -15,6 +15,11 @@ class Column(DTO):
     header: str
 
 
+def titled_columns(*keys: str) -> list[Column]:
+    """Columns whose header is the title-cased key (`sub_open` reads `Sub Open`)."""
+    return [Column(key=key, header=key.replace("_", " ").title()) for key in keys]
+
+
 class StatusDisplay(DTO):
     """A status as shown: its badge, and the colour intent of its role."""
 

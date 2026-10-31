@@ -44,7 +44,6 @@ class TreeNode(DTO):
     type: str
     title: str
     status: str
-    priority: str | None
     assignee: str | None
     blocked: bool
     badges: dict[str, str]

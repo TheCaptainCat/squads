@@ -4,6 +4,7 @@ and discussion, and its sub-entities, each answering with its DTO."""
 from squads import _spans as spans
 from squads._api._dto._comments import Comments, CommentsRequest
 from squads._api._dto._graph import GraphNode, GraphRequest
+from squads._api._dto._items import KindDisplay
 from squads._api._dto._queues import (
     Blocked,
     BlockedRequest,
@@ -29,15 +30,19 @@ from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item
 from squads._services._base import ItemFilter
-from squads._services._item_dto import comment_dtos, participant_names, subentity_dto
+from squads._services._item_dto import (
+    comment_dtos,
+    kind_display,
+    participant_names,
+    subentity_dto,
+)
 from squads._services._item_ops import ItemOpsMixin, badge_pairs
 from squads._services._item_read_dto import (
-    MINE_COLUMNS,
     WORKLOAD_COLUMNS,
     blocked_entry,
     graph_node,
     inbox_entry,
-    kind_display,
+    mine_columns,
     mine_row,
     ref_entry,
     search_hit,
@@ -139,7 +144,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         rows = await self.mine(slug, include_closed=req.all)
         names = await self.display_names()
         mine = [mine_row(r, self.spec, names) for r in rows]
-        return Response(data=Mine(slug=slug, items=mine, columns=list(MINE_COLUMNS)))
+        return Response(data=Mine(slug=slug, items=mine, columns=mine_columns(self.spec)))
 
     async def blocked_items(self, req: BlockedRequest) -> Response[Blocked]:
         """The open items that wait on another open item."""
@@ -174,6 +179,11 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
             raise SquadsError(f"{item.id} ({item.type}) hosts no sub-entities")
         return hosted
 
+    def _target_display(self, kind: str) -> KindDisplay | None:
+        """How the kind *kind*'s mapping targets is named, none when *kind* does not map."""
+        target = self.spec.mapping_target_kind(kind)
+        return kind_display(target, self.spec) if target is not None else None
+
     async def list_subentities(self, req: SubentitiesRequest) -> Response[SubentityList]:
         """The item's sub-entities, with their summary table."""
         item = await self.addressed_item(req)
@@ -190,6 +200,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
             items=entries,
             summary=subentity_summary(kind, subs, self.spec),
             kind=kind_display(kind, self.spec),
+            maps_to_kind=self._target_display(kind),
         )
         return Response(data=listing)
 

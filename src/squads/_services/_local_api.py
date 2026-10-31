@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from squads import _spans as spans
 from squads._api._api import Grant, Mode, Operation
 from squads._api._response import Response
-from squads._context import get_context
+from squads._context import NoticeLog, get_context, rebind
 from squads._errors import SchemaGateError, SquadsError
 from squads._index._store import read_scope
 from squads._language import resolve_working_language
@@ -41,6 +41,11 @@ def check_grant(paths: SquadPaths, grant: Grant | None) -> None:
     )
 
 
+def _language(notice: str | None) -> tuple[str, ...]:
+    """The working-language notice as a tuple of at most one."""
+    return () if notice is None else (notice,)
+
+
 class LocalApi:
     """Runs each operation on a service composed for its mode, inside a read scope; a service
     that holds what its mode asks for is kept for the instance's lifetime, one that fell back is
@@ -53,10 +58,12 @@ class LocalApi:
     def _service(
         self, mode: Mode, paths: SquadPaths | None, unresolved: SquadsError | None
     ) -> Service:
-        cached = self._services.get(mode) if paths is not None else None
+        ctx = get_context()
+        # A request whose spec was refused composes its own service: a kept one was built for a
+        # spec that was not.
+        cached = self._services.get(mode) if paths is not None and ctx.spec_error is None else None
         if cached is not None:
             return cached
-        ctx = get_context()
         with spans.span("compose"):
             svc = compose_service(
                 paths,
@@ -72,9 +79,15 @@ class LocalApi:
         return svc
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
-        """Run *op* on *req*. The squad's working-language notice joins the warnings, or the
-        refusal's when the call is refused past the schema gate. A local-only operation creates
-        the squad, so it runs whether one resolves or not, and gets no service."""
+        """Run *op* on *req*. The notices the engine raised while it ran, then the squad's
+        working-language notice, join the warnings, or the refusal's when the call is refused
+        past the schema gate. A local-only operation creates the squad, so it runs whether one
+        resolves or not, and gets no service."""
+        log = get_context().notices
+        if log is None:
+            log = NoticeLog()
+            rebind(notices=log)
+        raised_before = len(log.notices)
         paths: SquadPaths | None = None
         unresolved: SquadsError | None = None
         notice: str | None = None
@@ -96,12 +109,12 @@ class LocalApi:
                 with spans.span("operation"):
                     response = await self._scoped(handler_for(op)(svc, req))
         except SquadsError as exc:
-            if notice is not None:
-                exc.warnings = (*exc.warnings, notice)
+            exc.warnings = (*exc.warnings, *log.notices[raised_before:], *_language(notice))
             raise
-        if notice is None:
+        extra = [*log.notices[raised_before:], *_language(notice)]
+        if not extra:
             return response
-        return response.model_copy(update={"warnings": [*response.warnings, notice]})
+        return response.model_copy(update={"warnings": [*response.warnings, *extra]})
 
     @staticmethod
     async def _scoped[Res](call: Awaitable[Response[Res]]) -> Response[Res]:

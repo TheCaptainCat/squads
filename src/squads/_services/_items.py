@@ -171,8 +171,6 @@ class ItemsMixin(ServiceCore):
         description: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        priority: str | None = None,
-        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -197,8 +195,6 @@ class ItemsMixin(ServiceCore):
                 description=description,
                 assignee=assignee,
                 clear_assignee=clear_assignee,
-                priority=priority,
-                clear_priority=clear_priority,
                 add_labels=add_labels,
                 rm_labels=rm_labels,
                 author=author,
@@ -258,8 +254,6 @@ class ItemsMixin(ServiceCore):
         description: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        priority: str | None = None,
-        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -281,7 +275,7 @@ class ItemsMixin(ServiceCore):
         """
         item = require_item(db, item_id)
         # Only what the role document or playbook supplies is gated; tracking metadata
-        # (labels, assignee, parent, priority, author) and project-declared attributes stay
+        # (labels, assignee, parent, author) and project-declared attributes stay
         # writable.
         self._gate_roster_update(
             item_id, item, title, description, set_attributes, unset_attributes
@@ -302,13 +296,6 @@ class ItemsMixin(ServiceCore):
             self._check_assignee(db, assignee or None)
             delta["assignee"] = assignee or None
             item.assignee = assignee or None
-        if clear_priority:
-            delta["priority"] = None
-            item.priority = None
-        elif priority is not None:
-            checked_priority = self._check_priority(item.type, priority)
-            delta["priority"] = checked_priority
-            item.priority = checked_priority
         if author is not None:
             self._check_author(db, item.type, author, item.slug)
             delta["author"] = author
@@ -333,7 +320,7 @@ class ItemsMixin(ServiceCore):
             delta["parent"] = parent
             item.parent = parent
         self._apply_labels(item, add_labels, rm_labels)
-        self._apply_attributes(item, set_attributes, unset_attributes)
+        self._apply_attributes(item, set_attributes, unset_attributes, delta)
         self._apply_own_choices(item, delta, pronouns, operator_invocable)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
@@ -351,8 +338,6 @@ class ItemsMixin(ServiceCore):
         description: str | None = None,
         assignee: str | None = None,
         clear_assignee: bool = False,
-        priority: str | None = None,
-        clear_priority: bool = False,
         add_labels: list[str] | None = None,
         rm_labels: list[str] | None = None,
         author: str | None = None,
@@ -378,8 +363,6 @@ class ItemsMixin(ServiceCore):
             description=description,
             assignee=assignee,
             clear_assignee=clear_assignee,
-            priority=priority,
-            clear_priority=clear_priority,
             add_labels=add_labels,
             rm_labels=rm_labels,
             author=author,
@@ -418,14 +401,34 @@ class ItemsMixin(ServiceCore):
         if rm:
             item.labels = [lab for lab in item.labels if lab not in rm]
 
+    def _require_settable(self, item_type: str, key: str) -> None:
+        """Refuse *key* unless it is a settable attribute of *item_type*; the refusal names the
+        declared badge fields beside the attributes."""
+        require_settable(
+            item_type,
+            key,
+            self.spec.item_attributes(item_type),
+            [f.code for f in self.spec.fields_for(item_type)],
+        )
+
     def _apply_attributes(
-        self, item: Item, set_attributes: dict[str, str] | None, unset: list[str] | None
+        self,
+        item: Item,
+        set_attributes: dict[str, str] | None,
+        unset: list[str] | None,
+        delta: dict[str, object],
     ) -> None:
+        """Set and unset the given badge fields and attributes, recording each change in *delta*
+        (the value set, or ``None`` for a key removed)."""
         for key, raw in (set_attributes or {}).items():
             field = self._badge_field(item.type, key)
             if field is not None:
-                item.set_badge_value(field.code, self._parse_badge_code(field, raw))
+                checked = self._parse_badge_code(field, raw)
+                item.set_badge_value(field.code, checked)
+                delta[key] = checked
             else:
+                self._require_settable(item.type, key)
+                delta[key] = raw
                 value = coerce_attribute(item.type, key, raw, self.spec.item_attributes(item.type))
                 if item.type == ROSTER_ROLE and key == AttributeKey.MODEL:
                     problem = model_problem(value)
@@ -437,8 +440,9 @@ class ItemsMixin(ServiceCore):
             if field is not None:
                 item.set_badge_value(field.code, None)
             else:
-                require_settable(item.type, key, self.spec.item_attributes(item.type))
+                self._require_settable(item.type, key)
                 item.attributes.pop(key, None)
+            delta[key] = None
 
     def _apply_own_choices(
         self, item: Item, delta: dict[str, object], pronouns: str | None, invocable: str | None
@@ -454,7 +458,7 @@ class ItemsMixin(ServiceCore):
         """Store *raw* as the item's pronouns, trimmed; blank removes them. Returns the value now
         stored. Refuses a value that fails the shape rule, or a type that declares no pronouns."""
         if AttributeKey.PRONOUNS not in self.spec.item_attributes(item.type):
-            raise SquadsError(f"a {item.type} does not carry pronouns")
+            raise SquadsError(f"{item.type} items do not carry pronouns")
         value = checked_pronouns(raw)
         if value is None:
             item.attributes.pop(AttributeKey.PRONOUNS, None)
@@ -468,7 +472,7 @@ class ItemsMixin(ServiceCore):
         role document supplies, so the roster write gate is never asked."""
         value = parse_invocable_choice(raw)
         if AttributeKey.OPERATOR_INVOCABLE not in self.spec.item_attributes(item.type):
-            raise SquadsError(f"a {item.type} does not carry operator_invocable")
+            raise SquadsError(f"{item.type} items do not carry operator_invocable")
         if value is None:
             item.attributes.pop(AttributeKey.OPERATOR_INVOCABLE, None)
         else:
@@ -571,7 +575,7 @@ class ItemsMixin(ServiceCore):
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)
         else:
-            raise SquadsError(f"{item_id} is a {item.type}; only roles/skills have entries")
+            raise SquadsError(f"{item_id} has type {item.type}; only roles/skills have entries")
         return item
 
     def _reject_unwritable_body(self, item_id: str, item: Item, *, append: bool) -> None:
@@ -588,7 +592,9 @@ class ItemsMixin(ServiceCore):
             ROSTER_SKILL,
             ROSTER_OPERATOR,
         ):
-            raise SquadsError(f"{item_id} is a {item.type}; its body is generated, not authored")
+            raise SquadsError(
+                f"{item_id} has type {item.type}; its body is generated, not authored"
+            )
 
     def _refuse_unplaced_view_tags(self, item: Item, region: str, body: str) -> None:
         """Raise when *body* carries a view tag that *region* (the item's current ``sq:body``

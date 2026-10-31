@@ -19,17 +19,17 @@ from squads._models._item import DISPLAY_ID_PADDING, Item, format_item_id, parse
 from squads._models._vocab import prefix_for
 from squads._services._collab import CollabMixin
 from squads._services._item_dto import (
-    LIST_COLUMNS,
     comment_dtos,
     item_row,
+    list_columns,
     participant_names,
+    row_fields,
     show_display,
     sort_by_badge,
     subentity_dto,
 )
 from squads._services._items import ItemsMixin
 from squads._services._subentities import SubentitiesMixin
-from squads._util import article
 
 #: The note the duplicate-id warning carries on a read.
 _DUPLICATE_READ_NOTE = "showing the indexed file; run `sq check`"
@@ -60,7 +60,9 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         not of the type the address expects, when it names one."""
         if address.type is None:
             item_id = await self.resolve_any_id(address.address or address.id)
-            return await self.get(item_id)
+            found = await self.get(item_id)
+            await self._address_and_read(found)
+            return found
         seq, given_prefix = parse_item_token(address.id)
         prefix = prefix_for(address.type, self.spec)
         item = (await self.store.load()).get(str(seq))
@@ -73,10 +75,9 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         elif item.type != address.type:
             shown = typed.strip()
         else:
+            await self._address_and_read(item)
             return item.model_copy(deep=True)
-        raise SquadsError(
-            f"{shown} is {item.id} ({item.type}), not {article(address.type)} {address.type}"
-        )
+        raise SquadsError(f"{shown} is {item.id} ({item.type}), not of type {address.type}")
 
     async def _duplicate_warnings(self, item: Item) -> list[str]:
         """The duplicate-id warning a read of *item* carries, when another file has its id."""
@@ -90,10 +91,11 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         its body fails to render; the tag of the view *keep_view* names stays unexpanded in the
         displayed body."""
         item = await self.addressed_item(req)
+        etag = await self.item_etag(item)
         warnings = await self._duplicate_warnings(item)
         names = await self.display_names()
         kind = self.spec.item_subentity_kind(item.type)
-        row = item.to_row()
+        row = row_fields(item, self.spec)
         expanded = await self.read_body(item.id, keep_view=keep_view)
         if kind is not None:
             row["subentities"] = [
@@ -114,6 +116,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
                     "discussion": discussion,
                     "badges": resolve_badges(self.spec, item.type, item.badge_value),
                     "display": show_display(item, kind, expanded.text, self.spec, names),
+                    "etag": etag,
                 }
             )
         return Response(data=shown, warnings=[*warnings, *expanded.warnings])
@@ -145,7 +148,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             rows = [
                 item_row(i, self.spec, names) for i in sort_by_badge(items, req.sort, self.spec)
             ]
-        return Response(data=ItemList(items=rows, columns=list(LIST_COLUMNS), hidden=hidden))
+        return Response(data=ItemList(items=rows, columns=list_columns(self.spec), hidden=hidden))
 
     async def move_item_status(self, req: ItemStatusRequest) -> Response[ItemWritten]:
         """Move the item to the requested status, as the declared actor; answers its new row."""

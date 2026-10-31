@@ -23,7 +23,7 @@ from squads._services._base import (
     ServiceCore,
     reject_body_overwrite,
     reject_markers,
-    subentity_title,
+    require_title,
 )
 from squads._services._results import BlockResult, SubentityDetail
 
@@ -41,10 +41,25 @@ class SubentitiesMixin(ServiceCore):
             if field is None:
                 declared = ", ".join(f.code for f in self.spec.fields_for(kind)) or "(none)"
                 raise SquadsError(
-                    f"{code!r} is not a settable field on a {kind}; valid: {declared}"
+                    f"{code!r} is not a settable field of {kind} sub-entities; valid: {declared}"
                 )
             checked[code] = self._parse_badge_code(field, value)
         return checked
+
+    def _checked_unset_fields(self, kind: str, codes: list[str] | None) -> list[str]:
+        """*codes* when each names an optional field *kind* declares, else a refusal naming the
+        field."""
+        declared = {f.code: f for f in self.spec.fields_for(kind)}
+        for code in codes or []:
+            field = declared.get(code)
+            if field is None:
+                valid = ", ".join(declared) or "(none)"
+                raise SquadsError(f"{code!r} is not a field of {kind} sub-entities; valid: {valid}")
+            if field.required:
+                raise SquadsError(
+                    f"{code!r} is required on {kind} sub-entities and cannot be cleared"
+                )
+        return list(codes or [])
 
     # Public kind-taking surface: these methods take any declared kind, including project-declared
     # ones.
@@ -55,7 +70,7 @@ class SubentitiesMixin(ServiceCore):
         kind: str,
         title: str,
         *,
-        story: str | None = None,
+        maps_to: str | None = None,
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
         status: str | None = None,
@@ -70,7 +85,7 @@ class SubentitiesMixin(ServiceCore):
                 item_id,
                 kind,
                 title,
-                story=story,
+                maps_to=maps_to,
                 fields=fields,
                 assignee=assignee,
                 status=status,
@@ -85,7 +100,7 @@ class SubentitiesMixin(ServiceCore):
         kind: str,
         title: str,
         *,
-        story: str | None = None,
+        maps_to: str | None = None,
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
         status: str | None = None,
@@ -99,7 +114,7 @@ class SubentitiesMixin(ServiceCore):
         by :meth:`_add_block_core` and the bulk importer's pre-pass, which runs it on a throwaway
         ``db`` copy.
         """
-        title = subentity_title(title)
+        require_title(title)
         reject_markers(title, "title")
         if body is not None:
             reject_markers(body)
@@ -110,20 +125,18 @@ class SubentitiesMixin(ServiceCore):
         base = item.model_copy(deep=True)
         initial_status = self._resolve_add_status(kind, status)
         self._check_assignee(db, assignee)
-        if story:
-            self._check_maps_parent_story(kind)
-            self._validate_subtask_story(db, item, story)
+        if maps_to:
+            self._check_maps_to_parent(kind)
+            self._validate_mapping(db, item, kind, maps_to)
         local_id = discussion.next_local_id(item.subentities, kind, self.spec)
         sub = SubEntity(
             local_id=local_id,
             title=title,
             status=initial_status,
             assignee=assignee,
-            story=story,
+            maps_to=maps_to,
         )
-        # Generic field-code -> badge-code store: ``severity`` (typed attribute) or any
-        # other declared field (SubEntity.extra) — the same dispatch for every code, gated
-        # on the kind's own declarations first.
+        # Field code -> badge code, gated on the kind's own declarations first.
         for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
         self._settle_deferral(db, kind, item, sub, moved=True, deferred_to=deferred_to)
@@ -138,7 +151,7 @@ class SubentitiesMixin(ServiceCore):
         kind: str,
         title: str,
         *,
-        story: str | None = None,
+        maps_to: str | None = None,
         fields: dict[str, str] | None = None,
         assignee: str | None = None,
         status: str | None = None,
@@ -152,7 +165,7 @@ class SubentitiesMixin(ServiceCore):
             item_id,
             kind,
             title,
-            story=story,
+            maps_to=maps_to,
             fields=fields,
             assignee=assignee,
             status=status,
@@ -344,24 +357,22 @@ class SubentitiesMixin(ServiceCore):
             if not in_deferred:
                 choices = ", ".join(sorted(deferred_statuses))
                 raise SquadsError(
-                    f"a carrier (--deferred-to / deferred_to) applies to a {kind} in a deferred "
-                    f"status ({choices}); "
+                    f"a carrier (--deferred-to / deferred_to) applies to {kind} sub-entities in a "
+                    f"deferred status ({choices}); "
                     f"{sub.local_id} is {sub.status}"
                 )
             carrier = require_item(db, deferred_to)
             if carrier.id == item.id:
                 raise SquadsError(f"{item.id} cannot carry its own {kind}'s work")
             if self.spec.item_is_roster(carrier.type):
-                raise SquadsError(
-                    f"{carrier.id} is a {carrier.type}, not an item that carries work"
-                )
+                raise SquadsError(f"{carrier.id} has type {carrier.type}, which carries no work")
             sub.deferred_to = carrier.id
         elif moved and not in_deferred:
             sub.deferred_to = None
         if moved and in_deferred and sub.deferred_to is None:
             raise SquadsError(
                 f"{sub.local_id} cannot be {sub.status} without the item that carries the "
-                "work; pass --deferred-to <ID> (import: deferred_to)"
+                "work; pass --deferred-to <id> (import: deferred_to)"
             )
 
     def _set_block_assignee_model(
@@ -408,8 +419,9 @@ class SubentitiesMixin(ServiceCore):
         *,
         title: str | None = None,
         fields: dict[str, str] | None = None,
-        story: str | None = None,
-        clear_story: bool = False,
+        unset_fields: list[str] | None = None,
+        maps_to: str | None = None,
+        clear_maps_to: bool = False,
         assignee: str | None = None,
         clear_assignee: bool = False,
         status: str | None = None,
@@ -426,8 +438,9 @@ class SubentitiesMixin(ServiceCore):
                 local_id,
                 title=title,
                 fields=fields,
-                story=story,
-                clear_story=clear_story,
+                unset_fields=unset_fields,
+                maps_to=maps_to,
+                clear_maps_to=clear_maps_to,
                 assignee=assignee,
                 clear_assignee=clear_assignee,
                 status=status,
@@ -444,8 +457,9 @@ class SubentitiesMixin(ServiceCore):
         *,
         title: str | None = None,
         fields: dict[str, str] | None = None,
-        story: str | None = None,
-        clear_story: bool = False,
+        unset_fields: list[str] | None = None,
+        maps_to: str | None = None,
+        clear_maps_to: bool = False,
         assignee: str | None = None,
         clear_assignee: bool = False,
         status: str | None = None,
@@ -454,7 +468,7 @@ class SubentitiesMixin(ServiceCore):
     ) -> None:
         """The sub-entity metadata-update mutation core: takes an already-open ``db``."""
         if title is not None:
-            title = subentity_title(title)
+            require_title(title)
             reject_markers(title, "title")
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)
@@ -463,12 +477,14 @@ class SubentitiesMixin(ServiceCore):
             sub.title = title
         for code, value in self._checked_field_values(kind, fields).items():
             sub.set_badge_value(code, value)
-        if clear_story:
-            sub.story = None
-        elif story is not None:
-            self._check_maps_parent_story(kind)
-            self._validate_subtask_story(db, item, story)
-            sub.story = story
+        for code in self._checked_unset_fields(kind, unset_fields):
+            sub.set_badge_value(code, None)
+        if clear_maps_to:
+            sub.maps_to = None
+        elif maps_to is not None:
+            self._check_maps_to_parent(kind)
+            self._validate_mapping(db, item, kind, maps_to)
+            sub.maps_to = maps_to
         if clear_assignee:
             sub.assignee = None
         elif assignee is not None:
@@ -548,19 +564,21 @@ class SubentitiesMixin(ServiceCore):
         (:func:`sections.remove_section`, marker-safe), atomically in one ``store.transaction()``
         with a reflog entry. A removed id below the highest stays a gap, but removing the highest
         frees its number for reissue (:func:`discussion.next_local_id`). Removing a kind another
-        kind's ``maps_parent_story`` targets is refused while a subtask still maps to it.
+        kind's ``maps_to_parent`` targets is refused while a subtask still maps to it.
         """
         async with self.store.transaction() as db:
             item = self._require_parent(db, parent_id, kind)
             sub = self._find(item, kind, local_id)
             base = item.model_copy(deep=True)
-            if self._kind_is_story_target(item.type):
+            if self._kind_is_mapping_target(item.type):
                 dependents = self._dependent_subtasks(db, item, local_id)
                 if dependents:
                     listed = ", ".join(f"{task.id} {s.local_id}" for task, s in dependents)
+                    mapped = self.spec.item_subentity_kind(dependents[0][0].type) or kind
+                    plural = self.spec.subentity_plural(mapped)
                     raise SquadsError(
-                        f"cannot remove {local_id}: subtasks still map to it: {listed}. "
-                        "Remap (--story) or remove those subtasks first."
+                        f"cannot remove {local_id}: {plural} still map to it: {listed}. "
+                        f"Remap (--{kind}) or remove those {plural} first."
                     )
             item.subentities = [s for s in item.subentities if s.local_id != local_id]
             item.updated_at = clock.now()
@@ -584,16 +602,16 @@ class SubentitiesMixin(ServiceCore):
             )
 
     def _dependent_subtasks(
-        self, db: SquadsDB, feature: Item, story_local_id: str
+        self, db: SquadsDB, parent: Item, target_local_id: str
     ) -> list[tuple[Item, SubEntity]]:
-        """``(task, subtask)`` pairs, across *feature*'s child tasks, still mapped to
-        *story_local_id* — the guard :meth:`remove_block` applies before dropping a story."""
+        """``(child, sub-entity)`` pairs, across *feature*'s child items, still mapped to
+        *target_local_id* — the guard :meth:`remove_block` applies before dropping a target."""
         deps: list[tuple[Item, SubEntity]] = []
-        for child_id in db.children(feature.id):
+        for child_id in db.children(parent.id):
             child = db.get(child_id)
             if child is None:
                 continue
-            deps.extend((child, s) for s in child.subentities if s.story == story_local_id)
+            deps.extend((child, s) for s in child.subentities if s.maps_to == target_local_id)
         return deps
 
     async def get_block(self, parent_id: str, kind: str, local_id: str) -> SubentityDetail:
@@ -639,19 +657,22 @@ class SubentitiesMixin(ServiceCore):
         text = discussion.set_heading(text, kind, sub.local_id, sub.title)
         await self._write_item_file(path, text)
 
-    def _validate_subtask_story(self, db: SquadsDB, task: Item, story: str) -> None:
-        required = self.spec.item_parent_required(task.type)
+    def _validate_mapping(self, db: SquadsDB, item: Item, kind: str, target: str) -> None:
+        """Refuse a mapping to *target* unless *item*'s parent is of the required type and holds a
+        sub-entity of that id; the messages name *kind*'s target kind."""
+        required = self.spec.item_parent_required(item.type)
         host = required or "parent"
-        if not task.parent:
+        target_kind = self.spec.mapping_target_kind(kind) or kind
+        if not item.parent:
             raise SquadsError(
-                f"{task.id} has no {host} parent; set one before mapping a subtask to {story}"
+                f"{item.id} has no {host} parent; set one before mapping {kind} to {target}"
             )
-        parent = db.get(task.parent)
+        parent = db.get(item.parent)
         if parent is None or (required is not None and parent.type != required):
-            kind = parent.type if parent else "missing parent"
-            raise SquadsError(f"{task.id}'s parent is a {kind}, not a {host}")
-        if story not in {s.local_id for s in parent.subentities}:
-            raise SquadsError(f"user story {story} not found in {parent.id}")
+            found = parent.type if parent else "missing parent"
+            raise SquadsError(f"{item.id}'s parent has type {found}, not {host}")
+        if target not in {s.local_id for s in parent.subentities}:
+            raise SquadsError(f"{target_kind} {target} not found in {parent.id}")
 
     def _require_parent(self, db: SquadsDB, parent_id: str, kind: str) -> Item:
         item = require_item(db, parent_id)
@@ -675,19 +696,18 @@ class SubentitiesMixin(ServiceCore):
         hosts = self.spec.item_subentity_kind(item.type)
         if hosts == kind:
             return
-        hint = f" ({item.type}s host {hosts}s)" if hosts else ""
-        raise SquadsError(f"{item.id} is a {item.type}, which does not host {kind}s{hint}")
+        plural = self.spec.subentity_plural(kind) if kind in self.spec.subentity_kinds else kind
+        hint = f" (it hosts {self.spec.subentity_plural(hosts)})" if hosts else ""
+        raise SquadsError(f"{item.id} has type {item.type}, which does not host {plural}{hint}")
 
-    def _check_maps_parent_story(self, kind: str) -> None:
-        """Raise unless *kind* declares the ``maps_parent_story`` capability — the
-        feature/story mapping stays a bounded built-in, gated by the flag rather than
-        a ``kind == "subtask"`` literal."""
+    def _check_maps_to_parent(self, kind: str) -> None:
+        """Raise unless *kind* declares the ``maps_to_parent`` capability."""
         ks = self.spec.subentity_kinds.get(kind)
-        if ks is None or not ks.maps_parent_story:
-            raise SquadsError(f"{kind} sub-entities don't map to a parent story")
+        if ks is None or not ks.maps_to_parent:
+            raise SquadsError(f"{kind} sub-entities do not map to a sub-entity of the parent")
 
-    def _kind_is_story_target(self, item_type: str) -> bool:
-        """True when some other item type's hosted sub-entity kind declares ``maps_parent_story``
+    def _kind_is_mapping_target(self, item_type: str) -> bool:
+        """True when some other item type's hosted sub-entity kind declares ``maps_to_parent``
         and maps onto *item_type*'s hosted kind, so removing one of those could orphan a mapped
         child's reference. The flag is on the mapping (child) kind, so this walks every declared
         type, however either kind is named.
@@ -699,7 +719,7 @@ class SubentitiesMixin(ServiceCore):
             ks = self.spec.subentity_kinds.get(child_kind)
             if (
                 ks is not None
-                and ks.maps_parent_story
+                and ks.maps_to_parent
                 and self.spec.item_parent_required(other_type) == item_type
             ):
                 return True

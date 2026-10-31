@@ -1,7 +1,8 @@
 """Wall-clock spans of one invocation, written to stderr when ``SQUADS_SPANS`` is non-empty.
 
 A value of the form ``t=<float>`` is a launcher's ``time.perf_counter()`` reading, and ``mark``
-times are reported from it; any other value times them from the module's import.
+times are reported from it; any other value times them from the module's import. A command the
+daemon serves times them from its request's arrival.
 """
 
 import os
@@ -10,20 +11,26 @@ import time
 from collections.abc import Generator
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 
-_SWITCH = os.environ.get("SQUADS_SPANS", "")
-ENABLED = bool(_SWITCH)
+from squads._context import get_context
+
+_IMPORTED = time.perf_counter()
 
 
-def _origin() -> float:
-    if _SWITCH.startswith("t="):
+def _switch() -> str:
+    """The value of ``SQUADS_SPANS``, read when a span is asked for."""
+    return os.environ.get("SQUADS_SPANS", "")
+
+
+def _origin(switch: str) -> float:
+    served = get_context().served
+    if served is not None:
+        return served.arrived
+    if switch.startswith("t="):
         try:
-            return float(_SWITCH[2:])
+            return float(switch[2:])
         except ValueError:
             pass
-    return time.perf_counter()
-
-
-_ORIGIN = _origin()
+    return _IMPORTED
 
 
 @contextmanager
@@ -38,11 +45,20 @@ def _timed(name: str) -> Generator[None]:
 
 def span(name: str) -> AbstractContextManager[None]:
     """A context manager that reports how long its body took under *name*; free when off."""
-    return _timed(name) if ENABLED else nullcontext()
+    return _timed(name) if _switch() else nullcontext()
 
 
 def mark(name: str) -> None:
     """Report the time since the launcher's reading, or the module's import, under *name*."""
-    if not ENABLED:
+    switch = _switch()
+    if not switch:
         return
-    print(f"SQUADS_SPAN {name} {(time.perf_counter() - _ORIGIN) * 1000:.2f}", file=sys.stderr)
+    print(
+        f"SQUADS_SPAN {name} {(time.perf_counter() - _origin(switch)) * 1000:.2f}", file=sys.stderr
+    )
+
+
+def value(name: str, milliseconds: float) -> None:
+    """Report a duration measured elsewhere (the daemon's handler time) under *name*."""
+    if _switch():
+        print(f"SQUADS_SPAN {name} {milliseconds:.2f}", file=sys.stderr)

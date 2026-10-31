@@ -9,6 +9,7 @@ cannot be selected, and are reported even when the frontmatter is unreadable (ru
 """
 
 import dataclasses
+import os
 import re
 import unicodedata
 from collections.abc import Callable
@@ -24,6 +25,7 @@ from squads import _sections as sections
 from squads import _view_remedies as view_remedies
 from squads import _view_tags as view_tags
 from squads._backends._base import AgentBackend, BackendContext
+from squads._endpoint import DAEMON_ENV, daemon_override
 from squads._errors import InvalidIdError, SquadsError
 from squads._interactions._loader import (
     playbook_override_command_lines,
@@ -414,28 +416,29 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
-def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
-    """A subtask maps to one of its parent's declared stories."""
+def _subentity_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Each sub-entity of a mapping kind maps to a sub-entity of its parent's target kind."""
     item = ctx.item
     kind = ctx.spec.item_subentity_kind(item.type)
     ks = ctx.spec.subentity_kinds.get(kind) if kind is not None else None
-    if ks is None or not ks.maps_parent_story:
+    if ks is None or not ks.maps_to_parent:
         return []
-    refs = [(s.local_id, s.story) for s in item.subentities if s.story]
+    refs = [(s.local_id, s.maps_to) for s in item.subentities if s.maps_to]
     if not refs:
         return []
     parent = ctx.index.get(item.parent) if (ctx.index is not None and item.parent) else None
     required_parent = ctx.spec.item_parent_required(item.type)
     host = required_parent or "parent"
-    story_kind = ctx.spec.item_subentity_kind(host) or "story"
-    level = _resolved_level(ctx, "subtask_story_mapping")
+    target_kind = ctx.spec.mapping_target_kind(kind) if kind else None
+    target_kind = target_kind or host
+    level = _resolved_level(ctx, "subentity_mapping")
     if parent is None or (required_parent is not None and parent.type != required_parent):
         return [
             CheckIssue(
                 level,
                 item.id,
-                f"{kind} maps to a {story_kind} but the {item.type} has no {host} parent",
-                rule="subtask_story_mapping",
+                f"{kind} maps to {target_kind} sub-entities but {item.id} has no {host} parent",
+                rule="subentity_mapping",
             )
         ]
     known = {s.local_id for s in parent.subentities}
@@ -443,8 +446,8 @@ def _subtask_story_mapping(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             item.id,
-            f"{kind} {stn} → {us} missing from {parent.id}",
-            rule="subtask_story_mapping",
+            f"{kind} {stn} maps to {target_kind} {us}, missing from {parent.id}",
+            rule="subentity_mapping",
         )
         for stn, us in refs
         if us not in known
@@ -585,15 +588,15 @@ def _subentity_container_marker(ctx: ValidatorContext) -> list[CheckIssue]:
     if not stale:
         return []  # no container at all: `add-<kind>` writes one
     found = f"; the file carries {stale[0]!r}"
+    was = min(_block_kinds(item, ctx.raw_text) - {kind}, default=kind)
     level = _resolved_level(ctx, "subentity_container_marker")
     return [
         CheckIssue(
             level,
             item.id,
             f"no {plural!r} container section{found} — {kind!r} declares plural {plural!r}, "
-            f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here. Revert "
-            f"subentity_kinds.{kind}.plural in the workflow override, or change it only "
-            f"while no {item.type} items exist",
+            f"so `sq {item.type} {item.sequence_id} add-{kind}` cannot write here; "
+            f"`sq migrate rename-kind {was} {kind}` brings the file to the declared plural",
             rule="subentity_container_marker",
         )
     ]
@@ -621,6 +624,28 @@ def _subentity_body_written(ctx: ValidatorContext) -> list[CheckIssue]:
                 )
             )
     return issues
+
+
+def _subentity_title_present(ctx: ValidatorContext) -> list[CheckIssue]:
+    """A sub-entity with no title: the title is required on every write, so a file that carries an
+    empty one was written by hand or by an older release."""
+    item = ctx.item
+    kind = ctx.spec.item_subentity_kind(item.type)
+    if kind is None:
+        return []
+    level = _resolved_level(ctx, "subentity_title_present")
+    return [
+        CheckIssue(
+            level,
+            item.id,
+            f"{kind} {sub.local_id} has no title"
+            f" — set one with `sq {item.type} {item.sequence_id} {kind} {sub.local_id}"
+            ' update --title "…"`',
+            rule="subentity_title_present",
+        )
+        for sub in item.subentities
+        if not sub.title.strip()
+    ]
 
 
 def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
@@ -843,7 +868,10 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
     ``"supersedes"`` spelling."""
     item = ctx.item
     supersession_kinds = ctx.spec.supersession_ref_kinds()
-    if not any(rr.kind in supersession_kinds for rr in ctx.spec.item_ref_rules(item.type)):
+    declared = sorted(
+        {rr.kind for rr in ctx.spec.item_ref_rules(item.type) if rr.kind in supersession_kinds}
+    )
+    if not declared:
         return []
     if (
         ctx.spec.status_role(item.status) == "superseded"
@@ -854,7 +882,7 @@ def _supersedes_incoming(ctx: ValidatorContext) -> list[CheckIssue]:
             CheckIssue(
                 level,
                 item.id,
-                f"status is {item.status} but no incoming supersedes edge found",
+                f"status is {item.status} but no incoming {'/'.join(declared)} edge found",
                 rule="supersedes_incoming",
             )
         ]
@@ -906,7 +934,7 @@ def _ref_rule_target_present(ctx: ValidatorContext) -> list[CheckIssue]:
         CheckIssue(
             level,
             item.id,
-            f"settled with no {'/'.join(kinds)} ref to a {'/'.join(sorted(active))} — its "
+            f"settled with no {'/'.join(kinds)} ref to {'/'.join(sorted(active))} — its "
             "functional contract slice may be stale",
             rule="ref_rule_target_present",
         )
@@ -938,8 +966,8 @@ def _ref_rule_target_typed(ctx: ValidatorContext) -> list[CheckIssue]:
             CheckIssue(
                 level,
                 item.id,
-                f"{kind} edge to {rid} points at a {target_item.type}, but a {item.type}'s "
-                f"{kind} refs must point at a {'/'.join(sorted(targets))}",
+                f"{kind} edge to {rid} points at {target_item.type}, but {kind} refs of "
+                f"{item.type} must point at {'/'.join(sorted(targets))}",
                 rule="ref_rule_target_typed",
             )
         )
@@ -1060,22 +1088,110 @@ def _pronouns_valid(ctx: ValidatorContext) -> list[CheckIssue]:
 
 
 def _frontmatter_key_undeclared(ctx: ValidatorContext) -> list[CheckIssue]:
-    """Every attribute no declaration on the item's type names, to catch a typo. Selected per
-    project; it reports and never rewrites."""
-    declared = set(ctx.spec.item_attributes(ctx.item.type)) | {
-        f.code for f in ctx.spec.fields_for(ctx.item.type)
+    """Every key no declaration names, on the item and on each of its sub-entity entries, to catch
+    a typo or a field the spec no longer declares. Selected per project; it reports and never
+    rewrites."""
+    item = ctx.item
+    declared = set(ctx.spec.item_attributes(item.type)) | {
+        f.code for f in ctx.spec.fields_for(item.type)
     }
     level = _resolved_level(ctx, "frontmatter_key_undeclared")
-    return [
+
+    def remedy(key: str, scope: str) -> str:
+        command = f"sq migrate rename-field {key} <new>" + (f" {scope}" if scope else "")
+        return f"; `{command}` moves its value to a declared key"
+
+    issues = [
         CheckIssue(
             level,
-            ctx.item.id,
-            f"frontmatter key {key!r} is not declared on {ctx.item.type}",
+            item.id,
+            f"frontmatter key {key!r} is not declared on {item.type}"
+            + remedy(key, f"--type {item.type}"),
             rule="frontmatter_key_undeclared",
         )
-        for key in ctx.item.attributes
+        for key in item.attributes
         if key not in declared
     ]
+    kind = ctx.spec.item_subentity_kind(item.type)
+    entry_declared: set[str] = {f.code for f in ctx.spec.fields_for(kind)} if kind else set()
+    where = f"declared on {kind}" if kind else f"declared: {item.type} hosts no sub-entity kind"
+    issues += [
+        CheckIssue(
+            level,
+            item.id,
+            f"frontmatter key {key!r} on {entry.local_id} is not {where}"
+            + remedy(key, f"--kind {kind}" if kind else ""),
+            rule="frontmatter_key_undeclared",
+        )
+        for entry in item.subentities
+        for key in entry.attributes
+        if key not in entry_declared
+    ]
+    return issues
+
+
+def _block_kinds(item: Item, text: str) -> set[str]:
+    """The kind names the block markers of *item*'s entries carry in *text*."""
+    tags = [t.removeprefix(markers.PREFIX) for t, _, _ in sections.iter_marker_spans(text)]
+    return {
+        found.group(1)
+        for entry in item.subentities
+        for tag in tags
+        if (found := re.fullmatch(rf"([\w-]+):{re.escape(entry.local_id)}", tag))
+    }
+
+
+def _subentity_kind_mismatch(ctx: ValidatorContext) -> list[CheckIssue]:
+    """Every stored spelling of the item's sub-entity kind that is not the declared one: a block
+    marker's kind tag, the container marker, a local id's prefix and a mapping's prefix. Each
+    finding names the verb that brings the item to the declaration."""
+    item, spec, text = ctx.item, ctx.spec, ctx.raw_text
+    kind = spec.item_subentity_kind(item.type)
+    if kind is None or text is None:
+        return []
+    level = _resolved_level(ctx, "subentity_kind_mismatch")
+    prefix, plural = spec.subentity_kinds[kind].local_prefix, spec.subentity_plural(kind)
+    block_kinds = _block_kinds(item, text)
+    old = min(block_kinds - {kind}, default=kind)
+
+    def issue(message: str, was: str, now: str) -> CheckIssue:
+        return CheckIssue(
+            level,
+            item.id,
+            f"{message}; `sq migrate rename-kind {was} {now}` brings it to the declaration",
+            rule="subentity_kind_mismatch",
+        )
+
+    issues = [
+        issue(f"block marker of {e.local_id} carries kind {name!r}, not {kind!r}", name, kind)
+        for e in item.subentities
+        for name in sorted(block_kinds - {kind})
+        if markers.open_marker(f"{name}:{e.local_id}") in text
+    ]
+    if markers.open_marker(plural) not in text:
+        issues += [
+            issue(f"container marker {tag!r} is not {plural!r}", old, kind)
+            for tag in discussion.stale_container_tags(text, plural)
+        ]
+    issues += [
+        issue(f"{e.local_id} does not start with prefix {prefix!r} of kind {kind!r}", old, kind)
+        for e in item.subentities
+        if not re.fullmatch(rf"{re.escape(prefix)}\d+", e.local_id)
+    ]
+    target = spec.mapping_target_kind(kind)
+    if target is not None:
+        target_prefix = spec.subentity_kinds[target].local_prefix
+        issues += [
+            issue(
+                f"{e.local_id} maps to {e.maps_to}, which does not start with prefix "
+                f"{target_prefix!r} of kind {target!r}",
+                target,
+                target,
+            )
+            for e in item.subentities
+            if e.maps_to and not re.fullmatch(rf"{re.escape(target_prefix)}\d+", e.maps_to)
+        ]
+    return issues
 
 
 #: The closed per-item validator catalog — a CODE/definition constant, immutable and shared
@@ -1090,10 +1206,11 @@ CATALOG: dict[str, Validator] = {
     "dangling_ref": _dangling_ref,
     "ref_kind_valid": _ref_kind_valid,
     "agent_registered": _agent_registered,
-    "subtask_story_mapping": _subtask_story_mapping,
+    "subentity_mapping": _subentity_mapping,
     "subentity_status_valid": _subentity_status_valid,
     "subentity_container_marker": _subentity_container_marker,
     "subentity_body_written": _subentity_body_written,
+    "subentity_title_present": _subentity_title_present,
     "subentity_title_max": _subentity_title_max,
     "subentity_deferral_resolved": _subentity_deferral_resolved,
     "subentities_settled_with_parent": _subentities_settled_with_parent,
@@ -1111,6 +1228,7 @@ CATALOG: dict[str, Validator] = {
     "external_id_not_in_title": _external_id_not_in_title,
     "attribute_valid": _attribute_valid,
     "frontmatter_key_undeclared": _frontmatter_key_undeclared,
+    "subentity_kind_mismatch": _subentity_kind_mismatch,
     "pronouns_valid": _pronouns_valid,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
@@ -1128,6 +1246,7 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
     "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
     "attribute_valid": frozenset({ContextRequirement.RAW_TEXT}),
+    "subentity_kind_mismatch": frozenset({ContextRequirement.RAW_TEXT}),
     "pronouns_valid": frozenset({ContextRequirement.RAW_TEXT}),
 }
 assert set(VALIDATOR_CONTEXT) <= set(CATALOG), (
@@ -1501,6 +1620,25 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
         )
         for problem in ctx.paths.config.display_problems
     ]
+
+
+def _daemon_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each part of the ``[daemon]`` table in ``.squads.toml`` that is not usable (an unknown key,
+    a value of the wrong kind, a non-table) and an unusable ``SQUADS_DAEMON``; each finding says
+    what the squad does meanwhile. It names the config file, or the variable.
+
+    ``SQUADS_DAEMON`` is the environment of the process running the check: the caller's in local
+    mode, the daemon's in remote mode, and a daemon refuses to start with an unusable value, so
+    the finding is never about a different process than the one that reported it."""
+    level = squad_global_level(ctx.spec, "daemon_config_valid")
+    issues = [
+        CheckIssue(level, CONFIG_FILENAME, problem, rule="daemon_config_valid")
+        for problem in ctx.paths.config.daemon_problems
+    ]
+    _, env_problem = daemon_override(os.environ)
+    if env_problem is not None:
+        issues.append(CheckIssue(level, DAEMON_ENV, env_problem, rule="daemon_config_valid"))
+    return issues
 
 
 def _working_language_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
@@ -2002,6 +2140,7 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "role_definition_shadowed": _role_definition_shadowed,
     "playbook_guide_role_live": _playbook_guide_role_live,
     "display_config_valid": _display_config_valid,
+    "daemon_config_valid": _daemon_config_valid,
     "working_language_valid": _working_language_valid,
     "view_transform_resolves": _view_transform_resolves,
     "type_has_live_author": _type_has_live_author,

@@ -34,7 +34,6 @@ class GraphNode(DTO):
     id: str
     type: str
     status: str
-    priority: str | None
     badges: dict[str, str]
     assignee: str | None
     edge_kind: str | None

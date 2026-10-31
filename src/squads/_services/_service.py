@@ -5,18 +5,25 @@
 concern mixin under ``_services/``.
 """
 
-from collections.abc import Callable, Sequence
+import asyncio
+import contextvars
+import time
+from collections.abc import Awaitable, Callable, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
-from squads import _aio
+from squads import _aio, _clock
 from squads._api._api import Mode
+from squads._api._http import RequestMetadata
 from squads._backends._base import AgentBackend
 from squads._backends._registry import get_backend
+from squads._context import NoticeLog, Preconditions, RequestContext, bind_context
 from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsError
 from squads._index._store import IndexStore
 from squads._language import DEFAULT_WORKING_LANGUAGE
 from squads._models._config import CONFIG_FILENAME, SquadsConfig
+from squads._parse_cache import ParseCache
 from squads._paths import SquadPaths, load_config, process_dir
 from squads._roles._catalog import resolve_roles
 from squads._services._board import BoardMixin
@@ -340,6 +347,139 @@ def _compose_first_of(
     return _compose(paths, rungs[-1], resolved_spec, sources, refusal=refusal)
 
 
+@dataclass(frozen=True)
+class Answered[T]:
+    """What a request scope hands back: the handler's value, the ETag of the item it addressed
+    (``None`` when it addressed none or removed it) and the handler's own run time in
+    milliseconds, which excludes the time the request spent waiting its turn."""
+
+    value: T
+    etag: str | None
+    handler_ms: float
+
+
+class RequestScope:
+    """The daemon's scope for one request: it runs a handler in a fresh ``contextvars.Context`` on
+    a ``RequestContext`` bound from the request's headers and the documents loaded at start-up,
+    one request at a time, in arrival order. It redirects no stream, sets no environment
+    variable, builds no console and reads neither the process's directory nor its environment for
+    a value a header carries."""
+
+    def __init__(
+        self,
+        root: Path,
+        squad_dir: Path,
+        sources: SpecSources,
+        parse_cache: ParseCache | None = None,
+    ) -> None:
+        self._root = root
+        self._parse_cache = parse_cache
+        self._squad_dir = squad_dir
+        self._lock = asyncio.Lock()
+        self._spec: WorkflowSpec | None = None
+        self._startup_refusal: str | None = None
+        try:
+            self._spec = sources.workflow()
+        except (SquadsError, OSError, ValueError) as exc:  # fmt: skip
+            self._startup_refusal = spec_refusal(squad_dir / WORKFLOW_OVERRIDE_FILENAME, exc)
+
+    def _spec_refusal(self) -> str | None:
+        """The refusal a workflow override that fails its check against the live index is read
+        with, as the CLI's root callback finds it; ``None`` when there is none."""
+        if self._startup_refusal is not None or self._spec is None:
+            return self._startup_refusal
+        override = self._squad_dir / WORKFLOW_OVERRIDE_FILENAME
+        if not override_present(override):
+            return None
+        try:
+            validate_against_index_fail_closed(
+                self._spec, self._squad_dir, bundled=bundled_spec(), cache=self._parse_cache
+            )
+        except Exception as exc:  # any failure of the check is the refusal's text
+            return spec_refusal(override, exc)
+        return None
+
+    def _context(self, meta: RequestMetadata, *, conditional: bool) -> RequestContext:
+        """The context for a request declaring *meta*; *conditional* says whether its
+        ``If-Match`` is compared."""
+        at = None
+        if meta.at is not None:
+            try:
+                at = _clock.parse_iso(meta.at)
+            except ValueError:
+                raise SquadsError(
+                    f"invalid Squads-At timestamp {meta.at!r} "
+                    "(use ISO 8601, e.g. 2024-01-15 or 2024-01-15T09:30:00Z)"
+                ) from None
+        start = self._root
+        if meta.client_dir is not None:
+            start = Path(meta.client_dir)
+            if not start.is_absolute():
+                raise SquadsError(f"Squads-Client-Dir must be an absolute path, got {start}")
+        return RequestContext(
+            clock_override=at,
+            actor_override=meta.actor,
+            session_id=meta.session_id,
+            parent_session_id=meta.parent_session_id,
+            active_spec=self._spec,
+            client_cwd=self._root,
+            spec_error=self._spec_refusal(),
+            start_dir=start,
+            notices=NoticeLog(),
+            preconditions=Preconditions(meta.if_match if conditional else None),
+            parse_cache=self._parse_cache,
+        )
+
+    def command_context(self, start_dir: Path) -> RequestContext:
+        """The context a CLI command run for a client starts from: the daemon's squad and spec,
+        paths spelled from *start_dir*, and the preconditions of no request."""
+        return RequestContext(
+            active_spec=self._spec,
+            client_cwd=self._root,
+            spec_error=self._spec_refusal(),
+            start_dir=start_dir,
+            parse_cache=self._parse_cache,
+        )
+
+    async def _bound[T](
+        self,
+        meta: RequestMetadata,
+        call: Callable[[], Awaitable[T]],
+        conditional: bool,
+        context: Callable[[], RequestContext] | None,
+    ) -> Answered[T]:
+        ctx = context() if context is not None else self._context(meta, conditional=conditional)
+        bind_context(ctx)
+        started = time.perf_counter()
+        value = await call()
+        elapsed = (time.perf_counter() - started) * 1000
+        return Answered(value, ctx.preconditions.etag if ctx.preconditions else None, elapsed)
+
+    async def run[T](
+        self,
+        meta: RequestMetadata,
+        call: Callable[[], Awaitable[T]],
+        *,
+        conditional: bool = False,
+        gate: Callable[[], None] | None = None,
+        context: Callable[[], RequestContext] | None = None,
+    ) -> Answered[T]:
+        """Run *call* in the scope of a request declaring *meta*, or of the context *context*
+        builds when its turn comes. *gate* runs when the request's turn comes, after the lock is
+        taken and before anything else, and may refuse it by raising. The call runs to completion
+        once it has started, even if the caller stops waiting."""
+
+        async def serial() -> Answered[T]:
+            async with self._lock:
+                if gate is not None:
+                    gate()
+                return await asyncio.create_task(
+                    self._bound(meta, call, conditional, context), context=contextvars.Context()
+                )
+
+        return await asyncio.shield(asyncio.ensure_future(serial()))
+
+
 def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
     """The spec ``init``/``adopt`` scaffold against: the squad's, from *sources*. A pre-placed
     override is validated here, before anything is written, as ``compose_service`` will load it
@@ -349,6 +489,35 @@ def _init_time_spec(sources: SpecSources) -> WorkflowSpec:
         return sources.workflow()
     except SquadsError as exc:
         raise SquadsError(f"{exc} — run `sq workflow lint` to see details") from exc
+
+
+def _is_rooted(path: str) -> bool:
+    """Whether *path* names a root, on any platform: an absolute path, a leading separator or a
+    drive, so the refusal reads the same wherever the command runs."""
+    windows = PureWindowsPath(path)
+    return PurePosixPath(path).is_absolute() or bool(windows.root or windows.drive)
+
+
+def _checked_squad_dir(root: Path, squad_dir: str) -> str:
+    """*squad_dir* when it is a non-empty relative folder that stays inside *root*, else a
+    refusal: it is checked before init or adopt writes anything."""
+    if not squad_dir.strip():
+        raise SquadsError("--squad-dir must name a folder, not an empty value")
+    if _is_rooted(squad_dir):
+        raise SquadsError(f"--squad-dir must be relative to the project root, got {squad_dir!r}")
+    if not (root / squad_dir).resolve().is_relative_to(root):
+        raise SquadsError(f"--squad-dir must stay inside the project root, got {squad_dir!r}")
+    return squad_dir
+
+
+def _checked_backends(names: list[str]) -> None:
+    """Refuse an unknown backend name before init or adopt writes anything."""
+    for name in names:
+        get_backend(name)
+
+
+#: What a refusal over files sharing a number says to run: it needs no configuration.
+ADOPT_RENUMBER_REMEDY = "run `sq adopt --renumber` to give one of them a new number and adopt"
 
 
 async def init(
@@ -373,6 +542,8 @@ async def init(
     config_path = root / CONFIG_FILENAME
     if await _aio.path_exists(config_path) and not force:
         raise AlreadyInitializedError(f"{config_path} already exists (use --force to overwrite)")
+    squad_dir = _checked_squad_dir(root, squad_dir)
+    _checked_backends(backend or [])
 
     # Validate a pre-placed override before any state is written, so a bad one means init never
     # starts rather than leaving a half-created squad.
@@ -388,10 +559,21 @@ async def init(
         init_names=effective_names,
         working_language=DEFAULT_WORKING_LANGUAGE,
     )
+    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
+    if _holds_item_files(sp, effective_spec):
+        # The rebuild below would refuse a corpus whose files share a number; say so before
+        # anything is written, so the corrected corpus can be initialised afresh.
+        # `sq repair` needs a configuration this folder lacks, so the remedy named is adopt's.
+        await compose_service(
+            sp, resolved_spec=effective_spec, sources=sources
+        ).refuse_shared_numbers(
+            ADOPT_RENUMBER_REMEDY,
+            same_id=True,
+            merge_then="sq repair" if await _aio.path_exists(config_path) else "sq adopt",
+        )
     await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
-    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
     for ts in effective_spec.items.values():
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
@@ -442,6 +624,7 @@ async def adopt(
     backend: list[str] | None = None,
     roles_spec: str = "all",
     no_claude: bool = False,
+    renumber: bool = False,
 ) -> AdoptResult:
     """Bring an existing squad-structured folder under sq management without destroying anything: it
     imports the squads-native ``.md`` files already present (through :meth:`Service.repair`, so it
@@ -455,6 +638,9 @@ async def adopt(
     existing = load_config(config_path) if await _aio.path_exists(config_path) else None
     if existing is not None:
         squad_dir = existing.squad_dir
+    else:
+        squad_dir = _checked_squad_dir(root, squad_dir)
+        _checked_backends(backend or [])
     sources = spec_sources(root / squad_dir)
     role_defs = resolve_roles(roles_spec, sources.catalog()) if roles_spec else []
     if existing is not None:
@@ -470,12 +656,24 @@ async def adopt(
             active_backends=effective_backends,
             working_language=DEFAULT_WORKING_LANGUAGE,
         )
+    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
+    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sources)
+    if _holds_item_files(sp, effective_spec):
+        # Refused before anything is written, as in init(); --renumber resolves what it can in
+        # one step, so only the groups it cannot resolve are refused then.
+        await compose_service(
+            sp, resolved_spec=effective_spec, sources=sources
+        ).refuse_shared_numbers(
+            ADOPT_RENUMBER_REMEDY,
+            same_id=True,
+            renumbering=renumber,
+            merge_then="sq repair" if existing is not None else "sq adopt",
+        )
+    if existing is None:
         await _aio.atomic_write_text(config_path, config.to_toml())
     await ensure_root_tmp_ignored(root)
 
-    sp = SquadPaths(root=root, squad_dir=root / squad_dir, config=config)
     await _aio.mkdir(sp.squad_dir, parents=True, exist_ok=True)
-    effective_spec = validated_spec if validated_spec is not None else _init_time_spec(sources)
     for ts in effective_spec.items.values():
         await _aio.mkdir(sp.squad_dir / ts.folder, parents=True, exist_ok=True)
     gitignore = sp.squad_dir / ".gitignore"
@@ -488,7 +686,7 @@ async def adopt(
 
     svc = compose_service(sp, resolved_spec=effective_spec, sources=sources)
     # Import any existing squads-native .md files (sets counter from them).
-    repair_result = await svc.repair()
+    repair_result = await svc.repair(renumber=renumber)
     existing_roles = {it.slug for it in repair_result.db.items.values() if it.type == ROSTER_ROLE}
 
     if not no_claude:

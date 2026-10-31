@@ -25,7 +25,6 @@ class ItemCreateRequest(DTO):
     labels: list[str] = Field(default_factory=list[str])
     refs: list[str] = Field(default_factory=list[str])
     assignee: str | None = None
-    priority: str | None = None
     fields: dict[str, str] = Field(default_factory=dict[str, str])
     attributes: dict[str, str | list[str]] = Field(default_factory=dict[str, str | list[str]])
     body: str | None = None
@@ -50,7 +49,8 @@ class ItemCreated(ItemRow):
 
 class ItemUpdateRequest(ItemAddress):
     """Change the fields given; a ``clear_*`` flag empties its field, ``set_attributes`` holds
-    ``key: value`` pairs and ``force`` makes a status transition the lifecycle does not allow."""
+    ``key: value`` pairs (a badge field by its code among them), ``unset_attributes`` the keys to
+    remove and ``force`` makes a status transition the lifecycle does not allow."""
 
     title: str | None = None
     description: str | None = None
@@ -61,8 +61,6 @@ class ItemUpdateRequest(ItemAddress):
     clear_parent: bool = False
     assignee: str | None = None
     clear_assignee: bool = False
-    priority: str | None = None
-    clear_priority: bool = False
     add_labels: list[str] = Field(default_factory=list[str])
     rm_labels: list[str] = Field(default_factory=list[str])
     set_attributes: dict[str, str] = Field(default_factory=dict[str, str])
@@ -168,12 +166,13 @@ class ItemViewChanged(ItemWritten):
 
 class SubentityAddRequest(ItemAddress):
     """Add a sub-entity of *kind* to the item; *fields* holds the badge codes given by field code,
-    *story* the parent story's local id and *deferred_to* the item carrying deferred work."""
+    *maps_to* the local id of the sub-entity it maps to and *deferred_to* the item carrying
+    deferred work."""
 
     kind: str
-    title: str = ""
+    title: str
     fields: dict[str, str] = Field(default_factory=dict[str, str])
-    story: str | None = None
+    maps_to: str | None = None
     assignee: str | None = None
     status: str | None = None
     deferred_to: str | None = None
@@ -208,12 +207,14 @@ class SubentityAdded(DTO):
 
 
 class SubentityUpdateRequest(SubentityRequest):
-    """Change the sub-entity's fields given; ``fields`` holds badge codes by field code."""
+    """Change the sub-entity's fields given; ``fields`` holds badge codes by field code and
+    ``unset_fields`` the codes of the fields to clear."""
 
     title: str | None = None
     fields: dict[str, str] = Field(default_factory=dict[str, str])
-    story: str | None = None
-    clear_story: bool = False
+    unset_fields: list[str] = Field(default_factory=list[str])
+    maps_to: str | None = None
+    clear_maps_to: bool = False
     assignee: str | None = None
     clear_assignee: bool = False
     status: str | None = None

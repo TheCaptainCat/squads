@@ -3,7 +3,7 @@ the columns its table shows."""
 
 import math
 
-from squads._api._dto._display import Column
+from squads._api._dto._display import Column, titled_columns
 from squads._api._dto._workflow import (
     AttributeEntry,
     CollectionBadge,
@@ -81,12 +81,13 @@ def subentity_kind_catalog(spec: WorkflowSpec) -> SubentityKindCatalog:
     rows = [
         SubentityKindRow(
             subentity_kind=kind,
+            label=spec.kind_label(kind),
             lifecycle=ks.lifecycle,
             plural=ks.plural,
             local_prefix=ks.local_prefix,
             container_heading=spec.subentity_container_heading(kind),
             completion=ks.completion,
-            maps_parent_story=ks.maps_parent_story,
+            maps_to_parent=ks.maps_to_parent,
             fields=_fields(kind, spec),
         )
         for kind, ks in sorted(spec.subentity_kinds.items())
@@ -180,15 +181,7 @@ def role_catalog(spec: WorkflowSpec) -> StatusRoleCatalog:
         )
         for name, r in sorted(spec.roles.items())
     ]
-    columns = _columns(
-        ("role", "Role"),
-        ("settled", "Settled"),
-        ("hidden", "Hidden"),
-        ("color", "Color"),
-        ("live", "Live"),
-        ("blocked", "Blocked"),
-        ("deferred", "Deferred"),
-    )
+    columns = titled_columns("role", "settled", "hidden", "color", "live", "blocked", "deferred")
     return StatusRoleCatalog(items=rows, columns=columns)
 
 

@@ -8,7 +8,7 @@ from squads._api._dto._squad import AdoptReport, AdoptRequest, InitReport, InitR
 from squads._api._response import Response
 from squads._context import get_context
 from squads._paths import process_dir
-from squads._services._corpus_ops import unreadable_lines
+from squads._services._corpus_ops import left_references, moved_files, unreadable_lines
 from squads._services._service import adopt, init
 from squads._spec_documents import SpecSources
 
@@ -52,6 +52,7 @@ async def adopt_squad(
         backend=req.backends,
         roles_spec=req.roles,
         no_claude=req.no_claude,
+        renumber=req.renumber,
     )
     return Response(
         data=AdoptReport(
@@ -60,6 +61,8 @@ async def adopt_squad(
             roles=[r.slug for r in result.roles],
             notice=result.repair.strip_notice(),
             unreadable=unreadable_lines(result.repair.unreadable),
+            renumbered=moved_files(result.repair.renumbered),
+            references=left_references(result.repair.references),
             warnings=list(result.warnings),
         )
     )

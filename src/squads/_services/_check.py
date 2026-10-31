@@ -868,7 +868,7 @@ class CheckMixin(ServiceCore):
         # Resolved once for the whole scan, before the per-file loop and its own per-file
         # SquadsError handling below — for the same reason as `_rebuild_index_from_disk`.
         default_kind = self.spec.default_ref_kind()
-        for item_type, md in self._iter_item_files():
+        for item_type, md in self._iter_item_files(reads_frontmatter=True):
             record = await read_corpus_file(
                 item_type, md, self.spec, read=lambda path: self._scan_text(path, ctx.skills)
             )

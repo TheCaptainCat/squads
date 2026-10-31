@@ -1,9 +1,16 @@
 """The item DTOs: the addressed and listing requests, an item's row, its full show, and a
 listing."""
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
-from pydantic import ConfigDict, Field, JsonValue, SerializerFunctionWrapHandler, model_serializer
+from pydantic import (
+    ConfigDict,
+    Field,
+    JsonValue,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from squads._api._dto._base import DTO
 from squads._api._dto._display import AttributeDisplay, Column, Display
@@ -58,32 +65,79 @@ class Comment(DTO):
     body: str
 
 
+class KindDisplay(DTO):
+    """How a sub-entity kind is named: its code, its label, its plural and the heading above its
+    container in the item's body."""
+
+    name: str
+    label: str
+    plural: str
+    heading: str
+
+
 class SubentityDisplay(Display):
-    """How a sub-entity is shown: the mapped story when its kind shows one, and the title of
+    """How a sub-entity is shown: the sub-entity it maps to when its kind maps, and the title of
     the item that carries its deferred work."""
 
-    story: str | None
+    maps_to: str | None
+    maps_to_kind: KindDisplay | None
     carrier_title: str | None
 
 
-class SubentityRow(DTO):
-    """A sub-entity's stored state."""
+class _TrailingKeys(DTO):
+    """Serializes the keys a command adds after the stored attributes; a key named in
+    ``OMITTED_WHEN_NONE`` is left out while it holds ``None``."""
+
+    TRAILING: ClassVar[tuple[str, ...]] = ()
+    OMITTED_WHEN_NONE: ClassVar[tuple[str, ...]] = ()
+
+    @model_serializer(mode="wrap")
+    def _ordered(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        dumped: dict[str, Any] = handler(self)
+        ordered = {k: v for k, v in dumped.items() if k not in self.TRAILING}
+        ordered.update((k, dumped[k]) for k in self.TRAILING if k in dumped)
+        for key in self.OMITTED_WHEN_NONE:
+            if ordered.get(key, 0) is None:
+                del ordered[key]
+        return ordered
+
+
+class SubentityRow(_TrailingKeys):
+    """A sub-entity's stored state: its core keys, each stored attribute flat, then the keys a
+    surface adds, with its badges by field code."""
+
+    TRAILING: ClassVar[tuple[str, ...]] = ("body", "badges", "discussion", "display")
+
+    model_config = ConfigDict(extra="allow")
 
     local_id: str
     title: str
     status: str
     assignee: str | None
-    severity: str | None
-    story: str | None
-    deferred_to: str | None
-    extra: dict[str, JsonValue]
+    maps_to: str | None = None
+    deferred_to: str | None = None
+    badges: dict[str, str]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_attributes(cls, data: Any) -> Any:
+        """Lift a stored entry's ``attributes`` to the top level beside its core keys."""
+        if not isinstance(data, dict):
+            return data
+        stored = cast("dict[str, Any]", data)
+        held = stored.get("attributes")
+        if not isinstance(held, dict):
+            return stored
+        flat = {k: v for k, v in stored.items() if k != "attributes"}
+        for key, value in cast("dict[str, Any]", held).items():
+            flat.setdefault(key, value)
+        return flat
 
 
 class Subentity(SubentityRow):
     """A sub-entity with its body, badges, discussion and display."""
 
     body: str
-    badges: dict[str, str]
     discussion: list[Comment]
     display: SubentityDisplay
 
@@ -106,24 +160,6 @@ class ItemShowDisplay(Display):
     attributes: list[AttributeDisplay]
 
 
-class _TrailingKeys(DTO):
-    """Serializes the keys a command adds after the item's stored attributes; a key named in
-    ``OMITTED_WHEN_NONE`` is left out while it holds ``None``."""
-
-    TRAILING: ClassVar[tuple[str, ...]] = ()
-    OMITTED_WHEN_NONE: ClassVar[tuple[str, ...]] = ()
-
-    @model_serializer(mode="wrap")
-    def _ordered(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
-        dumped: dict[str, Any] = handler(self)
-        ordered = {k: v for k, v in dumped.items() if k not in self.TRAILING}
-        ordered.update((k, dumped[k]) for k in self.TRAILING if k in dumped)
-        for key in self.OMITTED_WHEN_NONE:
-            if ordered.get(key, 0) is None:
-                del ordered[key]
-        return ordered
-
-
 class ItemFields(_TrailingKeys):
     """An item's fields, with each stored attribute flat at the top level; a row adds its own
     keys after them."""
@@ -139,8 +175,6 @@ class ItemFields(_TrailingKeys):
     parent: str | None
     author: str | None
     assignee: str | None
-    priority: str | None
-    severity: str | None
     labels: list[str]
     refs: list[str]
     subentities: list[SubentityRow]
@@ -173,6 +207,7 @@ class ItemShow(ItemRow):
         "discussion",
         "badges",
         "display",
+        "etag",
     )
 
     subentities: list[Subentity | SubentityRow]  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -180,6 +215,8 @@ class ItemShow(ItemRow):
     views: dict[str, JsonValue]
     discussion: list[Comment]
     display: ItemShowDisplay  # pyright: ignore[reportIncompatibleVariableOverride]
+    #: The strong ETag of the item's file as the show read it; provisional.
+    etag: str
 
 
 class ItemList(DTO):

@@ -14,6 +14,7 @@ from squads._models._item import Item
 from squads._models._omission import Omission
 from squads._models._subentity import SubEntity
 from squads._paths import SquadPaths, number_for_id
+from squads._services._duplicate_ids import LeftReference, MovedFile
 from squads._services._retirement import Severance
 
 #: What a tree surface prints beside a root it invented for a parent cycle (see
@@ -50,8 +51,6 @@ class GraphNode:
     id: str
     type: str
     status: str  # spec-defined status name
-    priority: str | None  # the priority badge code, or None; ``badges`` below is the generic
-    #: map, since a type on a different or renamed badge axis leaves ``priority`` null.
     assignee: str | None
     edge_kind: str | None  # None for root; the stored kind's spelling for all other nodes
     # (declared or not — an undeclared kind still traverses, see edge_semantic below)
@@ -59,9 +58,7 @@ class GraphNode:
     direction: str | None  # "out" | "in" | None (None for root)
     seen: bool
     badges: dict[str, str] = field(default_factory=lambda: dict[str, str]())
-    """Every spec-declared badge field this node's type carries, keyed by field code (e.g.
-    ``{"priority": "high"}``, or ``{"impact": "high", "urgency": "low"}`` for a custom axis) —
-    generic over the type's actual vocabulary, unlike the fixed ``priority`` attribute above."""
+    """Every spec-declared badge field this node's type carries, keyed by field code."""
     children: list[GraphNode] = field(default_factory=lambda: list[GraphNode]())
 
 
@@ -176,6 +173,21 @@ class RenameResult:
 
 
 @dataclass(frozen=True)
+class RenameFieldResult:
+    """Outcome of ``Service.rename_field()``."""
+
+    items: int  # items whose own key moved
+    entries: int  # sub-entity entries whose key moved
+
+
+@dataclass(frozen=True)
+class RenameKindResult:
+    """Outcome of ``Service.rename_kind()``."""
+
+    items: int  # items whose file or entries were rewritten
+
+
+@dataclass(frozen=True)
 class RemoveResult:
     """Outcome of ``Service.remove_work_item()``.
 
@@ -216,8 +228,13 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
-    renumber_report: list[str] = field(default_factory=list[str])
-    references_left: bool = False
+    renumbered: list[MovedFile] = field(default_factory=list[MovedFile])
+    references: list[LeftReference] = field(default_factory=list[LeftReference])
+
+    @property
+    def references_left(self) -> bool:
+        """Whether a renumber left references to an old id for a hand check."""
+        return bool(self.references)
 
     def strip_notice(self) -> str | None:
         """This sweep's announcement — see :func:`strip_notice`, the shared constructor."""

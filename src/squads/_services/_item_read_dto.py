@@ -5,7 +5,7 @@ from collections.abc import Mapping
 
 from squads import _badges as badges
 from squads import _discussion as discussion
-from squads._api._dto._display import Column
+from squads._api._dto._display import Column, titled_columns
 from squads._api._dto._graph import GraphNode, GraphNodeDisplay
 from squads._api._dto._items import SubentitySummary
 from squads._api._dto._queues import (
@@ -21,31 +21,33 @@ from squads._api._dto._queues import (
 )
 from squads._api._dto._refs import RefDisplay, RefEntry
 from squads._api._dto._search import SearchHit, SearchMatch
-from squads._api._dto._subentities import KindDisplay, SubentityEntry
+from squads._api._dto._subentities import SubentityEntry
 from squads._api._dto._tree import TreeNode, TreeNodeDisplay
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._models._vocab import label_for
 from squads._services import _results as results
 from squads._services._item_dto import (
-    LIST_COLUMNS,
     badge_displays,
     item_display,
+    list_columns,
+    row_fields,
     status_display,
     subentity_display,
 )
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
 
-#: The columns of the ``mine`` table: the listing's, then the sub-entities that match.
-MINE_COLUMNS: tuple[Column, ...] = (*LIST_COLUMNS, Column(key="display.matched", header="Matched"))
+
+def mine_columns(spec: WorkflowSpec) -> list[Column]:
+    """The columns of the ``mine`` table: the listing's, then the sub-entities that match."""
+    return [*list_columns(spec), Column(key="display.matched", header="Matched")]
+
 
 #: The columns of the ``workload`` table.
 WORKLOAD_COLUMNS: tuple[Column, ...] = (
     Column(key="display.assignee", header="Assignee"),
-    Column(key="open", header="Open"),
-    Column(key="closed", header="Closed"),
-    Column(key="total", header="Total"),
+    *titled_columns("open", "closed", "total"),
     Column(key="subentity_open", header="Sub Open"),
     Column(key="subentity_closed", header="Sub Closed"),
     Column(key="subentity_total", header="Sub Total"),
@@ -78,7 +80,6 @@ def tree_node(
         type=it.type,
         title=it.title,
         status=it.status,
-        priority=it.priority,
         assignee=it.assignee,
         blocked=it.id in blocked_ids,
         badges=badges.resolve_badges(spec, it.type, it.badge_value),
@@ -133,7 +134,6 @@ def graph_node(node: results.GraphNode, spec: WorkflowSpec, names: Mapping[str, 
         id=node.id,
         type=node.type,
         status=node.status,
-        priority=node.priority,
         badges=node.badges,
         assignee=node.assignee,
         edge_kind=node.edge_kind,
@@ -190,7 +190,7 @@ def mine_row(row: results.MineRow, spec: WorkflowSpec, names: Mapping[str, str])
     )
     return MineRow.model_validate(
         {
-            **row.item.to_row(),
+            **row_fields(row.item, spec),
             "matched_subentities": [
                 MatchedSubentity(local_id=s.local_id, kind=kind, title=s.title, status=s.status)
                 for s in subs
@@ -233,16 +233,6 @@ def ref_entry(item_id: str, kind: str, spec: WorkflowSpec) -> RefEntry:
     return RefEntry(id=item_id, kind=kind, display=RefDisplay(kind=label))
 
 
-def kind_display(kind: str, spec: WorkflowSpec) -> KindDisplay:
-    """How sub-entity *kind* is named."""
-    return KindDisplay(
-        name=kind,
-        label=kind.title(),
-        plural=spec.subentity_plural(kind),
-        heading=spec.subentity_container_heading(kind),
-    )
-
-
 def subentity_summary(kind: str, subs: list[SubEntity], spec: WorkflowSpec) -> SubentitySummary:
     """The summary table of *subs*."""
     return SubentitySummary(
@@ -260,13 +250,10 @@ def subentity_entry(
     names: Mapping[str, str],
 ) -> SubentityEntry:
     """A sub-entity as a listing row."""
-    return SubentityEntry(
-        local_id=sub.local_id,
-        title=sub.title,
-        status=sub.status,
-        assignee=sub.assignee,
-        severity=sub.severity,
-        story=sub.story,
-        deferred_to=sub.deferred_to,
-        display=subentity_display(kind, sub, carrier_title, spec, names),
+    return SubentityEntry.model_validate(
+        {
+            **sub.model_dump(mode="json"),
+            "badges": badges.resolve_badges(spec, kind, sub.badge_value),
+            "display": subentity_display(kind, sub, carrier_title, spec, names),
+        }
     )

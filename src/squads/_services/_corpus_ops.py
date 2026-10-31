@@ -13,6 +13,10 @@ from squads._api._dto._squad import (
     MigrationReport,
     Reconciled,
     RenamedId,
+    RenameFieldReport,
+    RenameFieldRequest,
+    RenameKindReport,
+    RenameKindRequest,
     RenameStatusReport,
     RenameStatusRequest,
     RenameTypeReport,
@@ -25,10 +29,17 @@ from squads._api._dto._squad import (
     RepairReport,
     RepairRequest,
 )
+from squads._api._dto._squad import (
+    LeftReference as LeftReferenceDto,
+)
+from squads._api._dto._squad import (
+    MovedFile as MovedFileDto,
+)
 from squads._api._response import Response
 from squads._context import get_context
 from squads._migrations._registry import MIGRATIONS, Migration
 from squads._models._schema import SCHEMA_VERSION
+from squads._services._duplicate_ids import LeftReference, MovedFile
 from squads._services._import import ImportMixin
 from squads._services._maintenance import MaintenanceMixin
 from squads._services._rename import RenameMixin
@@ -44,6 +55,16 @@ def unreadable_lines(messages: Sequence[str]) -> list[str]:
     """One sentence per file a rebuild could not read: the message, then the carried-forward
     remedy unless the message names its own."""
     return [m if isinstance(m, SelfRemedied) else f"{m}{_CARRIED_FORWARD}" for m in messages]
+
+
+def moved_files(moves: Sequence[MovedFile]) -> list[MovedFileDto]:
+    """The files a renumber moved, as the report carries them."""
+    return [MovedFileDto(old=m.old, new=m.new, file=m.file, target=m.target) for m in moves]
+
+
+def left_references(refs: Sequence[LeftReference]) -> list[LeftReferenceDto]:
+    """The references a renumber left unchanged, as the report carries them."""
+    return [LeftReferenceDto(id=r.id, file=r.file, where=r.where, text=r.text) for r in refs]
 
 
 def _manual_span(applied: list[Migration]) -> str:
@@ -90,6 +111,9 @@ def _import_report(result: ImportResult, *, dry_run: bool) -> ImportReport:
 class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
     async def repair_squad(self, req: RepairRequest) -> Response[RepairReport]:
         """Rebuild the index from the item files, renumbering a shared number first on request."""
+        # Refused before anything is written: a renumber resolves what it can, so only the groups
+        # it cannot resolve are refused then.
+        await self.refuse_shared_numbers(same_id=True, renumbering=req.renumber)
         result = await self.repair(renumber=req.renumber)
         return Response(
             data=RepairReport(
@@ -98,7 +122,8 @@ class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
                 notice=result.strip_notice(),
                 missing=list(result.missing_ids),
                 unreadable=unreadable_lines(result.unreadable),
-                renumbered=list(result.renumber_report),
+                renumbered=moved_files(result.renumbered),
+                references=left_references(result.references),
                 references_left=result.references_left,
             )
         )
@@ -180,6 +205,20 @@ class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
                 renamed=result.renamed,
             )
         )
+
+    async def rename_field_items(self, req: RenameFieldRequest) -> Response[RenameFieldReport]:
+        """Move every stored value from one key to another, on items and sub-entity entries."""
+        result = await self.rename_field(req.old, req.new, types=req.types, kinds=req.kinds)
+        return Response(
+            data=RenameFieldReport(
+                old=req.old, new=req.new, items=result.items, entries=result.entries
+            )
+        )
+
+    async def rename_kind_items(self, req: RenameKindRequest) -> Response[RenameKindReport]:
+        """Bring the stored spellings of a kind to its declaration."""
+        result = await self.rename_kind(req.old, req.new)
+        return Response(data=RenameKindReport(old=req.old, new=req.new, items=result.items))
 
     async def import_squad_events(self, req: ImportRequest) -> Response[ImportReport]:
         """Check the events, then apply them in one transaction unless a dry run or a problem

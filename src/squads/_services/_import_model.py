@@ -1,18 +1,21 @@
 """JSONL event model for bulk import (``sq import``): one line, one mutation. A malformed line
 becomes an :class:`ImportIssue`, not an exception, so the pre-pass collects every problem at once,
-and ``at``/``as`` inheritance is resolved here. The ``add-story``/``add-subtask``/``add-finding``
-fronts stay distinct events for per-op counts and :func:`generic_add_sub` folds them to
-:class:`AddSubEvent` at dispatch.
+and ``at``/``as`` inheritance is resolved here. ``add-<kind>`` for each kind the active spec
+declares is :class:`AddSubEvent` with its kind set, the kind's fields and mapping key at the top
+level, and a comment selects a sub-entity by naming its kind; both are folded to the generic shape
+at parse time, and the event keeps the op name the file wrote for the per-op counts.
 """
 
 import json
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
+from pydantic_core import ErrorDetails
 
 from squads import _clock as clock
 from squads._services._results import ImportIssue
+from squads._workflow._models import WorkflowSpec
 
 
 class _EventBase(BaseModel):
@@ -63,9 +66,6 @@ class CommentEvent(_EventBase):
     target: str
     messages: list[str] = []
     message: str | None = None
-    story: str | None = None
-    subtask: str | None = None
-    finding: str | None = None
     sub: tuple[str, str] | None = None
 
     def all_messages(self) -> list[str]:
@@ -88,89 +88,14 @@ class AddSubEvent(_EventBase):
     op: Literal["add-sub"] = "add-sub"
     target: str
     kind: str
-    title: str = ""
-    story: str | None = None
+    title: str
+    maps_to: str | None = None
     fields: dict[str, str] = {}
     assignee: str | None = None
     status: str | None = None
     deferred_to: str | None = None
     body: str | None = None
     handle: str | None = None
-
-
-class AddStoryEvent(_EventBase):
-    op: Literal["add-story"] = "add-story"
-    target: str
-    title: str = ""
-    assignee: str | None = None
-    status: str | None = None
-    body: str | None = None
-    handle: str | None = None
-
-    def as_generic(self) -> AddSubEvent:
-        generic = AddSubEvent(
-            target=self.target,
-            kind="story",
-            title=self.title,
-            assignee=self.assignee,
-            status=self.status,
-            body=self.body,
-            handle=self.handle,
-        )
-        generic.at, generic.as_ = self.at, self.as_
-        return generic
-
-
-class AddSubtaskEvent(_EventBase):
-    op: Literal["add-subtask"] = "add-subtask"
-    target: str
-    title: str = ""
-    story: str | None = None
-    assignee: str | None = None
-    status: str | None = None
-    body: str | None = None
-    handle: str | None = None
-
-    def as_generic(self) -> AddSubEvent:
-        generic = AddSubEvent(
-            target=self.target,
-            kind="subtask",
-            title=self.title,
-            story=self.story,
-            assignee=self.assignee,
-            status=self.status,
-            body=self.body,
-            handle=self.handle,
-        )
-        generic.at, generic.as_ = self.at, self.as_
-        return generic
-
-
-class AddFindingEvent(_EventBase):
-    op: Literal["add-finding"] = "add-finding"
-    target: str
-    title: str = ""
-    severity: str | None = None
-    assignee: str | None = None
-    status: str | None = None
-    deferred_to: str | None = None
-    body: str | None = None
-    handle: str | None = None
-
-    def as_generic(self) -> AddSubEvent:
-        generic = AddSubEvent(
-            target=self.target,
-            kind="finding",
-            title=self.title,
-            fields={"severity": self.severity} if self.severity else {},
-            assignee=self.assignee,
-            status=self.status,
-            deferred_to=self.deferred_to,
-            body=self.body,
-            handle=self.handle,
-        )
-        generic.at, generic.as_ = self.at, self.as_
-        return generic
 
 
 class SubStatusEvent(_EventBase):
@@ -258,9 +183,6 @@ type ImportEvent = (
     | CommentEvent
     | RefEvent
     | AddSubEvent
-    | AddStoryEvent
-    | AddSubtaskEvent
-    | AddFindingEvent
     | SubStatusEvent
     | SubBodyEvent
     | AssignEvent
@@ -275,9 +197,6 @@ _EVENT_ADAPTER: TypeAdapter[
         | CommentEvent
         | RefEvent
         | AddSubEvent
-        | AddStoryEvent
-        | AddSubtaskEvent
-        | AddFindingEvent
         | SubStatusEvent
         | SubBodyEvent
         | AssignEvent
@@ -292,9 +211,6 @@ _EVENT_ADAPTER: TypeAdapter[
         | CommentEvent
         | RefEvent
         | AddSubEvent
-        | AddStoryEvent
-        | AddSubtaskEvent
-        | AddFindingEvent
         | SubStatusEvent
         | SubBodyEvent
         | AssignEvent
@@ -305,35 +221,125 @@ _EVENT_ADAPTER: TypeAdapter[
 
 
 class ResolvedEvent(BaseModel):
-    """One parsed event with its ``at``/``as`` inheritance resolved and any ergonomic front
-    normalized to its generic form. ``line`` is the 1-based JSONL line number (for error
-    reporting) — never part of the JSON itself."""
+    """One parsed event with its ``at``/``as`` inheritance resolved. ``op_name`` is the op the
+    file wrote (``add-outcome`` where ``event`` is the generic ``add-sub``); ``line`` is the
+    1-based JSONL line number (for error reporting) — never part of the JSON itself."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     line: int
     event: ImportEvent
+    op_name: str
     at: datetime
     actor: str
 
 
-def generic_add_sub(ev: ImportEvent) -> AddSubEvent:
-    """The event as a generic :class:`AddSubEvent` — the ergonomic fronts normalize via
-    :meth:`as_generic`; an already-generic ``add-sub`` passes through unchanged.
+#: The op that adds a sub-entity of any kind; ``add-<kind>`` is the same op with the kind set.
+ADD_SUB_OP = "add-sub"
 
-    Kept separate from parsing: :class:`ResolvedEvent` keeps the ORIGINAL event shape (so
-    per-op counts reflect what the file actually wrote — ``"add-story"``, not a normalized
-    ``"add-sub"``); the engine calls this at dispatch time instead.
-    """
-    if isinstance(ev, AddStoryEvent | AddSubtaskEvent | AddFindingEvent):
-        return ev.as_generic()
-    if isinstance(ev, AddSubEvent):
-        return ev
-    raise TypeError(f"{ev.op!r} is not an add-sub-shaped event")
+#: The ``add-<kind>`` op prefix.
+_ADD_PREFIX = "add-"
+
+
+def _static_ops() -> list[str]:
+    """The ops the event union accepts, in declaration order."""
+    choices = cast(dict[str, Any], _EVENT_ADAPTER.core_schema)["choices"]
+    return [str(op) for op in choices]
+
+
+def _valid_ops(spec: WorkflowSpec) -> str:
+    """The import ops this spec accepts: the fixed ones, with ``add-<kind>`` for each declared
+    kind after ``add-sub``."""
+    ops: list[str] = []
+    for op in _static_ops():
+        ops.append(op)
+        if op == ADD_SUB_OP:
+            ops.extend(f"{_ADD_PREFIX}{kind}" for kind in spec.subentity_kinds)
+    return ", ".join(ops)
+
+
+def _validation_message(error: ErrorDetails, spec: WorkflowSpec, op_name: object) -> str:
+    """One validation error as an issue message: squads' own words for an unknown ``op``, a key a
+    comment cannot take, and a mapping key an ``add-sub`` was given under the target kind's name.
+    A location starts with the op the file wrote."""
+    if error["type"] == "union_tag_invalid":
+        return f"unknown op {error.get('ctx', {}).get('tag')!r}; valid ops: {_valid_ops(spec)}"
+    if error["type"] == "union_tag_not_found":
+        return f"missing op; valid ops: {_valid_ops(spec)}"
+    parts = [str(p) for p in error["loc"]]
+    if parts and isinstance(op_name, str):
+        parts[0] = op_name
+    loc = ".".join(parts)
+    if error["type"] == "extra_forbidden" and len(parts) == 2:
+        if error["loc"][0] == "comment":
+            selectors = ", ".join([*spec.subentity_kinds, "sub"])
+            return f"{loc}: not a key of comment; the sub-entity selectors are {selectors}"
+        targets = {spec.mapping_target_kind(kind) for kind in spec.subentity_kinds}
+        if error["loc"][0] == ADD_SUB_OP and parts[1] in targets:
+            return f"{loc}: not a key of add-sub; use 'maps_to' for the mapping"
+    return f"{loc}: {error['msg']}" if loc else str(error["msg"])
+
+
+class _EventRefusal(Exception):
+    """A line whose keys the active spec cannot give a meaning to."""
+
+
+def _add_kind_data(data: dict[str, Any], kind: str, spec: WorkflowSpec) -> dict[str, Any]:
+    """The ``add-sub`` form of an ``add-<kind>`` line: the kind set, each field the kind declares
+    taken from its top-level key into ``fields``, and the target kind's name taken into
+    ``maps_to``."""
+    if "kind" in data:
+        raise _EventRefusal(f"{data['op']}: the kind is in the op; drop the 'kind' key")
+    out = {k: v for k, v in data.items() if k != "op"}
+    out["op"] = ADD_SUB_OP
+    out["kind"] = kind
+    fields = dict(out.get("fields") or {})
+    for field in spec.fields_for(kind):
+        if field.code in out:
+            if field.code in fields:
+                raise _EventRefusal(f"{data['op']}: {field.code!r} is given twice")
+            given = out.pop(field.code)
+            if given not in (None, ""):
+                fields[field.code] = given
+    if fields:
+        out["fields"] = fields
+    target = spec.mapping_target_kind(kind)
+    if target is not None and target in out:
+        if out.get("maps_to") is not None:
+            raise _EventRefusal(f"{data['op']}: {target!r} and 'maps_to' name the same mapping")
+        out["maps_to"] = out.pop(target)
+    return out
+
+
+def _comment_data(data: dict[str, Any], spec: WorkflowSpec) -> dict[str, Any]:
+    """A comment line with its per-kind selector folded into the generic ``sub`` pair; naming
+    more than one sub-entity is refused."""
+    named = [(kind, data[kind]) for kind in spec.subentity_kinds if data.get(kind)]
+    if data.get("sub") is not None:
+        named.append(("sub", data["sub"]))
+    if len(named) > 1:
+        choices = " / ".join([*spec.subentity_kinds, "sub"])
+        raise _EventRefusal(f"a comment event names at most one of {choices}")
+    out = {k: v for k, v in data.items() if k not in spec.subentity_kinds}
+    if named and named[0][0] != "sub":
+        out["sub"] = list(named[0])
+    return out
+
+
+def _normalised(data: dict[str, Any], spec: WorkflowSpec) -> dict[str, Any]:
+    """*data* with the per-kind fronts folded to the generic ops *spec* declares."""
+    op = data.get("op")
+    if op == "comment":
+        return _comment_data(data, spec)
+    if isinstance(op, str) and op.startswith(_ADD_PREFIX) and op != ADD_SUB_OP:
+        kind = op.removeprefix(_ADD_PREFIX)
+        if kind in spec.subentity_kinds:
+            return _add_kind_data(data, kind, spec)
+    return data
 
 
 def parse_events(
-    text: str, *, default_at: datetime, default_as: str | None = None
+    text: str, *, spec: WorkflowSpec, default_at: datetime, default_as: str | None = None
 ) -> tuple[list[ResolvedEvent], list[ImportIssue]]:
     """Parse a JSONL event stream into resolved events, collecting every problem. File order is
     authoritative, never reordered by ``at``. A line that fails to parse becomes one
@@ -358,12 +364,19 @@ def parse_events(
         if not isinstance(data, dict):
             issues.append(ImportIssue(line=line_no, message="event must be a JSON object"))
             continue
+        written = cast(dict[str, Any], data)
         try:
-            parsed = _EVENT_ADAPTER.validate_python(data)
+            parsed = _EVENT_ADAPTER.validate_python(_normalised(written, spec))
+        except _EventRefusal as exc:
+            issues.append(ImportIssue(line=line_no, message=str(exc)))
+            continue
         except ValidationError as exc:
             first = exc.errors()[0]
-            loc = ".".join(str(p) for p in first["loc"])
-            issues.append(ImportIssue(line=line_no, message=f"{loc}: {first['msg']}"))
+            issues.append(
+                ImportIssue(
+                    line=line_no, message=_validation_message(first, spec, written.get("op"))
+                )
+            )
             continue
 
         event = parsed
@@ -381,7 +394,15 @@ def parse_events(
             issues.append(ImportIssue(line=line_no, message="no actor: missing 'as'"))
             continue
 
-        events.append(ResolvedEvent(line=line_no, event=event, at=current_at, actor=current_actor))
+        events.append(
+            ResolvedEvent(
+                line=line_no,
+                event=event,
+                op_name=str(written["op"]),
+                at=current_at,
+                actor=current_actor,
+            )
+        )
 
     return events, issues
 
