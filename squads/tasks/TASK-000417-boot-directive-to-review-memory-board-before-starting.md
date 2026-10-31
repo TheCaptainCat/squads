@@ -11,11 +11,11 @@ subentities:
 - local_id: ST1
   title: Add the boot directive to role.md.j2
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Regenerate manifest; flag golden churn
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-15T11:47:07Z'
 updated_at: '2026-07-15T12:01:55Z'
 ---

@@ -6,13 +6,13 @@ title: Pin third-party GitHub Actions by commit SHA in all workflows
 status: Done
 author: tech-lead
 assignee: devops
-priority: medium
 refs:
 - BUG-743:fixes
 description: 'Supply-chain hardening: immutable SHA pins with a trailing version comment
   across publish.yml, test.yml and vscode-client.yml'
 created_at: '2026-08-21T12:42:40Z'
 updated_at: '2026-08-21T18:36:54Z'
+priority: medium
 ---
 <!-- sq:body -->
 Pin every third-party GitHub Action referenced from this repo's workflows to a full 40-character

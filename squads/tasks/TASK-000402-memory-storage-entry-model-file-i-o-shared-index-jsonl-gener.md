@@ -13,19 +13,19 @@ subentities:
 - local_id: ST1
   title: Write a memory as a slug-named .md; no global-counter id
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Shared whole-folder .index.jsonl generator with header stamp
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Forget removes the memory file (real deletion)
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Off-counter, outside .squads.json; repair leaves it alone
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-15T07:46:25Z'
 updated_at: '2026-07-15T08:20:48Z'
 ---

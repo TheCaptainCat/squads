@@ -14,15 +14,15 @@ subentities:
 - local_id: ST1
   title: Add field_value_declared to the catalog and the work and records bundles
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Pin CLI writes as clean and the fix-a-stale-value way out at the gate
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Prove no new finding on a scratch copy of this repository's squad
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-10-16T19:56:44Z'
 updated_at: '2026-10-16T20:07:09Z'
 ---

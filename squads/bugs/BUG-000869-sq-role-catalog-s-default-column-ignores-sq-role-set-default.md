@@ -5,11 +5,11 @@ type: bug
 title: sq role catalog's Default column ignores sq role set-default
 status: Verified
 author: qa
-priority: low
 refs:
 - BUG-850
 created_at: '2026-09-02T08:27:34Z'
 updated_at: '2026-09-02T14:17:59Z'
+priority: low
 ---
 <!-- sq:body -->
 ## What happens

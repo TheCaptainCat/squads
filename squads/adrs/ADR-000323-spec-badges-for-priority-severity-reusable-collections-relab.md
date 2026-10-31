@@ -10,8 +10,9 @@ refs:
 - ADR-214
 - ADR-232
 - ADR-1007
+- ADR-1250
 created_at: '2026-07-07T10:00:07Z'
-updated_at: '2026-10-25T21:23:54Z'
+updated_at: '2026-10-29T19:50:37Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -106,28 +107,23 @@ for a future unordered kind; spec load refuses `ordered = false` until that kind
 
 **An item stores only the badge code, under the field's code, as a top-level frontmatter key**:
 `priority: high`, `severity: critical`, `impact: high`. A sub-entity's entry in its parent's
-frontmatter carries `severity` in its own slot and any other declared field under its code in the
-entry's `extra` mapping. Label and emoji resolve from the collection at render time,
+frontmatter stores every declared field the same way, flat under its code (ADR-1250 §6). Label and emoji resolve from the collection at render time,
 with a neutral fallback when no spec is available, so a file reads its own codes without a spec.
 ADR-1007 owns the flat frontmatter shape: a field code may not collide with a core key, an
-attribute of the same type, a key `--json` adds to an item row, `path`, `prefix` or `extra`, and a
-value is validated by collection membership.
+attribute of the same type, a key `--json` adds to an item row, `path` or `prefix`, and a kind's
+field code may not collide with a sub-entity core key; a value is validated by collection
+membership.
 
 ### 5. The CLI derives everything from declared fields
 
 Setting a value, list/show/tree columns (headed by the field `label`), badges, filters and sort are
 derived from the fields a type declares, through one parser and one renderer
-(`parse_badge_code`, `badge_render`, with the helpers in `_badges.py`):
+(`parse_badge_code`, `badge_render`, with the helpers in `_badges.py`).
 
-- `sq <type> <n> update --set <code>=<value>` sets any declared field; `--priority` is a dedicated
-  setter for the bundled axis on create and update.
-- `sq list` and `sq tree` filter with `--badge CODE=VALUE` (exact) and `--min-badge CODE=VALUE`
-  (threshold on an ordered collection), both repeatable, and sort with `--sort CODE`.
-  `--priority` and `--min-priority` are sugar for the bundled priority field.
-
-Per-field flags (`--impact`, `--min-urgency`) are not generated: Typer options are fixed at import
-while the active spec is per invocation, so the generic `CODE=VALUE` surface is the one that works
-for every squad.
+`create`, `update`, `add-<kind>`, `list` and `tree` derive `--<code>`, `--no-<code>` (optional
+fields, on update) and `--min-<code>` (ordered fields, on list and tree) from the declared fields at
+parameter resolution. `--set`, `--unset`, `--badge`, `--min-badge` and `--sort` are the generic
+forms. No option is named in code. See ADR-1250 §2.
 
 ## Consequences
 
@@ -175,4 +171,8 @@ a badge of that collection, and a required field with no resolvable default.
   - Accepted as-is at the design-gate review (op-pierre deciding). Full three-level Badge/Collection/Field model confirmed: a field references a collection and carries its own label; the collection holds ordered badges; each badge = code + label + emoji. Sequenced after ADR-322.
 - [2026-10-25T21:23:54Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body rewritten in the present tense; the three-level model is unchanged. Restated §5 as the shipped CLI grammar: --badge/--min-badge CODE=VALUE, --sort CODE, --priority/--min-priority sugar and update --set, not generated per-field --<code> flags (REV-346 F3, WontFix: Typer options are fixed at import). §3 now says spec load refuses ordered = false. Folded the dated ADR-1007 note into §4 and named where sub-entity fields are stored. Removed the pre-implementation grep table, enum line numbers, the bug-severity migration plan and the FEAT-231 test note.
+- [2026-10-29T19:09:15Z] `architect` Robert Architect:
+  - 2026-10-29: ADR-1250 (related) narrows §5. Every badge-field option is derived from the declared fields, and `--priority`/`--min-priority` become the derived names of the bundled field. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment. The other sections stand (board rule 6).
+- [2026-10-29T19:50:37Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. §4: a sub-entity entry stores every declared field flat under its code (no severity slot, no `extra` mapping); the collision list drops `extra` and adds the sub-entity core keys for a kind's field code. §5: the two bullets and the closing paragraph become the derived options (`--<code>`, `--no-<code>`, `--min-<code>`) beside the generic `--set`/`--unset`/`--badge`/`--min-badge`/`--sort`; no option is named in code. This replaces the draft note in my earlier comment on §5.
 <!-- sq:discussion:end -->

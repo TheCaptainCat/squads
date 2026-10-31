@@ -6,7 +6,6 @@ title: Fix the blank-name bypass, the skew report, and two stale comments
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-778:fixes
 - BUG-779:fixes
@@ -27,6 +26,7 @@ subentities:
   status: Done
 created_at: '2026-08-22T09:50:14Z'
 updated_at: '2026-08-22T14:17:41Z'
+priority: medium
 ---
 <!-- sq:body -->
 Three defects in and beside the role-projection seam, one owner. Subtask order is the order they

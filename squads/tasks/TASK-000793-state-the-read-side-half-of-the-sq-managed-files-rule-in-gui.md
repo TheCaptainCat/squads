@@ -6,7 +6,6 @@ title: State the read-side half of the sq-managed-files rule in guidance
 status: Done
 author: tech-lead
 assignee: tech-writer
-priority: high
 refs:
 - BUG-789:fixes
 description: Add 'read item files through sq show, never open them directly' to every
@@ -26,6 +25,7 @@ subentities:
   status: Done
 created_at: '2026-08-24T20:29:47Z'
 updated_at: '2026-08-25T13:50:31Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What is wrong

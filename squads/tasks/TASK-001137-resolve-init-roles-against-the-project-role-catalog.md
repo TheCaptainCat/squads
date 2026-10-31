@@ -5,7 +5,6 @@ type: task
 title: Resolve init --roles against the project role catalog
 status: Done
 author: tech-lead
-priority: low
 refs:
 - MILE-1051:targets
 - BUG-1045:fixes
@@ -28,6 +27,7 @@ subentities:
   status: Cancelled
 created_at: '2026-10-25T05:39:18Z'
 updated_at: '2026-10-26T04:14:35Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Goal

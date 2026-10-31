@@ -11,15 +11,15 @@ subentities:
 - local_id: ST1
   title: sq board post -m [--until]; attributable author
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'sq board list: ordinal, author, posted-at, expiry'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: 'sq board clear <n>: resolve ordinal to hash id; clean out-of-range'
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-15T07:48:19Z'
 updated_at: '2026-07-15T11:09:20Z'
 ---

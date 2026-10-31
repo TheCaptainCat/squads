@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1224:implements
 - TASK-1227:depends-on
@@ -18,25 +17,26 @@ subentities:
 - local_id: ST1
   title: create
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: update, body, retype, remove, refs and views
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Comment verbs on every host, confirmed remove
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Sub-entity verbs
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: JSON output on the 10 item writes
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-10-28T22:12:38Z'
 updated_at: '2026-10-29T05:37:41Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

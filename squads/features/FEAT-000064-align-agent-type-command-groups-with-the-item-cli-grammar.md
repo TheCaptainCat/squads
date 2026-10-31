@@ -6,7 +6,6 @@ title: Align agent-type command groups with the item CLI grammar
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - FEAT-19
 - FEAT-26
@@ -29,6 +28,7 @@ subentities:
   status: Done
 created_at: '2026-06-12T11:56:22Z'
 updated_at: '2026-09-01T13:48:11Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

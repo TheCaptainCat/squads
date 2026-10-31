@@ -6,14 +6,14 @@ title: sq role catalog --json omits the off-catalog default-holder disclosure
 status: Verified
 author: qa
 assignee: python-dev
-priority: low
-severity: low
 refs:
 - BUG-869
 description: Every row reads is_default false when an off-catalog role holds it; the
   footer that discloses the holder exists only in the terminal.
 created_at: '2026-09-02T14:27:33Z'
 updated_at: '2026-09-02T15:43:11Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 ## Summary

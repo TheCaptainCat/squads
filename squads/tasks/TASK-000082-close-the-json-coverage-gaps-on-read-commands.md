@@ -7,16 +7,16 @@ status: Done
 parent: FEAT-15
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - REV-86:addresses
 subentities:
 - local_id: ST1
   title: Add --json to check and sub-entity list commands
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-12T15:27:47Z'
 updated_at: '2026-07-06T15:19:36Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

@@ -5,11 +5,11 @@ type: bug
 title: Interrupted role projection no longer self-heals on sync
 status: Verified
 author: qa
-severity: low
 refs:
 - REV-770
 created_at: '2026-08-22T09:34:23Z'
 updated_at: '2026-08-22T10:33:05Z'
+severity: low
 ---
 <!-- sq:body -->
 One subject: the interrupted-write behaviour on the role projection, and the test that names

@@ -5,13 +5,13 @@ type: bug
 title: sq create --parent "" exits 0 and creates a parentless item
 status: Verified
 author: qa
-priority: low
 refs:
 - BUG-865
 description: The truthiness shape fixed in the update path is still live at three
   sites in the create path; the empty value is discarded and success reported.
 created_at: '2026-09-02T08:49:48Z'
 updated_at: '2026-09-02T14:18:42Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Symptom

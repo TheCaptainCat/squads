@@ -6,7 +6,6 @@ title: Apply the comment rule to source docstrings and comments
 status: Done
 parent: FEAT-1092
 author: tech-lead
-priority: medium
 refs:
 - REV-956:addresses
 - TASK-1126:depends-on
@@ -16,25 +15,26 @@ subentities:
 - local_id: ST1
   title: Re-run the comment scan and add the version guard
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Sweep the services package
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Sweep workflow, overrides, index, models and migrations
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Sweep the CLI and TUI, leaving help docstrings
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: Sweep the remaining packages and report the after-count
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-10-24T21:54:04Z'
 updated_at: '2026-10-28T12:46:06Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

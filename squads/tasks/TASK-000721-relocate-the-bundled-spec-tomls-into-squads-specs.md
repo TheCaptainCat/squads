@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-715
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-696:implements
 - EPIC-538
@@ -18,21 +17,22 @@ subentities:
 - local_id: ST1
   title: Move the three TOMLs and repoint the loaders
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Repoint the meta guards and prove the wheel ships them
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Sweep stale mentions of the old bundled path
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Make the wheel-path packaging assertion actually assert the path
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-31T13:37:43Z'
 updated_at: '2026-07-31T16:22:47Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What to build

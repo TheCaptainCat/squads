@@ -5,10 +5,10 @@ type: bug
 title: A missed --as attributes an agent's comment to the human operator
 status: Verified
 author: manager
-priority: high
 description: comment defaults to the operator's voice, so provenance silently inverts
 created_at: '2026-07-30T12:31:12Z'
 updated_at: '2026-07-30T14:07:00Z'
+priority: high
 ---
 <!-- sq:body -->
 `sq <type> <n> comment` defaults `--as` to `operator`. An agent that omits the flag has its words recorded in the human's voice, and because the discussion is append-only the only remedy is a second comment correcting the first — the false attribution stays in the record permanently.

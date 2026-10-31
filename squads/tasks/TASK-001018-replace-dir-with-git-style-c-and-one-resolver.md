@@ -19,32 +19,32 @@ subentities:
   title: Root -C option and the effective-directory helper
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Thread -C into client_cwd, pre-callback lookups and --file
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: init and adopt create at the -C directory
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Refuse --dir and delete the backwards inference
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Differential -C vs cd test and the process-cwd guard
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST6
   title: Docs, changelog and contributor prose say -C
   status: Done
   assignee: tech-writer
-  story: US6
+  maps_to: US6
 created_at: '2026-10-15T20:19:04Z'
 updated_at: '2026-10-15T21:35:47Z'
 ---

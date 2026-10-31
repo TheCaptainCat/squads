@@ -6,7 +6,6 @@ title: Stability contract documentation
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 description: docs/stability.md + README tiering the public surfaces and what each
   promises through 1.0
 subentities:
@@ -21,6 +20,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T12:40:59Z'
 updated_at: '2026-07-06T10:06:26Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

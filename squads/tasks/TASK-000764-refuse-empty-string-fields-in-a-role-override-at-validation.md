@@ -6,13 +6,13 @@ title: Refuse empty-string fields in a role override at validation
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-760:fixes
 description: One refusal at the merge/validate choke point instead of hardening four
   render sites
 created_at: '2026-08-21T19:36:54Z'
 updated_at: '2026-08-22T09:26:27Z'
+priority: medium
 ---
 <!-- sq:body -->
 A role override declaring empty strings is accepted, and every generated surface renders the break.

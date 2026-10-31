@@ -6,13 +6,13 @@ title: 'Spec-driven add-* flags: generic badge/field CLI generation'
 status: Done
 parent: EPIC-538
 author: product-owner
-priority: low
 refs:
 - FEAT-567
 - REV-565
 - PRD-859:implements
 created_at: '2026-07-22T08:39:38Z'
 updated_at: '2026-09-01T13:50:53Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Capability

@@ -7,15 +7,15 @@ status: Done
 parent: FEAT-18
 author: tech-lead
 assignee: architect
-priority: medium
 subentities:
 - local_id: ST1
   title: Author the six (plus up to two optional) retroactive ADRs as decisions in
     force, each Proposed
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-12T14:18:09Z'
 updated_at: '2026-07-06T15:19:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 Content-only documentation work: zero code changes. Deliverables are sq decision items (retroactive ADRs) authored through the CLI, one per standing call.

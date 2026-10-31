@@ -3,13 +3,15 @@ id: BUG-1189
 sequence_id: 1189
 type: bug
 title: migrate chlog accepts non-version and reversed ranges
-status: Open
+status: Verified
 author: qa
-severity: low
 refs:
 - FEAT-1173
+- MILE-1241:targets
 created_at: '2026-10-27T23:37:36Z'
-updated_at: '2026-10-27T23:37:55Z'
+updated_at: '2026-10-29T20:40:14Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -32,4 +34,6 @@ low
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:14Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

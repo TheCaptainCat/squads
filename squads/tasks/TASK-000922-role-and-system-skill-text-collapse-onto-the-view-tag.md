@@ -13,31 +13,31 @@ subentities:
 - local_id: ST1
   title: 'Role view: source, template, tag-seeded scaffold'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Delete role_definition_text and the CLI's hardcoded branch
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Backfill the tag into every existing role body
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: 'System-skill views: squads, greeting, sq-memory'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Seed the tag at skill-file creation; prove the three named branches equivalent
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Backfill the tag into the three existing system-skill bodies
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST7
   title: Consumer enumeration and generated-artefact diff
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-09-04T09:11:13Z'
 updated_at: '2026-09-04T13:01:26Z'
 ---

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-714
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-696:implements
 - EPIC-538
@@ -19,21 +18,22 @@ subentities:
 - local_id: ST1
   title: Playbook loader over the shared merge engine
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Merged playbook resolved on the request context
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Thread every playbook consumer onto the merged spec
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: sq override gains the playbook as a fourth kind
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-31T13:37:37Z'
 updated_at: '2026-08-03T15:47:55Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What to build

@@ -6,11 +6,11 @@ title: set-default on a catalog-less project role is lost on resolve
 status: Verified
 parent: MILE-1051
 author: qa
-priority: low
 refs:
 - REV-1068
 created_at: '2026-10-16T20:02:07Z'
 updated_at: '2026-10-26T06:46:29Z'
+priority: low
 ---
 <!-- sq:body -->
 `sq role <slug> set-default` on a project role (a role defined under `.overrides/roles/<slug>.toml`, with no bundled-catalog entry) stores `is_default: true` in the role item, but resolving the role reads it back as `is_default: false`. The designation is lost: `sq role list` shows no default and the generated CLAUDE.md omits the default-role line. Found by REV-1068 F13; pre-existing, not a regression of the current work.

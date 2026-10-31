@@ -13,11 +13,11 @@ subentities:
 - local_id: ST1
   title: Offset lands the shifted block disjoint from both ranges
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Rename targets minted at filename padding, content unpadded
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-06T08:47:57Z'
 updated_at: '2026-07-06T09:55:27Z'
 ---

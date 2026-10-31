@@ -6,7 +6,6 @@ title: 'Records group in UI/CLI: category-aware visibility + filter'
 status: Done
 parent: EPIC-538
 author: product-owner
-priority: medium
 refs:
 - FEAT-567
 - REV-565
@@ -25,6 +24,7 @@ subentities:
   status: InProgress
 created_at: '2026-07-22T08:39:37Z'
 updated_at: '2026-09-01T13:50:50Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

@@ -6,7 +6,6 @@ title: Surface the tree anchor mark in the client and tighten the skew canary
 status: Done
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 refs:
 - BUG-879:fixes
 - TASK-877:depends-on
@@ -15,6 +14,7 @@ description: The VS Code client maps tree JSON through a closed field list, so t
   assertion cannot catch it either.
 created_at: '2026-09-02T13:05:22Z'
 updated_at: '2026-09-02T15:26:51Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What is wrong

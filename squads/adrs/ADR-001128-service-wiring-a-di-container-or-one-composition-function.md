@@ -5,7 +5,6 @@ type: decision
 title: 'Service wiring: a DI container or one composition function'
 status: Accepted
 author: architect
-priority: medium
 refs:
 - FEAT-1092
 - REV-956
@@ -15,6 +14,7 @@ description: 'REV-956 F14: no DI container; one composition function builds Serv
   and loads each spec document once per invocation'
 created_at: '2026-10-24T21:58:58Z'
 updated_at: '2026-10-25T21:41:31Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Context

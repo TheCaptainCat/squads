@@ -6,12 +6,12 @@ title: Migrate 5 parented ADRs to related refs
 status: Done
 parent: EPIC-538
 author: product-owner
-priority: medium
 refs:
 - ADR-541
 - FEAT-568
 created_at: '2026-07-22T08:39:39Z'
 updated_at: '2026-07-22T11:53:52Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

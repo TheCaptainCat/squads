@@ -12,11 +12,11 @@ subentities:
   title: load_playbook via importlib.resources/tomllib; rewire _interactions onto
     spec
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Cross-spec slug validation against RoleCatalogSpec (*dev exempt), non-meta-only
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-26T08:04:10Z'
 updated_at: '2026-07-06T15:20:59Z'
 ---

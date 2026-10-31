@@ -7,7 +7,6 @@ status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: devops
-priority: high
 refs:
 - TASK-1113:depends-on
 - TASK-1114:depends-on
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Retire the rest of the old root and rename the new one to tests/
   status: Todo
-  story: US9
+  maps_to: US9
 - local_id: ST2
   title: Record one CI run per OS against the binding targets
   status: Todo
-  story: US10
+  maps_to: US10
 - local_id: ST3
   title: Delete the per-kind sub-entity service wrappers
   status: Todo
-  story: US9
+  maps_to: US9
 created_at: '2026-10-24T13:42:20Z'
 updated_at: '2026-10-27T20:16:27Z'
+priority: high
 ---
 <!-- sq:body -->
 Close the rebuild: retire what is left of the old root, rename the new one, finish the parity record (US9), and measure CI per OS against the binding targets (US10).

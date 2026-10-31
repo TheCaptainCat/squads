@@ -5,9 +5,9 @@ type: bug
 title: init --force on an existing squad leaves skills out of the index
 status: Verified
 author: qa
-priority: medium
 created_at: '2026-10-24T18:52:57Z'
 updated_at: '2026-10-24T20:59:27Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Steps

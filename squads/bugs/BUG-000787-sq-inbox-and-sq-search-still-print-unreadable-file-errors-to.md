@@ -5,11 +5,11 @@ type: bug
 title: sq inbox and sq search still print unreadable-file errors to stdout
 status: Verified
 author: qa
-severity: low
 refs:
 - BUG-769
 created_at: '2026-08-22T13:51:47Z'
 updated_at: '2026-08-22T14:17:40Z'
+severity: low
 ---
 <!-- sq:body -->
 Same defect class as BUG-769, on the two commands that share `_report_unreadable`

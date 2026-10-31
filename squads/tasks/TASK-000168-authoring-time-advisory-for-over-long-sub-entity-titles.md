@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Add TITLE_ADVISORY_MAX=120 constant in _interactions.py
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Carry title advisory on add-finding/add-subtask/add-story service results
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Render advisory + reflog entry at the CLI edge for the three add-* commands
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-23T08:37:42Z'
 updated_at: '2026-06-23T09:29:24Z'
 ---

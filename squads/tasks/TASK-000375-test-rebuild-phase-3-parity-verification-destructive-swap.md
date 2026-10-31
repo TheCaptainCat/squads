@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: Verify ledger parity before deleting the old suite
   status: Todo
-  story: US4
+  maps_to: US4
 created_at: '2026-07-10T04:48:20Z'
 updated_at: '2026-07-13T09:27:41Z'
 ---

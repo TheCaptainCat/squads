@@ -3,9 +3,8 @@ id: EPIC-538
 sequence_id: 538
 type: epic
 title: Complete spec-driven customization
-status: Done
+status: InProgress
 author: product-owner
-priority: high
 refs:
 - FEAT-533
 - ADR-534
@@ -14,7 +13,8 @@ description: Make the work-item vocabulary fully overridable (drop/rename/re-pre
   + extend overrides to the playbook, via one shared merge engine (deep-merge · selected
   · splat-refs).
 created_at: '2026-07-21T15:11:25Z'
-updated_at: '2026-08-15T18:08:48Z'
+updated_at: '2026-10-29T19:04:25Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Outcome
@@ -240,4 +240,6 @@ A single shared override engine, reused by the workflow, playbook, and roles loa
   - Delivered clean, driven: (3) the playbook as fourth override kind, end to end -- scaffold, stamp, drift, diff, update, and a one-line splat-ref adding a real section to a generated skill; (4) the three bundled TOMLs consolidated under _specs/ with no default_ prefix anywhere; (6) records-take-no-parent enforced at create, update, retype AND in sq check at exit 3 -- and the corpus claim is now true, the epic said 5 ADRs held parents and 0 of 58 do; (8) the records group in both clients single-sourced from category, TUI driven headlessly with a Textual pilot showing REV-22 under Records after a reassignment; (9) the 5 parented ADRs migrated to related refs.
   - Delivered with defects, all since fixed: (1) the shared merge engine -- deep-merge, selected deselect, splat-refs, fail-closed on a dangling path -- with F4 F11 F13 fixed; (2) full overridability with the referential-integrity and live-index guards, F1 F12 fixed; (5) the consumer audit, which ran twice as REV-726 and REV-736 and closed 81 findings between them. Both invariants hold: unsafe drops refuse cleanly with no traceback, and safe drops were absorbed across seven squads and a 30-command battery each with zero tracebacks.
   - Outcome 7 was NOT delivered when she verified -- the category-reassignment consistency hard-stop that ADR-541 requires verbatim did not exist, and nothing on either review, no bug and no feature tracked it. FEAT-569 was scoped to custom records types and category-generic verbs and never carried it. That is the same failure mode as the wrong close: an outcome bullet with no feature behind it. Filed as F46, fixed, then generalised by F48 into a clause registry pinned against the validator catalog by an import-time assert. I verified it myself just now on a fresh squad: task moved to records while keeping parents refuses at load -- sq list exit 1, sq workflow lint exit 1, sq check exit 3 -- with a message naming the file, the validator, both contradicting fields and two remedies.
+- [2026-10-29T19:04:25Z] `product-owner` Nina Product:
+  - Reopened: the bundled-vocabulary audit on REV-1247 found outcomes this epic closed without (priority surface, root aliases, import fronts, story-mapping wording, generated text still bundled-only). Operator ruling on MILE-1241 puts the fixes in 0.18.1; the new feature is parented here.
 <!-- sq:discussion:end -->

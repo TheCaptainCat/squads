@@ -5,12 +5,12 @@ type: bug
 title: override scaffold --new accepts reserved role slugs
 status: Verified
 author: qa
-priority: low
 refs:
 - FEAT-980
 - MILE-1051:targets
 created_at: '2026-10-16T08:24:07Z'
 updated_at: '2026-10-26T06:46:36Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Observed

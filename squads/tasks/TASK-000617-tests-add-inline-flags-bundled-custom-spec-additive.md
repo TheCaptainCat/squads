@@ -6,13 +6,13 @@ title: 'Tests: add-* inline flags (bundled + custom spec, additive)'
 status: Done
 parent: FEAT-571
 author: tech-lead
-priority: low
 refs:
 - TASK-616:depends-on
 description: 'Service + CLI smoke: bundled --status/field parity, custom-spec flag
   derivation'
 created_at: '2026-07-22T18:05:31Z'
 updated_at: '2026-07-22T18:22:58Z'
+priority: low
 ---
 <!-- sq:body -->
 Prove the `add-<kind>` inline-flag surface across the bundled spec and a custom

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-693
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-320:implements
 - TASK-812:depends-on
@@ -39,6 +38,7 @@ subentities:
   status: Done
 created_at: '2026-08-25T18:12:45Z'
 updated_at: '2026-09-02T14:02:09Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

@@ -6,7 +6,6 @@ title: Measure the command-guidance guard against generated output only
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-872
 - TASK-876
@@ -31,6 +30,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-09-02T12:28:24Z'
 updated_at: '2026-09-02T14:01:34Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What is wrong

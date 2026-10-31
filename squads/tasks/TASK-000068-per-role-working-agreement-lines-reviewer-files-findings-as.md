@@ -6,11 +6,11 @@ title: 'Per-role working-agreement lines: reviewer files findings as sub-entitie
 status: Done
 author: manager
 assignee: python-dev
-priority: medium
 refs:
 - REV-67:addresses
 created_at: '2026-06-12T13:31:43Z'
 updated_at: '2026-06-12T13:37:48Z'
+priority: medium
 ---
 <!-- sq:body -->
 **Why.** REV-67 retro: the reviewer wrote findings as body prose because nothing in the text he reliably re-reads (his role file) says findings are sub-entities; the sq-review skill says it but skills are loaded on demand. Operator picked the behavioral remedy: put one line in the reviewer's working agreements.

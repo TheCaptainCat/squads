@@ -11,7 +11,7 @@ subentities:
 - local_id: ST1
   title: Reused apply-path executor drives repair --renumber unchanged
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-06T08:47:56Z'
 updated_at: '2026-07-06T09:55:26Z'
 ---

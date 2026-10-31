@@ -6,7 +6,6 @@ title: sq reflog read command + schema documentation and contract tiering
 status: Done
 parent: FEAT-24
 author: tech-lead
-priority: medium
 refs:
 - FEAT-15
 description: sq reflog read/filter command with --json passthrough, golden tests,
@@ -16,18 +15,19 @@ subentities:
   title: 'sq reflog read command: tail by default, filter by --item/--actor/--op/--since,
     with --json passthrough'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Reflog back-compat: absent/truncated file never an error'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Version and document the line schema; golden-test the --json shape and state
     its stability tier in the contract doc
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-15T08:20:49Z'
 updated_at: '2026-07-06T15:18:06Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

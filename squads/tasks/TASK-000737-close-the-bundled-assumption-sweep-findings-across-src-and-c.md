@@ -5,7 +5,6 @@ type: task
 title: Close the bundled-assumption sweep findings across src and clients
 status: Done
 author: tech-lead
-priority: high
 refs:
 - REV-736:addresses
 - EPIC-538
@@ -45,6 +44,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-08-03T15:16:11Z'
 updated_at: '2026-08-15T15:47:12Z'
+priority: high
 ---
 <!-- sq:body -->
 Twenty-nine findings from REV-736's seven-shard bundled-assumption sweep, every one driven and

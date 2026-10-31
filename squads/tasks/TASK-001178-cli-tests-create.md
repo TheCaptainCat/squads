@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Create module
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-10-27T21:35:11Z'
 updated_at: '2026-10-28T01:02:42Z'
 ---

@@ -5,12 +5,12 @@ type: bug
 title: sq sync silently discards an operator-set role name
 status: Verified
 author: qa
-severity: high
 refs:
 - BUG-756
 - REV-770
 created_at: '2026-08-21T21:03:56Z'
 updated_at: '2026-08-22T09:06:07Z'
+severity: high
 ---
 <!-- sq:body -->
 Driven on release/0.14, fresh throwaway squad, no override files:

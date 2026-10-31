@@ -5,9 +5,9 @@ type: bug
 title: sq check does not notice missing per-entry backend pointer files
 status: Verified
 author: qa
-severity: high
 created_at: '2026-08-22T10:06:36Z'
 updated_at: '2026-08-22T11:22:38Z'
+severity: high
 ---
 <!-- sq:body -->
 Driven end to end on a fresh throwaway squad with both backends active

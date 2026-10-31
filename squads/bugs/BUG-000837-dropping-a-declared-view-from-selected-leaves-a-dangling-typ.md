@@ -5,12 +5,12 @@ type: bug
 title: Dropping a declared view from [selected] leaves a dangling type attachment
 status: Verified
 author: qa
-priority: medium
 refs:
 - TASK-833
 - MILE-836:targets
 created_at: '2026-08-26T16:35:37Z'
 updated_at: '2026-09-01T08:05:25Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What happens

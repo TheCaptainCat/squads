@@ -6,11 +6,11 @@ title: CLI role-colour rendering + is_open drop across list/tree/mine/workload
 status: Done
 parent: FEAT-605
 author: tech-lead
-priority: medium
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:25Z'
 updated_at: '2026-07-22T16:57:00Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-605 US3. Render status colour across the CLI surfaces keyed on the role's `color` intent, and drop `is_open` from every `--json` item payload. Depends on the US1 model + US2 catalog.

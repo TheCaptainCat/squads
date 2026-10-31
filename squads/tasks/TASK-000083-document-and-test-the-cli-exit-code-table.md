@@ -6,16 +6,16 @@ title: Document and test the CLI exit-code table
 status: Done
 parent: FEAT-15
 author: tech-lead
-priority: high
 refs:
 - REV-92:addresses
 subentities:
 - local_id: ST1
   title: Documented exit-code table asserted in tests
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-12T15:27:48Z'
 updated_at: '2026-07-06T15:19:36Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

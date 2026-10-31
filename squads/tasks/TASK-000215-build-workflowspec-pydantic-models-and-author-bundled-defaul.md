@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: WorkflowSpec/TypeSpec/StatusSpec/StateMachine models, enum-typed fields
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Author bundled default_workflow.toml encoding today's vocabulary
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-06-25T14:21:29Z'
 updated_at: '2026-07-06T15:19:58Z'
 ---

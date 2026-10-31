@@ -11,21 +11,21 @@ subentities:
 - local_id: ST1
   title: Add --status filter, AND-composed with query and --type
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Return region/authority + snippet per hit; item type/status per result; console
     escaped
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Richer --json superset shape (type/status/region/snippet/location), documented
     + stable
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: 'squads skill: finding things across the board section'
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-15T14:02:32Z'
 updated_at: '2026-07-15T14:44:33Z'
 ---

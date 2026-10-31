@@ -6,7 +6,6 @@ title: Retype an item in place
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - FEAT-19:depends-on
 - PRD-858:implements
@@ -21,6 +20,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T13:24:54Z'
 updated_at: '2026-09-01T13:47:33Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-775:implements
 - REV-808:addresses
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Separate normalisation from divergence at the skew site
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: One wording for one state on both surfaces
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Coverage for the three skew states
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T18:09:31Z'
 updated_at: '2026-08-25T23:40:00Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

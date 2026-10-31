@@ -6,7 +6,6 @@ title: Project a role's resolved name and mission onto its own item fields
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-756:fixes
 - ADR-766:implements
@@ -14,6 +13,7 @@ description: A declared projection table on RoleDef, looped by the reconciler, p
   the override description that reaches nothing today
 created_at: '2026-08-21T19:50:11Z'
 updated_at: '2026-08-22T09:26:30Z'
+priority: medium
 ---
 <!-- sq:body -->
 A role override that declares `full_name` renames the role everywhere except the item's own record.

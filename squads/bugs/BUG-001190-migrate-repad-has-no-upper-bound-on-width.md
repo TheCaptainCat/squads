@@ -3,13 +3,15 @@ id: BUG-1190
 sequence_id: 1190
 type: bug
 title: migrate repad has no upper bound on WIDTH
-status: Open
+status: Verified
 author: qa
-severity: medium
 refs:
 - FEAT-1173
+- MILE-1241:targets
 created_at: '2026-10-27T23:37:37Z'
-updated_at: '2026-10-27T23:37:56Z'
+updated_at: '2026-10-29T20:40:17Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -31,4 +33,6 @@ medium
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:17Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

@@ -6,9 +6,9 @@ title: 'End-to-end proof: override-declared records type is fully spec-driven'
 status: Done
 parent: FEAT-569
 author: tech-lead
-priority: high
 created_at: '2026-07-22T13:00:52Z'
 updated_at: '2026-07-22T17:16:04Z'
+priority: high
 ---
 <!-- sq:body -->
 Implements FEAT-569 acceptance. A single integration proof that a genuinely NEW `category = "records"` type — declared purely in a workflow override, never in bundled code — is fully spec-driven across create/retype/list and backend generation. This is the feature's headline acceptance; depends on TASK-592 and TASK-593.

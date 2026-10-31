@@ -6,13 +6,13 @@ title: Renaming the default ref kind hard-locks a squad holding untouched legacy
   data
 status: Verified
 author: qa
-priority: medium
 refs:
 - ADR-775
 - BUG-804
 - MILE-836:targets
 created_at: '2026-08-26T11:34:16Z'
 updated_at: '2026-09-01T08:05:23Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Summary

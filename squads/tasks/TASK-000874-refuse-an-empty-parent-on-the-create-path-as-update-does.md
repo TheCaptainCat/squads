@@ -6,13 +6,13 @@ title: Refuse an empty --parent on the create path as update does
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - BUG-871:fixes
 description: Three sites in the create path discard an empty --parent and report success;
   the update door refuses it. Collapse them onto one shared resolution helper.
 created_at: '2026-09-02T09:58:45Z'
 updated_at: '2026-09-02T14:01:28Z'
+priority: low
 ---
 <!-- sq:body -->
 ## What is wrong

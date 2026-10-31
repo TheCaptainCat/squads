@@ -14,19 +14,19 @@ subentities:
 - local_id: ST1
   title: Enumerate view-tag writers, gate F17
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Table-drive repair-corridor parity; fix F18/F20
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Unify the empty-body hint predicate; fix F19
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Fail-safe direction for the drift trigger (F21)
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-09-09T14:39:31Z'
 updated_at: '2026-09-10T09:34:48Z'
 ---

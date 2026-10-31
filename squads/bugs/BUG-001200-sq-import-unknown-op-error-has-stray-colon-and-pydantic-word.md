@@ -3,13 +3,15 @@ id: BUG-1200
 sequence_id: 1200
 type: bug
 title: 'sq import: unknown op error has stray colon and pydantic wording'
-status: Open
+status: Verified
 author: qa
-severity: low
 refs:
 - FEAT-1173
+- MILE-1241:targets
 created_at: '2026-10-28T00:28:17Z'
-updated_at: '2026-10-28T00:28:23Z'
+updated_at: '2026-10-29T20:40:32Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 ## Defect
@@ -58,4 +60,6 @@ Found by REV-1198 finding 18; the CLI test `test_a_refused_line_leaves_the_valid
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:32Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

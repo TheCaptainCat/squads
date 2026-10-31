@@ -11,16 +11,16 @@ subentities:
   title: 'Retype operation: flip type, move file, carry/reset status, refuse conflicts,
     system comment'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Rewrite all incoming edges (refs, children parent, prose mentions) to the
     new ID in one transaction
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Wire the CLI verb + service tests, CLI smoke, workflow docs
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-15T08:20:30Z'
 updated_at: '2026-06-15T08:46:33Z'
 ---

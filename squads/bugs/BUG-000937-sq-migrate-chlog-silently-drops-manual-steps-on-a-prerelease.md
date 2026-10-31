@@ -5,12 +5,12 @@ type: bug
 title: sq migrate chlog silently drops manual steps on a prerelease bound
 status: Verified
 author: qa
-priority: medium
 refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:16Z'
 updated_at: '2026-09-29T16:05:36Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

@@ -5,7 +5,6 @@ type: review
 title: 'Session lineage on actor (TASK-159): schema 0.4 + back-compat'
 status: Approved
 author: reviewer
-priority: medium
 refs:
 - TASK-159:addresses
 subentities:
@@ -15,6 +14,7 @@ subentities:
   severity: low
 created_at: '2026-06-22T10:08:44Z'
 updated_at: '2026-10-25T19:38:32Z'
+priority: medium
 ---
 <!-- sq:body -->
 Independent review of TASK-159 (Record optional session lineage on the actor) — implements FEAT-125 US1 under ADR-158. Did not author this code.

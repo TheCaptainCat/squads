@@ -5,7 +5,6 @@ type: epic
 title: VS Code extension — browse the squad in the editor
 status: Done
 author: product-owner
-priority: low
 refs:
 - FEAT-15:depends-on
 - EPIC-12
@@ -17,6 +16,7 @@ description: 'A VS Code extension: a sidebar tree of the squad + items opened in
   later increment'
 created_at: '2026-06-14T20:45:06Z'
 updated_at: '2026-07-19T19:33:00Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Outcome

@@ -6,7 +6,6 @@ title: Upgrade path for the 0.14 view declaration grammar
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: medium
 refs:
 - MILE-867:targets
 - ADR-880:implements
@@ -26,6 +25,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:11:02Z'
 updated_at: '2026-09-24T09:00:03Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Why

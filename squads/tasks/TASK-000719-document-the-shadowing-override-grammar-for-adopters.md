@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-713
 author: tech-lead
 assignee: tech-writer
-priority: medium
 refs:
 - ADR-696:implements
 - EPIC-538
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Override grammar reference in the overrides guide
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Rewrite the published override stability contract
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Drop and rename behaviour, plus the changelog entry
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-31T13:37:32Z'
 updated_at: '2026-08-03T07:45:59Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What to write

@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: sq list -t skill and sq skill show render SKILL items
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Basic SKILL ref support: ref add SKILL- shows on source and backref'
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-24T18:46:56Z'
 updated_at: '2026-07-06T15:19:53Z'
 ---

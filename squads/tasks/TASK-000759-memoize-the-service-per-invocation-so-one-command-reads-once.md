@@ -6,7 +6,6 @@ title: Memoize the Service per invocation so one command reads once
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-753:implements
 - REV-757:addresses
@@ -14,6 +13,7 @@ description: Share one Service across both bridge crossings of the addressed-ite
   form, plus the roster-regen defensive copy
 created_at: '2026-08-21T17:51:04Z'
 updated_at: '2026-08-21T18:37:03Z'
+priority: medium
 ---
 <!-- sq:body -->
 `sq <type> <n> <verb>` — the addressed-item form the skills, the docs and every agent brief use —

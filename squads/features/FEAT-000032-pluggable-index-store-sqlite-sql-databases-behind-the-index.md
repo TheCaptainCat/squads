@@ -6,7 +6,6 @@ title: 'Pluggable index store: SQLite / SQL databases behind the index'
 status: Draft
 parent: EPIC-31
 author: product-owner
-priority: medium
 refs:
 - FEAT-13
 - BUG-22:depends-on
@@ -26,6 +25,7 @@ subentities:
   status: Todo
 created_at: '2026-06-10T15:24:10Z'
 updated_at: '2026-06-23T10:01:14Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

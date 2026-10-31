@@ -5,13 +5,13 @@ type: bug
 title: sq sync silently reverts an operator's sq role set-default on the next run
 status: Verified
 author: qa
-priority: high
 refs:
 - ADR-776
 description: set-default writes is_default on both role files; the next sq sync overwrites
   it back to the catalog default with sq check clean on both sides
 created_at: '2026-09-01T08:20:55Z'
 updated_at: '2026-09-02T08:22:44Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What the operator does

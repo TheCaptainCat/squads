@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Surface unexpired notices content-and-all via backend
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-15T07:48:29Z'
 updated_at: '2026-07-15T11:09:20Z'
 ---

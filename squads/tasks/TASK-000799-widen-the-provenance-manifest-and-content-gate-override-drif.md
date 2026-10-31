@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - ADR-777:implements
 description: Generalise the provenance manifest to every overridable bundled artifact
@@ -16,33 +15,34 @@ subentities:
 - local_id: ST1
   title: Widen the manifest to every overridable bundled artifact
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Content-addressed store with insert-if-absent semantics
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Seed the store back to the 0.4.0 index floor
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Coverage guards and the in-wheel store ceiling
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Content-gate workflow and playbook drift
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Measure role drift against roles.toml and fix its delta-mine
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST7
   title: Delta-upgrade from the store, and the uncarried-base path
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-08-25T14:40:34Z'
 updated_at: '2026-08-25T23:39:44Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

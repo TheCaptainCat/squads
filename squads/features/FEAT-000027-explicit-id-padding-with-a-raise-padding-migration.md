@@ -6,7 +6,6 @@ title: Explicit ID padding with a raise-padding migration
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - FEAT-13
 - FEAT-19:depends-on
@@ -27,6 +26,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T15:04:04Z'
 updated_at: '2026-09-01T13:47:46Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

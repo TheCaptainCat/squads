@@ -5,12 +5,12 @@ type: bug
 title: 'sq ui reader panel: body/sub-entities/discussion tabs don''t scroll on overflow'
 status: Verified
 author: op-pierre
-priority: high
 refs:
 - FEAT-514
 description: Reader tab content taller than the pane clips with no way to scroll
 created_at: '2026-07-21T11:43:25Z'
 updated_at: '2026-07-21T14:14:17Z'
+priority: high
 ---
 <!-- sq:body -->
 **Repro.** Open `sq ui`, select an item whose body (or sub-entities/discussion) is taller than the reader pane. The content is clipped at the bottom with no way to scroll down.

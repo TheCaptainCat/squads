@@ -16,11 +16,11 @@ subentities:
   title: Generic parse_badge_code/badge_render; --<field>/--min-<field>/sort/columns
     from fields
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Verify full CLI surface against a custom badge axis beyond priority/severity
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-09T08:20:10Z'
 updated_at: '2026-07-09T13:12:13Z'
 ---

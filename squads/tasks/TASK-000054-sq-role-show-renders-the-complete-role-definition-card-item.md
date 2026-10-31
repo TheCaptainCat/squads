@@ -7,14 +7,14 @@ status: Done
 parent: FEAT-41
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Render active role body below the catalog card in sq role show
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-12T07:52:37Z'
 updated_at: '2026-06-23T09:58:02Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

@@ -6,7 +6,6 @@ title: Move the is_default designation with a verb of its own
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: low
 refs:
 - ADR-697:implements
 - REV-706
@@ -21,6 +20,7 @@ subentities:
   status: Done
 created_at: '2026-07-31T09:36:45Z'
 updated_at: '2026-07-31T12:41:34Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Context

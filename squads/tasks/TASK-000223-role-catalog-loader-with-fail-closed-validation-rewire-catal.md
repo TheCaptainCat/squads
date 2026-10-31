@@ -11,12 +11,12 @@ subentities:
 - local_id: ST1
   title: load_role_catalog via importlib.resources/tomllib + fail-closed validation
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Rewire _catalog.py to shims over the loaded spec; keep dev_role logic + extra
     bridge
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-06-26T07:35:29Z'
 updated_at: '2026-07-06T15:20:55Z'
 ---

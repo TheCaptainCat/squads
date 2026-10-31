@@ -6,13 +6,13 @@ title: Pin read-scope invalidation on the transaction raise path
 status: Done
 author: tech-lead
 assignee: qa
-priority: medium
 refs:
 - BUG-761:fixes
 description: 'Test-only: the raise half of commit-or-raise, driven red against a broken
   pop and green against current code'
 created_at: '2026-08-21T19:36:55Z'
 updated_at: '2026-08-22T09:26:28Z'
+priority: medium
 ---
 <!-- sq:body -->
 Test-only work on the integrity core. **The behaviour is already correct** — this closes a coverage

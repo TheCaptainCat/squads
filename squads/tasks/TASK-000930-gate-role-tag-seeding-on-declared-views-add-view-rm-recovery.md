@@ -15,27 +15,27 @@ subentities:
   title: Gate _create_core's role tag seed on spec.views (F12)
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add sq role <slug> view add|rm <name>
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Add sq skill <slug> view add|rm <name>
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Fix sq role show's empty-body hint under a dropped view (F16)
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Fix sq skill show's empty-body hint under a dropped view (F16)
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 created_at: '2026-09-08T13:52:16Z'
 updated_at: '2026-09-10T09:40:27Z'
 ---

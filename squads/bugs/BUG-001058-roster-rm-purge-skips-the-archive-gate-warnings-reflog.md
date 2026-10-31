@@ -5,12 +5,12 @@ type: bug
 title: Roster rm --purge skips the archive gate, warnings, reflog
 status: Verified
 author: qa
-priority: medium
 refs:
 - REV-1053
 - MILE-934:targets
 created_at: '2026-10-16T12:21:18Z'
 updated_at: '2026-10-16T19:08:37Z'
+priority: medium
 ---
 <!-- sq:body -->
 `sq role|skill <addr> rm --purge` bypasses the retirement gate and warnings that `status Archived` applies, and writes no reflog entry. Since plain `rm` now always refuses, `--purge` is the only delete path.

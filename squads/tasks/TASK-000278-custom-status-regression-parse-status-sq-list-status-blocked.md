@@ -8,14 +8,14 @@ status: Done
 parent: FEAT-211
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: sq list --status + default filter + blocked + inbox honor custom statuses
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-02T09:20:18Z'
 updated_at: '2026-07-06T15:21:11Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal — custom statuses through query/filter surfaces (AC#1, AC#2, US1)

@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Override module
   status: Done
-  story: US9
+  maps_to: US9
 created_at: '2026-10-27T21:35:15Z'
 updated_at: '2026-10-28T01:02:46Z'
 ---

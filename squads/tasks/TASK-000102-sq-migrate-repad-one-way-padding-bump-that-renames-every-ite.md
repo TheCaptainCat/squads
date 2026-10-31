@@ -15,7 +15,7 @@ subentities:
 - local_id: ST1
   title: 'sq migrate repad <width>: one-way bump renaming all item files'
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-14T20:56:35Z'
 updated_at: '2026-06-23T09:58:30Z'
 ---

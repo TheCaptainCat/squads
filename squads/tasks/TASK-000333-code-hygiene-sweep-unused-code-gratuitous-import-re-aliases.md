@@ -6,7 +6,6 @@ title: 'Code hygiene sweep: unused code + gratuitous import re-aliases'
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: low
 labels:
 - hygiene
 description: Delete dead code (ERA commented-out blocks, unused effective_prefix param)
@@ -14,6 +13,7 @@ description: Delete dead code (ERA commented-out blocks, unused effective_prefix
   tree
 created_at: '2026-07-08T12:25:09Z'
 updated_at: '2026-07-09T19:10:50Z'
+priority: low
 ---
 <!-- sq:body -->
 One code-hygiene sweep over `src/squads/` (and, for dead code, `tests/`),

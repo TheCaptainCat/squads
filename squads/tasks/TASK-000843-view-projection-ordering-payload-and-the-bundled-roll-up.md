@@ -6,7 +6,6 @@ title: View projection ordering, payload and the bundled roll-up
 status: Done
 parent: FEAT-693
 author: tech-lead
-priority: high
 refs:
 - REV-840:addresses
 - TASK-841:depends-on
@@ -18,29 +17,30 @@ subentities:
 - local_id: ST1
   title: order_by on a badge field follows the declared badge order
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: order_by on id sorts by sequence number
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: A projected group exposes count in the template context
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Roll-up separates settled-not-delivered from outstanding
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Resolve the two unreachable bundled view templates
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Show a milestone's target date on its panel
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-08-26T17:05:27Z'
 updated_at: '2026-08-26T18:24:17Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

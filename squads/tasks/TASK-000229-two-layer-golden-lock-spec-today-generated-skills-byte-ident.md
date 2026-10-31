@@ -11,12 +11,12 @@ subentities:
 - local_id: ST1
   title: 'Layer-A golden: loaded PlaybookSpec == frozen snapshot of today''s PLAYBOOK'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: 'Layer-B golden: generated sq-<type> skills byte-identical; playbook.toml
     ships'
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-26T08:04:11Z'
 updated_at: '2026-07-06T15:21:01Z'
 ---

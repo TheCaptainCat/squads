@@ -5,7 +5,6 @@ type: task
 title: Add --file to comment at item and sub-entity level
 status: Done
 author: tech-lead
-priority: high
 refs:
 - BUG-825:fixes
 - MILE-836:targets
@@ -23,6 +22,7 @@ subentities:
   status: Done
 created_at: '2026-08-26T11:24:45Z'
 updated_at: '2026-08-26T16:01:10Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Description

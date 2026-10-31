@@ -6,7 +6,6 @@ title: Relocate the do-not-edit warning to agent-facing files
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - FEAT-13
 - PRD-861:implements
@@ -28,6 +27,7 @@ subentities:
   status: Todo
 created_at: '2026-07-02T15:10:39Z'
 updated_at: '2026-09-01T13:49:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

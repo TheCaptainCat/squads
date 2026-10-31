@@ -5,12 +5,12 @@ type: bug
 title: Task-parent refusal hints a nonexistent 'sq ref add' form
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1032
 - MILE-1051:targets
 created_at: '2026-10-16T09:01:09Z'
 updated_at: '2026-10-25T11:11:52Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Repro

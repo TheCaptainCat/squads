@@ -7,12 +7,12 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 refs:
 - TASK-483:depends-on
 description: 'Client: green active items, consumes US9 surface (US10/F26 client)'
 created_at: '2026-07-18T20:10:49Z'
 updated_at: '2026-07-18T21:19:50Z'
+priority: medium
 ---
 <!-- sq:body -->
 Story: US10 (REV-448 F26 client half, Medium). **Discipline: CLIENT / TypeScript** (`clients/vscode/`). Depends on US9's core status-role surface.

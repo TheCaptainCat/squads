@@ -5,13 +5,13 @@ type: bug
 title: Bare sq tree silently omits every item in or under a parent cycle
 status: Verified
 author: qa
-priority: medium
 refs:
 - BUG-865
 description: Every tree form exits 0 while leaving out the whole component containing
   a cycle; sq check is the only surface that reports it.
 created_at: '2026-09-02T08:49:46Z'
 updated_at: '2026-09-02T14:18:23Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Symptom

@@ -6,7 +6,6 @@ title: Validate slug arguments across mine/inbox and slug-accepting surfaces (BU
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-21:fixes
 subentities:
@@ -24,6 +23,7 @@ subentities:
   status: Done
 created_at: '2026-06-11T12:14:52Z'
 updated_at: '2026-07-06T15:17:38Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

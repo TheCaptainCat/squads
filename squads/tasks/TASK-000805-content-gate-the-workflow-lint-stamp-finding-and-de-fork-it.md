@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-777:implements
 - TASK-799:depends-on
@@ -18,13 +17,14 @@ subentities:
 - local_id: ST1
   title: Gate the workflow stamp finding on content
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Retire the duplicate gated copy and guard the agreement
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-08-25T15:48:22Z'
 updated_at: '2026-08-25T23:39:50Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

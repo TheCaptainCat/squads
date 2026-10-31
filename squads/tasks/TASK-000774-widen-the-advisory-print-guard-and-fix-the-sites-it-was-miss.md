@@ -6,7 +6,6 @@ title: Widen the advisory-print guard and fix the sites it was missing
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - REV-770:addresses
 - BUG-769:fixes
@@ -24,6 +23,7 @@ subentities:
   status: Done
 created_at: '2026-08-22T09:08:24Z'
 updated_at: '2026-08-22T09:26:34Z'
+priority: medium
 ---
 <!-- sq:body -->
 Three defects on one surface, all in `_cli/`, deliberately one task: the class guard that was

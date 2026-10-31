@@ -6,7 +6,6 @@ title: Exclusive work leases / claims
 status: Draft
 parent: EPIC-121
 author: product-owner
-priority: low
 refs:
 - FEAT-125:depends-on
 subentities:
@@ -18,6 +17,7 @@ subentities:
   status: Todo
 created_at: '2026-06-15T11:56:12Z'
 updated_at: '2026-06-16T09:52:28Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Problem

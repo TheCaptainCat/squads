@@ -14,15 +14,15 @@ subentities:
 - local_id: ST1
   title: Retry a skipped body-tag convergence instead of stamping past it (F13)
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Stop schema_tuple crashing sync() on a prerelease squads_version (F14)
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Report repair skips from sq migrate up (F15)
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-09-08T13:52:19Z'
 updated_at: '2026-09-10T09:40:31Z'
 ---

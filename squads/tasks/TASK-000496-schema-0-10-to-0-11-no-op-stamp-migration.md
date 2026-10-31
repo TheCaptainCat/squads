@@ -16,7 +16,7 @@ subentities:
 - local_id: ST1
   title: Upgrade preserves existing skills and scoping
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-20T08:59:20Z'
 updated_at: '2026-07-20T10:48:51Z'
 ---

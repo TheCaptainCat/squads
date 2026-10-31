@@ -6,7 +6,6 @@ title: Agent naming at sq init and role creation (flags, [init.names], TTY promp
 status: Done
 parent: FEAT-14
 author: tech-lead
-priority: high
 refs:
 - TASK-91:blocks
 description: Repeatable --name slug=Full Name + [init.names] + TTY prompting/--default-names;
@@ -15,13 +14,14 @@ subentities:
 - local_id: ST1
   title: 'sq init: --name flags + [init.names] + TTY prompt/--default-names'
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: sq role activate/dev add --name; flow to extra.full_name → roster/pointers/CLAUDE.md
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-06-12T20:57:27Z'
 updated_at: '2026-07-06T15:18:01Z'
+priority: high
 ---
 <!-- sq:body -->
 Naming-surface task for FEAT-14 (ADR-85 §4, Consequences 'sq init gains interactive prompting' + 'new .squads.toml keys').

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-693
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-776:implements
 - ADR-777
@@ -20,25 +19,26 @@ subentities:
 - local_id: ST1
   title: '[views] as a keyed section of the workflow document'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: The projection engine and its uniform record shape
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Presentation as a bundled, overridable template
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: The --json contract and the sq workflow views catalog row
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Prove the declaration expresses the sub-entity summary shape
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-08-26T13:30:05Z'
 updated_at: '2026-08-26T16:00:14Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

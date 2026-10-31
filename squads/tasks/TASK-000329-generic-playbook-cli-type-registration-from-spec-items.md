@@ -10,15 +10,15 @@ subentities:
 - local_id: ST1
   title: Playbook keyed by str; coverage over work_types(); thin auto-skill fallback
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: CLI registers all spec.items types dynamically in deterministic order
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: SUBENTITY_* + sq check subtask literal rederive from spec
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-07T14:50:23Z'
 updated_at: '2026-07-08T11:36:12Z'
 ---

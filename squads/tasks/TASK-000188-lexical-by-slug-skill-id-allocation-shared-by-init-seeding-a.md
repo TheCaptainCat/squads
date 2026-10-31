@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: Shared lexical-by-slug ordering primitive consumed by init and migration
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: sq init seeds bundled skills as SKILL Items via IndexStore.transaction
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-24T18:46:55Z'
 updated_at: '2026-07-06T15:19:51Z'
 ---

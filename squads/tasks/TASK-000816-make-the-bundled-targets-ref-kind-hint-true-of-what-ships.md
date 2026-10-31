@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - TASK-798:depends-on
 - TASK-799:depends-on
@@ -20,14 +19,15 @@ subentities:
   title: Rewrite the targets hint to describe the shipped kind
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Refresh the goldens, content store and manifest entry
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T22:34:48Z'
 updated_at: '2026-08-26T16:00:54Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

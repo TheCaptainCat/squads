@@ -6,13 +6,13 @@ title: Skew canary asserts an exact key set on one surface, a superset on two
 status: Verified
 author: qa
 assignee: typescript-dev
-priority: low
-severity: low
 refs:
 - BUG-879
 - MILE-867:targets
 created_at: '2026-09-03T07:08:33Z'
 updated_at: '2026-09-09T14:43:35Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 ## Summary

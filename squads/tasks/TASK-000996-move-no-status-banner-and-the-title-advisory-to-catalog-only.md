@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-899
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - ADR-864:implements
 description: Both checks leave the floor and the work bundle, the add-<kind> advisory
@@ -16,21 +15,22 @@ subentities:
 - local_id: ST1
   title: Take no_status_banner off the floor
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Resolve the title threshold only for a type that selects it
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Take subentity_title_max out of the work bundle
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Select both checks in this project's workflow override
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-11T21:10:16Z'
 updated_at: '2026-10-12T05:33:34Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

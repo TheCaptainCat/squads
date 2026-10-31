@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Add sq check pass walking all sub-entity titles
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Report over-long titles as advisory findings with ID/kind/index/length
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-23T08:37:43Z'
 updated_at: '2026-06-23T09:53:45Z'
 ---

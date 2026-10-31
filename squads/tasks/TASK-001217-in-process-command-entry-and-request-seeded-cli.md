@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1052:implements
 description: One argv-to-exit-code entry, per-invocation consoles, directory, attachments
@@ -16,11 +15,11 @@ subentities:
 - local_id: ST1
   title: One argv-to-exit-code entry
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Consoles built per invocation
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Directory, attachments and context from the request
   status: Done
@@ -29,6 +28,7 @@ subentities:
   status: Done
 created_at: '2026-10-28T14:08:40Z'
 updated_at: '2026-10-29T13:10:48Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

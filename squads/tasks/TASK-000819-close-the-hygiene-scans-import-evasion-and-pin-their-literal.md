@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - REV-817:addresses
 - TASK-809
@@ -19,19 +18,20 @@ subentities:
   title: Walk module imports and attribute access in the migration guard
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Pin the wire-encoding primitive names to _models._item
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Pin the ref-kind literal set to the bundled spec's ref_kinds
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 created_at: '2026-08-25T22:58:35Z'
 updated_at: '2026-08-26T16:00:59Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

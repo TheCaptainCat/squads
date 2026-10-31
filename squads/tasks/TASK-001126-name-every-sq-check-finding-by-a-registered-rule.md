@@ -6,7 +6,6 @@ title: Name every sq check finding by a registered rule
 status: Done
 parent: FEAT-1092
 author: tech-lead
-priority: medium
 refs:
 - REV-956:addresses
 - TASK-1125:depends-on
@@ -20,14 +19,15 @@ subentities:
   title: Add the rule field, registry and guard; emit rule in --json
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Document the binding check rules for adopters
   status: Done
   assignee: tech-writer
-  story: US4
+  maps_to: US4
 created_at: '2026-10-24T21:53:55Z'
 updated_at: '2026-10-28T12:46:05Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

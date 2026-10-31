@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-986
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-984:implements
 - BUG-985:fixes
@@ -25,45 +24,46 @@ subentities:
 - local_id: ST2
   title: Declare capabilities and resolve them onto the role
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Read the developer template from the resolved catalog
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST4
   title: Expose capabilities in --json and role text output
   status: Done
-  story: US9
+  maps_to: US9
 - local_id: ST5
   title: Address a capability from the playbook with *<name>
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Switch every consumer to the resolved role
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST7
   title: Name roles from the roster in generated text
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST8
   title: Drop the is_dev attribute and add the 0.16 contribution
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST9
   title: Report suffix-only -dev roles and pin their transitions
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST10
   title: Add sq dev add --slug and stop reading the suffix
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST11
   title: Resolve an unknown slug to nothing
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-10-09T20:28:02Z'
 updated_at: '2026-10-16T21:16:05Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

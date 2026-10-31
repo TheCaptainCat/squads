@@ -14,7 +14,7 @@ subentities:
 - local_id: ST1
   title: Thread config.squad_dir string into the view-rendering context (F11)
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-09-08T13:52:17Z'
 updated_at: '2026-09-10T09:40:29Z'
 ---

@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: sq memory <role> add [--file]
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: sq memory <role> list / search <query> / show <slug>
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: sq memory <role> forget <slug>; clean errors
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-15T07:47:00Z'
 updated_at: '2026-07-15T10:20:49Z'
 ---

@@ -6,11 +6,11 @@ title: sq check flags operator authors/assignees as unregistered
 status: Verified
 author: op-pierre
 assignee: python-dev
-priority: high
 description: check() validates author/assignee against roles only, while the write
   gate accepts operators too
 created_at: '2026-06-10T12:30:52Z'
 updated_at: '2026-06-10T12:32:14Z'
+priority: high
 severity: medium
 ---
 <!-- sq:body -->

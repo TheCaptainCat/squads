@@ -5,12 +5,12 @@ type: bug
 title: Import stores a model on non-developer roles that is ignored
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1064
 - MILE-1051:targets
 created_at: '2026-10-16T17:50:50Z'
 updated_at: '2026-10-26T06:46:33Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Summary

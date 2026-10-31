@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: python-dev
-priority: medium
 description: 'Core: ADR-474 Part B status roles (US9/F26 core)'
 created_at: '2026-07-18T20:10:48Z'
 updated_at: '2026-07-18T20:37:06Z'
+priority: medium
 ---
 <!-- sq:body -->
 Story: US9 (REV-448 F26 machine-surface half, Medium). **Discipline: CORE / Python** (spec TOML + machine surface). Implements ADR-474 Part B (status roles).

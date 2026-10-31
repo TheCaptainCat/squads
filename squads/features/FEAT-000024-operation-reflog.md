@@ -6,7 +6,6 @@ title: Operation reflog
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - FEAT-23
 - BUG-22
@@ -27,6 +26,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T13:59:11Z'
 updated_at: '2026-09-01T13:47:41Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

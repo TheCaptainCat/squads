@@ -5,11 +5,11 @@ type: bug
 title: ref_rule_target_present never accepts an edge of the default kind
 status: Verified
 author: qa
-priority: low
 refs:
 - MILE-1051:targets
 created_at: '2026-10-12T05:51:11Z'
 updated_at: '2026-10-25T11:11:59Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Reproduction

@@ -6,7 +6,6 @@ title: Report a roster entry already in a config-invalid state
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: urgent
 refs:
 - BUG-698:fixes
 - ADR-697:implements
@@ -17,21 +16,22 @@ subentities:
 - local_id: ST1
   title: Build the config-integrity clause predicates
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Register the roster config-integrity validator in the closed catalog
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Name the dependants and the implicating types in each finding
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Cover the reporter against the recorded repro
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-07-30T07:47:16Z'
 updated_at: '2026-07-31T12:41:23Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Context

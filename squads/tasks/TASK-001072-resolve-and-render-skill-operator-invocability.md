@@ -17,32 +17,32 @@ subentities:
   title: Declare each bundled skill's default and resolve operator_invocable in one
     place
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Render user-invocable: false from all three Claude Code pointer sites'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Add --operator-invocable yes/no/default to sq skill add and update
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Show the resolved value and whether the squad set it
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: Keep the AGENTS.md backend silent about operator_invocable
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: 'Prove the upgrade path: drift before sq sync, clean after'
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST7
   title: Observe a hidden skill preloading into a subagent on a real host
   status: Done
   assignee: qa
-  story: US2
+  maps_to: US2
 created_at: '2026-10-16T19:55:32Z'
 updated_at: '2026-10-17T03:43:32Z'
 ---

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-792
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-781:implements
 description: Drop squad_path from all four templates, move the slug-bound startup
@@ -16,25 +15,26 @@ subentities:
 - local_id: ST1
   title: Drop squad_path from the four templates and its five producers
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Declare the startup command set once and render both pointers from it
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Remove the role body template's duplicate startup command block
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Reword invariant 5 to the containment statement
   status: Todo
-  story: US5
+  maps_to: US5
 - local_id: ST5
   title: Regenerate the template manifest and re-pin the goldens
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T14:42:04Z'
 updated_at: '2026-08-26T11:19:09Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

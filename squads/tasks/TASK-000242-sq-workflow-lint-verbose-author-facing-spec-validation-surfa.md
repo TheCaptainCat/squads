@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: sq workflow lint verbose validate, exit 0/1
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-06-30T07:49:53Z'
 updated_at: '2026-07-06T15:21:07Z'
 ---

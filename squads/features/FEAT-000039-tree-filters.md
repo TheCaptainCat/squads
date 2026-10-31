@@ -6,7 +6,6 @@ title: Tree filters
 status: Done
 parent: EPIC-38
 author: product-owner
-priority: low
 refs:
 - PRD-862:implements
 description: sq tree gains the same filters as list (--status, --priority, --assignee,
@@ -20,6 +19,7 @@ subentities:
   status: Todo
 created_at: '2026-06-11T07:58:43Z'
 updated_at: '2026-09-01T13:47:57Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Problem

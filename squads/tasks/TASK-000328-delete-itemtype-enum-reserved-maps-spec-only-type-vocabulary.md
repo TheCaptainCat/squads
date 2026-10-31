@@ -10,20 +10,20 @@ subentities:
 - local_id: ST1
   title: Delete ItemType + RESERVED_*/TYPE_ALIASES; prefix_for is spec-only
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Carry prefix on every Item frontmatter; spec-free id round-trip + load backfill
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Narrow type floor to three is_meta types; META_* constants for meta refs
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Freeze ItemType refs in all four migration runners to inline frozen local
     constants
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-07T14:50:23Z'
 updated_at: '2026-07-08T13:55:54Z'
 ---

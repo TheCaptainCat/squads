@@ -5,11 +5,11 @@ type: bug
 title: Two stale code comments in the role-projection/resolved_spec seam
 status: Verified
 author: qa
-severity: low
 refs:
 - REV-770
 created_at: '2026-08-22T09:35:10Z'
 updated_at: '2026-08-22T10:33:10Z'
+severity: low
 ---
 <!-- sq:body -->
 Two stale in-code justifications in the same recent seam, both re-verified against source

@@ -7,7 +7,6 @@ title: Guard all prose inputs against literal sq marker syntax (comments, sub-en
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-56:fixes
 subentities:
@@ -22,6 +21,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-06-12T08:18:43Z'
 updated_at: '2026-07-06T15:18:19Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

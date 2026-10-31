@@ -11,20 +11,20 @@ subentities:
   title: Delete Status enum; narrow _RESERVED_FLOOR to Draft/Active/Archived + STATUS_*
     constants
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Add completion flag + one-completion-per-machine validation; flag default_workflow.toml
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Sub-entity create=start state, done-toggle=completion status (no Status literals)
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Freeze Status refs in _v0_4_to_v0_5.py + _meta_compat.py to inline frozen
     local status-name constants
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-07T14:50:24Z'
 updated_at: '2026-07-08T15:41:23Z'
 ---

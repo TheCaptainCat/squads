@@ -12,19 +12,19 @@ subentities:
 - local_id: ST1
   title: Override check tests
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST2
   title: Config load tests
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST3
   title: Empty the pending list
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST4
   title: Falsify each test two ways
   status: Done
-  story: US8
+  maps_to: US8
 created_at: '2026-10-28T08:38:04Z'
 updated_at: '2026-10-28T10:41:13Z'
 ---

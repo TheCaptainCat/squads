@@ -14,17 +14,17 @@ subentities:
   title: Sub-entity verbs on task subtask
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Finding-only options on review
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Comment verbs and host addressing
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 created_at: '2026-10-27T21:35:10Z'
 updated_at: '2026-10-28T01:02:41Z'
 ---

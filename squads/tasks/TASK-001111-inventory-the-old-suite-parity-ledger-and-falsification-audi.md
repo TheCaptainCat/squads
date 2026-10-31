@@ -7,7 +7,6 @@ status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: qa
-priority: high
 refs:
 - TASK-1110:depends-on
 - TASK-1098:depends-on
@@ -29,18 +28,19 @@ subentities:
 - local_id: ST1
   title: Build the parity ledger from regression classes, bugs and findings
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Run the falsification audit per source module on the old suite
   status: InProgress
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Record the per-OS CI baseline with durations and worker counts
   status: Done
   assignee: devops
-  story: US10
+  maps_to: US10
 created_at: '2026-10-24T13:42:12Z'
 updated_at: '2026-10-27T20:16:22Z'
+priority: high
 ---
 <!-- sq:body -->
 Inventory what the old suite protects before any of it is rebuilt: the parity ledger (US1), the falsification audit (US2) and the per-OS CI baseline every later increment is measured against (US10). Read-only on `tests/` and `src/`: no old test is deleted or edited here. The one file this task adds to the repo is the ledger, `tests_next/LEDGER.md`, which starts the new root; the rest of that root is set up by the next task.

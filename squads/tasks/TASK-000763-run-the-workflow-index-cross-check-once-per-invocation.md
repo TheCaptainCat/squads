@@ -6,7 +6,6 @@ title: Run the workflow index cross-check once per invocation
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-758:fixes
 - ADR-753:implements
@@ -14,6 +13,7 @@ description: Reduce the override-only whole-index parse multiplication on the ex
   Click-root anchor, without moving a fail-closed gate into the read scope
 created_at: '2026-08-21T19:36:45Z'
 updated_at: '2026-08-22T09:26:25Z'
+priority: medium
 ---
 <!-- sq:body -->
 `validate_against_index_fail_closed` (`src/squads/_workflow/_loader.py`) performs its own

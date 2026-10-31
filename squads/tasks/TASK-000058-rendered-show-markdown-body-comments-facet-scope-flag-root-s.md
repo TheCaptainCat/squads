@@ -7,26 +7,26 @@ status: Done
 parent: FEAT-26
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Render body as styled markdown on a TTY
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Plain/byte-stable output when piped, --raw, or NO_COLOR; --json unchanged
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Root sq show <id|number> for any work-item type
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Default summary table + --comments main discussion panes
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-06-12T08:58:26Z'
 updated_at: '2026-07-06T15:18:22Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

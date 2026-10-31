@@ -6,12 +6,12 @@ title: 'add-* sub-entity: expose --status inline across all kinds'
 status: Done
 parent: FEAT-571
 author: tech-lead
-priority: low
 refs:
 - REV-565
 description: Inline --status on add-finding/story/subtask, at parity with update
 created_at: '2026-07-22T18:05:31Z'
 updated_at: '2026-07-22T18:44:16Z'
+priority: low
 ---
 <!-- sq:body -->
 Expose `--status` inline on the generic `add-<kind>` command builder so

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1224:implements
 description: The _api package, LocalApi, the binding table and the guards; item show,
@@ -16,29 +15,30 @@ subentities:
 - local_id: ST1
   title: 'The _api package: envelope, operation table, Api, wire form'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: LocalApi, the binding table and the API on the request
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: 'Guards: _services imports, renderers, bindings, DTO fields'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Item show, list and status end to end
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Display content and renderers for items
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: JSON output on item status
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-10-28T22:12:36Z'
 updated_at: '2026-10-29T00:07:16Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

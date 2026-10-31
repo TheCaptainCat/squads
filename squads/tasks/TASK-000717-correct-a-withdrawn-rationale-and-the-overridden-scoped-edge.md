@@ -5,7 +5,6 @@ type: task
 title: Correct a withdrawn rationale and the overridden scoped-edge remedy
 status: Draft
 author: tech-lead
-priority: low
 refs:
 - REV-706:addresses
 subentities:
@@ -20,6 +19,7 @@ subentities:
   status: Todo
 created_at: '2026-07-31T13:19:20Z'
 updated_at: '2026-10-26T07:30:44Z'
+priority: low
 ---
 <!-- sq:body -->
 Two corrections in the roster config-integrity area, neither of which changes what the

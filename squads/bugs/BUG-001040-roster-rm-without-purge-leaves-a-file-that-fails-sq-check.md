@@ -5,11 +5,11 @@ type: bug
 title: Roster rm without --purge leaves a file that fails sq check
 status: Fixed
 author: qa
-priority: medium
 refs:
 - REV-1034
 created_at: '2026-10-16T09:01:13Z'
 updated_at: '2026-10-16T11:20:13Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Repro

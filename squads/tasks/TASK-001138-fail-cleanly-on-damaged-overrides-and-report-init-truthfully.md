@@ -6,7 +6,6 @@ title: Fail cleanly on damaged overrides and report init truthfully
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - MILE-1051:targets
 - BUG-1134:fixes
@@ -31,6 +30,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T05:39:20Z'
 updated_at: '2026-10-25T19:49:58Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

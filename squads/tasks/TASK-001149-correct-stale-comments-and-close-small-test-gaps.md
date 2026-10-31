@@ -5,7 +5,6 @@ type: task
 title: Correct stale comments and close small test gaps
 status: Done
 author: tech-lead
-priority: low
 refs:
 - MILE-1051:targets
 - REV-1010:addresses
@@ -52,6 +51,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T19:56:59Z'
 updated_at: '2026-10-26T09:13:44Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Goal

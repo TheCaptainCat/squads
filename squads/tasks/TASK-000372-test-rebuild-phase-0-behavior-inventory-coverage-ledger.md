@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: Coverage ledger maps every previously-caught bug-class to a new home
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Profile durations + coverage to find duplicate-invariant clusters
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-10T04:48:18Z'
 updated_at: '2026-07-10T05:30:56Z'
 ---

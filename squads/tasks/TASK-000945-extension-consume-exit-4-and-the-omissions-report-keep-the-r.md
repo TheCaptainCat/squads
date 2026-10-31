@@ -15,19 +15,19 @@ subentities:
 - local_id: ST1
   title: Show a degraded memory pool as partial, not as a smaller pool
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Map exit 4 in the adapter and keep the board rendering
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Keep the role in the memory panel title after a successful fetch
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Prove the memory entry summary is escaped as the body already is
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-09-14T13:53:51Z'
 updated_at: '2026-09-15T12:30:58Z'
 ---

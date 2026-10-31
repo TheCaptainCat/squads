@@ -6,7 +6,6 @@ title: Key roster lifecycle semantics off status roles, drop Draft
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: high
 refs:
 - ADR-696:implements
 description: Derived role-keyed status accessors, the roster lifecycle floor, and
@@ -32,6 +31,7 @@ subentities:
   status: Done
 created_at: '2026-07-30T07:47:11Z'
 updated_at: '2026-07-31T12:41:21Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

@@ -5,8 +5,6 @@ type: bug
 title: A parent cycle is accepted silently and hangs every sq tree call
 status: Verified
 author: qa
-priority: high
-severity: high
 refs:
 - ADR-864:addresses
 description: update --parent accepts a self- or mutual-parent edge with exit 0; every
@@ -14,6 +12,8 @@ description: update --parent accepts a self- or mutual-parent edge with exit 0; 
   fine.
 created_at: '2026-09-01T15:41:07Z'
 updated_at: '2026-09-03T08:50:21Z'
+priority: high
+severity: high
 ---
 <!-- sq:body -->
 ## Summary

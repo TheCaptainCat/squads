@@ -11,11 +11,11 @@ subentities:
 - local_id: ST1
   title: load_workflow_spec with importlib.resources/tomllib + fail-closed enum validation
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Rewire _workflow/_enums tables and free functions onto the loaded spec singleton
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-06-25T14:21:30Z'
 updated_at: '2026-07-06T15:19:59Z'
 ---

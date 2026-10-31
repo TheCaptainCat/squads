@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Open search page, query, results list with snippets
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Empty-query and no-results states; escape back to browse
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-21T12:20:43Z'
 updated_at: '2026-07-21T14:37:58Z'
 ---

@@ -13,23 +13,23 @@ subentities:
 - local_id: ST1
   title: Declare a validator's level in its selection
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Declared floor: selections may raise, never lower, level'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Move validator thresholds from constants into the spec
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Extend the required-context correspondence to level/floor
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Make parent_present selectable at warn
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-09-04T12:54:01Z'
 updated_at: '2026-09-08T14:55:40Z'
 ---

@@ -5,7 +5,6 @@ type: decision
 title: De-Claude-ify the AgentBackend ABC before the 1.0 freeze
 status: Accepted
 author: architect
-priority: high
 refs:
 - FEAT-16
 - TASK-131
@@ -14,6 +13,7 @@ description: Rename generate_*_pointer→generate_*_entry, move claude_dir/claud
   import list. Apply CC-001/002/004 cosmetics alongside.
 created_at: '2026-06-15T13:16:56Z'
 updated_at: '2026-10-27T21:05:28Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

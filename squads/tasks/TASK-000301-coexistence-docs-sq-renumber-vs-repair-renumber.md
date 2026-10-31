@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Pre-merge shift and post-merge --renumber documented as complementary
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-06T08:47:59Z'
 updated_at: '2026-07-06T10:06:44Z'
 ---

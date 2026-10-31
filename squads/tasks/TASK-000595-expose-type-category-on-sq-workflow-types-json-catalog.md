@@ -6,9 +6,9 @@ title: Expose type category on sq workflow types --json catalog
 status: Done
 parent: FEAT-570
 author: tech-lead
-priority: high
 created_at: '2026-07-22T13:00:53Z'
 updated_at: '2026-07-22T17:17:59Z'
+priority: high
 ---
 <!-- sq:body -->
 Implements FEAT-570 US1 — the wire enabler. Expose each type's `category` on the `sq workflow types --json` catalog so both UI clients read the roster/work/records split from one source instead of re-deriving it. Build this FIRST: TASK-598..602 (TUI + VS Code) consume it.

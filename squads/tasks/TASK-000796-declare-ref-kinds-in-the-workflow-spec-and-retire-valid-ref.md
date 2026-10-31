@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - ADR-775:implements
 description: Declare ref_kinds as a workflow-spec section, retire VALID_REF_KINDS
@@ -16,25 +15,26 @@ subentities:
 - local_id: ST1
   title: Declare the [ref_kinds] section and its spec model
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Move the bundled ref kinds into workflow.toml
   status: InProgress
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Retire VALID_REF_KINDS at the consultation sites
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Re-authority the ref_rules kind check onto the declared section
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: sq workflow ref-kinds --json and the bundled targets kind
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-08-25T14:40:26Z'
 updated_at: '2026-08-25T23:39:40Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

@@ -5,12 +5,12 @@ type: bug
 title: A view with no presentation template raises a traceback, not a SquadsError
 status: Verified
 author: qa
-priority: medium
 refs:
 - TASK-833
 - MILE-836:targets
 created_at: '2026-08-26T16:35:41Z'
 updated_at: '2026-09-01T08:05:31Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What happens

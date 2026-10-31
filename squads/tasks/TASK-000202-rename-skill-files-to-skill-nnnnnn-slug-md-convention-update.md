@@ -10,15 +10,15 @@ subentities:
 - local_id: ST1
   title: Migration renames legacy slug-named files to SKILL-NNNNNN-slug.md idempotently
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Fresh sq init seeds skill files with the SKILL-NNNNNN-slug.md convention
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Backend derives body path from id; .claude pointer resolves to renamed file
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-25T07:56:03Z'
 updated_at: '2026-07-06T15:19:55Z'
 ---

@@ -14,19 +14,19 @@ subentities:
 - local_id: ST1
   title: Enumerate repair-corridor consumers, fix F23
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Widen the AST filter beyond ast.Attribute (F25 gap 1)
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: 'Scan template literals for sq:view: tags (F25 gap 2)'
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Make the gate check assert the gate, not a decoy mention (F25 gap 3)
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-09-10T08:27:49Z'
 updated_at: '2026-09-10T09:34:52Z'
 ---

@@ -5,11 +5,11 @@ type: bug
 title: 'tree: priority and title separated by a bare space'
 status: Verified
 author: op-pierre
-priority: low
 description: In sq tree, '🟠 high Stability contract documentation' runs together —
   put a middle dot between priority and title
 created_at: '2026-06-10T15:19:16Z'
 updated_at: '2026-06-11T13:19:46Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Observed

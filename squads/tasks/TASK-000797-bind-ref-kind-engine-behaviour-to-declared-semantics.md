@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-775:implements
 - TASK-796:depends-on
@@ -18,29 +17,30 @@ subentities:
 - local_id: ST1
   title: Convert the dependency bindings to the declared semantic
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Convert the preload bindings to the declared semantic
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Convert the supersession binding to the declared semantic
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: tests/meta scan for bundled ref-kind literals
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Per-capability floor on the merged spec
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Live-corpus refusal for a dropped or renamed ref kind
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-08-25T14:40:27Z'
 updated_at: '2026-08-25T23:39:41Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

@@ -6,7 +6,6 @@ title: Strip the retired regions corpus-wide in the repair sweep
 status: Done
 parent: FEAT-694
 author: tech-lead
-priority: high
 refs:
 - ADR-776:implements
 - TASK-847:depends-on
@@ -22,33 +21,34 @@ subentities:
 - local_id: ST1
   title: Strip both retired marker region families in the repair sweep
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Empty every role body and strip the role extra mirror
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Write the MANUAL section and the changelog announcement
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Prove the sweep on the fixtures and through the bare verb
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Strip this repository's own squad corpus
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Empty every system skill body, keyed on is_system_skill
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST7
   title: Record the ordering prohibition the verb placement satisfies
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-09-01T08:04:14Z'
 updated_at: '2026-09-02T14:01:16Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

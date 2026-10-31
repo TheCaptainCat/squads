@@ -6,7 +6,6 @@ title: 'Comment-scoping convention: sub-entity discussions vs main discussion'
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - FEAT-26
 - PRD-860:implements
@@ -22,6 +21,7 @@ subentities:
   status: Done
 created_at: '2026-06-12T09:49:28Z'
 updated_at: '2026-09-01T13:48:10Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

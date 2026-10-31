@@ -5,12 +5,12 @@ type: bug
 title: sq migrate up can point to a chlog span with no manual steps in it
 status: Verified
 author: qa
-severity: medium
 refs:
 - BUG-937
 - MILE-867:targets
 created_at: '2026-09-15T08:00:35Z'
 updated_at: '2026-09-24T09:59:26Z'
+severity: medium
 ---
 <!-- sq:body -->
 ## Problem

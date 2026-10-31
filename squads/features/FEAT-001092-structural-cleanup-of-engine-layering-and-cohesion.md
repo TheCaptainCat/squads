@@ -5,7 +5,6 @@ type: feature
 title: Structural cleanup of engine layering and cohesion
 status: Done
 author: product-owner
-priority: medium
 refs:
 - MILE-1051:targets
 - REV-956
@@ -32,6 +31,7 @@ subentities:
   status: Done
 created_at: '2026-10-17T03:49:43Z'
 updated_at: '2026-10-28T12:48:10Z'
+priority: medium
 ---
 <!-- sq:body -->
 This feature carries thirteen findings of the structural review of the engine

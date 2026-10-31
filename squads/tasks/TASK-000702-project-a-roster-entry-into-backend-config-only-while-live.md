@@ -6,7 +6,6 @@ title: Project a roster entry into backend config only while live
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: high
 refs:
 - ADR-697:implements
 - TASK-699:depends-on
@@ -16,29 +15,30 @@ subentities:
 - local_id: ST1
   title: Split the roster accessors into active-only and full projections
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Audit every roster caller against the projection table
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Materialise and withdraw through the backend ABC on a transition
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Make sq sync the convergence point for the projection
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Accept only a live slug where a participant is written
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Cover both directions, the fan-out and the wrong projection
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-30T07:47:29Z'
 updated_at: '2026-07-31T12:41:25Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Context

@@ -6,7 +6,6 @@ title: Backend conformance suite + ABC de-Claude-ification
 status: Done
 parent: FEAT-16
 author: tech-lead
-priority: high
 description: Shared conformance suite capturing the AgentBackend contract; run against
   Claude; merge ABC corrections before 1.0
 subentities:
@@ -14,14 +13,15 @@ subentities:
   title: Write the shared backend conformance suite (parametrized factory fixture)
     and make it green against claude_code
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Merge the ABC corrections the suite surfaces (de-Claude-ify the contract)
     so a non-Claude backend can implement it
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-15T13:02:37Z'
 updated_at: '2026-07-06T15:18:07Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

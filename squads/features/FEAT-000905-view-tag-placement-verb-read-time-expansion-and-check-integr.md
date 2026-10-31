@@ -6,7 +6,6 @@ title: 'View tag: placement verb, read-time expansion, and check integration'
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: urgent
 refs:
 - MILE-867:targets
 - ADR-880:implements
@@ -40,6 +39,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:10:58Z'
 updated_at: '2026-09-04T07:35:30Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Why

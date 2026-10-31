@@ -11,7 +11,7 @@ subentities:
 - local_id: ST1
   title: Launchable, cleanly-quitting sq ui shell + missing-extra guard
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-21T09:18:48Z'
 updated_at: '2026-07-21T12:05:06Z'
 ---

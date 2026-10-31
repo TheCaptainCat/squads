@@ -6,14 +6,14 @@ title: 'sq workflow lint: add reachable-terminal + transition-target vocab check
 status: Done
 parent: FEAT-211
 author: tech-lead
-priority: medium
 subentities:
 - local_id: ST1
   title: Lint rejects undeclared transition targets and terminal-less lifecycles
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-02T09:20:17Z'
 updated_at: '2026-07-06T15:21:10Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal — `sq workflow lint`: reachable-terminal + transition-target vocab (AC#5, US1)

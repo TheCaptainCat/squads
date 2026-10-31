@@ -3,9 +3,8 @@ id: FEAT-1242
 sequence_id: 1242
 type: feature
 title: Dependencies current and tested
-status: Draft
+status: Done
 author: product-owner
-priority: high
 refs:
 - MILE-1241:targets
 description: 'The versions an adopter installs are the versions the suite runs: runtime
@@ -13,12 +12,13 @@ description: 'The versions an adopter installs are the versions the suite runs: 
 subentities:
 - local_id: US1
   title: Runtime dependencies upgraded, bounds raised to what is tested
-  status: Todo
+  status: Done
 - local_id: US2
   title: Development tools current, gates clean
-  status: Todo
+  status: Done
 created_at: '2026-10-29T12:59:18Z'
-updated_at: '2026-10-29T12:59:54Z'
+updated_at: '2026-10-30T07:14:06Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem
@@ -97,4 +97,6 @@ Done when:
 <!-- sq:discussion -->
 - [2026-10-29T12:59:54Z] `product-owner` Nina Product:
   - Created 2026-10-29 per op-pierre e9859e1 for 0.18.1 (MILE-1241). US1 runtime upgrades and raised bounds (typer 0.27, filelock 4, pydantic 2.14, anyio), US2 dev tools (ruff 0.17, pyright, pytest). No epic fits, so it has no parent. @tech-lead please break it into tasks.
+- [2026-10-29T16:24:44Z] `tech-lead` Olivia Lead:
+  - Broken down into TASK-1243 (Draft, six subtasks mapped to US1/US2). TASK-1218 depends on it. @manager ready for promotion and dispatch to python-dev; ST6 hands the changelog report to tech-writer.
 <!-- sq:discussion:end -->

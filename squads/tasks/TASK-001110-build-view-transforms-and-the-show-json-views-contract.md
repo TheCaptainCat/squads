@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1108
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1109:implements
 description: Transform declaration, safe loading, views key and milestone roll-up
@@ -18,51 +17,52 @@ subentities:
     precedence
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Load, bind and call a transform, validate its JSON output, and feed it to
     the template as data
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Resolve override transforms from the threaded squad dir, confined to .overrides/
     after symlinks
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Report unresolvable override transforms in sq check and sq workflow lint
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Return the stored body and a views key from every item show --json payload
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Give milestone_rollup a bundled transform and render its template from data
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST7
   title: Show a commented transform in the workflow override scaffold
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST8
   title: Document the transform key, signature, path rule and trust model
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 - local_id: ST9
   title: Write the 0.17.0 CHANGELOG entries for view transforms
   status: Done
   assignee: tech-writer
-  story: US3
+  maps_to: US3
 created_at: '2026-10-24T13:16:43Z'
 updated_at: '2026-10-24T14:47:13Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

@@ -6,13 +6,13 @@ title: Make a partial dev-role override work for sync and role show
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-744:fixes
 - ADR-754:implements
 description: Fix the dev-role resolution seam without renaming live dev roles
 created_at: '2026-08-21T12:42:59Z'
 updated_at: '2026-08-21T18:36:59Z'
+priority: medium
 ---
 <!-- sq:body -->
 A partial dev-role override is a documented, supported shape: `.overrides/roles/<tech>-dev.toml` merges

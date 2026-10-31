@@ -6,13 +6,13 @@ title: Relocate badge-rendering helpers out of _discussion into _badges
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - REV-346:addresses
 description: Byte-identical move of badge/status-badge rendering helpers into a focused
   _badges module
 created_at: '2026-07-09T14:56:25Z'
 updated_at: '2026-07-09T19:44:54Z'
+priority: low
 ---
 <!-- sq:body -->
 Pure structural relocation (no behaviour change) addressing REV-346 finding F4. The badge/status-badge presentation helpers currently live in `src/squads/_discussion.py`, whose remit is comment/story/subtask prose formatting + @mention extraction. Badge rendering is presentation, not discussion — it belongs in its own module.

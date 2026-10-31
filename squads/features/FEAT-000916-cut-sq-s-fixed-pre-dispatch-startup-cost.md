@@ -6,7 +6,6 @@ title: Cut sq's fixed pre-dispatch startup cost
 status: Done
 parent: EPIC-31
 author: product-owner
-priority: medium
 refs:
 - EPIC-29
 - MILE-1051:targets
@@ -22,6 +21,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T13:06:26Z'
 updated_at: '2026-10-25T02:17:36Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

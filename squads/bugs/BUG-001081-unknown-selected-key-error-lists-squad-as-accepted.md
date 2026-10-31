@@ -5,11 +5,11 @@ type: bug
 title: Unknown [selected] key error lists squad as accepted
 status: Verified
 author: qa
-priority: low
 refs:
 - MILE-934:targets
 created_at: '2026-10-16T21:17:28Z'
 updated_at: '2026-10-16T22:48:13Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Steps

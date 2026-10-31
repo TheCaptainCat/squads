@@ -5,11 +5,11 @@ type: bug
 title: Invalid UTF-8 in squad data crashes with a raw traceback
 status: Verified
 author: qa
-severity: high
 refs:
 - BUG-669
 created_at: '2026-07-27T22:27:38Z'
 updated_at: '2026-07-28T07:25:09Z'
+severity: high
 ---
 <!-- sq:body -->
 ## Symptom

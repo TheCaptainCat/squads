@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-980
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-979:implements
 - TASK-954:depends-on
@@ -17,33 +16,34 @@ subentities:
 - local_id: ST1
   title: Write and parse one header grammar that names the slug
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add author_slug to discussion JSON; show name then slug
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Refuse reserved role slugs and pin slug permanence
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Create the 0.16 migration step as a list of contributions
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: 'Migrate legacy headers: resolve all, refuse loudly, rewrite'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Freeze a 0.15 squad with discussions; prove the run end to end
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST7
   title: Dry-run the header planning pass on a copy of this squad
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-12T06:46:55Z'
 updated_at: '2026-10-16T08:22:34Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

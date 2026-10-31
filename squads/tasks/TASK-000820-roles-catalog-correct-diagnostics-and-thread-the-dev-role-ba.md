@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - REV-817:addresses
 - ADR-775:implements
@@ -22,19 +21,20 @@ subentities:
   title: Carry the origin into roles catalog validation refusals
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Name roles in the stamp finding and retire the stale docstring
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Thread squad_dir into the dev-role preview merge base
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 created_at: '2026-08-25T22:59:31Z'
 updated_at: '2026-08-26T16:01:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

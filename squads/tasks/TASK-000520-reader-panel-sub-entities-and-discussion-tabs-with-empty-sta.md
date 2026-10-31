@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Sub-entities tab with empty state
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Discussion tab with empty state
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-21T09:18:54Z'
 updated_at: '2026-07-21T12:05:13Z'
 ---

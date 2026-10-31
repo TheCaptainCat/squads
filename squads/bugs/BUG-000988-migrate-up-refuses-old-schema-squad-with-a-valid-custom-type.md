@@ -5,13 +5,13 @@ type: bug
 title: migrate up refuses old-schema squad with a valid custom type
 status: Verified
 author: qa
-priority: high
 refs:
 - MILE-934:targets
 - ADR-955
 - TASK-954
 created_at: '2026-10-09T20:19:46Z'
 updated_at: '2026-10-11T21:15:44Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Reproduction

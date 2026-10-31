@@ -5,12 +5,12 @@ type: bug
 title: Playbook loader crashes on wrong-typed overrides shapes
 status: Verified
 author: qa
-priority: medium
 refs:
 - REV-1050
 - MILE-934:targets
 created_at: '2026-10-16T12:21:17Z'
 updated_at: '2026-10-16T19:08:35Z'
+priority: medium
 ---
 <!-- sq:body -->
 The playbook loader raises an uncaught `AttributeError` on a wrong-typed top-level shape in `.overrides/playbook.toml`, so `sq check` prints a traceback and exits 1 instead of reporting a clean error. Same crash class the role catalog loader just fixed.

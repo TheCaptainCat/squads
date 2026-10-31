@@ -5,11 +5,11 @@ type: bug
 title: add-<kind> body hint names a command that does not exist
 status: Verified
 author: qa
-priority: medium
 refs:
 - MILE-934:targets
 created_at: '2026-10-12T05:38:08Z'
 updated_at: '2026-10-16T19:08:33Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Reproduction

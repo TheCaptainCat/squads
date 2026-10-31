@@ -6,7 +6,6 @@ title: Backfill architecture documentation into squads
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 description: Put the architecture and the pre-bootstrap design decisions on the record
   as sq guides and ADRs, since the project started untracked
 subentities:
@@ -21,6 +20,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T12:49:50Z'
 updated_at: '2026-06-23T09:59:10Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

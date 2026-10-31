@@ -17,28 +17,28 @@ subentities:
   title: Document every sq import op with its fields and an example line
   status: Done
   assignee: tech-writer
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: Guard the import op reference against the event model
   status: Done
   assignee: python-dev
-  story: US7
+  maps_to: US7
 - local_id: ST3
   title: Show splat-refs on role list fields in the override docs
   status: Done
   assignee: tech-writer
-  story: US7
+  maps_to: US7
 - local_id: ST4
   title: Add an interview question on when to open a review
   status: Done
   assignee: tech-writer
-  story: US8
+  maps_to: US8
 - local_id: ST5
   title: Write the 0.17.0 Documentation note for the import, override and interview
     docs
   status: Done
   assignee: tech-writer
-  story: US7
+  maps_to: US7
 created_at: '2026-10-24T10:04:07Z'
 updated_at: '2026-10-28T12:11:21Z'
 ---

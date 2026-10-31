@@ -15,28 +15,28 @@ subentities:
   title: Wire an automatic backfill trigger into the upgrade path
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Convert the sweep's bare AssertionError to SquadsError, skip-and-report per
     file
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Gate role/system-skill re-seeding on the view still being declared
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Add ROLE_DEFINITION_VIEW_NAME and fix the adjacent false docstring
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Restore sq role show's unresolvable-role advisory
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 created_at: '2026-09-04T14:39:46Z'
 updated_at: '2026-09-10T09:40:24Z'
 ---

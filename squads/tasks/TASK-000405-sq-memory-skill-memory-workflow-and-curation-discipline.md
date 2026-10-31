@@ -12,7 +12,7 @@ subentities:
 - local_id: ST1
   title: Managed cross-role sq-memory skill
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-07-15T07:47:29Z'
 updated_at: '2026-07-15T10:20:51Z'
 ---

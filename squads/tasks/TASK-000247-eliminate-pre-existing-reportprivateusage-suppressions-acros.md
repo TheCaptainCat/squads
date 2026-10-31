@@ -5,7 +5,6 @@ type: task
 title: Eliminate pre-existing reportPrivateUsage suppressions across service mixins
 status: Done
 author: tech-lead
-priority: low
 refs:
 - TASK-666:depends-on
 - TASK-664:depends-on
@@ -26,6 +25,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-06-30T08:51:11Z'
 updated_at: '2026-07-28T07:24:40Z'
+priority: low
 ---
 <!-- sq:body -->
 Decision (Pierre, 2026-06-30): we stop suppressing pyright's `reportPrivateUsage`. Modules stay

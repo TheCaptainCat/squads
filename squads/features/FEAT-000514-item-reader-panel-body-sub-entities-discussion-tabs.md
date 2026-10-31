@@ -6,7 +6,6 @@ title: 'Item reader panel: body, sub-entities, discussion tabs'
 status: Done
 parent: EPIC-28
 author: product-owner
-priority: medium
 refs:
 - FEAT-15:depends-on
 - FEAT-19:depends-on
@@ -26,6 +25,7 @@ subentities:
   status: Todo
 created_at: '2026-07-21T09:11:26Z'
 updated_at: '2026-09-01T13:50:29Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: Additive prefix-line normalization pass wired into MIGRATIONS
   status: Todo
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Assess/decide/record the SCHEMA_VERSION bump
   status: Todo
-  story: US4
+  maps_to: US4
 created_at: '2026-07-07T14:50:25Z'
 updated_at: '2026-07-08T16:05:34Z'
 ---

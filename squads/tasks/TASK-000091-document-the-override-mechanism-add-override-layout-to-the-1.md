@@ -6,20 +6,20 @@ title: Document the override mechanism + add override layout to the 1.0 contract
 status: Done
 parent: FEAT-14
 author: tech-lead
-priority: medium
 description: Docs/guide for overrides + naming; list the .overrides layout among the
   durable surfaces in the FEAT-13 contract doc
 subentities:
 - local_id: ST1
   title: Document override + naming mechanism in guide/skill surface
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: List the .overrides layout among durable surfaces in the contract doc
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T20:57:40Z'
 updated_at: '2026-07-06T15:18:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 Docs + contract task for FEAT-14 (feature Acceptance: 'sq check/docs explain the mechanism' and 'the contract doc lists the override layout among the durable surfaces'; ADR-85 §5).

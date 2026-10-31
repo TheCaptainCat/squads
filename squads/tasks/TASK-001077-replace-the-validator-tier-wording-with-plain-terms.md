@@ -5,7 +5,6 @@ type: task
 title: Replace the validator tier wording with plain terms
 status: Done
 author: tech-lead
-priority: low
 refs:
 - ADR-864
 - MILE-1051:targets
@@ -27,6 +26,7 @@ subentities:
   assignee: tech-writer
 created_at: '2026-10-16T20:59:53Z'
 updated_at: '2026-10-24T23:47:25Z'
+priority: low
 ---
 <!-- sq:body -->
 Drop the word "tier" for validators and use plain terms. Wording only: no behaviour, name, or output change.

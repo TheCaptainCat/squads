@@ -6,11 +6,11 @@ title: Role catalog spec construct + regenerated bundled workflow
 status: Done
 parent: FEAT-605
 author: tech-lead
-priority: high
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:18Z'
 updated_at: '2026-07-22T18:42:47Z'
+priority: high
 ---
 <!-- sq:body -->
 Implements FEAT-605 US1. Introduce the role catalog as a first-class spec construct and regenerate the bundled workflow — the model the rest of FEAT-605 and FEAT-570's rework depend on.

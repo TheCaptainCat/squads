@@ -5,12 +5,12 @@ type: bug
 title: add-story/subtask/finding hint prints a nonexistent command
 status: Cancelled
 author: qa
-priority: medium
 refs:
 - REV-1032
 - BUG-1000
 created_at: '2026-10-16T09:01:07Z'
 updated_at: '2026-10-16T12:24:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Repro
