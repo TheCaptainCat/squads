@@ -278,7 +278,7 @@ every command stops, `sq migrate up` included:
 
 An alias needs only an edit to the override. A type that already has items has to move while the
 older release still runs, because 0.19 cannot load the override that declares it: declare the new
-type in the override, run `sq migrate rename-type daemon <new_type>` (see
+type in the override, run `sq migrate rename-type daemon <new-type>` (see
 [workflow.md § "Renaming existing types and statuses"](workflow.md#renaming-existing-types-and-statuses)),
 drop `daemon` from the override, commit, then upgrade.
 

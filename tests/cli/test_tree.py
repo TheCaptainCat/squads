@@ -56,7 +56,7 @@ async def test_tree_draws_the_open_items_under_their_parents(readable, invoke) -
     )
 
 
-@pytest.mark.covers("tree", "root_id")
+@pytest.mark.covers("tree", "root-id")
 async def test_root_id_draws_one_item_and_what_is_below_it(readable, invoke) -> None:
     assert await _tree(invoke, "2") == (
         0,
@@ -65,7 +65,7 @@ async def test_root_id_draws_one_item_and_what_is_below_it(readable, invoke) -> 
     assert await _tree(invoke, "TASK-3") == (0, _drawn(f"└── {PARSER}"))
 
 
-@pytest.mark.covers("tree", "root_id")
+@pytest.mark.covers("tree", "root-id")
 async def test_root_id_refuses_a_number_no_item_has(readable, invoke) -> None:
     assert await _tree(invoke, "99") == (
         1,
@@ -243,7 +243,7 @@ async def test_depth_refuses_a_value_that_is_not_an_integer(readable, invoke) ->
     assert await _tree(invoke, "--depth", "deep") == (
         2,
         [
-            "Usage: sq tree [OPTIONS] [root_id]",
+            "Usage: sq tree [OPTIONS] [root-id]",
             "Try 'sq tree --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
             "│ Invalid value for '--depth': 'deep' is not a valid int.                      │",
@@ -478,7 +478,7 @@ async def test_a_derived_filter_means_exactly_its_generic_form(override_project,
     assert (refused.exit_code, refused.output) == (
         2,
         unknown_option(
-            "tree [OPTIONS] [root_id]", "tree", "--priority", " (Possible options: --sort)"
+            "tree [OPTIONS] [root-id]", "tree", "--priority", " (Possible options: --sort)"
         ),
     )
 
@@ -526,7 +526,7 @@ async def test_depth_refuses_a_negative_value(readable, invoke) -> None:
     assert await _tree(invoke, "--depth", "-1") == (
         2,
         [
-            "Usage: sq tree [OPTIONS] [root_id]",
+            "Usage: sq tree [OPTIONS] [root-id]",
             "Try 'sq tree --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
             "│ Invalid value for '--depth': must be 0 or more                               │",

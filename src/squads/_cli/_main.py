@@ -390,7 +390,9 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
     ctx: typer.Context,
     root_id: str | None = typer.Argument(
-        None, help="Item ID or number to root the tree at; omit for the whole squad."
+        None,
+        metavar="root-id",
+        help="Item ID or number to root the tree at; omit for the whole squad.",
     ),
     type: str | None = common.type_filter_option(),
     status: str | None = common.status_filter_option(),

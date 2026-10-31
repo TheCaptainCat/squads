@@ -131,8 +131,8 @@ def migrate_repad(
 @migrate_app.command("rename-type")
 @handle_errors
 def migrate_rename_type(
-    old_type: str = typer.Argument(..., metavar="old_type", help="Declared type to rename from."),
-    new_type: str = typer.Argument(..., metavar="new_type", help="Declared type to rename to."),
+    old_type: str = typer.Argument(..., metavar="old-type", help="Declared type to rename from."),
+    new_type: str = typer.Argument(..., metavar="new-type", help="Declared type to rename to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the items moved and their new ids."
     ),
@@ -140,7 +140,7 @@ def migrate_rename_type(
     """Move every item of one type to another, with the new prefix and folder.
 
     Both types must already be declared, non-roster types; this does not declare
-    new_type. Run `sq check` afterwards.
+    the new type. Run `sq check` afterwards.
     """
     request = RenameTypeRequest(old_type=old_type, new_type=new_type)
     response = calls.call(ops.RENAME_TYPE, request)
@@ -158,16 +158,17 @@ def migrate_rename_status(
         ..., metavar="type", help="Declared type whose items carry the status."
     ),
     old_status: str = typer.Argument(
-        ..., metavar="old_status", help="Status value to rename from."
+        ..., metavar="old-status", help="Status value to rename from."
     ),
-    new_status: str = typer.Argument(..., metavar="new_status", help="Status value to rename to."),
+    new_status: str = typer.Argument(..., metavar="new-status", help="Status value to rename to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: how many items were relabelled."
     ),
 ):
     """Relabel a status on every item of one type, without a transition.
 
-    new_status must already be in the type's lifecycle. Run `sq check` afterwards.
+    The new status must already be in the type's lifecycle. Run `sq check`
+    afterwards.
     """
     request = RenameStatusRequest(type=item_type, old_status=old_status, new_status=new_status)
     response = calls.call(ops.RENAME_STATUS, request)

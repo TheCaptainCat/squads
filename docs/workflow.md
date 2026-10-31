@@ -1598,8 +1598,8 @@ old one. A type's `prefix` and `folder` in particular are refused outright while
 items, because they are how squads finds those items on disk. To move an existing corpus onto
 different vocabulary, use the on-demand **data migration commands**:
 
-- **`sq migrate rename-type old_type new_type`** — bulk-rename every item of type `old_type` to
-  `new_type`. Both types must already exist in the active spec (as non-roster types). The command
+- **`sq migrate rename-type old-type new-type`** — bulk-rename every item of type `old-type` to
+  `new-type`. Both types must already exist in the active spec (as non-roster types). The command
   rewrites every affected item's ID, folder, and all references (parent, refs, inline mentions) to
   use the new prefix and location. Logged to the reflog; run `sq check` after.
 
@@ -1607,9 +1607,9 @@ different vocabulary, use the on-demand **data migration commands**:
   sq migrate rename-type task job         # every TASK-<n> becomes JOB-<n> (if both exist in the spec)
   ```
 
-- **`sq migrate rename-status type old_status new_status`** — bulk-move every item of `type` at
-  `old_status` to `new_status`. This is a relabel, not a workflow transition — items simply change
-  their status value without moving through the state machine. `new_status` must already be a member
+- **`sq migrate rename-status type old-status new-status`** — bulk-move every item of `type` at
+  `old-status` to `new-status`. This is a relabel, not a workflow transition — items simply change
+  their status value without moving through the state machine. `new-status` must already be a member
   of `type`'s lifecycle. Scoped per-type. Logged to the reflog; run `sq check` after.
 
   ```bash

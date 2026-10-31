@@ -55,7 +55,7 @@ async def test_a_negative_depth_is_refused(readable, invoke) -> None:
     assert await _run(invoke, "tree", "--depth", "-1") == (
         2,
         [
-            "Usage: sq tree [OPTIONS] [root_id]",
+            "Usage: sq tree [OPTIONS] [root-id]",
             "Try 'sq tree --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
             "│ Invalid value for '--depth': must be 0 or more                               │",

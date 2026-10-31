@@ -414,8 +414,8 @@ async def test_chlog_requires_a_range(invoke) -> None:
 
 
 @pytest.mark.covers("migrate rename-status", "type")
-@pytest.mark.covers("migrate rename-status", "old_status")
-@pytest.mark.covers("migrate rename-status", "new_status")
+@pytest.mark.covers("migrate rename-status", "old-status")
+@pytest.mark.covers("migrate rename-status", "new-status")
 @pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_status_relabels_the_items_of_the_type_at_that_status(
     populated_project, invoke
@@ -429,7 +429,7 @@ async def test_rename_status_relabels_the_items_of_the_type_at_that_status(
     assert (await _shown(invoke, "feature", 2))["status"] == "Draft"
 
 
-@pytest.mark.covers("migrate rename-status", "old_status")
+@pytest.mark.covers("migrate rename-status", "old-status")
 @pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_status_refuses_a_status_outside_the_lifecycle(
     populated_project, invoke
@@ -457,8 +457,8 @@ async def test_rename_status_refuses_a_type_the_spec_does_not_declare(
 # ----------------------------------------------------------------------------- rename-type
 
 
-@pytest.mark.covers("migrate rename-type", "old_type")
-@pytest.mark.covers("migrate rename-type", "new_type")
+@pytest.mark.covers("migrate rename-type", "old-type")
+@pytest.mark.covers("migrate rename-type", "new-type")
 @pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_moves_the_items_to_the_new_type_and_prefix(
     populated_project, invoke
@@ -477,7 +477,7 @@ async def test_rename_type_moves_the_items_to_the_new_type_and_prefix(
     assert [s["local_id"] for s in moved["subentities"]] == ["ST1", "ST2"]
 
 
-@pytest.mark.covers("migrate rename-type", "old_type")
+@pytest.mark.covers("migrate rename-type", "old-type")
 @pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_refuses_a_roster_type(populated_project, invoke) -> None:
     result = await invoke(["migrate", "rename-type", "task", "role"])
@@ -487,14 +487,14 @@ async def test_rename_type_refuses_a_roster_type(populated_project, invoke) -> N
     )
 
 
-@pytest.mark.covers("migrate rename-type", "old_type", "new_type")
+@pytest.mark.covers("migrate rename-type", "old-type", "new-type")
 @pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_refuses_to_rename_a_type_to_itself(populated_project, invoke) -> None:
     result = await invoke(["migrate", "rename-type", "task", "task"])
     assert (result.exit_code, result.output) == (1, "error: cannot rename 'task' to itself\n")
 
 
-@pytest.mark.covers("migrate rename-type", "old_type")
+@pytest.mark.covers("migrate rename-type", "old-type")
 @pytest.mark.bundled_only("refuses a bundled type name the squad's spec does not declare")
 async def test_rename_type_refuses_a_type_the_spec_does_not_declare(
     populated_project, invoke
@@ -506,7 +506,7 @@ async def test_rename_type_refuses_a_type_the_spec_does_not_declare(
     )
 
 
-@pytest.mark.covers("migrate rename-type", "new_type")
+@pytest.mark.covers("migrate rename-type", "new-type")
 @pytest.mark.bundled_only("migrates a squad written in the bundled vocabulary")
 async def test_rename_type_refuses_a_move_that_leaves_a_child_with_an_invalid_parent(
     populated_project, invoke
