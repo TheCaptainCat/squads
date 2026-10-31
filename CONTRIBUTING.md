@@ -186,7 +186,43 @@ in that test's `LONG_BODIES` list.
 ## Tests
 
 `tests/` holds the repository guards (`tests/meta/`, described above), the CLI surface tests
-(`tests/cli/`), the check rule tests (`tests/check/`) and the fixtures they share.
+(`tests/cli/`), the check rule tests (`tests/check/`), the daemon's route tests (`tests/daemon/`), the
+cross-process set (`tests/cross_process/`, the real `sq` script where one process must find, outlive
+or wait for another, the daemon's start included; it has its own CI job) and the fixtures they share.
+
+Two root options choose how `tests/cli/` runs, and they combine:
+
+- `--squad bundled|override` (or `SQUADS_TEST_SQUAD`): the bundled squad, or the override test squad
+  that shares none of its vocabulary. Cases about one squad's own spelling carry `bundled_only` or
+  `override_only` with a reason.
+- `--api-mode local|remote|routes` (or `SQUADS_TEST_MODE`): each command runs in the test process
+  (`local`); is sent to the daemon application served on a thread, through its command endpoint
+  (`remote`); or runs in the test process with each operation sent to that application over HTTP
+  (`routes`). Every case asserts the same output in every mode, with no exemption.
+
+The root `conftest.py` sets `SQUADS_DAEMON=off` for the whole run, so no test starts a daemon unless
+it says so. `tests/daemon/` covers only what the remote run cannot see (the error table, admission,
+the OpenAPI document, header binding, ETags, retirement, the browser listener): it serves the
+application through `tests/_daemon_harness.py` (`serve`), calls it with `http.client`, asserts the
+whole response, and carries no `covers` marker.
+
+**This repository's squad runs in daemon mode, so keep the dev tree off it.** Its `.squads.toml`
+sets `enabled = true` under `[daemon]`, and board work goes through the installed tool, whose
+daemon serves the released code. A daemon belongs to one installation: its key includes the
+directory squads is installed in, so `uv run sq` from this checkout, or from a worktree's own
+`.venv`, finds no daemon of its own and starts a second one on the same squad. That daemon keeps
+serving the code it started with until it idles out or is stopped, so a later change to the code is
+not what answers. Run the dev tree against this squad with `SQUADS_DAEMON=off`, or run
+`uv run sq daemon stop` after using it. In a scratch squad of your own, export
+`SQUADS_DAEMON=off`, or run `sq daemon stop` after each change.
+
+**The client budget.** In remote mode `sq` is the shim in `src/squads/_shim.py`: on its way to a
+running daemon it imports only the standard library, `squads._endpoint` and its own module, and to
+start one it adds `squads._daemon_start` and `squads._daemon_link` (a `tests/meta` guard holds both
+sets). `scripts/bench_remote_client.py` measures what it costs: the wall time of a command minus the
+handler time the daemon reports, median of 31 interleaved runs. The release criterion is at most
+100 ms for `sq task <n> show` on the GitHub-hosted Linux runner, where the `client-budget` CI job
+reports it without failing the build.
 
 `tests/cli/` has one module per command group. Each test runs `sq` in-process through the `invoke`
 fixture, on its own copy of a squad built once per module, under the frozen clock. The rules:

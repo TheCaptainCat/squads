@@ -19,7 +19,7 @@ uv build                # wheel/sdist (templates ship as package data)
 _cli → _api ← _services → (index store, backends, rendering, roles, interactions, …)
 _cli → _services only in _cli/_calls.local_api() (the LocalApi factory)
 _api  imports only pydantic, _errors and _models
-_models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
+_models  shared; imports only _clock, _endpoint, _errors and _util (and, through _clock, _context)
 ```
 
 Every command calls an operation through the `Api` and renders the DTO it answers with; the TUI
@@ -32,9 +32,8 @@ goes through an operation.
 Every package-to-package import edge, with where it runs (module top, inside a function, or
 under `TYPE_CHECKING`), is recorded in
 `tests/meta/test_package_import_edges_match_the_recorded_table.py`; that table is the layering
-authority, and a new edge is a row in its diff. Six packages (`_badges`, `_interactions`,
-`_overrides`, `_paths`, `_rendering`, `_workflow`) import each other at module top, so
-the graph is not a strict stack; the guard pins that set too.
+authority, and a new edge is a row in its diff. No set of packages imports each other at module
+top, and the guard holds that too: an import that would close a cycle goes inside a function.
 
 **Module privacy convention.** Every implementation module and subpackage is **private** —
 leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …). Package
@@ -45,12 +44,28 @@ which the entry point `squads.__main__:main` runs) and `_workflow/__init__` (the
 lists them.
 Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
 
-- `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — a story/subtask/finding's
-  state, carried on `Item.subentities`), `_index` (`SquadsDB`), `_vocab` (`prefix_for`/`label_for` —
+- `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — one sub-entity's
+  state, carried on `Item.subentities`: the core keys `local_id`/`title`/`status`/`assignee`/
+  `maps_to`/`deferred_to` plus a flat `attributes` mapping, like `Item.attributes`; a badge value of
+  either is read and written through `badge_value(code)`/`set_badge_value(code, value)`), `_index` (`SquadsDB`), `_vocab` (`prefix_for`/`label_for` —
   the per-type vocabulary resolver; there is **no** `ItemType`/`Status` enum and no built-in
   prefix→folder map, the spec is the sole authority and folder resolution goes through
   `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_attributes`
   (`AttributeKey`, `AttributeSpec`, `CORE_KEYS` and the typed roster accessors).
+- `_endpoint.py` — standard library only, and lean (no `dataclasses`, `typing` or `importlib.metadata`,
+  so its records are plain classes): the one resolution from a start directory and the `-C` values to
+  the squad directory and an `Endpoint` (transport, runtime directory, the four files per key, whether the
+  daemon may be used), plus the `[daemon]` table parser and `SQUADS_DAEMON`; `SquadsConfig`, `sq check`,
+  `effective_dir`, the shim and the daemon all read through it. `squads.__version__` is a literal (kept
+  equal to `pyproject.toml` by `scripts/bump_version.py` and a `tests/meta` guard) for the same reason.
+  `_shim.py` is the CLI's entry (`squads.__main__:main`): standard library plus `_endpoint`, it sends the
+  command line to the daemon's command endpoint, answers its prompts and writes the answer, or imports
+  `squads._cli` and runs the command in its own process when the command is local-only (`init`, `adopt`,
+  `daemon`, `ui`), there is no usable daemon, or nothing could be sent; its tables (file arguments, local-only
+  commands, `long` commands) are held to the command tree and the operation table by `tests/meta`, and its
+  import set by a subprocess guard. `_daemon_start.py` (reached only to start a daemon) and
+  `_daemon_link.py` are its standard-library helpers, which `sq daemon` shares. `_daemon/` is the process: `_lifecycle` (lock, fingerprint,
+  retirement, idle exit), `_listeners` (the sockets it binds) and `_admission` (the per-listener rules).
 - `_paths.py` — resolve the active squad folder (the `.squads.toml` walk-up from the effective
   directory, `RequestContext.client_cwd`, which root `-C` sets), map an ID/type to its location,
   and guard `abspath` against path traversal.
@@ -84,7 +99,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `_cli._common.get_active_spec()`) and playbook (`Service.playbook`), and pass `bundled_spec()` /
   `get_playbook_spec()` explicitly only where the bundled document is meant. The exceptions take
   `None`: `ItemFilter.spec` and `item_skill_role_sections(playbook)` (no such filter dimension or
-  text rewrite), the CLI helpers `parse_badge_code`/`parse_filter_badge_code`/`_field_badge`/
+  text rewrite), the CLI helpers `parse_badge_code`/`parse_filter_badge_code`/`parse_badge_field`/
   `build_item_app` (the request's active spec), `label_for` (the derived fallback label), and the template wrappers
   `_engine._badge`/`_engine._authoring_owners` (a reference render reads the bundled document).
   There is no process-global mutable spec.
@@ -92,17 +107,17 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   `_engine.py` registers `slugify` + `open_marker`/`close_marker` filters. The squad directory whose
   `.overrides/templates/` may shadow the bundled templates is an argument (`from_squad`) to every
   entry point, never ambient state; the Environment cache is keyed on it. Item files render from
-  `templates/items/*.md.j2`; **sub-entity blocks + their roll-up table** render from
-  `templates/subentities/{block,summary}.md.j2` (driven by `_discussion.build_block`/`render_summary`).
-  **Sub-entity state (status/assignee/severity/story) lives in the parent's frontmatter**
-  (`Item.subentities`, typed `SubEntity`), not the body — the block only holds prose (`:body`,
-  `:discussion`) plus a derived `:head` badge line (human-readable status/severity/assignee-name/story)
-  rendered from `subentities/head.md.j2` via `_discussion.set_head` (badges resolved from the
-  spec's collections by `_badges.py` — `status_badge`/`badge_render`/`resolve_collection`/
-  `field_label`); the service's `_refresh_head` resolves
-  names/titles from the model and re-renders the head + summary on every mutation. Extend the head with more `{% if %}` lines. The
-  legacy body-stored `:meta` regions survive only in `_migrations/_meta_compat.py`, used by the
-  migrations.
+  `templates/items/*.md.j2`; a **sub-entity block** renders from `templates/subentities/block.md.j2`
+  (`_discussion.build_block`): a `### <local id> — <title>` heading, `:body` and `:discussion`.
+  **Sub-entity state (status, assignee, the `maps_to` mapping, each field value) lives in the
+  parent's frontmatter** (`Item.subentities`, typed `SubEntity`), not the body. Nothing derived is
+  stored in the body: the roll-up table is computed on read (`_discussion.summary_columns`/
+  `summary_row`, projected into `show`'s `display.summary`), badges resolve from the spec's
+  collections in `_badges.py` (`status_badge`/`badge_render`/`resolve_collection`/`field_label`),
+  and a write re-renders only the heading line after a title change (`_discussion.set_heading`).
+  The retired `:head` and `:summary` regions (`head.md.j2`, `summary.md.j2`, `set_head`,
+  `ensure_summary`) and the legacy body-stored `:meta` regions (`_migrations/_meta_compat.py`)
+  survive only for the migrations.
 - `_backends/` — `AgentBackend` ABC + `_registry.py`, a literal name → class table (no registration
   side effect); `_claude_code/` writes pointer files, managed skills
   (real body under `<squad>/agents/skills/`, thin pointer in `.claude/`), and the CLAUDE.md section;
@@ -176,10 +191,14 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
   The root builds each command group on first lookup: `LAZY_GROUPS` in `_cli/__init__.py` names
   each group's module and Typer, and each bundled item type and alias gets its app from the
-  bundled spec, built once per root command; `sq --help` builds them all.
+  bundled spec, built once per root command; `sq --help` builds them all. A token the active spec
+  gives to another type is re-routed (`_common.retargeted_type`); there is no code table of
+  aliases. Badge-field and mapping options are derived from the active spec when a command's
+  parameters resolve (`_field_options.py`), never named in code, and `_workflow/_derived_names.py`
+  refuses at load a derived option or import key that collides on its surface.
   `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the table to the group
   Typers the `_cli` modules define. A command parses its arguments, builds one request DTO and
-  calls one operation through `_calls.py` (`call`, `select_api`, the `local_api()` factory, and
+  calls one operation through `_calls.py` (`call`, the `local_api()` factory, and
   the printers for `--json`, warnings and omissions), then renders. `_render/` holds the
   renderers: they take a DTO and a console only, and
   `tests/meta/test_renderers_read_neither_the_vocabulary_nor_the_configuration.py` keeps them, and
@@ -196,7 +215,7 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 
 1. **Frontmatter is the source of truth.** `.squads.json` is a rebuildable index; never store
    anything in it that can't be reconstructed from the `.md` files (`sq repair` proves this). This
-   includes **sub-entity state** (`Item.subentities`): status/assignee/severity/story live in the
+   includes **sub-entity state** (`Item.subentities`): status, assignee, `maps_to` and field values live in the
    frontmatter, only prose stays in the body markers.
 2. **Global counter.** One monotonic counter for all types; an ID's number is globally unique.
    Allocate only inside `IndexStore.transaction()`.
@@ -373,7 +392,7 @@ detect the operator, match their tone, explain your role, and give a quick read 
 **If you're unsure who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
 specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
 
-When the human wants their own words on the record — a comment, or a review point you've reformulated
+When the human wants their own words on the record — a comment, or any review point you've reformulated
 on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> -m "…"` (and
 `--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
 manual step or hand work to a specific person with `--assignee op-<slug>`.
@@ -427,7 +446,7 @@ between turns:
    work, and tracks everything through `sq`.
 3. **Integrate.** When it returns, re-read `sq` state — item/review status, new findings, whether
    anything is now blocked.
-4. **Decide & repeat.** Spawn the next step (more implementation, a review, a fix) until the
+4. **Decide & repeat.** Spawn the next step (more implementation, review, fixes) until the
    parent's own work is settled: every child item closed out, every linked review resolved.
 5. **Sweep for process-narration before closing.** Before an increment is committed/accepted, have the technical writer (`tech-writer`) run
    one final subagent pass that *reads* the new delivered text — item/sub-entity bodies, code

@@ -45,7 +45,7 @@ use `sq repair --renumber` to fix it after the merge (see **Handling ID collisio
 ### "waiting for the index lock …" / "the index lock … is held by another sq process"
 Every write takes a lock on `.squads.json.lock`, so two `sq` commands that write at once run one
 after the other. A command that has waited about a second prints
-`waiting for the index lock <path>…` on stderr and keeps waiting. If the lock is still held after
+`warning: waiting for the index lock <path>…` on stderr and keeps waiting. If the lock is still held after
 10 seconds, it exits `1` with `error: the index lock <path> is held by another sq process; nothing
 was written, retry the command`. Nothing was written, so run the command again; if it keeps
 failing, look for an `sq` process that is still running. The notice and the error go to stderr
@@ -57,15 +57,54 @@ The hierarchy is enforced: a **task**'s parent must be a **feature**, a **featur
 `sq task <n> ref add <bug> --kind fixes` (or `--kind addresses` for a review). Purely-technical tasks
 have no parent.
 
-### "<type> cannot move <X> → <Y>"
+### "<type> cannot move <from> → <to>"
 Each type has a status machine (see [workflow.md](workflow.md)). The transition you asked for isn't
 allowed from the current state. Move through the valid path, or override with
-`sq <type> <n> status <Y> --force` if you really mean it.
+`sq <type> <n> status <to> --force` if you really mean it.
 
-### "subtask STn → USn missing from FEAT-…"
-A subtask references a user story that doesn't exist in the task's parent feature. Add the story
-(`sq feature <n> add-story "…"`), remap the subtask (`--story`), or ensure the task's parent
-is the right feature.
+### "subtask STn maps to story USn, missing from FEAT-…"
+A sub-entity maps to a sub-entity that doesn't exist in its item's parent: here a subtask names a
+user story the task's parent feature doesn't have. Add the story
+(`sq feature <n> add-story "…"`), remap the subtask (`--story`, or `--no-story` to clear the
+mapping), or ensure the task's parent is the right feature. In a squad whose kinds have other
+names, the message and the option name them: the option is named after the kind the parent
+hosts.
+
+### "the daemon could not be used (…); running locally"
+A command tried to start the squad's daemon and could not, so it ran in local mode: the result is
+correct, only slower. The reason in parentheses says why: no answer within 5 seconds, a runtime
+directory that is owned by another user or open to others, a socket path that is too long, or a
+problem in the squad itself that the command then reports too. The next command tries again. To
+stop trying, turn the daemon off: `enabled = false` under `[daemon]` in `.squads.toml`, or
+`SQUADS_DAEMON=off` in your environment. See [daemon.md](daemon.md#when-the-daemon-cannot-be-used).
+
+### "warning: … every command runs in local mode until it is fixed"
+A value in the `[daemon]` table of `.squads.toml`, or the `SQUADS_DAEMON` variable, cannot be used,
+so the command ran in local mode: the result is correct, only slower. The line names the value; fix
+it (`enabled` and `browser` take `true` or `false`, `idle_timeout_minutes` a whole number of
+minutes, `SQUADS_DAEMON` `on` or `off`). `sq check` reports the same problem. See
+[daemon.md](daemon.md#settings).
+
+### "no answer from the squad served at … the operation may still complete"
+A command in remote mode stopped waiting for the daemon: you pressed Ctrl-C (exit `130`), its
+answer took longer than 300 seconds (exit `1`), or the connection was lost after the request was
+sent. The daemon may still have run the operation, so check its result (`show`, `list`,
+`sq reflog`) before running the command again. See
+[daemon.md](daemon.md#what-differs-between-the-modes).
+
+### "… speaks schema v…, and the squad served at … runs schema v…" / "this checkout's workflow vocabulary differs from the squad served at …"
+The terminal browser (`sq ui`) and the daemon it reached disagree on the schema version or on the
+workflow vocabulary, and the call was refused before anything ran. Other `sq` commands never print
+these: `sq` hands them to a daemon of its own installation. The message names the remedy: install
+the squads release at the daemon's schema, upgrade and migrate the squad, or bring this checkout's
+`.overrides/workflow.toml` in line with the squad's. See
+[daemon.md](daemon.md#client-and-daemon-versions).
+
+### My edit to `.squads.toml` or an override seems ignored
+It is not: a changed `.squads.toml` or file under `.overrides/` retires the running daemon, and the
+next command answers with the new configuration. If you run squads from a source checkout and
+changed squads' own code, a running daemon still serves the old code: run `sq daemon stop`, or keep
+the daemon off there (`SQUADS_DAEMON=off`).
 
 ### I upgraded squads: do I need to do anything?
 Run `sq sync`. It regenerates the project's tool-owned files (the `squads`/`sq-<type>` skills,
@@ -133,7 +172,7 @@ field on anything that is not a role.
 
 ### Where are the timestamps? Can I keep history when migrating?
 `created_at`/`updated_at` are in each item's frontmatter; comment entries carry their own dated line.
-During a migration, the global **`--at <ISO>`** option forges the time for a command so the imported
+During a migration, the global **`--at when`** option forges the time for a command so the imported
 history looks real — see [adoption.md](adoption.md).
 
 ### How do I work on several projects / move a squad?
@@ -166,7 +205,7 @@ If you control the branch that will yield to main (or the destination branch), r
 git show main:squads/.squads.json | jq .counter    # → let's say it's 287
 
 # 2. Shift this branch's IDs into a reserved block above that counter:
-sq renumber --from <N> --onto 287
+sq renumber --from <n> --onto 287
 #  N = your branch's counter at the merge-base (e.g., 280, or base_counter + 1)
 ```
 
@@ -196,22 +235,27 @@ What it does depends on the collision:
 - **The same ID in two files** (both branches created `TASK-<n>`, so one ID is carried by two
   files): when every file has a different slug, one keeps the ID and the others get fresh numbers.
   The kept file is the one the index already points at, otherwise the first by path. Only each
-  renumbered file's own `id`, `sequence_id` and filename change. **References are not rewritten.**
+  renumbered file's own `id`, `sequence_id` and filename change, along with the hint line its
+  creation scaffolded from its number (``_Add with `sq task <n> add-subtask …` ``), unless you
+  have edited that line. **References are not rewritten.**
   A reference to `TASK-<n>` could mean either copy, so the command lists every one it finds instead
   (file, frontmatter key or body/comment line, and the text) and exits `1` while any remain. Check
   each one by hand.
 - **Refused:** two files with the same slug, byte-identical copies, or a file outside its type's
-  folder. Those are copies, not a merge collision. Nothing is renamed, and the files are reported
-  the way plain `sq repair` reports them (below).
+  folder. Those are copies, not a merge collision. Nothing is renamed or rebuilt, and the message
+  asks you to merge them by hand, as plain `sq repair` does (below).
 
 Use this only when collisions already exist. The pre-merge path is safer when you have the chance,
 because it keeps every reference meaning what it says.
 
 **Two files with the same ID.** `sq check` reports each such ID as an error, naming every file
-that carries it. Plain `sq repair` will not pick one: it keeps the previous index entry for that
-ID, names the files and exits `1`. `show` renders the indexed file with a warning, and every write
-to that ID is refused until it is resolved. Merge the content you want into one file, delete the
-other, and run `sq repair`, or use `sq repair --renumber` as above.
+that carries it. Plain `sq repair` will not pick one: it refuses before rebuilding, leaves the
+index as it was, names the files and exits `1`. When the files have different slugs, the message
+names `sq repair --renumber`; otherwise it asks you to merge the content you want into one file,
+delete the other, and run `sq repair`. Until then, `show` renders the indexed file with a warning,
+and every write to that ID is refused. `sq init` and `sq adopt` refuse the same files before
+writing anything; on a folder with no configuration yet, they name `sq adopt --renumber`, or end
+the merge-by-hand remedy with `sq adopt`.
 
 ### What exit codes does `sq` use?
 
@@ -224,6 +268,7 @@ The documented, stable contract:
 | `2` | Usage error | Invalid `--at` timestamp format; Typer/Click usage errors (unknown option, missing required argument). |
 | `3` | Error-level issues were found | `sq check` reported one or more `error`-level issues, or `sq import` applied the file and the check of the items it touched found one. The import's events are on disk: do not retry it, read `applied` from its `--json` output. `warn`-level-only results still exit 0. |
 | `4` | The answer is short | A listing finished and named what it could not read: `sq board list`, `sq inbox`, `sq search`, `sq memory <role> list`, `sq memory <role> search`. stdout still carries a valid payload in its usual shape. |
+| `130` | Interrupted | You pressed Ctrl-C while a command in remote mode waited for the daemon. The operation may still complete; check its result before running the command again. |
 
 Code `3` is the useful one for CI gates — scripts can use `sq check || exit 1` or test the code
 directly. Codes `1` and `2` indicate a broken invocation or squad state, not a lint failure.

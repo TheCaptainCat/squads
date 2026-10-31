@@ -63,10 +63,38 @@ other items are severed in the same transaction. No dangling refs survive; `sq c
 
 ### Sub-entity state lives in frontmatter
 
-A sub-entity's status, assignee, severity, mapped story and, for a sub-entity in a deferred
-status, the `deferred_to` id of the item that carries its work live in the parent item's
-frontmatter (its `subentities:` list), not in the body; `deferred_to` is written only when set.
-Only prose (the `:body` and `:discussion` regions) stays in the body markers. Frontmatter is the
+A sub-entity's state lives in the parent item's frontmatter (its `subentities:` list), not in the
+body. Each entry is one flat mapping, with no nested container:
+
+- **Core keys:** `local_id`, `title`, `status`, `assignee`, `maps_to` and `deferred_to`. `maps_to`
+  holds the local id of the sub-entity of the parent item that this one maps to, whatever the
+  target kind is called; `deferred_to`, for a sub-entity in a deferred status, the id of the item
+  that carries its work. Both are written only when set.
+- **Every other key** is an attribute of the entry: each field the kind declares, under its code
+  (`severity: high`), and any unknown key, kept as written, an empty value included, through
+  every write, `sq repair` and every migration. An empty value of a declared field is unset.
+
+```yaml
+# a task's subtask, mapped to a story of the task's parent feature
+subentities:
+  - local_id: ST<n>
+    title: Render the form
+    status: Todo
+    maps_to: US<m>
+```
+
+```yaml
+# a review's finding, with the value of its severity field
+subentities:
+  - local_id: F<n>
+    title: Unchecked index read
+    status: Open
+    severity: high
+```
+
+The block in the body carries three spellings of the kind: its name in the block markers
+(`sq:<kind>:<local_id>`), its `plural` in the container marker, and its `local_prefix` in each
+local id. Only prose (the `:body` and `:discussion` regions) stays in the body markers. Frontmatter is the
 source of truth, and that is what makes the index rebuildable from files alone (see [internals.md](internals.md) § 4).
 
 ### Frontmatter is flat
@@ -74,18 +102,21 @@ source of truth, and that is what makes the index rebuildable from files alone (
 An item's frontmatter is one flat mapping, with no nested container:
 
 - **Core keys**, the same on every item: `id`, `sequence_id`, `type`, `title`, `slug`, `status`,
-  `description`, `parent`, `author`, `assignee`, `priority`, `severity`, `labels`, `refs`,
-  `subentities`, `created_at`, `updated_at`, `created_session`, `modified_session`. A core key
+  `description`, `parent`, `author`, `assignee`, `labels`, `refs`, `subentities`, `created_at`,
+  `updated_at`, `created_session`, `modified_session`. A core key
   holding a value of the wrong type makes the item unreadable, and the error names the file.
   `slug` is written on every role, skill and operator, and on any other item whose file carries it.
 - **Attributes**, every other key. A type declares the ones it carries in the workflow spec
-  (`[items.<type>.attributes]`, see [Project-level overrides](#project-level-overrides)); a custom
-  badge field is stored the same way, under its code. A declared attribute holding a value of the
+  (`[items.<type>.attributes]`, see [Project-level overrides](#project-level-overrides)). Every
+  badge field, the bundled `priority` and `severity` included, is stored the same way, at the top
+  level under its code, and written after the timestamps with the other attributes. A declared attribute holding a value of the
   wrong kind, or a missing required one, is reported by `sq check` and never makes an item
   unreadable.
 - **Unknown keys are kept.** A key no declaration names is carried through every write, `sq
-  repair` and every migration, with its value. A write removes or changes only the keys its
-  command targets, so a key whose declaration is removed from an override stays in the files.
+  repair` and every migration, with its value, on an item and on a sub-entity entry alike. A
+  write removes or changes only the keys its command targets, so a key whose declaration is
+  removed from an override stays in the files: the `frontmatter_key_undeclared` check reports it,
+  and `sq migrate rename-field` moves the values of a renamed field to its new code.
   The one exception is a closed set of retired role keys, `full_name`, `skills` and `is_dev`: on
   a role whose type does not declare them as attributes, `sq repair` removes them, as do `sq adopt`, `sq renumber` and `sq migrate up`, which end with the same
   rescan (see
@@ -257,7 +288,7 @@ folder in the squad directory. The frozen surfaces are:
   transform files the workflow override names by a `path` relative to `.overrides/`. Templates
   mirror bundled template names 1:1; per-role files are TOML keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
-  collections, status roles, ref kinds, derived views, and the squad-wide checks it selects; `roles.toml` is a delta over the whole role
+  collections, sub-entity kinds, status roles, ref kinds, derived views, and the squad-wide checks it selects; `roles.toml` is a delta over the whole role
   catalog (its roles, role templates, bundles and defaults); `playbook.toml` is a delta over the playbook, the
   per-type guidance each role gets. A transform file is Python that sq runs with the user's
   permissions, like a `conftest.py`: every read that renders its view calls it, and `sq check` and
@@ -300,10 +331,29 @@ folder in the squad directory. The frozen surfaces are:
   is optional, and a labelled attribute an item stores is shown on `show`. An attribute or a badge
   field may not take the name of a core key, of another attribute or badge field on its type, of a
   key `--json` adds to an item row (`badges`, `body`, `discussion`, `display`,
-  `matched_subentities`, `views`), or `extra`, `path` or `prefix`; such a declaration is refused at
+  `matched_subentities`, `views`), or `path` or `prefix`; such a declaration is refused at
   load. The `role` and `skill` attributes the bundled spec declares may be
   added to but not dropped or given another kind. `extra_fields` is not a key of a type and is
   refused at load.
+- **Sub-entity kind grammar (frozen):** a kind is declared in `[subentity_kinds.<kind>]` with
+  `lifecycle`, `completion`, `plural` and `local_prefix` (required), and `placeholder`, `label`
+  (the kind's label; its name title-cased when absent), `heading` (the container heading; the
+  `plural` title-cased when absent), `maps_to_parent` and `fields` (optional). A kind with
+  `maps_to_parent = true` maps each sub-entity to one of the host item's parent, of the kind the
+  host type's `parent_required` type hosts; a spec where that type or kind is missing is refused
+  at load, as is a kind named `sub`. A kind's field code may not take the name of a sub-entity
+  core key, of a key `--json` adds to a sub-entity object (`badges`, `body`, `discussion`,
+  `display`), or of another field of the kind.
+- **Derived names (frozen):** every option, `sq import` key and selector that names a badge field,
+  a sub-entity kind or a mapping is derived from the declaration (see
+  [Badge-field options](#badge-field-options) and [Bulk import](#bulk-import)), and a spec whose
+  derived name equals a fixed option or key of the command or op it lands on, or another derived
+  name there, is refused at load, naming the surface and the name.
+- **Grammar names (frozen):** the spec key `maps_to_parent`, the validator `subentity_mapping` and
+  the transform function `squads._view_transforms.status_rollup`. Their earlier spellings
+  `maps_parent_story`, `subtask_story_mapping` and `milestone_rollup` are refused at load with a
+  message naming the current one. The bundled view keeps the name `milestone_rollup`: a view name
+  is vocabulary.
 - **Spec override grammar (frozen):** the same for all three spec documents. Deep recursive merge
   at leaf granularity — tables recurse per key, and a leaf value replaces its counterpart. A plain
   array is a leaf, replaced wholesale and never element-merged. **Splat-refs** are the opt-in for extending a bundled list without
@@ -444,6 +494,24 @@ files are unchanged. The table is closed: an unknown key or a non-boolean value 
 `sq check` warning, and the default applies. See
 [roles.md § "Pronouns"](roles.md#pronouns).
 
+### Daemon settings in `.squads.toml`
+
+A `[daemon]` table in `.squads.toml` holds three keys: `enabled` (boolean, default `true`),
+`idle_timeout_minutes` (a whole number of minutes, default `30`, `0` for never) and `browser`
+(boolean, default `false`). The environment variable `SQUADS_DAEMON`, `on` or `off` in any case,
+overrides `enabled` for every command run in that environment; unset or empty, the table decides.
+See [daemon.md § "Settings"](daemon.md#settings).
+
+- **Absent.** The defaults apply; a project without the table needs no change.
+- **An unknown key** is reported by `sq check` (`daemon_config_valid`, `warn`) and otherwise
+  ignored, so a table written for a newer squads does not stop an older one.
+- **An unusable value** (a wrong type, a negative timeout, a `[daemon]` that is not a table) or an
+  unusable `SQUADS_DAEMON` puts every command in local mode, with the problem printed on stderr,
+  and is reported by `sq check`. It never changes what a command does, only where it runs.
+- **Takes effect** at the next command: a changed `.squads.toml` retires the running daemon.
+- **Written by** no command: `sq init` and `sq adopt` leave it out, and `sq migrate up` keeps its
+  values.
+
 ### Working language in `.squads.toml`
 
 A top-level `working_language` key holds one BCP 47 language tag, such as `fr`, `en` or `pt-BR`.
@@ -475,7 +543,7 @@ configured: they reply in the language that human writes in.
 - **`sq init`, and `sq adopt` when the file is missing**, write the whole file.
 - **`sq migrate up`**, when it runs at least one migration, edits the value of the one top-level
   `schema_version = "<v>"` line and nothing else: comments, key order, `working_language`,
-  `[display]` and any key squads does not read stay as written. When that edit cannot be made
+  `[display]`, `[daemon]` and any key squads does not read stay as written. When that edit cannot be made
   safely (no such line or more than one, a value written as a multi-line or escaped string, or a
   result that does not parse back to the same table with only `schema_version` changed), the run
   refuses before any migration starts, names the file and line, and says what to write by hand.
@@ -515,7 +583,7 @@ everywhere else:
 ```bash
 sq role 2 show           # item-first: type, number, verb
 sq role 2 regen          # regenerate
-sq role 2 status <S>     # transition status
+sq role 2 status <status>  # transition status
 sq role 2 set-default    # move the default-role designation here
 sq role 2 update --title "Chief Lead"   # rename; the slug never changes
 sq role 2 comment -m "…" --as manager  # and `comments`, `show --comments`
@@ -577,10 +645,37 @@ live/not-live marker per row, distinct from the bundled `sq role catalog` — an
 list` enumerates registered operators; both take `--json`. `sq skill list` has no dedicated verb;
 use `sq list -t skill` for skills.
 
+### Badge-field options
+
+Every option that names a badge field is derived from the fields the active spec declares, when the
+command's parameters are resolved; none is named in code. A field code with underscores gives an
+option with dashes (`work_size` gives `--work-size`).
+
+- `sq create <type>`: `--<code>` for each field the type declares.
+- `sq <type> <n> update`: `--<code> <value>` for each field the type declares, and `--no-<code>`
+  for each optional one.
+- `sq <type> <n> add-<kind>` and `sq <type> <n> <kind> <k> update`: `--<code>` for each field the
+  kind declares, and on `update` `--no-<code>` for each optional one.
+- `sq list` and `sq tree`: `--<code> <value>` and, for a field on an ordered collection,
+  `--min-<code> <value>`, for each field some non-roster type declares. They mean exactly
+  `--badge <code>=<value>` and `--min-badge <code>=<value>`.
+- A kind that maps to the parent's sub-entities gives `add-<kind>` `--<target-kind>` and
+  `<kind> <k> update` `--<target-kind>` and `--no-<target-kind>`, named after the kind the
+  parent's type hosts.
+
+`--set`, `--unset`, `--badge`, `--min-badge` and `--sort` are the generic forms. `--badge`,
+`--min-badge` and `--sort` refuse, with exit `1`, a code that no non-roster type declares, naming
+the declared codes; `--set` and `--unset` refuse a key the item's type does not declare, naming
+the settable ones. A squad whose spec
+declares no field `<code>` has no `--<code>` anywhere, and the option is refused as unknown with
+exit `2`. `--priority`, `--no-priority`, `--min-priority`, a bug's `--severity` and a subtask's
+`--story` are the derived names of the bundled spec's `priority` and `severity` fields and its
+`story` kind: what is frozen is the derivation, not a spelling.
+
 ### Type-command aliases
 
-Aliases are input sugar; canonical type names always appear in output, errors, and `--json`.
-The alias table (frozen at 1.0):
+Aliases are shorter spellings of a type's name; canonical type names always appear in output,
+errors, and `--json`. The bundled spec declares this alias table (frozen at 1.0):
 
 | Canonical | Aliases |
 |-----------|---------|
@@ -595,8 +690,14 @@ The alias table (frozen at 1.0):
 | `guide` | `g` |
 
 Each alias is fully equivalent to its canonical type across every verb and sub-entity chain
-(e.g., `sq f 26 story 4 show` ≡ `sq feature 26 story 4 show`). Adding a new alias is additive and
-allowed post-1.0; removing or repurposing an existing alias is breaking and is not.
+(e.g., `sq f 26 story 4 show` ≡ `sq feature 26 story 4 show`). Adding a new alias to the bundled
+spec is additive and allowed post-1.0; a release may not remove or repurpose a bundled alias.
+
+The table freezes what the bundled spec declares, not what a squad may do with it. Aliases are
+read from the active spec, and spec load checks each one against the fixed verbs, the declared
+type names and the other declared types' aliases. A squad's override may give an alias to another
+type once the bundled owner no longer declares it (the override drops the type or overrides its
+`aliases`); while the owner keeps it, the reuse is refused at load, naming the owner.
 
 ### Retype an item in place
 
@@ -613,19 +714,37 @@ The `sq migrate` sub-app's frozen surface:
   rebuild the index, stamp the new schema; refused with exit `1`, nothing migrated, when an item
   file cannot be indexed or the squad does not fit its declared vocabulary
 - `sq migrate help` — the changelog index
-- `sq migrate chlog vA..vB` — manual steps for migrations shipped in `(vA, vB]`
+- `sq migrate chlog vfrom..vto` — manual steps for migrations shipped in `(vfrom, vto]`
 - `sq migrate repad <width>` — raise the filename-padding width (see Tier 1)
 - `sq migrate rename-type <old> <new>` — bulk-rename every item of one type to another (same
   semantics, new prefix and folder), for when a vocabulary override renames a type you already
   have items in
 - `sq migrate rename-status <type> <old> <new>` — bulk-relabel one type's items from one status
   name to another; a relabel, not a workflow move
+- `sq migrate rename-field <old> <new> [--type <type>]... [--kind <kind>]...` — move the values
+  stored under key `<old>` to key `<new>`, on items and sub-entity entries, or only on the top-level
+  key of the items of each `--type` and the entries of each `--kind`; refused, nothing written,
+  when a holder in scope does not declare `<new>`, already holds it, or holds a value `<new>`'s
+  collection does not accept
+- `sq migrate rename-kind <old> <new>` — bring the stored spellings of a sub-entity kind (its
+  name in the block markers, its plural in the container marker, its local prefix in local ids and
+  in the `maps_to` values that target it) to the active declaration of kind `<new>`
 
-On a squad whose schema differs from the package's, only `up` (on a squad behind the package),
-`help` and `chlog` run; `repad`, `rename-type` and `rename-status` are refused like every other
-command (see [migration.md](migration.md#what-runs-on-an-out-of-date-squad)).
+The four renames are atomic and write a reflog line per item they change. On a squad whose schema differs from the package's, only
+`up` (on a squad behind the package), `help` and `chlog` run; `repad` and the four renames are
+refused like every other command (see [migration.md](migration.md#what-runs-on-an-out-of-date-squad)).
 
 Runner modules are private; never use `python -m`; `sq migrate` is the only entry point.
+
+### The daemon commands
+
+`sq daemon status [--json]` and `sq daemon stop [--json]` are the frozen surface of the `sq daemon`
+group (see [daemon.md](daemon.md#inspecting-and-stopping-the-daemon)). `stop` with no daemon
+running does nothing and exits `0`. Their human output is display text. The group's hidden `run`
+command, its options and the report it writes when a daemon starts are private to squads and may
+change in any release.
+
+`daemon` is a command name of `sq`, so no item type or alias can be named `daemon`.
 
 ### Bulk import
 
@@ -640,6 +759,22 @@ prior event's to inherit, and no `--as` fails validation naming the missing acto
 is applied, the items it touched are checked; an error-level finding is printed and the command
 exits `3`, not `1`, because the write committed and stands. See [adoption.md](adoption.md).
 
+The op set follows the active spec, as the CLI does:
+
+- **`add-<kind>`** exists for every sub-entity kind the spec declares. It is `add-sub` with `kind`
+  set, and takes `add-sub`'s keys, plus each field the kind declares as a top-level key under its
+  code, plus the target kind's name when the kind maps (`"story": "US<n>"` on `add-subtask` in a
+  bundled squad, `"outcome": "OC9"` where the parent hosts `outcome`).
+- **`add-sub`** is the generic form, for any kind: the mapping is `maps_to` and field values are
+  `fields` (field code to badge code), the keys the stored entry uses.
+- **The comment selector** `"<kind>": "<local-or-handle>"` exists for every declared kind; the
+  generic `"sub": [kind, local-or-handle]` works on every squad.
+- **`create`** and **`update`** take badge fields by code in `fields`, and `update` removes them
+  with `unset_fields`; no key is named after a field.
+
+An op or a selector for a kind the active spec does not declare is unknown, and the refusal names
+the ops and selectors that exist.
+
 ### Exit codes (distinct codes for distinct failures)
 
 Frozen contract:
@@ -653,6 +788,10 @@ Frozen contract:
 | `4` | The result is incomplete — stdout carries a valid payload in its documented shape, and entries are missing |
 
 The distinct code for integrity findings lets CI distinguish "issues were found" from "command errored".
+
+A command in remote mode that is interrupted (Ctrl-C) while it waits for the daemon exits `130`, as
+an interrupted process conventionally does; the operation it sent may still complete (see
+[daemon.md](daemon.md#what-differs-between-the-modes)).
 
 #### Partial results and code `4`
 
@@ -822,7 +961,7 @@ what `sq` shows without reading the vocabulary. `display` holds one of these set
 | `show` of an item | the item row's keys, plus `body` (the body with its view tags expanded), `summary` (the sub-entity table: `{kind, columns, rows}`, `columns` a list of header strings and `rows` a list of rows of cell strings; `null` on a type without sub-entities) and `attributes` (one `{key, label, value}` per labelled attribute the item stores, in declared order) |
 | tree node | the item row's keys, plus `dimmed` (the node is only on a match's path), `anchor` and `pronouns` (a role's or operator's pronouns, `null` otherwise) |
 | graph node | the item row's keys, plus `edge` and `edge_label` (the label of the ref kind that reached the node) |
-| sub-entity list row | the item row's keys (`type` is the kind's label), plus `story` and `carrier_title` |
+| sub-entity list row | the item row's keys (`type` is the kind's label), plus `maps_to` (the mapped sub-entity as shown, or `null`), `maps_to_kind` (the target kind as `{name, label, plural, heading}`, `null` when the kind does not map) and `carrier_title` |
 | one sub-entity (`<kind> <k> show`, and the `entry` of a sub-entity `update` or `body`) | the list row's keys, plus `kind` (`{name, label, plural, heading}`) and `discussion` |
 | `add-<kind>` | `item` (the parent's id) and `body_command` (the command that sets the new sub-entity's body) |
 | `role list` row | `name`, `pronouns`, `live` |
@@ -860,7 +999,8 @@ until a client of their own consumes them; they are then frozen under this tier:
   `ref rm`, `view add`, `view disable` and adding a comment; sub-entity `update` and `body`; the role, skill, operator and dev verbs that write, and `dev
   list`; `board post`, `board clear`, `memory add`, `memory forget`; `override scaffold`,
   `override update`, `sync`; `workflow show`, `workflow lint`, `docs`, `migrate help`,
-  `migrate chlog`; `repair`, `renumber`, the `migrate` verbs, `init` and `adopt`. A write to one
+  `migrate chlog`; `repair`, `renumber`, the `migrate` verbs, `init` and `adopt`; `daemon status`
+  and `daemon stop`. A write to one
   resource answers `{entry, …}`: `entry` is the resource it wrote, or for a delete the resource
   as it was, and what the command reports is a field beside it:
 
@@ -877,7 +1017,16 @@ until a client of their own consumes them; they are then frozen under this tier:
   | `override scaffold` | `prefilled` |
 
   Every other write to one resource answers `{entry}` alone. A write over many resources answers
-  its report.
+  its report. The reports of `repair` and `adopt` both carry what a `--renumber` did:
+
+  | Key | Value |
+  |---|---|
+  | `renumbered` | one `{old, new, file, target}` per file given a new number: its id before and after, and its path before and after, relative to the squad folder; files that shared an id have the same `old` |
+  | `references` | one `{id, file, where, text}` per reference to an old id left unchanged, to check by hand: the id, the file holding it, where in that file (a frontmatter key, `body:<line>` or `comment:<line>`) and the whole line; `file` is the file as it stands after the run |
+
+  Both are empty lists when nothing was renumbered. In `adopt` they are the last two keys, after
+  `warnings`; in `repair` they come after `references_left`, which says whether `references` is
+  non-empty: `renumbered`, `references_left`, `references`.
 
 The frozen surface includes:
 
@@ -886,8 +1035,18 @@ The frozen surface includes:
   (`sq task <n> subtasks --json`, `sq feature <n> stories --json`, `sq review <n> findings --json`)
   and each single sub-entity (`sq feature <n> story <k> show --json`, and the same for a subtask or
   a finding), which emits that one sub-entity's object — the same shape the parent's `show --json`
-  nests under `subentities`, `body` / `badges` / `discussion` included. Every sub-entity object
-  carries `deferred_to`: the id of the item that carries a deferred sub-entity's work, or `null`
+  nests under `subentities`, `body` / `badges` / `discussion` included
+- **Sub-entity objects,** wherever one appears (an item row's `subentities`, `show`, the
+  sub-entity lists, `<kind> <k> show`, a view source): the keys are `local_id`, `title`, `status`,
+  `assignee`, `maps_to`, `deferred_to`, then each attribute the entry stores, flat under its key
+  (a finding's `"severity": "high"`), then the keys the surface adds, in this order: `body`,
+  `badges`, `discussion`, `display`. `maps_to` (the local id of the mapped sub-entity of the
+  parent item) and `deferred_to` (the id of the item that carries a deferred sub-entity's work)
+  are always present, `null` when unset. `badges` is on every surface and maps each field the
+  kind declares that holds a value to its badge code (vocabulary), `{}` when none does; `display`
+  is on the lists, `show` and view sources; `body` and `discussion` are on `show` and
+  `<kind> <k> show`. A stored attribute appears only when the entry stores it, so read field
+  values from `badges` and learn a kind's fields from `sq workflow subentity-kinds --json`
 - **Search, tree and graph:** their fields, in emitted order, with each key's class:
 
   `sq search --json` emits a bare array, one object per matching item:
@@ -913,10 +1072,9 @@ The frozen surface includes:
   | `type` | vocabulary | item type |
   | `title` | | the item's title, as stored |
   | `status` | vocabulary | status; join it to `sq workflow statuses --json` and `sq workflow roles --json` for open or settled |
-  | `priority` | vocabulary | priority code, or `null` |
   | `assignee` | vocabulary | assignee slug, or `null` |
   | `blocked` | | boolean: the item is one `sq blocked` lists |
-  | `badges` | vocabulary | object of badge field to badge code; keys and values both name spec entries |
+  | `badges` | vocabulary | object of badge field to badge code, one entry per declared field that holds a value; keys and values both name spec entries |
   | `anchor` | | boolean: `true` only on a root invented for a parent cycle, which nobody wrote as a root |
   | `children` | | nested nodes of the same shape |
   | `display` | display | the node as shown, plus `dimmed` (the node is only on a match's path), `anchor` and `pronouns`; provisional |
@@ -931,8 +1089,7 @@ The frozen surface includes:
   | `id` | | the item id |
   | `type` | vocabulary | item type |
   | `status` | vocabulary | status |
-  | `priority` | vocabulary | priority code, or `null` |
-  | `badges` | vocabulary | object of badge field to badge code |
+  | `badges` | vocabulary | object of badge field to badge code, one entry per declared field that holds a value |
   | `assignee` | vocabulary | assignee slug, or `null` |
   | `edge_kind` | vocabulary | the ref kind of the edge that reached this node, as spelled in the project; both spellings of a dependency edge report the same declared kind; `null` on the root |
   | `edge_semantic` | open set | that kind's semantic role: today `dependency`, `preload`, `supersession`, `default`, or `null` (the root, a navigational kind, or a kind the spec does not declare). Branch on this, never on `edge_kind` |
@@ -946,7 +1103,9 @@ The frozen surface includes:
   `path` (the item file's path relative to the squad folder, such as `tasks/TASK-NNNNNN-x.md`),
   each attribute its file stores, at the top level beside them, and the keys the command adds
   (`badges`, `body`, `discussion`, `display`, `matched_subentities`, `views`). There is no nested
-  container. Every display value an item row carries sits inside `display`, so `display` is the
+  container. A badge value is an attribute like any other: `"priority": "high"` is in the row only
+  when the file stores it, and `badges` maps each field the type declares that holds a value to
+  its badge code, so a reader takes badge values from `badges`. Every display value an item row carries sits inside `display`, so `display` is the
   one name the display keys reserve. An attribute appears only when the file stores it, so a
   reader learns a type's possible attributes from `sq workflow types --json` (`attributes`: name
   to `{kind, required, settable, label}`, `label` `null` when the declaration has none), not from
@@ -961,6 +1120,7 @@ The frozen surface includes:
   | `views` | always present: an object of view name (vocabulary) to the output of that view's transform, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform; `{}` when none does. Each value is the JSON the transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}` |
   | `display.body` | display: the body as `sq show` prints it, each view tag expanded. A view whose template fails to render keeps its tag as written, and the command warns on stderr |
   | `display.attributes` | display: one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order |
+  | `etag` | the last key: a strong entity tag of the item's file as the command read it, a quoted string such as `"\"94dbfed2…\""`; opaque, compared for equality only; provisional |
 
   A sub-entity's object carries no `views`.
 - **Roster viewers:** `role catalog`, `role list`, `role <addr> show`, `skill <addr> show`,
@@ -980,7 +1140,7 @@ The frozen surface includes:
   | Command | One row per | Fields |
   |---|---|---|
   | `sq workflow types --json` | item type | `type`, `order`, `prefix`, `reserved`, `category`, `subentity_kind`, `lifecycle`, `fields`, `attributes`, `labels` |
-  | `sq workflow subentity-kinds --json` | sub-entity kind | `subentity_kind`, `lifecycle`, `plural`, `local_prefix`, `container_heading`, `completion`, `maps_parent_story`, `fields` |
+  | `sq workflow subentity-kinds --json` | sub-entity kind | `subentity_kind`, `label`, `lifecycle`, `plural`, `local_prefix`, `container_heading`, `completion`, `maps_to_parent`, `fields` |
   | `sq workflow collections --json` | badge collection | `collection`, `label`, `ordered`, `default`, `badges` |
   | `sq workflow statuses --json` | status | `status`, `role`, `badge`, `display` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked`, `deferred` |
@@ -1101,6 +1261,42 @@ reflog and the omissions report. Command help may describe a payload, but it is 
 reference. The plainer listings (`list`, `blocked`, `workload`, `mine`) are not enumerated here:
 the fields they emit are their contract. Listing a key here records a promise its shape already
 makes, and leaving one out never exempts it: the promise above covers every field a shape emits.
+
+### The HTTP API
+
+The daemon's API ([api.md](api.md)) carries the same shapes as `--json`, and adds a wire layer of
+its own. The two are versioned apart:
+
+- **`/v1` versions the wire layer:** the route grammar (items at `/v1/items/{id}`, roster entries
+  at `/v1/roles/{addr}`, `/v1/skills/{addr}` and `/v1/operators/{addr}`, squad-wide operations under
+  `/v1/squad/`, `GET` and `HEAD` that never mutate), the success envelope
+  `{data, omitted, warnings}`, the error body `{"error": {type, message, warnings, details?}}`, the
+  `503 {"not_executed": "retiring"}` answer, the request headers (`Squads-Actor`, `Squads-At`,
+  `Squads-Session-Id`, `Squads-Parent-Session-Id`, `Squads-Client-Dir`, `Squads-Schema`,
+  `Squads-Vocabulary`, `If-Match`, `Squads-Client`), the `ETag` response header and the admission
+  rules. An incompatible change to any of them comes with a new prefix, `/v2`.
+- **The schema version versions the shapes.** An operation's `data` is the result object of its
+  command, so it is held to this tier as that command's `--json` document is: frozen where the
+  document is frozen, provisional where it is provisional. The request bodies and query parameters
+  are provisional. An incompatible change to any of them is a schema change, as for `--json`: the
+  daemon refuses a client at another schema version (`409 schema_mismatch`) rather than answer it
+  in a shape it does not expect. The OpenAPI document (`GET /v1/openapi.json`) describes the
+  shapes of the running version; its `info.version` is the schema version.
+- **Error types** are an open set: `not_found`, `conflict`, `changed_since_read`,
+  `schema_mismatch`, `vocabulary_mismatch`, `locked`, `invalid`, `forbidden`, `misdirected` and
+  `internal` today. Each keeps the status it answers with; handle an unknown type as the generic
+  failure of its status. `message` is display. `details` is present only on `schema_mismatch`
+  (`client`, `daemon`) and `vocabulary_mismatch` (one digest per document, named by its path).
+- **An `ETag`** is opaque and compared for equality only. It names the item file's state, not the
+  answer's.
+- **`Squads-Actor` is declared, not verified.** The actor a write through the API records is a
+  claim, with the same untrusted, observability-only standing as the reflog's session ids.
+
+Not part of the contract, and free to change in any release: the runtime directory's location and
+file names, the contents of `<key>.json` and `<key>.log`, how the daemon's key is derived, the
+private channel through which `sq` hands its command lines to the daemon, the `Server-Timing`
+header, the vocabulary hash's algorithm (compare it for equality only), and the
+order of the listeners `GET /v1/daemon` reports.
 
 ---
 

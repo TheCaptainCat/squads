@@ -232,36 +232,45 @@ the previous event's value; the first event falls back to `sq import --as` and t
 **Naming what the file creates.** The ids a `create` will get are unknown when you write the file,
 so a `create` or an `add-*` event can declare a `handle`, a name of your own. A later event names
 the item, or the sub-entity, by that handle wherever it takes an id: `target`, `parent`, `to`,
-`refs`, `deferred_to`, and the sub-entity selectors `local`, `story`, `subtask` and `finding`. A
+`refs`, `deferred_to`, `maps_to` and the target kind's key on an `add-<kind>`, and the sub-entity
+selectors `local` and `<kind>`. A
 token that is not a handle is read as an id (`TASK-12`) or a local id (`ST1`). `--dry-run` prints
 the id each handle will get.
 
 **Values are checked as on the CLI.** A `status` must be one the type's lifecycle declares, and a
 move the lifecycle does not allow needs `"force": true`; a `create` sets its `status` directly. A
-`fields` map takes field codes to collection codes (`{"priority": "high"}`); a field a `create`
-leaves out stores its declared default. `kind` is a sub-entity kind the workflow declares
-(`story`, `subtask` and `finding` in the bundled one). A title must not be blank on an item; a
-sub-entity's title is optional.
+`fields` map takes field codes to badge codes (`{"priority": "high"}`); a field a `create`
+leaves out stores its declared default. No event takes a badge field under a key of its own name:
+`create` and `update` take `fields`, and `update` removes values with `unset_fields`. `kind` is a
+sub-entity kind the workflow declares (`story`, `subtask` and `finding` in the bundled one). A title must not be blank, on an item or
+on a sub-entity.
 
 | `op` | Required | Optional | What it does |
 |------|----------|----------|--------------|
 | `create` | `type`, `title` | `description`, `parent`, `labels`, `refs`, `assignee`, `fields`, `status`, `slug`, `body`, `handle`, `at`, `as` | Creates an item. `refs` entries are `"ID"` or `"ID:kind"`; `slug` sets the file name's slug. |
 | `status` | `target`, `status` | `force`, `at`, `as` | Moves an item to a status. |
 | `body` | `target`, `body` | `append`, `force`, `at`, `as` | Writes the item's body. Replacing a written body needs `force`; `append` adds to it. |
-| `comment` | `target`, and `message` or `messages` | `story`, `subtask`, `finding`, `sub`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `story`, `subtask` or `finding` names the local id, `sub` is `[kind, local]`. Give at most one. |
+| `comment` | `target`, and `message` or `messages` | `<kind>`, `sub`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `"<kind>": "<local>"` for any kind the workflow declares (`story`, `subtask` or `finding` in the bundled one), or `sub` as `[kind, local]`. Give at most one. |
 | `ref` | `target`, `to` | `kind`, `at`, `as` | Adds a ref from `target` to `to`. Without `kind`, the workflow's default kind. |
-| `add-sub` | `target`, `kind` | `title`, `story`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `story` maps a subtask to a story of the task's parent feature. |
-| `add-story` | `target` | `title`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `story`. |
-| `add-subtask` | `target` | `title`, `story`, `assignee`, `status`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `subtask`. |
-| `add-finding` | `target` | `title`, `severity`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | `add-sub` with `kind` `finding`; `severity` is the finding's severity code. |
+| `add-sub` | `target`, `kind`, `title` | `maps_to`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `maps_to` is the local id of the sub-entity of the host item's parent that this one maps to; `fields` maps the kind's field codes to badge codes. |
+| `add-<kind>` | `target`, `title` | `add-sub`'s optional keys; each field the kind declares, under its code; the target kind's name when the kind maps; `at`, `as` | `add-sub` with `kind` set, for every kind the workflow declares. In the bundled one: `add-story`; `add-subtask`, which takes `story` (the mapped story); `add-finding`, which takes `severity`. A value given twice, as a top-level key and in `fields` or `maps_to`, is refused, and so is a `kind` key. |
 | `sub-status` | `target`, `kind`, `local`, `status` | `deferred_to`, `force`, `at`, `as` | Moves a sub-entity to a status. |
 | `sub-body` | `target`, `kind`, `local`, `body` | `append`, `force`, `at`, `as` | Writes a sub-entity's body, with the same `append` and `force` rules as `body`. |
 | `assign` | `target` | `assignee`, `kind`, `local`, `at`, `as` | Sets the item's assignee, or a sub-entity's with `kind` and `local`. Without `assignee`, removes it. |
 | `update` | `target`, and at least one change | `title`, `description`, `assignee`, `clear_assignee`, `add_labels`, `rm_labels`, `parent`, `clear_parent`, `status`, `force`, `fields`, `unset_fields`, `at`, `as` | Changes an item's metadata, like `sq <type> <n> update`. `fields` sets field values and `unset_fields` removes them by code. |
 
 A status whose role declares `deferred = true` (the bundled finding's `Deferred`) needs
-`deferred_to`, the item that carries the work: an `add-sub`, `add-finding` or `sub-status` event
+`deferred_to`, the item that carries the work: an `add-sub`, `add-<kind>` or `sub-status` event
 that reaches it without one is refused.
+
+The `add-<kind>` ops and the `<kind>` selectors follow the workflow your squad declares, so an op
+or a selector for a kind it does not declare is refused, naming what exists. On a squad whose
+kinds are `outcome` and `action`:
+
+```
+line 1: unknown op 'add-story'; valid ops: create, status, body, comment, ref, add-sub, add-outcome, add-action, sub-status, sub-body, assign, update
+line 2: comment.story: not a key of comment; the sub-entity selectors are outcome, action, sub
+```
 
 An `update` event that names no change is refused (`nothing to update: the event names no field`).
 `"clear_assignee": true` removes the assignee; an empty `assignee`, or `assignee` together with

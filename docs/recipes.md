@@ -104,7 +104,7 @@ followed by a `ref add` for the new one — again, both on the work item.
 ## Write a guide (architect / tech writer)
 
 ```bash
-sq create guide "Password hashing" --tech security --tag auth --author tech-writer   # → GUIDE-15
+sq create guide "Password hashing" --tech security --tags auth --author tech-writer   # → GUIDE-15
 sq guide 15 status Published
 # link the guide from the work that should follow it:
 sq task 3 ref add GUIDE-15 --kind implements

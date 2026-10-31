@@ -497,9 +497,9 @@ as `Published`.
 
 An item file's frontmatter is one flat mapping. The **core keys** are the same on every item:
 `id`, `sequence_id`, `type`, `title`, `slug`, `status`, `description`, `parent`, `author`,
-`assignee`, `priority`, `severity`, `labels`, `refs`, `subentities`, `created_at`, `updated_at`,
-`created_session` and `modified_session`. Every other key is an **attribute**, and a type declares
-the attributes it carries in an `attributes` table:
+`assignee`, `labels`, `refs`, `subentities`, `created_at`, `updated_at`, `created_session` and
+`modified_session`. Every other key is an **attribute**, badge values included, and a type
+declares the attributes it carries in an `attributes` table:
 
 ```toml
 [items.incident.attributes]
@@ -561,8 +561,8 @@ written until a command that targets that key replaces it.
 
 **What the loader refuses.** An attribute cannot take the name of a core key, of another attribute
 or badge field on the same type, of a key `--json` adds to an item row (`badges`, `body`,
-`discussion`, `display`, `matched_subentities`, `views`), or `extra`, `path` or `prefix`, and a
-badge field cannot take the name of a key `--json` adds either:
+`discussion`, `display`, `matched_subentities`, `views`), or `path` or `prefix`, and a badge
+field cannot take the name of a key `--json` adds either:
 
 ```
 - 'guide': attribute 'title' is a reserved frontmatter key — rename the attribute in the workflow override and in the items that store it
@@ -594,26 +594,32 @@ before the next write to that item, which is refused until then with a message n
 `sq repair`. `sq check` reports the drift meanwhile, and reports the key itself once it is
 indexed.
 `--json` item rows carry them too, at the top level beside the core keys, except a key named like
-one `--json` adds (`badges`, `body`, `discussion`, `matched_subentities`, `views`), which stays in
+one `--json` adds (`badges`, `body`, `discussion`, `display`, `matched_subentities`, `views`), which stays in
 the file and out of the row. A value is kept in the form JSON can carry: a YAML-only value is written back
 as its JSON equivalent the next time the item is written, so an unquoted date such as
 `review_date: 2026-11-01` becomes the string `'2026-11-01'`, and a mapping key that is not a string
 becomes one.
 
 To be told about such keys, for example to catch a misspelt one, select the
-`frontmatter_key_undeclared` check on a type (see **Validators**, below). It reports at `warn`
-and changes nothing:
+`frontmatter_key_undeclared` check on a type (see **Validators**, below). It reports at `warn`,
+changes nothing, and names the command that moves the value to a declared key:
 
 ```
-warn GUIDE-<n>: frontmatter key 'hand_key' is not declared on guide
+warn GUIDE-<n>: frontmatter key 'hand_key' is not declared on guide; `sq migrate rename-field hand_key <new> --type guide` moves its value to a declared key
+warn JOB-<n>: frontmatter key 'effect' on AC1 is not declared on action; `sq migrate rename-field effect <new> --kind action` moves its value to a declared key
 ```
+
+The second line is a key on a sub-entity entry: the check reads the entries of the item's
+`subentities` list too, against the fields the hosted kind declares.
 
 **In a template**, an item's attributes are read from `item`, like its core keys:
 `{{ item.audience }}`. An item stores only the attributes that are set, so guard an optional one:
 `{% if item.audience is defined and item.audience %}`.
 
-A custom badge field (see **Collections**, below) is stored the same way, at the top level under
-its code (`impact: high`).
+Every badge field (see **Collections**, below), the bundled `priority` and `severity` included, is
+stored the same way, at the top level under its code (`impact: high`). A template reads a badge
+value with `item.badge_value('<code>')`, which gives none when the item stores no value; a
+sub-entity's is `sub.badge_value('<code>')`.
 
 #### Validators: the checks a type runs, and how loud they are
 
@@ -637,11 +643,19 @@ list is the only way it ever runs on that type:
   [workflow.md](workflow.md#keeping-a-contract-current) § "Keeping a contract current").
 - `no_status_banner` — an item's body or summary must not open with a status label.
 - `subentity_title_max` — a sub-entity title must not be longer than a threshold.
-- `frontmatter_key_undeclared` — every top-level key of an item must be a core key or an attribute
-  its type declares. It reports at `warn` and never changes the file; see **Attributes** (above).
+- `frontmatter_key_undeclared` — every top-level key of an item must be a core key, an attribute
+  or a badge field its type declares, and every key of a sub-entity entry a core key or a field
+  its kind declares. It reports at `warn` and never changes the file, and each finding names the
+  `sq migrate rename-field` command scoped to what it reports; see **Attributes** (above).
 - Eight policy checks about the work an item tracks: `item_title_max`, `external_id_not_in_title`,
   `description_present`, `assignee_present`, `body_written`, `settled_requires_discussion`,
   `ref_rule_target_typed` and `blocked_has_blocker`. See "The work-policy checks" below.
+
+`subentity_kind_mismatch` is not in that list: every type of the `work` category runs it (see
+below). It checks that every spelling of a sub-entity kind stored in an item matches the kind its
+type hosts: block markers, the container marker, the local ids and the `maps_to` values. It
+reports at `warn`, and each finding names the `sq migrate rename-kind` command that brings the
+item to the declaration.
 
 One more sits in no category's defaults but is selected on one bundled type:
 `subentities_settled_with_parent`, on `review`. See "The settled-parent check" below.
@@ -959,7 +973,7 @@ the pattern to literal text and character classes, with no repetition nested ins
 | `item_title_max` | a create or retitle over the number | a title of `n` characters or fewer |
 | `external_id_not_in_title` | a create or retitle that matches | a title that does not match |
 | `description_present` | a create without `--desc`, and `update --desc ""` | `--desc` on create, `update --desc` after |
-| `assignee_present` | a move to a live status with nobody assigned | `update --assignee` first, or `update --status <S> --assignee <slug>` in one command |
+| `assignee_present` | a move to a live status with nobody assigned | `update --assignee` first, or `update --status <status> --assignee <slug>` in one command |
 | `blocked_has_blocker` | a move to a blocked status with no dependency edge | `ref add` of a dependency edge before the move |
 | `ref_rule_target_typed` | a create with a misdirected `--ref` | `ref rm` of the edge |
 
@@ -1088,8 +1102,9 @@ than a blanket one:
 - **`parent_in`, `no_parent`** — a parent of the wrong type, or a parent on a type that should
   have none. These state a hierarchy policy; nothing downstream needs the constraint to already
   hold in order to work, and a team may want a looser shape than the bundled one on purpose.
-- **`subtask_story_mapping`** — a sub-entity mapped to a parent story that does not resolve. It
-  affects the roll-up display, and it is visible in that display.
+- **`subentity_mapping`** — a sub-entity mapped to a sub-entity of the parent that does not
+  resolve. The finding names the target kind. It affects the roll-up display, and it is visible
+  in that display.
 
 `parent_present` is deliberately outside the floor, which is the whole point of the level suffix —
 see below.
@@ -1265,6 +1280,7 @@ dropped or given another level:
 | `role_base_resolves` | a live role whose base does not resolve: a catalog role whose slug the catalog does not declare, a template role naming an undeclared template or missing (or carrying) the `tech` its template takes, a role that defines itself without a job title or description, or one storing both `template` and `mission` (see [roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from)) | `error` |
 | `role_definition_shadowed` | a per-slug role file that sets a field the role stores in its item, so `sq role <slug> update` of that field has no effect | `warn` |
 | `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
+| `daemon_config_valid` | an unknown key or an unusable value in `.squads.toml`'s `[daemon]` table, or a `SQUADS_DAEMON` that is not `on` or `off`; every command runs in local mode until an unusable value is fixed | `warn` |
 | `working_language_valid` | a `working_language` in `.squads.toml` that is not a language tag squads recognises; English applies | `warn` |
 | `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
 
@@ -1412,8 +1428,9 @@ A workflow or playbook override that will not load is reported by these two rule
 Some validators are always on as well. Every type runs the common core (`item_status_valid`,
 `dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic` and `attribute_valid`) and
 the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
-`subentity_container_marker`, `subentity_body_written`, `subentity_deferral_resolved` and
-`subtask_story_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
+`subentity_container_marker`, `subentity_body_written`, `subentity_title_present`,
+`subentity_deferral_resolved`, `subentity_kind_mismatch` and
+`subentity_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
 `pronouns_valid` for `roster`. A type's `validators` list can change their level, within each
 check's floor, but cannot drop them. Only the checks a type adds beyond them are selectable. The
 eleven always-on squad-wide checks in the table above (`index_reconciled` and the others) cannot be
@@ -1531,15 +1548,39 @@ fields = ["$(*self)", { code = "impact", label = "Impact", collection = "impact"
 Then, on any item of that type:
 
 ```bash
-sq create task "…" --impact high        # set it at creation (one option per declared field)
-sq task <n> update --set impact=high    # set it  (--unset impact clears it)
-sq list --badge impact=high             # exact filter on any declared badge field
-sq list --min-badge impact=medium       # threshold filter, ordered collections only
-sq list --sort impact                   # sort by an ordered field's rank
+sq create task "…" --impact high        # set it at creation
+sq task <n> update --impact high        # set it; --no-impact clears it
+sq list --impact high                   # exact filter
+sq list --min-impact medium             # threshold filter: this rank or stronger
+sq list --sort impact                   # sort by the field's rank
 ```
 
-The bundled `priority` axis has dedicated sugar for the same operations — `--priority` /
-`--min-priority` — and every other badge field goes through `--set` / `--badge` / `--min-badge`.
+**Every badge option is derived from the declared fields.** No option is named in code: each
+field a type declares gives that type's commands an option named after its code, with dashes for
+underscores (a field `work_size` gives `--work-size`):
+
+- `sq create <type>`: `--<code>` for each field the type declares.
+- `sq <type> <n> update`: `--<code> <value>` for each field the type declares, and `--no-<code>`
+  for each optional one (`required = false`, the default). A required field has no `--no-<code>`.
+- `sq <type> <n> add-<kind>` and `sq <type> <n> <kind> <k> update`: the same for each field the
+  kind declares (see [Sub-entity kinds](#sub-entity-kinds-the-blocks-an-item-hosts)).
+- `sq list` and `sq tree`: `--<code> <value>` and `--min-<code> <value>` for each field some
+  non-roster type declares. They mean exactly `--badge <code>=<value>` and
+  `--min-badge <code>=<value>`.
+
+A bundled squad has `--priority`, `--no-priority` and `--min-priority` because the bundled spec
+declares a `priority` field, and a bug's `--severity` because the bug declares `severity`. A squad
+whose override drops the field has none of them: `sq create task "…" --priority high` exits `2`
+with `No such option: --priority`. Each `--help` lists the field's codes
+(`--impact <str>  Impact: high|medium|low.`).
+
+`--set`, `--unset`, `--badge`, `--min-badge` and `--sort` are the generic forms, and take any
+declared field by code. `--badge`, `--min-badge` and `--sort` refuse, with exit `1`, a code that
+no non-roster type declares, naming the declared ones
+(`unknown badge field 'priority' (one of: urgency, work_size)`,
+`unknown sort field 'priority' (one of: urgency, work_size)`); `--set` and `--unset` refuse a
+key the item's type does not declare
+(`'priority' is not a settable field of job items; valid: needs_review, owner_team, work_size`).
 
 A field can declare its own `default`, which wins over the collection's:
 `{ code = "risk", label = "Risk", collection = "impact", default = "low" }`. `sq create` stores that
@@ -1548,16 +1589,119 @@ level stays unset. Items that already exist keep what they store.
 
 **Where a field's badge shows.** A badge is shown only for a field the item's type declares, in
 declared order. A line that leads with one badge, such as a `sq tree` or `sq graph` line, shows the
-type's first declared field; the Priority column of `sq list` and `sq mine` shows the declared
-`priority` field. A code an item stores under a field its type no longer declares stays in the
-file and in the `--json` row's own key, and gets no badge: the tree line leads with the first
-field the type still declares, or with no badge, and the table cell is empty.
+type's first declared field. `sq list` and `sq mine` have one badge column: the first field on an
+ordered collection, taking the types in declaration order, headed by that field's label
+(`Priority` in a bundled squad, `Urgency` in one whose first type declares an `urgency` field),
+and no badge column when no type declares a field. A code an item stores under a field its type
+no longer declares stays in the file and in the `--json` row's own key, and gets no badge: the
+tree line leads with the first field the type still declares, or with no badge, and the table
+cell is empty. `sq check` reports the key under `frontmatter_key_undeclared` when you select that
+check, and `sq migrate rename-field` moves the values to the field's new code (see
+[workflow.md § "Renaming a badge field"](workflow.md#renaming-a-badge-field-sq-migrate-rename-field)).
 
-An item field's `code` cannot be the name of a built-in `sq create` option: `author`, `parent`,
-`desc`, `label`, `ref`, `assignee`, `message`, `file`, `json` or `help`. Such a field is refused
-when the spec loads, so every command stops with
-``items.task field[2]: code 'label' is also a built-in `sq create` option (--label); declare the field under another code``
-until you rename it. Values items already store under the old code are not moved to the new one.
+**What the loader refuses.** A derived option or import key must not collide with a fixed name of
+the command or the `sq import` op it lands on. An item field's `code` cannot be the name of a
+built-in `sq create` option: `author`, `parent`, `desc`, `label`, `ref`, `assignee`, `message`,
+`file`, `json` or `help`, refused with
+``items.task field[2]: code 'label' is also a built-in `sq create` option (--label); declare the field under another code``.
+The same holds for every other command a field derives onto, and for two derived names that
+coincide:
+
+```
+job update: field 'force' gives --force, which job update already takes — rename it in the workflow override
+list: field 'sort' gives --sort, which list already takes — rename it in the workflow override
+import op add-step: field 'handle' gives handle, which import op add-step already takes — rename it in the workflow override
+add-step: target kind 'outcome' and field 'outcome' both give --outcome — rename one in the workflow override
+```
+
+Such a spec is refused when it loads, so every command stops until you rename the field. Values
+items already store under the old code are not moved to the new one.
+
+#### Sub-entity kinds: the blocks an item hosts
+
+A type hosts at most one sub-entity kind (`subentity_kind = "<kind>"` on the type), and the kind is
+declared under `[subentity_kinds.<kind>]`. The bundled spec declares `story` (hosted by
+`feature`), `subtask` (hosted by `task`) and `finding` (hosted by `review`):
+
+```toml
+[subentity_kinds.outcome]
+lifecycle = "subentity"
+completion = "Done"
+plural = "outcomes"
+local_prefix = "OC"
+label = "Desired outcome"
+heading = "Desired Outcomes"
+placeholder = "_Describe the outcome._"
+
+[subentity_kinds.action]
+lifecycle = "step"
+completion = "Done"
+plural = "actions"
+local_prefix = "AC"
+maps_to_parent = true
+fields = [{ code = "impact", label = "Impact", collection = "impact", required = false }]
+```
+
+Keys:
+
+- `lifecycle` — required; the lifecycle a sub-entity of this kind follows.
+- `completion` — required; the status a "mark done" action targets, a reachable status of that
+  lifecycle other than its `initial`.
+- `plural` — required; the list verb (`sq <type> <n> outcomes`) and the name of the container
+  marker in the file.
+- `local_prefix` — required; the prefix of every local id (`OC1`, `OC2`, …).
+- `label` — optional; how the kind is named for people: the `display.type` of a sub-entity row,
+  the first column header of the sub-entity table, and, on a mapping kind's entries, the mapping
+  column and line. Without it, the label is the kind's name title-cased (`Action`).
+- `heading` — optional; the `## …` heading above the kind's block in the item's body. Without it,
+  the heading is the `plural` title-cased (`Actions`). The bundled kinds declare theirs
+  (`User Stories`, `Subtasks`, `Findings`).
+- `placeholder` — optional; the text a new sub-entity's body holds until one is written.
+- `maps_to_parent` — optional, `false` by default; see below.
+- `fields` — optional; badge fields, declared as on a type. Each gives `add-<kind>` a
+  `--<code>` option and `<kind> <k> update` a `--<code>` option, plus `--no-<code>` for an optional
+  one.
+
+`sq workflow subentity-kinds --json` prints each kind as resolved, `label` and `container_heading`
+included.
+
+**A kind named `sub` is refused**, since `sub` is the generic selector of `sq import`. A kind's
+field code cannot be a sub-entity core key (`local_id`, `title`, `status`, `assignee`, `maps_to`,
+`deferred_to`), a key `--json` adds to a sub-entity object (`badges`, `body`, `discussion`,
+`display`), or another field of the same kind:
+
+```
+'step': field code 'body' shadows a reserved key every --json sub-entity object adds — rename the field in the workflow override
+```
+
+**Mapping a sub-entity to the parent's.** A kind that declares `maps_to_parent = true` maps each of
+its sub-entities to a sub-entity of the host item's parent. The *target kind* is the kind hosted by
+the host type's `parent_required` type: with `job` hosting `action` and declaring
+`parent_required = "initiative"`, and `initiative` hosting `outcome`, an action maps to an outcome.
+The option is named after the target kind, and so is every word around it:
+
+```text
+$ sq job 9 add-action "Run ads" --outcome OC1     # or --outcome 1
+$ sq job 9 action AC1 update --no-outcome         # clear the mapping
+```
+
+`--help` reads ``Desired outcome it maps to, as `OC<n>` or `<n>`.``, a mapping that does not resolve is
+refused with `outcome OC9 not found in INI-8`, and the item's sub-entity table gains a column
+headed by the target kind's label. In the bundled spec `subtask` maps to `story`, which is why a
+task takes `--story`. The mapping is stored under `maps_to` on the entry, whatever the target kind
+is called. A kind that declares `maps_to_parent` on a type with no `parent_required`, or whose
+`parent_required` type hosts no kind, is refused at load:
+
+```
+item 'review': hosts subentity kind 'finding', which declares maps_to_parent, but 'review' has no parent_required, so there is no kind to map onto — declare parent_required on 'review', or drop maps_to_parent on 'finding'
+```
+
+**A kind's name, `plural` and `local_prefix` are written into the files**: the name in each
+block marker, the plural in the container marker, and the prefix in every local id and in every
+`maps_to` that targets the kind. Changing one of them over existing items is a data change, like
+renaming a type; `sq migrate rename-kind` moves them (see
+[workflow.md § "Renaming a sub-entity kind"](workflow.md#renaming-a-sub-entity-kind-sq-migrate-rename-kind)).
+`label` and `heading` are display only and can change at any time.
 
 #### Status roles: terminal/hidden/color attributes
 
@@ -2306,7 +2450,11 @@ it. The failure is always at load, never partway through a command. These are th
 | A badge code removed from a collection live items still carry | `… live item(s) still carry it: ['TASK-<n>'] — add 'urgent' back to the collection, revert the override, or update the affected item(s)` |
 | A roster type key dropped or re-categorised | `workflow override may not drop roster type 'operator'` |
 | A malformed or repeated `validators` entry | `item 'task': validators entry 'parent_present@fatal' names an unknown level 'fatal' (must be one of ['error', 'warn'])` — see § "Validators" for every shape the loader refuses |
-| A declared behaviour whose category checks nothing | `item 'decision': declares a 'supersedes' ref rule, but category 'work' turns on no validator for it …` — same for a type hosting a sub-entity kind, or a kind declaring `maps_parent_story`, under a category that validates neither |
+| A grammar name an earlier release used | `subentity_kinds.action.maps_parent_story: 'maps_parent_story' was renamed 'maps_to_parent' — write 'maps_to_parent' in its place.`; the same for the validator `subtask_story_mapping` (now `subentity_mapping`) and the transform function `milestone_rollup` (now `status_rollup`) |
+| An alias another declared type keeps | `duplicate alias 'f': used by 'feature' and 'bug'` |
+| A mapping kind with no type to map onto | `item 'review': hosts subentity kind 'finding', which declares maps_to_parent, but 'review' has no parent_required, …` — see § "Sub-entity kinds" |
+| A field whose derived option or import key is taken | `job update: field 'force' gives --force, which job update already takes — rename it in the workflow override` — see § "Collections" |
+| A declared behaviour whose category checks nothing | `item 'decision': declares a 'supersedes' ref rule, but category 'work' turns on no validator for it …` — same for a type hosting a sub-entity kind, or a kind declaring `maps_to_parent`, under a category that validates neither |
 
 That last one is worth stating as a rule, because it is the one you can reach without a typo: **a
 type may not declare a behaviour its category then leaves unchecked.** Moving `decision` to
@@ -2395,6 +2543,17 @@ Four practical notes:
   group's usage, because the group is part of the built-in command table. Nothing under it works:
   every verb is refused with the message above. Treat the top-level listing, or `sq workflow types`,
   as the answer to "which types do I have" — not the fact that a group's `--help` renders.
+- **A dropped type's aliases are free.** Aliases are checked against the fixed verbs, the declared
+  type names and the other declared types' aliases, all in the merged spec. Once `feature` is
+  dropped, `aliases = ["f"]` on another type makes `sq f <n> …` run that type; while `feature` is
+  kept, the same alias is refused (`duplicate alias 'f': used by 'feature' and 'bug'`).
+
+A **badge field or a sub-entity kind you rename** is a data change, like a type: the old spelling
+stays in the files. A value stored under a field code the spec no longer declares is kept, never
+refused at load, and `sq migrate rename-field <old> <new>` moves it; a kind's stored name, plural
+and local prefix are moved by `sq migrate rename-kind <old> <new>`. `subentity_kind_mismatch`, which every `work` type runs, reports a stale kind spelling, and
+`frontmatter_key_undeclared`, when a type selects it, a value left under an old field code; each
+names its command. See [workflow.md § "Renaming existing types and statuses"](workflow.md#renaming-existing-types-and-statuses).
 
 ---
 
