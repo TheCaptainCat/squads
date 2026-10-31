@@ -206,11 +206,15 @@ the OpenAPI document, header binding, ETags, retirement, the browser listener): 
 application through `tests/_daemon_harness.py` (`serve`), calls it with `http.client`, asserts the
 whole response, and carries no `covers` marker.
 
-**Keep the daemon off in a checkout you are changing.** A daemon serves the code it started with,
-so after a change it keeps answering with the old code until it exits. This repository's
-`.squads.toml` sets `enabled = false` under `[daemon]`, so commands on its own squad run in local
-mode; `SQUADS_DAEMON=on` tries the daemon for one shell without committing a setting. In a scratch
-squad of your own, export `SQUADS_DAEMON=off`, or run `sq daemon stop` after each change.
+**This repository's squad runs in daemon mode, so keep the dev tree off it.** Its `.squads.toml`
+sets `enabled = true` under `[daemon]`, and board work goes through the installed tool, whose
+daemon serves the released code. A daemon belongs to one installation: its key includes the
+directory squads is installed in, so `uv run sq` from this checkout, or from a worktree's own
+`.venv`, finds no daemon of its own and starts a second one on the same squad. That daemon keeps
+serving the code it started with until it idles out or is stopped, so a later change to the code is
+not what answers. Run the dev tree against this squad with `SQUADS_DAEMON=off`, or run
+`uv run sq daemon stop` after using it. In a scratch squad of your own, export
+`SQUADS_DAEMON=off`, or run `sq daemon stop` after each change.
 
 **The client budget.** In remote mode `sq` is the shim in `src/squads/_shim.py`: on its way to a
 running daemon it imports only the standard library, `squads._endpoint` and its own module, and to
