@@ -10,8 +10,12 @@ from squads._api._dto._squad import (
     ImportIssueRow,
     ImportReport,
     InitReport,
+    LeftReference,
     MigrationReport,
+    MovedFile,
     Reconciled,
+    RenameFieldReport,
+    RenameKindReport,
     RenameStatusReport,
     RenameTypeReport,
     RenumberReport,
@@ -61,8 +65,28 @@ def render_repair(report: RepairReport, console: Console) -> None:
             "(deleted?)"
         )
     _print_unreadable(report.unreadable, console)
-    for line in report.renumbered:
-        console.print(e(line), soft_wrap=True)
+    _print_renumbered(report.renumbered, report.references, console)
+
+
+def _snippet(text: str) -> str:
+    """A reference's text as a printed line shows it: quoted, cut at 70 characters."""
+    return f'"{text[:70]}{"..." if len(text) > 70 else ""}"'
+
+
+def _print_renumbered(
+    moved: list[MovedFile], references: list[LeftReference], console: Console
+) -> None:
+    """Each file given a new number, then, per old id, the references left to check by hand."""
+    for move in moved:
+        console.print(
+            f"  renumbered {e(move.old)} -> {e(move.new)} ({e(move.target)})", soft_wrap=True
+        )
+    for old_id in dict.fromkeys(ref.id for ref in references):
+        console.print(f"  references to {e(old_id)} left unchanged; check each by hand:")
+        for ref in (r for r in references if r.id == old_id):
+            console.print(
+                f"    {e(ref.file)}   {e(ref.where)}   {e(_snippet(ref.text))}", soft_wrap=True
+            )
 
 
 def render_renumber(report: RenumberReport, console: Console) -> None:
@@ -156,6 +180,22 @@ def render_rename_status(report: RenameStatusReport, console: Console) -> None:
     console.print(_CHECK_HINT, soft_wrap=True)
 
 
+def render_rename_field(report: RenameFieldReport, console: Console) -> None:
+    console.print(
+        f"[green]rename-field done[/green]: {e(report.old)} → {e(report.new)}, "
+        f"{report.items} item(s) and {report.entries} sub-entity entry(ies) moved"
+    )
+    console.print(_CHECK_HINT, soft_wrap=True)
+
+
+def render_rename_kind(report: RenameKindReport, console: Console) -> None:
+    console.print(
+        f"[green]rename-kind done[/green]: {e(report.old)} → {e(report.new)}, "
+        f"{report.items} item(s) rewritten"
+    )
+    console.print(_CHECK_HINT, soft_wrap=True)
+
+
 def render_import_refusal(report: ImportReport, console: Console) -> None:
     """Every pre-pass problem, line-numbered and in order, then the count."""
     for issue in report.issues:
@@ -216,6 +256,7 @@ def render_adopt(report: AdoptReport, console: Console) -> None:
     _print_notice(report.notice, console)
     _print_warnings(report.warnings, console)
     _print_unreadable(report.unreadable, console)
+    _print_renumbered(report.renumbered, report.references, console)
     if report.unreadable:
         return
     console.print(

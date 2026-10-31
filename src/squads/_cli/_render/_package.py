@@ -27,7 +27,7 @@ def render_doc(doc: Doc, console: Console, *, pretty: bool) -> None:
 
 
 def render_migrations(index: MigrationIndex, console: Console) -> None:
-    table = Table(title="migration changelog — read steps with `sq migrate chlog vA..vB`")
+    table = Table(title="migration changelog — read steps with `sq migrate chlog vfrom..vto`")
     for col in ("Release", "Schema", "Summary", "Manual"):
         table.add_column(col)
     for m in index.migrations:

@@ -73,6 +73,12 @@ LAZY_GROUPS: tuple[LazyGroup, ...] = (
         "Manage project-level template and role overrides.",
     ),
     LazyGroup(
+        "daemon",
+        "squads._cli._daemon",
+        "daemon_app",
+        "See and stop the daemon that serves this squad.",
+    ),
+    LazyGroup(
         "workflow",
         "squads._cli._workflow_cmd",
         "workflow_app",
@@ -198,11 +204,12 @@ class _CustomTypeGroup(typer.core.TyperGroup):
     def get_command(self, ctx: Any, cmd_name: str) -> _click.Command | None:
         # The table lists every bundled alias whatever the active spec says, so one the spec no
         # longer declares must be refused here (see `common.static_alias_is_stale`).
-        if common.static_alias_is_stale(ctx, cmd_name):
+        retargeted = common.retargeted_type(ctx, cmd_name)
+        if retargeted is None and common.static_alias_is_stale(ctx, cmd_name):
             return common.stale_alias_command(ctx, cmd_name)
 
         # Fast path: the root's command table, which builds a bundled command on first lookup.
-        cmd = super().get_command(ctx, cmd_name)
+        cmd = super().get_command(ctx, cmd_name) if retargeted is None else None
         if cmd is not None:
             return cmd
 
@@ -212,7 +219,7 @@ class _CustomTypeGroup(typer.core.TyperGroup):
         try:
             from squads._cli._items import build_item_app
 
-            if cmd_name in _STATIC_TYPES:
+            if retargeted is None and cmd_name in _STATIC_TYPES:
                 # Bundled types are always in the command table; if we're here,
                 # it's genuinely unknown (shouldn't happen, but guard so we never shadow them).
                 return None
@@ -221,8 +228,8 @@ class _CustomTypeGroup(typer.core.TyperGroup):
 
             # Resolve the canonical type name: check direct type name first, then
             # spec's alias_to_type map (covers custom aliases like "inc" → "incident").
-            canonical = cmd_name
-            if cmd_name not in spec.non_roster_types():
+            canonical = retargeted or cmd_name
+            if retargeted is None and cmd_name not in spec.non_roster_types():
                 # Check if it's an alias for a custom type.
                 resolved = spec.alias_to_type.get(cmd_name)
                 if resolved is not None and resolved in spec.non_roster_types():
@@ -321,8 +328,8 @@ def main_callback(
     change_dir: list[str] = typer.Option(
         [],
         "-C",
-        help="Run as if sq was started in PATH (repeatable; relative to the previous -C).",
-        metavar="PATH",
+        help="Run as if sq was started in path (repeatable; relative to the previous -C).",
+        metavar="path",
         callback=common.check_change_dir,
         is_eager=True,
     ),
@@ -333,7 +340,7 @@ def main_callback(
         None,
         "--at",
         help="Record this ISO 8601 UTC time instead of now, to bring in past history.",
-        metavar="WHEN",
+        metavar="when",
     ),
     version: bool = typer.Option(
         False, "--version", callback=_version_cb, is_eager=True, help="Show version and exit."
@@ -345,7 +352,7 @@ def main_callback(
 
 
 def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> None:
-    from squads._context import bind_context, get_context
+    from squads._context import NoticeLog, bind_context, get_context
 
     # Bind one fresh RequestContext per invocation, from -C/--at plus the clock that
     # `_resolve_clock_override` carries forward; the request's own starting directory and
@@ -353,7 +360,11 @@ def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> 
     prior = get_context()
     session_id, parent_session_id = actor.session_from_env()
     client_cwd = common.effective_dir(change_dir)
-    active_spec, spec_error = common.bind_active_spec(client_cwd)
+    if prior.served is None:
+        active_spec, spec_error = common.bind_active_spec(client_cwd)
+    else:
+        # The daemon resolved the squad's spec when it composed the context this command runs in.
+        active_spec, spec_error = prior.active_spec, prior.spec_error
     bind_context(
         RequestContext(
             clock_override=_resolve_clock_override(at, prior),
@@ -366,7 +377,10 @@ def _bind_request(ctx: typer.Context, change_dir: list[str], at: str | None) -> 
             start_dir=prior.start_dir,
             documents=prior.documents,
             consoles=common.build_consoles(),
-            api=calls.select_api(),
+            api=calls.invocation_api(prior.api),
+            notices=NoticeLog(sink=common.print_notice),
+            parse_cache=prior.parse_cache,
+            served=prior.served,
         )
     )
     common.mark_root_callback_ran(ctx)
@@ -473,21 +487,32 @@ def _exit_code(code: object) -> int:
     return 1
 
 
-def _run_in_scope(args: list[str]) -> int:
+def _run_in_scope(args: list[str], prog_name: str | None, command: _click.Command | None) -> int:
+    hoisted = _hoist_global_options(args)
     try:
-        app(args=_hoist_global_options(args))
+        if command is None:
+            app(args=hoisted, prog_name=prog_name)
+        else:
+            command(args=hoisted, prog_name=prog_name)
     except SystemExit as exc:
         return _exit_code(exc.code)
     return 0
 
 
-def run(argv: Sequence[str]) -> int:
+def run(
+    argv: Sequence[str],
+    *,
+    prog_name: str | None = None,
+    command: _click.Command | None = None,
+) -> int:
     """Run one command line (the arguments after ``sq``) and return its exit code.
 
     The command runs in a copy of the current context, so nothing it binds (clock, actor,
-    index read, consoles) is visible to the next call.
+    index read, consoles) is visible to the next call. *prog_name* is the name the usage text and
+    the shell completion variable derive from; *command* is a command tree built beforehand, in
+    place of building the application's on each call.
     """
-    return contextvars.copy_context().run(_run_in_scope, list(argv))
+    return contextvars.copy_context().run(_run_in_scope, list(argv), prog_name, command)
 
 
 def main() -> None:

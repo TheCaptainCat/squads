@@ -161,7 +161,7 @@ def register_roster_status_verb[M: StatusMove](
     @common.handle_errors
     def status_verb(
         ctx: typer.Context,
-        new_status: str = typer.Argument(..., metavar="STATUS", help=common.MOVE_STATUS_HELP),
+        new_status: str = typer.Argument(..., metavar="status", help=common.MOVE_STATUS_HELP),
         force: bool = common.force_transition_option(
             "Make a transition the lifecycle does not allow; a change that would leave "
             "the config invalid is still refused."

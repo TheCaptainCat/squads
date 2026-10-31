@@ -10,7 +10,7 @@ Grammar:
   sq skill <slug|id|n> link-role <role> — scope the skill to a role (+ resync that role)
   sq skill <slug|id|n> unlink-role <role> — remove that scope (+ resync that role)
   sq skill <slug|id|n> regen            — regenerate the Claude pointer
-  sq skill <slug|id|n> status <S>       — transition the skill's status
+  sq skill <slug|id|n> status <status>       — transition the skill's status
   sq skill <slug|id|n> view add <name>       — place or re-enable a view tag in sq:body
   sq skill <slug|id|n> view disable <name>   — disable a view tag in sq:body (kept, not removed)
   sq skill <slug|id|n> remove --purge — delete the skill item (or set status Archived)
@@ -79,7 +79,7 @@ skill_app = typer.Typer(
             "sq skill squads show",
             "sq skill 2 regen",
             "sq skill SKILL-2 remove --purge",
-            "sq skill squads status Archived",
+            "sq skill squads status <status>",
             "sq skill squads view disable squads_skill",
         ),
         "add",
@@ -206,7 +206,7 @@ def skill_ref_add(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill, the ref's target and kind."),
 ) -> None:
-    """Add a ref from this skill to TARGET."""
+    """Add a ref from this skill to the target."""
     common.declare_actor(as_)
     request = SkillRefRequest(addr=address_of(ctx), target=target, kind=kind)
     response = calls.call(ops.SKILL_REF_ADD, request)
@@ -223,7 +223,7 @@ def skill_ref_rm(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill and the ref's target."),
 ) -> None:
-    """Remove this skill's ref to TARGET."""
+    """Remove this skill's ref to the target."""
     common.declare_actor(as_)
     request = SkillRefRemoveRequest(addr=address_of(ctx), target=target)
     response = calls.call(ops.SKILL_REF_RM, request)
@@ -243,10 +243,10 @@ def skill_link_role(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill and the role's id."),
 ) -> None:
-    """Scope this skill to ROLE and update that role's pointer at once.
+    """Scope this skill to the role and update that role's pointer at once.
 
-    Prefer this to `ref add --kind scopes`, which writes the same ref but leaves
-    the role's pointer stale until the next `sq sync`.
+    Prefer this to adding the scoping ref by hand, which writes the same ref but
+    leaves the role's pointer stale until the next `sq sync`.
     """
     common.declare_actor(as_)
     request = SkillRoleRequest(addr=address_of(ctx), role=role)
@@ -267,7 +267,7 @@ def skill_unlink_role(
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the skill and the role's id."),
 ) -> None:
-    """Unscope this skill from ROLE and update that role's pointer at once."""
+    """Unscope this skill from the role and update that role's pointer at once."""
     common.declare_actor(as_)
     request = SkillRoleRequest(addr=address_of(ctx), role=role)
     response = calls.call(ops.SKILL_UNLINK_ROLE, request)

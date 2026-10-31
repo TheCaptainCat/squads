@@ -1,4 +1,4 @@
-"""`sq create <type> TITLE …` — one command per item type, sharing one implementation.
+"""`sq create <type> <title> …` — one command per item type, sharing one implementation.
 
 Built-in types are registered statically at import time; custom types declared in
 ``.overrides/workflow.toml`` are dispatched lazily by ``_CustomCreateGroup``, which resolves the
@@ -6,7 +6,6 @@ active spec at Click dispatch time, after the root callback has bound it.
 """
 
 import contextlib
-from collections.abc import Callable
 from typing import Any, ClassVar
 
 import typer
@@ -15,16 +14,14 @@ import typer.core
 import typer.main
 
 import squads._cli._common as common
-from squads import _badges as badges
+import squads._cli._field_options as field_options
 from squads._api import _ops as ops
 from squads._api._dto._item_writes import ItemCreateRequest
 from squads._cli import _calls as calls
 from squads._cli._common import console, resolve_body_optional
-from squads._cli._render._writes import render_created
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeKey
+from squads._models._attributes import AttributeSpec
 from squads._workflow import bundled_spec
-from squads._workflow._models import Field, WorkflowSpec
 
 
 def _check_parent_option(parent: str | None) -> None:
@@ -38,6 +35,8 @@ def _check_parent_option(parent: str | None) -> None:
 
 def _create(request: ItemCreateRequest, json_out: bool) -> None:
     """Make the one create call, then print the created item."""
+    from squads._cli._render._writes import render_created
+
     response = calls.call(ops.ITEMS_CREATE, request)
     if json_out:
         calls.print_json(ops.ITEMS_CREATE, response)
@@ -47,81 +46,63 @@ def _create(request: ItemCreateRequest, json_out: bool) -> None:
     calls.finish(response, json_out=json_out)
 
 
-def _priority_help(item_type: str) -> str:
-    """``--priority`` help for ``create <item_type>``, from the collection *item_type* binds.
-
-    Read at registration time this is the bundled spec; statically registered commands re-derive
-    it at ``--help`` render time through :func:`common.spec_aware_command_cls`. It resolves
-    strictly (:func:`squads._badges.declared_collection`): a type declaring no ``priority`` field
-    enumerates nothing and the flag is hidden (see :func:`_refresh_priority_help`).
-    """
-    spec = common.get_active_spec()
-    # sanctioned field-code literal: `--priority` is the flag *for* this field code
-    coll_code = badges.declared_collection(item_type, "priority", spec)
-    coll = spec.collections.get(coll_code) if coll_code else None
-    if coll and coll.badges:
-        return f"Priority: {'|'.join(b.code for b in coll.badges)}."
-    return "Priority code (as defined by your workflow's priority collection)."
-
-
-def _refresh_priority_help(item_type_str: str) -> Callable[[list[object]], None]:
-    """A spec_aware_command_cls refresh re-deriving --priority's help from the live spec.
-
-    On a type declaring no ``priority`` field the flag is hidden from ``--help`` but still
-    parses, so the service's declared-field gate (``ServiceCore._check_priority``) owns the one
-    accurate refusal.
-    """
-
-    def _refresh(params: list[object]) -> None:
-        text = _priority_help(item_type_str)
-        # sanctioned field-code literal: `--priority` is the flag *for* this field code
-        declared = (
-            badges.declared_collection(item_type_str, "priority", common.get_active_spec())
-            is not None
-        )
-        for p in params:
-            if getattr(p, "name", None) == "priority":
-                p.help = text  # type: ignore[attr-defined]
-                p.hidden = not declared  # type: ignore[attr-defined]
-
-    return _refresh
-
-
-def _field_help(item_type: str, field: Field, spec: WorkflowSpec) -> str:
-    """``--<field-code>`` help for *field* on *item_type*: its label and the codes of the
-    collection it binds."""
-    coll = spec.collections.get(field.collection)
-    if coll and coll.badges:
-        return f"{field.label}: {'|'.join(b.code for b in coll.badges)}."
-    return f"{field.label} badge code."
-
-
-#: ``Context.meta`` key under which the declared-field options file the values they receive.
-_FIELDS_META_KEY = "squads.create_fields"
-
-
-def _remember_field(ctx: _click.Context, param: _click.Parameter, value: str | None) -> None:
-    """Option callback: file *value* under its field code. The options are added per
-    invocation, so the command function has no parameter to receive them."""
-    if value is not None and param.name is not None:
-        ctx.meta.setdefault(_FIELDS_META_KEY, {})[param.name] = value
-
-
 def _declared_field_options(item_type: str, taken: set[str]) -> list[typer.core.TyperOption]:
     """One ``--<field-code>`` option per field *item_type* declares in the active spec, skipping
-    the codes whose option already exists (``--priority`` is a static option)."""
+    the codes whose option already exists."""
     spec = common.get_active_spec()
     return [
-        typer.core.TyperOption(
-            param_decls=[f"--{f.code}", f.code],
-            default=None,
-            help=_field_help(item_type, f, spec),
-            expose_value=False,
-            callback=_remember_field,
+        field_options.value_option(
+            f, field_options.field_help(f, field_options.field_codes(f, spec))
         )
         for f in spec.fields_for(item_type)
-        if f.code not in taken
+        if field_options.flag_name(f.code) not in taken
     ]
+
+
+#: The attribute kinds a create option is derived for.
+CREATE_ATTRIBUTE_KINDS = ("str", "list", "date")
+
+#: ``Context.meta`` key under which the declared-attribute options file the values they receive.
+_ATTRIBUTES_META_KEY = "squads.create_attributes"
+
+
+def attribute_flag(name: str) -> str:
+    """The option name of attribute *name*: its key with dashes (``target_date`` is
+    ``--target-date``)."""
+    return name.replace("_", "-")
+
+
+def _attribute_option(
+    item_type: str, name: str, spec: AttributeSpec, flag: str
+) -> typer.core.TyperOption:
+    def _remember(ctx: _click.Context, _param: _click.Parameter, value: Any) -> None:
+        if value:
+            ctx.meta.setdefault(_ATTRIBUTES_META_KEY, {})[name] = (
+                list(value) if spec.kind == "list" else value
+            )
+
+    label = spec.label or name.replace("_", " ")
+    many = spec.kind == "list"
+    return typer.core.TyperOption(
+        param_decls=[f"--{flag}", f"attribute_{name}"],
+        default=None,
+        multiple=many,
+        help=f"{item_type} attribute: {label}{' (repeatable)' if many else ''}.",
+        expose_value=False,
+        callback=_remember,
+    )
+
+
+def _declared_attribute_options(item_type: str, taken: set[str]) -> list[typer.core.TyperOption]:
+    """One option per settable ``str``, ``list`` or ``date`` attribute *item_type* declares,
+    skipping a flag that is already taken."""
+    options: list[typer.core.TyperOption] = []
+    for name, spec in common.get_active_spec().item_attributes(item_type).items():
+        flag = attribute_flag(name)
+        if spec.settable and spec.kind in CREATE_ATTRIBUTE_KINDS and flag not in taken:
+            options.append(_attribute_option(item_type, name, spec, flag))
+            taken.add(flag)
+    return options
 
 
 def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
@@ -132,29 +113,33 @@ def _create_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
     alike, after the per-invocation spec is bound. Fail-soft for the reason
     :func:`common.spec_aware_command_cls` documents.
     """
-    base = common.spec_aware_command_cls(_refresh_priority_help(item_type))
 
-    class _CreateCommand(base):
+    class _CreateCommand(typer.core.TyperCommand):
         def get_params(self, ctx: Any) -> list[Any]:
             params = super().get_params(ctx)
             with contextlib.suppress(Exception):
                 taken = {
                     opt.removeprefix("--") for p in params for opt in (*p.opts, *p.secondary_opts)
                 }
-                params = [*params, *_declared_field_options(item_type, taken)]
+                params = field_options.extended(
+                    params,
+                    [
+                        *_declared_field_options(item_type, taken),
+                        *_declared_attribute_options(item_type, taken),
+                    ],
+                )
             return params
 
     return _CreateCommand
 
 
-def _given_fields(ctx: typer.Context) -> dict[str, str] | None:
-    """The values the declared-field options received, keyed by field code; ``None`` when none
-    was given."""
-    return dict(ctx.meta.get(_FIELDS_META_KEY, {})) or None
+def _given_attributes(ctx: typer.Context) -> dict[str, str | list[str]]:
+    """The values the declared-attribute options received, keyed by attribute name."""
+    return dict(ctx.meta.get(_ATTRIBUTES_META_KEY, {}))
 
 
 def _build_create_cmd(item_type_str: str) -> _click.Command:
-    """Build a Click command for ``sq create <item_type_str> TITLE …``, for ``_CustomCreateGroup``.
+    """Build a Click command for ``sq create <item_type_str> <title> …``, for the custom group.
 
     Registers the function in a temporary Typer app, converts it to a Click group and extracts
     the named subcommand, so ``incident`` is a leaf command rather than another group.
@@ -164,7 +149,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     _tmp_app = typer.Typer()
     _tmp_app.command(
         item_type_str,
-        help=f"Create {common.article(item_type_str)} {item_type_str}.",
+        help=f"Create one new {item_type_str}.",
         cls=_create_command_cls(item_type_str),
     )(_make(item_type_str))
     leaf: _click.Command = typer.main.get_command(_tmp_app)  # type: ignore[assignment]
@@ -295,13 +280,12 @@ create_app = typer.Typer(
 )
 
 # Static registration from the bundled spec, like the resource-group loop in _cli/__init__.py:
-# one generic `_make` per creatable type, in ItemSpec.order. `guide` gets its own command below
-# (--tech/--tag); role/skill/operator are roster types with dedicated commands.
+# one generic `_make` per creatable type, in ItemSpec.order; role/skill/operator are roster types
+# with dedicated commands.
 _create_spec = bundled_spec()
 _CREATABLE: tuple[str, ...] = tuple(
     t
     for t in sorted(_create_spec.non_roster_types(), key=lambda t: (_create_spec.items[t].order, t))
-    if t != "guide"
 )
 
 
@@ -318,7 +302,6 @@ def _make(item_type_str: str):
             None, "--ref", help="Item to ref, as `ID` or `ID:kind` (repeatable)."
         ),
         assignee: str | None = common.assignee_option(),
-        priority: str | None = typer.Option(None, "--priority", help=_priority_help(item_type_str)),
         message: list[str] = common.message_option(),
         file: str | None = common.file_option(),
         json_out: bool = typer.Option(
@@ -335,10 +318,8 @@ def _make(item_type_str: str):
             labels=label or [],
             refs=ref or [],
             assignee=assignee,
-            # No pre-parse: the collection `priority` binds is per-type, resolved by the operation
-            # from the type's own declared field.
-            priority=priority,
-            fields=_given_fields(ctx) or {},
+            fields=field_options.given_values(ctx),
+            attributes=_given_attributes(ctx),
             body=resolve_body_optional(message or None, file),
         )
         _create(request, json_out)
@@ -350,7 +331,7 @@ def _make(item_type_str: str):
 for _t in _CREATABLE:
     create_app.command(
         _t,
-        help=f"Create {common.article(_t)} {_t}.",
+        help=f"Create one new {_t}.",
         cls=_create_command_cls(_t),
     )(_make(_t))
 
@@ -362,42 +343,4 @@ for _t in _CREATABLE:
 
 # Type names with a static `sq create <type>` command already registered above — used by
 # _CustomCreateGroup to draw the line between "already known" and "resolve dynamically".
-_STATIC_CREATE_TYPES: frozenset[str] = frozenset({*_CREATABLE, "guide"})
-
-
-@create_app.command("guide", help="Create a guide.")
-@common.handle_errors
-def create_guide(  # noqa: PLR0913 — Typer options are the command's surface
-    title: str = typer.Argument(..., help="Guide title."),
-    author: str = common.author_option(),
-    tech: str | None = common.tech_option(),
-    tag: list[str] = typer.Option(None, "--tag", help="Tag to add (repeatable)."),
-    parent: str | None = common.parent_option(),
-    desc: str = common.desc_option(),
-    assignee: str | None = common.assignee_option(),
-    message: list[str] = common.message_option(),
-    file: str | None = common.file_option(),
-    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the created item."),
-):
-    attributes: dict[str, str | list[str]] = {}
-    if tech:
-        attributes[AttributeKey.TECH] = tech
-    if tag:
-        attributes[AttributeKey.TAGS] = list(tag)
-    _check_parent_option(parent)
-    request = ItemCreateRequest(
-        type="guide",
-        title=title,
-        author=author,
-        parent=parent,
-        description=desc,
-        assignee=assignee,
-        attributes=attributes,
-        body=resolve_body_optional(message or None, file),
-    )
-    _create(request, json_out)
-
-
-# Hidden guide aliases (same pattern as _CREATABLE loop above).
-for _guide_alias in _create_spec.items["guide"].aliases:
-    create_app.command(_guide_alias, hidden=True)(create_guide)
+_STATIC_CREATE_TYPES: frozenset[str] = frozenset(_CREATABLE)

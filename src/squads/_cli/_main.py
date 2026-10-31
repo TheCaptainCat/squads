@@ -14,42 +14,21 @@ from pathlib import Path
 import typer
 
 import squads._cli._common as common
+import squads._cli._field_options as field_options
 from squads._api import _ops as ops
-from squads._api._dto._check import CheckRequest, SyncRequest
-from squads._api._dto._graph import GraphRequest
-from squads._api._dto._items import ItemListRequest, ItemShowRequest
-from squads._api._dto._package import DocIndex
-from squads._api._dto._queues import BlockedRequest, InboxRequest, MineRequest, WorkloadRequest
-from squads._api._dto._reflog import ReflogRequest
-from squads._api._dto._search import SearchRequest
-from squads._api._dto._squad import (
-    AdoptRequest,
-    InitRequest,
-    RenumberRequest,
-    RepairRequest,
-)
-from squads._api._dto._tree import TreeRequest
 from squads._cli import _calls as calls
 from squads._cli import app
 from squads._cli._common import (
     console,
     err_console,
     handle_errors,
+    parse_badge_field,
     parse_category,
     parse_filter_badge_code,
     parse_status,
     parse_type,
     print_json_clean,
 )
-from squads._cli._render._check import render_check, render_sync
-from squads._cli._render._graph import render_graph, render_graph_text
-from squads._cli._render._items import render_list, render_show
-from squads._cli._render._package import render_doc, render_doc_index
-from squads._cli._render._queues import render_blocked, render_inbox, render_mine, render_workload
-from squads._cli._render._reflog import render_reflog, render_reflog_tree
-from squads._cli._render._search import render_search
-from squads._cli._render._squad import render_adopt, render_init, render_renumber, render_repair
-from squads._cli._render._tree import render_tree
 from squads._context import get_context
 from squads._errors import SquadsError
 from squads._index._reflog import REFLOG_OPS
@@ -59,37 +38,37 @@ from squads._paths import load_config, process_dir, resolve
 from squads._roles._catalog import resolve_roles
 
 # ---------------------------------------------------------------------------
-# Generic badge helpers — one path for priority/severity/any project-declared axis.
+# Generic badge helpers — one path for every declared badge axis.
 # ---------------------------------------------------------------------------
 
 
 def _parse_badge_pairs(pairs: list[str]) -> dict[str, str]:
-    """Parse repeatable ``CODE=VALUE`` tokens (``--badge``/``--min-badge``) into a dict."""
+    """Parse repeatable ``code=value`` tokens (``--badge``/``--min-badge``) into a dict."""
     out: dict[str, str] = {}
     for pair in pairs:
         code, sep, value = pair.partition("=")
         if not sep or not code.strip():
-            raise SquadsError(f"expected CODE=VALUE, got {pair!r}")
-        out[code.strip()] = value.strip().lower()
+            raise SquadsError(f"expected code=value, got {pair!r}")
+        field = parse_badge_field(code)
+        out[field] = parse_filter_badge_code(field, value)
     return out
 
 
 def _build_badge_filters(
-    priority: str | None, min_priority: str | None, badge: list[str], min_badge: list[str]
+    ctx: typer.Context, badge: list[str], min_badge: list[str]
 ) -> tuple[dict[str, str], dict[str, str]]:
-    """Merge the dedicated ``--priority``/``--min-priority`` sugar into the generic
-    ``--badge``/``--min-badge CODE=VALUE`` maps shared by ``list``/``tree``.
+    """Merge the derived ``--<code>``/``--min-<code>`` options into the generic ``--badge``/
+    ``--min-badge code=value`` maps shared by ``list``/``tree``: each means exactly its generic
+    form.
 
-    The sugar validates cross-type (:func:`parse_filter_badge_code`) because the filter
-    itself is cross-type — no single type's bound collection is the authority here."""
+    Values validate cross-type (:func:`parse_filter_badge_code`) because the filter itself is
+    cross-type — no single type's bound collection is the authority here."""
     filters = _parse_badge_pairs(badge)
-    if priority:
-        # sanctioned field-code literal: `--priority` is the flag *for* this field code
-        filters["priority"] = parse_filter_badge_code("priority", priority)
+    for code, value in field_options.given_values(ctx).items():
+        filters[code] = parse_filter_badge_code(code, value)
     badge_min = _parse_badge_pairs(min_badge)
-    if min_priority:
-        # sanctioned field-code literal: `--min-priority` is the flag *for* this field code
-        badge_min["priority"] = parse_filter_badge_code("priority", min_priority)
+    for code, value in field_options.given_min(ctx).items():
+        badge_min[code] = parse_filter_badge_code(code, value)
     return filters, badge_min
 
 
@@ -197,6 +176,9 @@ def init(  # noqa: PLR0913 — one parameter per init option
 ):
     """Initialize squads in the current directory."""
     # Parse --backend flags (repeatable; "none" sentinel → sq-only squad).
+    from squads._api._dto._squad import InitRequest
+    from squads._cli._render._squad import render_init
+
     active_backends = _parse_backend_option(backend)
 
     # Parse --name slug=Full Name flags.
@@ -300,16 +282,25 @@ def adopt(
         ),
     ),
     no_claude: bool = typer.Option(False, "--no-claude", help="Skip Claude Code scaffolding."),
+    renumber: bool = typer.Option(
+        False,
+        "--renumber",
+        help="Give files that share a number a new one, then adopt.",
+    ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the squad adopted and what it held."
     ),
 ):
     """Adopt an existing squad folder and index the items already in it."""
+    from squads._api._dto._squad import AdoptRequest
+    from squads._cli._render._squad import render_adopt
+
     request = AdoptRequest(
         squad_dir=squad_dir,
         backends=_parse_backend_option(backend),
         roles=roles,
         no_claude=no_claude,
+        renumber=renumber,
     )
     response = calls.call(ops.ADOPT, request)
     report = response.data
@@ -324,9 +315,10 @@ def adopt(
         raise typer.Exit(1)
 
 
-@app.command(name="list")
+@app.command(name="list", cls=field_options.FilterCommand)
 @handle_errors
 def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
+    ctx: typer.Context,
     type: str | None = common.type_filter_option(),
     status: str | None = common.status_filter_option(),
     parent: str | None = typer.Option(
@@ -337,26 +329,16 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     category: str | None = typer.Option(
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
-    priority: str | None = typer.Option(
-        None,
-        "--priority",
-        help="Priority code (as defined by your workflow's priority collection).",
-    ),
-    min_priority: str | None = typer.Option(
-        None,
-        "--min-priority",
-        help="At-least-this-priority threshold (your workflow's priority collection).",
-    ),
     badge: list[str] = typer.Option(
-        [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
+        [], "--badge", help="Exact filter on any declared badge field: code=value (repeatable)."
     ),
     min_badge: list[str] = typer.Option(
         [],
         "--min-badge",
-        help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
+        help="Threshold filter on any ordered badge field: code=value (repeatable).",
     ),
     sort: str | None = typer.Option(
-        None, "--sort", help="Sort by an ordered badge field's rank (e.g. priority)."
+        None, "--sort", help="Sort by an ordered badge field's rank, by its code."
     ),
     all_: bool = common.closed_option(),
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
@@ -370,14 +352,18 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
 
     Closed items are hidden unless `--all` or `--status` is given. What counts as
     closed depends on the item's category: a work or roster item hides on a
-    terminal status, while a records item such as a decision stays visible on
-    `Accepted` or `Published` and hides once retired (`Superseded`, `Deprecated`,
-    `Cancelled`). Filters combine: an item is listed only when it matches every
-    one given.
+    terminal status, while a records item stays visible while it is in force and
+    hides once retired. Filters combine: an item is listed only when it matches
+    every one given.
     """
+    from squads._api._dto._items import ItemListRequest
+    from squads._cli._render._items import render_list
+
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
-    badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+    badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
+    if sort is not None:
+        sort = parse_badge_field(sort, ordered=True)
     request = ItemListRequest(
         type=parse_type(type) if type else None,
         status=parse_status(status) if status else None,
@@ -399,11 +385,14 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     calls.finish(response, json_out=json_out)
 
 
-@app.command()
+@app.command(cls=field_options.FilterCommand)
 @handle_errors
 def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-list
+    ctx: typer.Context,
     root_id: str | None = typer.Argument(
-        None, help="Item ID or number to root the tree at; omit for the whole squad."
+        None,
+        metavar="root-id",
+        help="Item ID or number to root the tree at; omit for the whole squad.",
     ),
     type: str | None = common.type_filter_option(),
     status: str | None = common.status_filter_option(),
@@ -412,23 +401,13 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
         None, "--category", help="Narrow to one category: roster, work, or records."
     ),
     label: str | None = typer.Option(None, "--label", help="Show only items carrying this label."),
-    priority: str | None = typer.Option(
-        None,
-        "--priority",
-        help="Priority code (as defined by your workflow's priority collection).",
-    ),
-    min_priority: str | None = typer.Option(
-        None,
-        "--min-priority",
-        help="At-least-this-priority threshold (your workflow's priority collection).",
-    ),
     badge: list[str] = typer.Option(
-        [], "--badge", help="Exact filter on any declared badge field: CODE=VALUE (repeatable)."
+        [], "--badge", help="Exact filter on any declared badge field: code=value (repeatable)."
     ),
     min_badge: list[str] = typer.Option(
         [],
         "--min-badge",
-        help="Threshold filter on any ordered badge field: CODE=VALUE (repeatable).",
+        help="Threshold filter on any ordered badge field: code=value (repeatable).",
     ),
     sort: str | None = typer.Option(
         None, "--sort", help="Sort each level by an ordered badge field's rank."
@@ -458,7 +437,12 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     absent from the tree while `sq list` still returned it; the anchor is a tiebreak, since
     every member is an equally good root.
     """
-    badges, badge_min = _build_badge_filters(priority, min_priority, badge, min_badge)
+    from squads._api._dto._tree import TreeRequest
+    from squads._cli._render._tree import render_tree
+
+    badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
+    if sort is not None:
+        sort = parse_badge_field(sort, ordered=True)
     request = TreeRequest(
         root=root_id,
         type=parse_type(type) if type else None,
@@ -503,6 +487,9 @@ def repair(
 
     Exit codes: 1 a file was unreadable or refs need checking. See sq docs faq.
     """
+    from squads._api._dto._squad import RepairRequest
+    from squads._cli._render._squad import render_repair
+
     response = calls.call(ops.REPAIR, RepairRequest(renumber=renumber))
     report = response.data
     if json_out:
@@ -543,6 +530,9 @@ def renumber(
     Read the other branch's counter (for `--onto`) with:
       git show <mainref>:squads/.squads.json | jq .counter
     """
+    from squads._api._dto._squad import RenumberRequest
+    from squads._cli._render._squad import render_renumber
+
     if (onto is None) == (by is None):
         raise typer.BadParameter("provide exactly one of --onto or --by")
     response = calls.call(ops.RENUMBER, RenumberRequest(from_seq=from_seq, onto=onto, by=by))
@@ -563,6 +553,9 @@ def inbox(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
+    from squads._api._dto._queues import InboxRequest
+    from squads._cli._render._queues import render_inbox
+
     response = calls.call(ops.INBOX, InboxRequest(slug=role))
     if json_out:
         calls.print_json(ops.INBOX, response)
@@ -591,6 +584,9 @@ def search(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
+    from squads._api._dto._search import SearchRequest
+    from squads._cli._render._search import render_search
+
     request = SearchRequest(
         q=text,
         type=parse_type(type) if type else None,
@@ -613,6 +609,9 @@ def blocked(
     ),
 ):
     """Show open items that wait on another open item."""
+    from squads._api._dto._queues import BlockedRequest
+    from squads._cli._render._queues import render_blocked
+
     response = calls.call(ops.BLOCKED, BlockedRequest())
     if json_out:
         calls.print_json(ops.BLOCKED, response)
@@ -625,7 +624,7 @@ def blocked(
 @app.command()
 @handle_errors
 def graph(
-    root_id: str = typer.Argument(..., metavar="ID", help="Item ID or number to start from."),
+    root_id: str = typer.Argument(..., metavar="id", help="Item ID or number to start from."),
     depth: int = common.depth_option(2, "-d"),
     kind: list[str] = typer.Option(
         [],
@@ -660,6 +659,9 @@ def graph(
     can rename.
     Fields: sq docs stability
     """
+    from squads._api._dto._graph import GraphRequest
+    from squads._cli._render._graph import render_graph, render_graph_text
+
     valid_formats = ("dot", "mermaid", "mermaid-md")
     if format_ and format_ not in valid_formats:
         raise SquadsError(f"invalid --format {format_!r}; expected one of {valid_formats}")
@@ -688,6 +690,9 @@ def workload(
 
     Items and sub-entities are counted separately.
     """
+    from squads._api._dto._queues import WorkloadRequest
+    from squads._cli._render._queues import render_workload
+
     response = calls.call(ops.WORKLOAD, WorkloadRequest())
     if json_out:
         calls.print_json(ops.WORKLOAD, response)
@@ -705,6 +710,9 @@ def mine(
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List the items assigned to someone, directly or through a sub-entity."""
+    from squads._api._dto._queues import MineRequest
+    from squads._cli._render._queues import render_mine
+
     response = calls.call(ops.MINE, MineRequest(slug=role, all=all_))
     if json_out:
         calls.print_json(ops.MINE, response)
@@ -722,6 +730,9 @@ def sync(
     ),
 ):
     """Regenerate tool-owned managed files to the current squads version."""
+    from squads._api._dto._check import SyncRequest
+    from squads._cli._render._check import render_sync
+
     response = calls.call(ops.SYNC, SyncRequest())
     if json_out:
         calls.print_json(ops.SYNC, response)
@@ -743,6 +754,8 @@ def docs(
 ):
     """Print the squads documentation in the terminal, offline."""
     from squads import _docfiles
+    from squads._api._dto._package import DocIndex
+    from squads._cli._render._package import render_doc, render_doc_index
 
     found = _docfiles.doc_index() if name is None else _docfiles.doc(name)
     if json_out:
@@ -759,8 +772,8 @@ def reflog(
     item: str | None = typer.Option(
         None,
         "--item",
-        help="Show only entries on this full item ID, such as `TASK-<n>`.",
-        metavar="ID",
+        help="Show only entries on this full item ID, such as `<prefix>-<n>`.",
+        metavar="id",
     ),
     actor: str | None = typer.Option(
         None,
@@ -776,7 +789,7 @@ def reflog(
         None,
         "--since",
         help="Show only entries at or after this ISO 8601 date or time.",
-        metavar="WHEN",
+        metavar="when",
     ),
     tail: int = typer.Option(
         50,
@@ -798,10 +811,12 @@ def reflog(
 ):
     """Show the log of every command that changed the squad, latest last.
 
-    Filters combine: `--item TASK-<n> --op status` shows only that item's status
-    changes. A squad with no log yet prints nothing rather than an error.
+    Filters combine: `--item <prefix>-<n> --op status` shows only that item's
+    status changes. A squad with no log yet prints nothing rather than an error.
     """
     from squads import _clock as clock
+    from squads._api._dto._reflog import ReflogRequest
+    from squads._cli._render._reflog import render_reflog, render_reflog_tree
 
     since_ts: str | None = None
     if since:
@@ -814,6 +829,8 @@ def reflog(
                 soft_wrap=True,
             )
             raise typer.Exit(1) from None
+    if op is not None and op not in REFLOG_OPS:
+        raise SquadsError(f"unknown operation {op!r} (one of: {', '.join(REFLOG_OPS)})")
     request = ReflogRequest(
         item=item, actor=actor, op=op, since=since_ts, tail=tail if tail > 0 else None
     )
@@ -832,7 +849,7 @@ def reflog(
 @handle_errors
 def show_any(
     item_id: str = typer.Argument(
-        ..., metavar="ID", help="Item ID, such as `FEAT-<n>`, or its bare number."
+        ..., metavar="id", help="Item ID, such as `<prefix>-<n>`, or its bare number."
     ),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
     raw: bool = common.raw_option(),
@@ -842,6 +859,9 @@ def show_any(
     full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
 ):
     """Show any item by ID or number, whatever its type."""
+    from squads._api._dto._items import ItemShowRequest
+    from squads._cli._render._items import render_show
+
     response = calls.call(ops.ITEM_SHOW, ItemShowRequest(id=item_id))
     if json_out:
         calls.print_json(ops.ITEM_SHOW, response)
@@ -866,6 +886,9 @@ def check(
     A broken workflow or playbook override is reported as an issue, and the other
     checks still run.
     """
+    from squads._api._dto._check import CheckRequest
+    from squads._cli._render._check import render_check
+
     response = calls.call(ops.CHECK, CheckRequest())
     if json_out:
         calls.print_json(ops.CHECK, response)
