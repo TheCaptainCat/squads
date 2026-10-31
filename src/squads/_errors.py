@@ -1,5 +1,6 @@
 """Exception hierarchy. CLI catches SquadsError and prints a clean message."""
 
+import errno
 from pathlib import Path
 
 
@@ -8,6 +9,8 @@ class SquadsError(Exception):
     refused call would have answered with, which the caller prints before the error."""
 
     warnings: tuple[str, ...] = ()
+    #: Facts a refusal adds to its message on the wire; ``None`` when it has none.
+    details: dict[str, str] | None = None
 
 
 class NotInitializedError(SquadsError):
@@ -97,6 +100,27 @@ class IndexFullError(SquadsError):
         self.padding = padding
 
 
+#: The errors a file system answers when it has no file locks at all.
+_NO_FILE_LOCKS = frozenset({errno.ENOSYS, errno.ENOLCK, errno.EOPNOTSUPP, errno.ENOTSUP})
+
+
+class IndexLockUnavailableError(SquadsError):
+    """The index lock could not be taken for a reason other than another holder."""
+
+    def __init__(self, lock_path: Path, cause: OSError) -> None:
+        reason = cause.strerror or str(cause)
+        if cause.errno in _NO_FILE_LOCKS:
+            message = (
+                f"cannot take the index lock {lock_path}: {reason}; this file system does not "
+                "support file locks, so sq cannot guard the index there, "
+                "move the squad to one that does"
+            )
+        else:
+            message = f"cannot take the index lock {lock_path}: {reason}"
+        super().__init__(message)
+        self.lock_path = lock_path
+
+
 class IndexLockTimeoutError(SquadsError):
     """The index lock stayed held by another process for the whole wait."""
 
@@ -106,3 +130,37 @@ class IndexLockTimeoutError(SquadsError):
             "nothing was written, retry the command"
         )
         self.lock_path = lock_path
+
+
+class ChangedSinceReadError(SquadsError):
+    """A write's ``If-Match`` names an ETag the addressed item no longer has."""
+
+    def __init__(self, item_id: str) -> None:
+        super().__init__(
+            f"{item_id} changed since it was read; nothing was written. Read it again and re-run."
+        )
+        self.item_id = item_id
+
+
+class SchemaMismatchError(SquadsError):
+    """The client's schema version is not the daemon's; nothing ran."""
+
+    def __init__(self, client: str, daemon: str) -> None:
+        super().__init__(
+            f"the client speaks schema v{client} and this squad is served at schema v{daemon}"
+        )
+        self.details = {"client": client, "daemon": daemon}
+
+
+class VocabularyMismatchError(SquadsError):
+    """The client's workflow vocabulary is not the daemon's; nothing ran. ``details`` maps each
+    document to the digest the daemon holds."""
+
+    def __init__(self, digests: dict[str, str]) -> None:
+        super().__init__("the client's workflow vocabulary differs from the squad's")
+        self.details = dict(digests)
+
+
+class ClientInterruptedError(SquadsError):
+    """The caller stopped waiting for an answer (Ctrl-C); the operation it sent may still
+    complete."""

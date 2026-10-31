@@ -38,7 +38,7 @@ from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from re import DOTALL, MULTILINE
 from re import compile as re_compile
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 
@@ -49,12 +49,12 @@ from squads._errors import SquadsError
 # `artifact_changed_since`) imports only `squads._util`, so loading it as a leaf never observes a
 # partially-initialised module. `_interactions/_loader.py` takes the same edge for the playbook's
 # stamp obligation.
-from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 from squads._specload import (
     OverrideFiles,
     OverrideMessages,
     OverrideReadError,
     SpecDocument,
+    bundled_bytes,
     bundled_raw,
     bundled_text,
     load_override,
@@ -89,6 +89,9 @@ from squads._workflow._models import (
     WorkflowSpec,
 )
 from squads._workflow._validator_names import parse_validator_entry
+
+if TYPE_CHECKING:
+    from squads._parse_cache import ParseCache
 
 #: Canonical location for the project workflow override (relative to squad_dir).
 WORKFLOW_OVERRIDE_FILENAME = ".overrides/workflow.toml"
@@ -286,6 +289,87 @@ def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> l
     return violations
 
 
+#: The grammar names that became neutral, by the table they were spelled in.
+_RENAMED_KIND_KEYS: tuple[tuple[str, str], ...] = (("maps_parent_story", "maps_to_parent"),)
+_RENAMED_VALIDATORS: tuple[tuple[str, str], ...] = (("subtask_story_mapping", "subentity_mapping"),)
+_RENAMED_TRANSFORM_FUNCTIONS: tuple[tuple[str, str], ...] = (("milestone_rollup", "status_rollup"),)
+_BUNDLED_TRANSFORM_MODULE = "squads._view_transforms"
+
+
+type _Renamed = tuple[str, str, str]
+
+
+def _renamed_kind_keys(raw_override: RawMapping) -> list[_Renamed]:
+    """``(path, old, new)`` for each renamed key a ``[subentity_kinds.<kind>]`` table spells."""
+    return [
+        (f"subentity_kinds.{kind}.{old}", old, new)
+        for kind, table in _tables(raw_override.get("subentity_kinds"))
+        for old, new in _RENAMED_KIND_KEYS
+        if old in table
+    ]
+
+
+def _renamed_validators(raw_override: RawMapping) -> list[_Renamed]:
+    """``(path, entry, new)`` for each ``validators`` entry, of a type or of ``[squad]``, that
+    spells a renamed validator in any ``name``, ``name:param`` or ``name@level`` form."""
+    tables = {f"items.{t}": v for t, v in _tables(raw_override.get("items"))}
+    tables.update(dict(_tables({"squad": raw_override.get("squad")})))
+    found: list[_Renamed] = []
+    for path, table in tables.items():
+        entries = table.get("validators")
+        for entry in cast(list[object], entries) if isinstance(entries, list) else ():
+            bare = entry.split("@", 1)[0].split(":", 1)[0] if isinstance(entry, str) else ""
+            found.extend(
+                (f"{path}.validators", str(entry), new)
+                for old, new in _RENAMED_VALIDATORS
+                if old == bare
+            )
+    return found
+
+
+def _renamed_transform_functions(raw_override: RawMapping) -> list[_Renamed]:
+    """``(path, old, new)`` for each view transform that names a renamed function of the bundled
+    transform module."""
+    found: list[_Renamed] = []
+    for name, table in _tables(raw_override.get("views")):
+        transform = table.get("transform")
+        if not isinstance(transform, dict):
+            continue
+        written = cast(RawMapping, transform)
+        if written.get("module") == _BUNDLED_TRANSFORM_MODULE:
+            found.extend(
+                (f"views.{name}.transform", old, new)
+                for old, new in _RENAMED_TRANSFORM_FUNCTIONS
+                if written.get("function") == old
+            )
+    return found
+
+
+def _renamed_grammar_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
+    """Every old spelling of a renamed grammar name in *raw_override*: a kind key, a validator
+    entry or a bundled transform function. The message names the neutral name, since the old one
+    would otherwise surface as an unknown key or validator."""
+    return [
+        MergeViolation(origin, path, f"{old!r} was renamed {new!r}", f"write {new!r} in its place.")
+        for path, old, new in (
+            *_renamed_kind_keys(raw_override),
+            *_renamed_validators(raw_override),
+            *_renamed_transform_functions(raw_override),
+        )
+    ]
+
+
+def _tables(section: object) -> list[tuple[str, RawMapping]]:
+    """The named sub-tables of a raw *section*; empty when it is not a table."""
+    if not isinstance(section, dict):
+        return []
+    return [
+        (k, cast(RawMapping, v))
+        for k, v in cast(RawMapping, section).items()
+        if isinstance(v, dict)
+    ]
+
+
 def _selected_squad_violations(raw_override: RawMapping, origin: str) -> list[MergeViolation]:
     """``[selected]`` naming ``squad``: that table holds one list, so it has no entries to drop."""
     selected = raw_override.get("selected")
@@ -379,6 +463,7 @@ def _check_override_refusals(raw_override: RawMapping, origin: str) -> None:
         *_retired_view_grammar_violations(raw_override, origin),
         *_override_transform_violations(raw_override, origin),
         *_selected_squad_violations(raw_override, origin),
+        *_renamed_grammar_violations(raw_override, origin),
     ]
     if retired_violations:
         raise SquadsError("; ".join(str(v) for v in retired_violations))
@@ -402,6 +487,11 @@ _DOCUMENT = SpecDocument(
     messages=WORKFLOW_OVERRIDE_MESSAGES,
     check_override=_check_override_refusals,
 )
+
+
+def bundled_workflow_bytes() -> bytes:
+    """The packaged ``workflow.toml``'s bytes, the read the bundled spec is parsed from."""
+    return bundled_bytes(_DOCUMENT)
 
 
 def _bundled_raw() -> RawMapping:
@@ -1302,6 +1392,7 @@ def workflow_stamp_finding(
             )
         return None
     from squads import __version__
+    from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
 
     if stamp != __version__ and artifact_changed_since(WORKFLOW_KEY, stamp):
         return (
@@ -1394,6 +1485,7 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     retired_violations = [
         *_retired_view_grammar_violations(raw_override, str(override_path)),
         *_override_transform_violations(raw_override, str(override_path)),
+        *_renamed_grammar_violations(raw_override, str(override_path)),
     ]
     squad_violations = _selected_squad_violations(raw_override, str(override_path))
     origin = str(override_path)
@@ -1539,26 +1631,41 @@ def _read_raw_override(
         return {}, (str(exc), exc.fix_hint or "")
 
 
+def _read_index_text(squad_dir: Path) -> str | None:
+    """The text of the squad's index, or ``None`` when it is absent or unreadable."""
+    index_path = squad_dir / ".squads.json"
+    if not index_path.is_file():
+        return None
+    try:
+        return index_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def _parse_index(squad_dir: Path, raw: str, cache: ParseCache | None) -> Any:
+    """The index parsed from *raw*, through *cache* when there is one, or ``None`` when it does not
+    parse (lint cannot cross-check a corrupt one)."""
+    from squads._models._index import SquadsDB
+
+    def parse() -> SquadsDB:
+        return SquadsDB.model_validate_json(raw)
+
+    try:
+        if cache is None:
+            return parse()
+        return cache.index(str(squad_dir / ".squads.json"), raw, parse)
+    except Exception:
+        return None
+
+
 def _load_index_sync(squad_dir: Path) -> Any:
     """Read and parse the squad index synchronously, returning a ``SquadsDB``-like object (with
     ``.items``) or ``None`` if absent or unreadable; it spares ``lint_workflow_spec`` the async
     ``store.load()``. It bypasses ``_validate_item_vocab`` on purpose, since lint must see items
     with unknown statuses or types to report them.
     """
-    from squads._models._index import SquadsDB
-
-    index_path = squad_dir / ".squads.json"
-    if not index_path.is_file():
-        return None
-    try:
-        raw = index_path.read_text(encoding="utf-8")
-        try:
-            return SquadsDB.model_validate_json(raw)
-        except Exception:
-            # Corrupt index — return None; lint can't cross-check.
-            return None
-    except OSError:
-        return None
+    raw = _read_index_text(squad_dir)
+    return None if raw is None else _parse_index(squad_dir, raw, None)
 
 
 # ---------------------------------------------------------------------------
@@ -1567,7 +1674,11 @@ def _load_index_sync(squad_dir: Path) -> Any:
 
 
 def validate_against_index_fail_closed(
-    spec: WorkflowSpec, squad_dir: Path, *, bundled: WorkflowSpec
+    spec: WorkflowSpec,
+    squad_dir: Path,
+    *,
+    bundled: WorkflowSpec,
+    cache: ParseCache | None = None,
 ) -> None:
     """Raise ``SquadsError`` if the merged spec drops types or statuses live items reference,
     re-prefixes or re-folders a type against a non-empty corpus, or shrinks a badge collection a
@@ -1576,18 +1687,36 @@ def validate_against_index_fail_closed(
     ``compose_service`` calls it after ``load_workflow_spec`` succeeds, reading the index
     synchronously, and the error lists every offending ID and points to ``sq workflow lint``. It is
     a no-op if the index is absent, empty or unreadable, and lint calls ``lint_workflow_spec``
-    instead, which reports without aborting.
+    instead, which reports without aborting. *cache* is the daemon's parse cache, when the caller
+    has one; without it the request's ambient one is used.
     """
-    db = _load_index_sync(squad_dir)
+    from squads._context import get_context
+    from squads._parse_cache import digest_of
+
+    raw = _read_index_text(squad_dir)
+    if raw is None:
+        return
+    cache = cache if cache is not None else get_context().parse_cache
+    digest = digest_of(raw) if cache is not None else b""
+    if cache is not None:
+        known, refusal = cache.checked(digest, spec, bundled)
+        if known:
+            if refusal is not None:
+                raise SquadsError(refusal)
+            return
+    db = _parse_index(squad_dir, raw, cache)
     if db is None:
         return
 
     errors = validate_against_index(spec, db, bundled=bundled)
-    if not errors:
-        return
-
-    bullet_list = "\n".join(f"  - {e}" for e in errors)
-    raise SquadsError(
-        f"workflow spec is incompatible with the live index — "
-        f"run `sq workflow lint` to see details:\n{bullet_list}"
-    )
+    refusal = None
+    if errors:
+        bullet_list = "\n".join(f"  - {e}" for e in errors)
+        refusal = (
+            f"workflow spec is incompatible with the live index — "
+            f"run `sq workflow lint` to see details:\n{bullet_list}"
+        )
+    if cache is not None:
+        cache.keep_check(digest, spec, bundled, refusal)
+    if refusal is not None:
+        raise SquadsError(refusal)

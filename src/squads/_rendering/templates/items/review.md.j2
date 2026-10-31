@@ -13,9 +13,11 @@ _TODO: what is under review?_
 {% set field_code = primary_field_code(finding_kind, spec) %}
 ## {{ spec.subentity_container_heading(finding_kind) }}
 
+{% if field_code %}
 _{{ field_label(finding_kind, field_code, spec) }}:_ {{ collection_legend(resolve_collection(finding_kind, field_code, spec), spec) }}
 
-_Add with `sq review {{ item.id | idnum }} add-{{ finding_kind }} "…" --{{ field_code }} {{ field_default(finding_kind, field_code, spec) }}`; track with `sq review {{ item.id | idnum }} {{ finding_kind }} <n> update --status <Status>`._
+{% endif %}
+_Add with `sq {{ item.type }} {{ item.id | idnum }} add-{{ finding_kind }} "…"{% if field_code %} --{{ field_code }} {{ field_default(finding_kind, field_code, spec) }}{% endif %}`; track with `sq {{ item.type }} {{ item.id | idnum }} {{ finding_kind }} <n> update --status <Status>`._
 
 {{ tag | open_marker }}
 {{ tag | close_marker }}

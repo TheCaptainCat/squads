@@ -137,7 +137,7 @@ is not the shape you left it in.
 
 ```bash
 sq reflog                             # the most recent entries (50 by default; --tail 0 for all)
-sq reflog --item <ID>                 # every mutation on one item
+sq reflog --item <id>                 # every mutation on one item
 sq reflog --actor <role-slug>         # everything one actor did
 sq reflog --op status --since <when>  # filters are AND-ed
 sq reflog --json                      # the read surface for agents and orchestrators
@@ -212,7 +212,7 @@ hand-merge:
 ```bash
 sq override list                  # every present override, its base version, its drift state
 sq override scaffold --workflow   # copy the vocabulary document into .overrides/ to edit
-sq override scaffold --playbook   # …the team playbook; --role <slug> for one role; NAME for a template
+sq override scaffold --playbook   # …the team playbook; --role <slug> for one role; name for a template
 sq override diff --workflow       # your edits, and what the upgrade changed
 sq override update --workflow     # re-stamp the base version once you have hand-merged
 ```

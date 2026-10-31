@@ -107,6 +107,11 @@ def _trim_release(nums: list[int]) -> tuple[int, ...]:
     return tuple(nums)
 
 
+def is_version(text: str) -> bool:
+    """Whether *text* is, whole, a version :func:`version_tuple` reads (an optional ``v`` first)."""
+    return _VERSION_RE.fullmatch(text.strip()) is not None
+
+
 def version_tuple(version: str) -> VersionKey:
     """A comparable key ordered by PEP 440: ``X.devN < X.aN < X.bN < X.rcN < X < X.postN``, with
     the release numbers compared as their own tuple (any length, trailing zeros ignored). Text that
@@ -132,18 +137,3 @@ def version_tuple(version: str) -> VersionKey:
     post = int(m["post_n"] or 0) if has_post else -1
     dev = int(m["dev_n"] or 0) if has_dev else _NO_DEV
     return (release, pre, post, dev)
-
-
-_SILENT_H = ("hour", "honest", "honor", "heir")
-_CONSONANT_SOUND = ("uni", "use", "usu", "uti", "ubi", "eu", "one")
-
-
-def article(word: str) -> str:
-    """``"an"`` before a vowel sound, ``"a"`` before a consonant sound: ``an epic``, ``a unit``,
-    ``a user_story``, ``an hour``."""
-    w = word.lower()
-    if w.startswith(_SILENT_H):
-        return "an"
-    if w.startswith(_CONSONANT_SOUND):
-        return "a"
-    return "an" if w[:1] in ("a", "e", "i", "o", "u") else "a"

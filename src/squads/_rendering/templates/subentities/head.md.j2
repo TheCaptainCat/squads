@@ -2,7 +2,7 @@
 {% endif %}
 {% if assignee %}**Assignee:** {{ assignee }}
 {% endif %}
-{% if severity %}**{{ severity_label }}:** {{ severity }}
-{% endif %}
-{% if story %}**Implements:** {{ story }}
+{% for field in fields %}**{{ field.label }}:** {{ field.badge }}
+{% endfor %}
+{% if mapping %}**{{ mapping.label }}:** {{ mapping.value }}
 {% endif %}

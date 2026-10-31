@@ -16,7 +16,7 @@ from pydantic_core import to_jsonable_python
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._models._attributes import CORE_KEYS, NON_FRONTMATTER_KEYS, ROW_ADDED_KEYS
-from squads._models._subentity import SubEntity
+from squads._models._subentity import SubEntity, entry_payload
 from squads._util import NonEmpty
 
 REF_SEP = ":"
@@ -25,6 +25,10 @@ REF_SEP = ":"
 #: ``PREFIX-000007-slug.md``). Changing this requires a ``sq migrate repad`` run.
 #: Never used for display — see :data:`DISPLAY_ID_PADDING`.
 DEFAULT_ID_PADDING: int = 6
+
+#: The widest padding ``sq migrate repad`` accepts: far past any counter, and well inside the
+#: 255-byte filename limit once a prefix and a slug are added.
+MAX_ID_PADDING: int = 32
 
 #: Display padding is fixed at 0 (``PREFIX-7``): a constant, never stored or configurable, used by
 #: every human-facing surface (frontmatter ``id:``, refs, prose, CLI output). Filenames stay padded
@@ -149,13 +153,6 @@ class Item(BaseModel):
     #: The registered agent (role slug) who authored the item.
     author: str | None = None
     assignee: str | None = None
-    #: Optional importance, independent of status. Unset means no priority assigned. Stores
-    #: only the badge code (spec-declared ``priority`` collection); label/emoji resolve at
-    #: render time.
-    priority: str | None = None
-    #: Item-level severity (the bundled spec declares it on bug only): the badge code, top-level
-    #: like ``priority``.
-    severity: str | None = None
     labels: list[str] = []
     #: Forward edges only. Backrefs are computed by inverting these across all items.
     refs: list[str] = []
@@ -234,13 +231,9 @@ class Item(BaseModel):
         return format_item_id(effective_prefix(self.prefix), self.sequence_id, DISPLAY_ID_PADDING)
 
     def badge_value(self, code: str) -> str | None:
-        """Generic badge-code getter for any spec-declared field on this item.
-
-        ``priority``/``severity`` are real attributes; any other declared field code
-        (e.g. a custom ``impact``) has no dedicated field and is stored as an attribute.
-        No spec needed to read — the code is the stored, authoritative value.
-        """
-        return getattr(self, code, None) if hasattr(self, code) else self.attributes.get(code)
+        """The badge code stored under field *code*, ``None`` when the item stores none. No spec
+        needed to read — the code is the stored, authoritative value."""
+        return self.attributes.get(code) or None
 
     def attribute(self, key: str, default: Any = None) -> Any:
         """The stored value of attribute *key*, or *default* when the item does not carry it.
@@ -250,9 +243,7 @@ class Item(BaseModel):
 
     def set_badge_value(self, code: str, value: str | None) -> None:
         """Generic badge-code setter — the write-side mirror of :meth:`badge_value`."""
-        if hasattr(self, code):
-            setattr(self, code, value)
-        elif value is None:
+        if value is None:
             self.attributes.pop(code, None)
         else:
             self.attributes[code] = value
@@ -393,13 +384,11 @@ def _frontmatter_payload(
         "parent": data.get("parent"),
         "author": data.get("author"),
         "assignee": data.get("assignee"),
-        "priority": data.get("priority") or None,
-        "severity": data.get("severity") or None,
         "labels": _empty_list_if_unset(data.get("labels")),
         "refs": _read_refs(data, default_kind=default_kind),
-        # Otherwise handed over raw: SubEntity's own validators fold the loose spellings, and
-        # pydantic reports anything that is not a list of mappings.
-        "subentities": _empty_list_if_unset(data.get("subentities")),
+        # Each entry is split into core keys and attributes; pydantic reports anything that is not
+        # a list of mappings.
+        "subentities": _entry_payloads(_empty_list_if_unset(data.get("subentities"))),
         "path": path,
         "created_at": _parse_dt(data.get("created_at")),
         "updated_at": _parse_dt(data.get("updated_at")),
@@ -411,6 +400,13 @@ def _frontmatter_payload(
             key: _json_form(value) for key, value in data.items() if key not in CORE_KEYS
         },
     }
+
+
+def _entry_payloads(value: Any) -> Any:
+    """*value*, a list, with each entry split by :func:`entry_payload`; anything else unchanged."""
+    if not isinstance(value, list):
+        return value
+    return [entry_payload(e) for e in cast("list[Any]", value)]
 
 
 def _json_form(value: Any) -> Any:
@@ -452,15 +448,6 @@ def _read_refs(data: dict[str, Any], *, default_kind: str | None) -> Any:
     return normalise_ref_kinds(cast("list[str]", refs), default_kind=default_kind)
 
 
-def _add_badge_fields(data: dict[str, Any], item: Item) -> None:
-    """The two top-level badge-code fields (priority/severity) — split out of
-    :func:`_add_optional_frontmatter_fields` to keep it below the C901 ceiling."""
-    if item.priority:
-        data["priority"] = item.priority
-    if item.severity:
-        data["severity"] = item.severity
-
-
 def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
     """Populate *data* with the optional / conditional frontmatter fields of *item*.
 
@@ -472,7 +459,6 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["author"] = item.author
     if item.assignee:
         data["assignee"] = item.assignee
-    _add_badge_fields(data, item)
     if item.refs:
         data["refs"] = list(item.refs)
     if item.labels:
