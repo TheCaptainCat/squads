@@ -30,6 +30,7 @@ from squads._migrations import (
     _v0_14_to_v0_15,
     _v0_15_to_v0_16,
     _v0_16_to_v0_17,
+    _v0_17_to_v0_19,
 )
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
@@ -200,6 +201,14 @@ MIGRATIONS: list[Migration] = [
         summary=_v0_16_to_v0_17.SUMMARY,
         run=_v0_16_to_v0_17.migrate,
         manual=_v0_16_to_v0_17.MANUAL,
+    ),
+    Migration(
+        version="0.19.0",
+        from_schema="0.17",
+        to_schema="0.19",
+        summary=_v0_17_to_v0_19.SUMMARY,
+        run=_v0_17_to_v0_19.migrate,
+        manual=_v0_17_to_v0_19.MANUAL,
     ),
 ]
 
