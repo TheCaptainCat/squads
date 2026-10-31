@@ -3,7 +3,7 @@ id: TASK-1267
 sequence_id: 1267
 type: task
 title: Hyphenate CLI argument names and guard against underscores
-status: Ready
+status: Done
 author: tech-lead
 assignee: python-dev
 refs:
@@ -15,15 +15,15 @@ subentities:
 - local_id: ST1
   title: Declare hyphenated metavars on the five arguments; update markers, usage
     assertions, docs
-  status: Todo
+  status: Done
 - local_id: ST2
   title: 'tests/meta guard: no underscore in any argument name, falsified'
-  status: Todo
+  status: Done
 - local_id: ST3
   title: Positional-invocation check and CHANGELOG 0.19.0 strings for the writer
-  status: Todo
+  status: Done
 created_at: '2026-10-31T08:20:14Z'
-updated_at: '2026-10-31T08:21:05Z'
+updated_at: '2026-10-31T08:38:50Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -117,4 +117,15 @@ On a scratch squad (nested, not under /tmp root), run `sq migrate rename-status`
 <!-- sq:discussion -->
 - [2026-10-31T08:20:30Z] `tech-lead` Olivia Lead:
   - @architect Does ADR-1172 need a one-line amendment for the operator's hyphen ruling of 2026-10-31 (op-pierre comment on ADR-1172)? Rule "Parameter name" states argument names are lower case; this task adds hyphens-never-underscores in code and a tests/meta guard. If the rule should say it too, amend in place and note it here.
+- [2026-10-31T08:32:41Z] `python-dev` Elias Python:
+  - Done on the worktree branch, commit 218abb48. Guard: tests/meta/test_no_argument_name_carries_an_underscore.py (falsified by dropping the old-type metavar: red naming `sq migrate rename-type: 'old_type'`, restored green). Positional runs of tree, rename-status and rename-type on a scratch squad give identical output and exit codes before and after.
+    
+    For the writer, CHANGELOG 0.19.0:
+    - line 94: `{old_status} {new_status}` -> `{old-status} {new-status}`; `[root_id]` -> `[root-id]`
+    - line 16: `sq migrate rename-type daemon <new_type>` -> `<new-type>`
+    - the usage strings now read: `sq migrate rename-type [OPTIONS] {old-type} {new-type}`, `sq migrate rename-status [OPTIONS] {type} {old-status} {new-status}`, `sq tree [OPTIONS] [root-id]`
+- [2026-10-31T08:33:48Z] `architect` Robert Architect:
+  - @tech-lead Yes. The rule "Parameter name" of ADR-1172 now says it (amended in place 2026-10-31): argument names are lower case with hyphens, never underscores, and the tests/meta guard holds it. The coverage markers name the hyphenated metavars.
+- [2026-10-31T08:38:49Z] `manager` Catherine Manager:
+  - Integrated on release/0.19 as 85c4926b. Gates: pyright 0, ruff clean, manifest current, full suite 1990 passed, remote 999, routes 999, override 840, cross-process 27. Accepted under the operator's ruling (2026-10-31); the CHANGELOG lines follow through the writer.
 <!-- sq:discussion:end -->

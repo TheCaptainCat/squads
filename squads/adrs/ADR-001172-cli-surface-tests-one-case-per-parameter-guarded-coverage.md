@@ -15,7 +15,7 @@ description: 'CLI tests in-process on the bundled squad and a full-override squa
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-31T08:17:57Z'
+updated_at: '2026-10-31T08:33:48Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -79,7 +79,7 @@ def test_update_refuses_parent_with_no_parent(...): ...
 ```
 
 - **Command key.** The command's path under `sq`, as `_help_tree` yields it. A work-item type name is written `<type>`, a sub-entity kind `<kind>` (`add-<kind>`, `<kinds>` for the plural listing), and the segments up to a mounted comment group `<host>` (`<host> comment edit`). The hidden `_addr` dispatcher segment that `_help_tree` yields is dropped (`task comment _addr edit` is `<host> comment edit`, `role _addr update` is `role update`), and the dispatcher's argument (`hash`, `<slug|id|n>`) belongs to the parent key. The root callback is the empty key `""`. A group callback's own parameters belong to the group's key: `<type>` for `n`, `<host> comment` for `-m`, `--file` and `--as`.
-- **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named by Click's `human_readable_name`: its declared metavar where one is set (`n`, `hash`, `local-id`, `<slug|id|n>`), else its parameter name (`title`, `status`). Every argument name is lower case: a declared metavar is written in lower case, like a parameter name. The usage line may decorate that name (`{n}`, `{title}`); the marker carries the bare name. A parameter derived from a spec declaration is named by its derivation, so one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute of that kind. The `invoke` fixture records a derived flag under its derivation name.
+- **Parameter name.** An option is named by its first long flag (`--title`); its short alias is not a separate parameter. An argument is named by Click's `human_readable_name`: its declared metavar where one is set (`n`, `hash`, `local-id`, `<slug|id|n>`), else its parameter name (`title`, `status`). Every argument name is lower case and joins words with hyphens, never underscores (op-pierre, 2026-10-31): an argument whose parameter name has an underscore declares a hyphenated metavar (`old-status`, `root-id`), and a `tests/meta` guard over the command tree fails on an underscore in any argument's name. The usage line may decorate that name (`{n}`, `{title}`); the marker carries the bare name. A parameter derived from a spec declaration is named by its derivation, so one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute of that kind. The `invoke` fixture records a derived flag under its derivation name.
 - **Every leaf command is declared**, not only every (command, parameter) pair. A leaf with no parameters (`ui`) is declared with its command key alone: `@pytest.mark.covers("ui")`.
 - **The key alone declares the bare call:** the command run with none of its own parameters. It is valid on any leaf and required only on a leaf with no parameters, so a leaf that gains a parameter keeps it: the case that runs plain `sq sync` stays `covers("sync")`, and the case that runs `sq sync --json` is `covers("sync", "--json")`. It goes stale only when the key goes.
 - **Every CLI test declares.** Each test function in `tests/cli/` carries at least one `covers` marker. A test that runs no command of its own has no place in `tests/cli/`: a test of the suite's own fixtures belongs in `tests/meta/`.
@@ -279,4 +279,6 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - Unchanged: rules 1 to 6, scope and regression tests.
 - [2026-10-31T08:17:57Z] `op-pierre` Pierre Chat:
   - Argument names use hyphens, never underscores (2026-10-31): normalize every CLI argument name that has an underscore (old_status, new_status, root_id and the like) to hyphens.
+- [2026-10-31T08:33:48Z] `architect` Robert Architect:
+  - Amended in place 2026-10-31 per op-pierre 2539a8b (board rule 6, status unchanged). Rule "Parameter name": argument names are lower case and join words with hyphens, never underscores; an argument whose parameter name has an underscore declares a hyphenated metavar, and a tests/meta guard over the command tree holds it (TASK-1267).
 <!-- sq:discussion:end -->
