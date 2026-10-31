@@ -33742,7 +33742,7 @@
       ],
       "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
       "created_at": "2026-10-28T14:08:45Z",
-      "updated_at": "2026-10-31T08:21:06Z",
+      "updated_at": "2026-10-31T08:21:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -35296,6 +35296,384 @@
       },
       "slug_in_file": false,
       "id": "TASK-1258"
+    },
+    "1262": {
+      "sequence_id": 1262,
+      "type": "task",
+      "title": "Daemon command endpoint: CLI commands served in process",
+      "slug": "daemon-command-endpoint-cli-commands-served-in-process",
+      "status": "Done",
+      "description": "POST /v1/commands on the CLI listener: served execution on the daemon's LocalApi, stdio and env proxies, attachments, two-phase prompts, endpoint and route parity modes",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1261:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Endpoint route, request and answer, admission",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Served execution on the daemon's own LocalApi",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Per-request consoles, stdio and environment proxies",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US10",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Attachments and stdin served from the request",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Two-phase prompts, nothing written before the answer",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Endpoint and route parity modes for tests/cli",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001262-daemon-command-endpoint-cli-commands-served-in-process.md",
+      "created_at": "2026-10-30T20:30:24Z",
+      "updated_at": "2026-10-30T23:45:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1262"
+    },
+    "1263": {
+      "sequence_id": 1263,
+      "type": "task",
+      "title": "Daemon cache of parsed files: index, frontmatter, override check",
+      "slug": "daemon-cache-of-parsed-files-index-frontmatter-override-chec",
+      "status": "Done",
+      "description": "Content-keyed cache of the index, item frontmatter and the override's index check, threaded through the request context, reads only",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1261:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Cache on the daemon state, threaded through the request",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Index and frontmatter keyed by content digest",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Override-check memo and the start-up spec",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001263-daemon-cache-of-parsed-files-index-frontmatter-override-chec.md",
+      "created_at": "2026-10-30T20:30:25Z",
+      "updated_at": "2026-10-30T23:45:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1263"
+    },
+    "1264": {
+      "sequence_id": 1264,
+      "type": "task",
+      "title": "CLI shim: stdlib client for the command endpoint",
+      "slug": "cli-shim-stdlib-client-for-the-command-endpoint",
+      "status": "Done",
+      "description": "squads.__main__ becomes a stdlib shim: lean endpoint path, local-only and file-argument tables, prompts, fall back before sending, Windows transport, CLI off HttpApi, the 100 ms budget",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1261:implements",
+        "TASK-1262:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Lean endpoint path for the shim",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US12",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Shim entry, -C, the local-only table and the local run",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Request building, attachments and answer writing",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Prompts, fall back before sending, no replay, Ctrl-C",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Daemon start from the shim and the Windows transport",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US6",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "The CLI off HttpApi, the TUI's selection kept",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Client budget: the shim's overhead, benchmark and runbook",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US12",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
+      "created_at": "2026-10-30T20:30:30Z",
+      "updated_at": "2026-10-30T23:45:28Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1264"
+    },
+    "1265": {
+      "sequence_id": 1265,
+      "type": "task",
+      "title": "CI: endpoint and route parity jobs, shim budget report",
+      "slug": "ci-endpoint-and-route-parity-jobs-shim-budget-report",
+      "status": "Done",
+      "description": "Remote-mode jobs through the command endpoint, one Linux route-parity job, the client-budget report on the shim's overhead",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1261:implements",
+        "ADR-1172:implements",
+        "TASK-1262:depends-on",
+        "TASK-1264:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Endpoint parity jobs and the Linux route-parity job",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Client-budget report on the shim's overhead",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US12",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001265-ci-endpoint-and-route-parity-jobs-shim-budget-report.md",
+      "created_at": "2026-10-30T20:30:37Z",
+      "updated_at": "2026-10-30T23:45:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1265"
+    },
+    "1266": {
+      "sequence_id": 1266,
+      "type": "task",
+      "title": "Docs and changelog for the shim-based remote mode",
+      "slug": "docs-and-changelog-for-the-shim-based-remote-mode",
+      "status": "Done",
+      "description": "docs/daemon.md, docs/api.md, stability, faq, contributing and CHANGELOG brought in line with the CLI served by the daemon",
+      "parent": "FEAT-1140",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1261:implements",
+        "TASK-1221",
+        "TASK-1262:depends-on",
+        "TASK-1263:depends-on",
+        "TASK-1264:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Daemon page, FAQ, stability and contributing",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US9",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "API page and CHANGELOG",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US9",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001266-docs-and-changelog-for-the-shim-based-remote-mode.md",
+      "created_at": "2026-10-30T20:30:38Z",
+      "updated_at": "2026-10-30T23:45:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1266"
+    },
+    "1267": {
+      "sequence_id": 1267,
+      "type": "task",
+      "title": "Hyphenate CLI argument names and guard against underscores",
+      "slug": "hyphenate-cli-argument-names-and-guard-against-underscores",
+      "status": "Ready",
+      "description": "Rename the five underscore argument names to hyphens; tests/meta guard over the command tree.",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1172",
+        "REV-1260:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Declare hyphenated metavars on the five arguments; update markers, usage assertions, docs",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "tests/meta guard: no underscore in any argument name, falsified",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Positional-invocation check and CHANGELOG 0.19.0 strings for the writer",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001267-hyphenate-cli-argument-names-and-guard-against-underscores.md",
+      "created_at": "2026-10-31T08:20:14Z",
+      "updated_at": "2026-10-31T08:21:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1267"
     },
     "11": {
       "sequence_id": 11,
@@ -42284,6 +42662,35 @@
       "slug_in_file": false,
       "id": "ADR-1250"
     },
+    "1261": {
+      "sequence_id": 1261,
+      "type": "decision",
+      "title": "The CLI's remote mode: a shim and a private command endpoint",
+      "slug": "the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint",
+      "status": "Accepted",
+      "description": "The CLI becomes a stdlib shim that sends argv to a private daemon endpoint, which runs the CLI in process on LocalApi and renders; local fallback before sending; content-keyed parse cache",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1140",
+        "ADR-1052",
+        "ADR-1224",
+        "ADR-1225",
+        "ADR-1172",
+        "TASK-1219"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001261-the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint.md",
+      "created_at": "2026-10-30T19:12:57Z",
+      "updated_at": "2026-10-30T23:09:45Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1261"
+    },
     "858": {
       "sequence_id": 858,
       "type": "contract",
@@ -42500,7 +42907,7 @@
       "subentities": [],
       "path": "milestones/MILE-000868-squads-0-21-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-29T19:20:22Z",
+      "updated_at": "2026-10-31T08:27:10Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65856,413 +66263,6 @@
       "attributes": {},
       "slug_in_file": true,
       "id": "OP-10"
-    },
-    "1261": {
-      "sequence_id": 1261,
-      "type": "decision",
-      "title": "The CLI's remote mode: a shim and a private command endpoint",
-      "slug": "the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint",
-      "status": "Accepted",
-      "description": "The CLI becomes a stdlib shim that sends argv to a private daemon endpoint, which runs the CLI in process on LocalApi and renders; local fallback before sending; content-keyed parse cache",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1140",
-        "ADR-1052",
-        "ADR-1224",
-        "ADR-1225",
-        "ADR-1172",
-        "TASK-1219"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-001261-the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint.md",
-      "created_at": "2026-10-30T19:12:57Z",
-      "updated_at": "2026-10-30T23:09:45Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "ADR-1261"
-    },
-    "1262": {
-      "sequence_id": 1262,
-      "type": "task",
-      "title": "Daemon command endpoint: CLI commands served in process",
-      "slug": "daemon-command-endpoint-cli-commands-served-in-process",
-      "status": "Done",
-      "description": "POST /v1/commands on the CLI listener: served execution on the daemon's LocalApi, stdio and env proxies, attachments, two-phase prompts, endpoint and route parity modes",
-      "parent": "FEAT-1140",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1261:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Endpoint route, request and answer, admission",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Served execution on the daemon's own LocalApi",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Per-request consoles, stdio and environment proxies",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US10",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Attachments and stdin served from the request",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Two-phase prompts, nothing written before the answer",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "Endpoint and route parity modes for tests/cli",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001262-daemon-command-endpoint-cli-commands-served-in-process.md",
-      "created_at": "2026-10-30T20:30:24Z",
-      "updated_at": "2026-10-30T23:45:24Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1262"
-    },
-    "1263": {
-      "sequence_id": 1263,
-      "type": "task",
-      "title": "Daemon cache of parsed files: index, frontmatter, override check",
-      "slug": "daemon-cache-of-parsed-files-index-frontmatter-override-chec",
-      "status": "Done",
-      "description": "Content-keyed cache of the index, item frontmatter and the override's index check, threaded through the request context, reads only",
-      "parent": "FEAT-1140",
-      "author": "tech-lead",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ADR-1261:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Cache on the daemon state, threaded through the request",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Index and frontmatter keyed by content digest",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Override-check memo and the start-up spec",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001263-daemon-cache-of-parsed-files-index-frontmatter-override-chec.md",
-      "created_at": "2026-10-30T20:30:25Z",
-      "updated_at": "2026-10-30T23:45:26Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1263"
-    },
-    "1264": {
-      "sequence_id": 1264,
-      "type": "task",
-      "title": "CLI shim: stdlib client for the command endpoint",
-      "slug": "cli-shim-stdlib-client-for-the-command-endpoint",
-      "status": "Done",
-      "description": "squads.__main__ becomes a stdlib shim: lean endpoint path, local-only and file-argument tables, prompts, fall back before sending, Windows transport, CLI off HttpApi, the 100 ms budget",
-      "parent": "FEAT-1140",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1261:implements",
-        "TASK-1262:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Lean endpoint path for the shim",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US12",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Shim entry, -C, the local-only table and the local run",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Request building, attachments and answer writing",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Prompts, fall back before sending, no replay, Ctrl-C",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Daemon start from the shim and the Windows transport",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US6",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "The CLI off HttpApi, the TUI's selection kept",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST7",
-          "title": "Client budget: the shim's overhead, benchmark and runbook",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US12",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001264-cli-shim-stdlib-client-for-the-command-endpoint.md",
-      "created_at": "2026-10-30T20:30:30Z",
-      "updated_at": "2026-10-30T23:45:28Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1264"
-    },
-    "1265": {
-      "sequence_id": 1265,
-      "type": "task",
-      "title": "CI: endpoint and route parity jobs, shim budget report",
-      "slug": "ci-endpoint-and-route-parity-jobs-shim-budget-report",
-      "status": "Done",
-      "description": "Remote-mode jobs through the command endpoint, one Linux route-parity job, the client-budget report on the shim's overhead",
-      "parent": "FEAT-1140",
-      "author": "tech-lead",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ADR-1261:implements",
-        "ADR-1172:implements",
-        "TASK-1262:depends-on",
-        "TASK-1264:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Endpoint parity jobs and the Linux route-parity job",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Client-budget report on the shim's overhead",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US12",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001265-ci-endpoint-and-route-parity-jobs-shim-budget-report.md",
-      "created_at": "2026-10-30T20:30:37Z",
-      "updated_at": "2026-10-30T23:45:30Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1265"
-    },
-    "1266": {
-      "sequence_id": 1266,
-      "type": "task",
-      "title": "Docs and changelog for the shim-based remote mode",
-      "slug": "docs-and-changelog-for-the-shim-based-remote-mode",
-      "status": "Done",
-      "description": "docs/daemon.md, docs/api.md, stability, faq, contributing and CHANGELOG brought in line with the CLI served by the daemon",
-      "parent": "FEAT-1140",
-      "author": "tech-lead",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ADR-1261:implements",
-        "TASK-1221",
-        "TASK-1262:depends-on",
-        "TASK-1263:depends-on",
-        "TASK-1264:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Daemon page, FAQ, stability and contributing",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US9",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "API page and CHANGELOG",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US9",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001266-docs-and-changelog-for-the-shim-based-remote-mode.md",
-      "created_at": "2026-10-30T20:30:38Z",
-      "updated_at": "2026-10-30T23:45:32Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1266"
-    },
-    "1267": {
-      "sequence_id": 1267,
-      "type": "task",
-      "title": "Hyphenate CLI argument names and guard against underscores",
-      "slug": "hyphenate-cli-argument-names-and-guard-against-underscores",
-      "status": "Ready",
-      "description": "Rename the five underscore argument names to hyphens; tests/meta guard over the command tree.",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1172",
-        "REV-1260:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Declare hyphenated metavars on the five arguments; update markers, usage assertions, docs",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "tests/meta guard: no underscore in any argument name, falsified",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Positional-invocation check and CHANGELOG 0.19.0 strings for the writer",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001267-hyphenate-cli-argument-names-and-guard-against-underscores.md",
-      "created_at": "2026-10-31T08:20:14Z",
-      "updated_at": "2026-10-31T08:21:05Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1267"
     }
   }
 }
