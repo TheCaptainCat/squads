@@ -2,10 +2,12 @@
 interactions between the priority options, between the badge options and between sort and JSON."""
 
 import json
+import re
 
 import pytest
 
-from tests.cli._readable import init_readable, lines
+from tests._readable import init_readable, lines
+from tests.cli._output import unknown_option
 
 pytestmark = pytest.mark.anyio
 
@@ -167,7 +169,7 @@ async def test_category_refuses_an_unknown_category(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("list", "--priority")
+@pytest.mark.covers("list", "--<field>")
 async def test_priority_keeps_the_items_of_exactly_that_priority(readable, invoke) -> None:
     assert await _list(invoke, "--priority", "low") == (
         0,
@@ -178,7 +180,7 @@ async def test_priority_keeps_the_items_of_exactly_that_priority(readable, invok
     )
 
 
-@pytest.mark.covers("list", "--priority")
+@pytest.mark.covers("list", "--<field>")
 async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _list(invoke, "--priority", "ghost") == (
         1,
@@ -186,7 +188,7 @@ async def test_priority_refuses_an_unknown_code(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("list", "--min-priority")
+@pytest.mark.covers("list", "--min-<field>")
 async def test_min_priority_keeps_the_items_at_least_that_urgent(readable, invoke) -> None:
     assert await _list(invoke, "--min-priority", "high") == (
         0,
@@ -198,7 +200,7 @@ async def test_min_priority_keeps_the_items_at_least_that_urgent(readable, invok
     )
 
 
-@pytest.mark.covers("list", "--min-priority")
+@pytest.mark.covers("list", "--min-<field>")
 async def test_min_priority_refuses_an_unknown_code(readable, invoke) -> None:
     assert await _list(invoke, "--min-priority", "ghost") == (
         1,
@@ -221,7 +223,7 @@ async def test_badge_keeps_the_items_whose_field_has_the_value(readable, invoke)
 async def test_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _list(invoke, "--badge", "priority") == (
         1,
-        ["error: expected CODE=VALUE, got 'priority'"],
+        ["error: expected code=value, got 'priority'"],
     )
 
 
@@ -241,7 +243,7 @@ async def test_min_badge_keeps_the_items_at_least_that_rank(readable, invoke) ->
 async def test_min_badge_refuses_a_pair_without_a_value(readable, invoke) -> None:
     assert await _list(invoke, "--min-badge", "priority") == (
         1,
-        ["error: expected CODE=VALUE, got 'priority'"],
+        ["error: expected code=value, got 'priority'"],
     )
 
 
@@ -286,8 +288,6 @@ async def test_json_prints_one_object_per_item(readable, invoke) -> None:
                     "parent": None,
                     "author": "manager",
                     "assignee": None,
-                    "priority": None,
-                    "severity": None,
                     "labels": [],
                     "refs": [],
                     "subentities": [],
@@ -324,8 +324,6 @@ def _crash_row(assignee_name: str) -> dict[str, object]:
         "parent": None,
         "author": "manager",
         "assignee": "manager",
-        "priority": "medium",
-        "severity": "medium",
         "labels": [],
         "refs": [],
         "subentities": [],
@@ -335,6 +333,8 @@ def _crash_row(assignee_name: str) -> dict[str, object]:
         "created_session": None,
         "modified_session": None,
         "id": "BUG-6",
+        "priority": "medium",
+        "severity": "medium",
         "badges": {"priority": "medium", "severity": "medium"},
         "display": {
             "type": "Bug",
@@ -384,7 +384,81 @@ async def test_compact_refuses_json(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("list", "--priority", "--min-priority")
+@pytest.mark.covers("list", "--<field>")
+@pytest.mark.covers("list", "--min-<field>")
+async def test_a_field_only_some_types_declare_filters_exactly_and_by_threshold(
+    readable, invoke
+) -> None:
+    assert await _ids(invoke, "--all", "--severity", "medium") == ["BUG-6"]
+    assert await _ids(invoke, "--all", "--min-severity", "medium") == ["BUG-6"]
+    assert await _ids(invoke, "--all", "--min-severity", "high") == []
+    assert await _list(invoke, "--severity", "ghost") == (
+        1,
+        ["error: unknown severity 'ghost' (one of: critical, high, medium, low, info)"],
+    )
+
+
+@pytest.mark.covers("list", "--<field>", "--min-<field>")
+async def test_a_derived_filter_means_exactly_its_generic_form(override_project, invoke) -> None:
+    created = await invoke(
+        ["create", "initiative", "Later one", "--author", "manager", "--urgency", "later"]
+    )
+    assert created.exit_code == 0, created.output
+    for derived, generic in (
+        (["--urgency", "now"], ["--badge", "urgency=now"]),
+        (["--min-urgency", "soon"], ["--min-badge", "urgency=soon"]),
+    ):
+        derived_ids = await _ids(invoke, *derived)
+        assert derived_ids == await _ids(invoke, *generic)
+        assert derived_ids == ["INI-8"]
+    assert await _ids(invoke, "--urgency", "later") == ["INI-11"]
+    refused = await invoke(["list", "--json", "--priority", "high"])
+    assert (refused.exit_code, refused.output) == (
+        2,
+        unknown_option("list [OPTIONS]", "list", "--priority", " (Possible options: --sort)"),
+    )
+
+
+@pytest.mark.covers("list", "--json")
+async def test_a_generic_form_refuses_a_code_no_type_declares_naming_the_declared_ones(
+    override_project, invoke
+) -> None:
+    declared = "(one of: urgency, work_size)"
+    for option, value, what in (
+        ("--badge", "priority=high", "badge field"),
+        ("--min-badge", "priority=high", "badge field"),
+        ("--sort", "priority", "sort field"),
+    ):
+        result = await invoke(["list", "--json", option, value])
+        assert (result.exit_code, result.output) == (
+            1,
+            f"error: unknown {what} 'priority' {declared}\n",
+        )
+
+
+@pytest.mark.covers("list")
+async def test_the_badge_column_is_the_first_ordered_field_headed_by_its_label(
+    override_project, invoke
+) -> None:
+    result = await invoke(["list"])
+    assert result.exit_code == 0, result.output
+    header = lines(result.output)[0].split()
+    assert header[:4] == ["ID", "Type", "Status", "Urgency"]
+    assert "Priority" not in header
+
+
+@pytest.mark.covers("list")
+async def test_a_squad_declaring_no_field_lists_no_badge_column(override_project, invoke) -> None:
+    override = override_project.squad_dir / ".overrides" / "workflow.toml"
+    text = override.read_text(encoding="utf-8")
+    text = re.sub(r"^fields = \[.*?\]\n", "fields = []\n", text, flags=re.M | re.S)
+    override.write_text(text, encoding="utf-8")
+    result = await invoke(["list"])
+    assert result.exit_code == 0, result.output
+    assert lines(result.output)[0].split()[:4] == ["ID", "Type", "Status", "Title"]
+
+
+@pytest.mark.covers("list", "--<field>", "--min-<field>")
 async def test_priority_and_min_priority_both_apply_to_one_listing(readable, invoke) -> None:
     both = await _list(invoke, "--priority", "urgent", "--min-priority", "high")
     assert both == (
@@ -423,3 +497,47 @@ async def test_sort_decides_the_order_of_the_json_array(readable, invoke) -> Non
         "REV-7",
     ]
     assert await _ids(invoke) == ["ROLE-1", "FEAT-2", "TASK-3", "TASK-4", "ADR-5", "REV-7"]
+
+
+@pytest.mark.covers("list", "--sort")
+async def test_sort_refuses_a_field_that_is_not_an_ordered_badge_field(readable, invoke) -> None:
+    assert await _list(invoke, "--sort", "ghost") == (
+        1,
+        ["error: unknown sort field 'ghost' (one of: priority, severity)"],
+    )
+
+
+@pytest.mark.covers("list", "--badge")
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("priority=ghost", "unknown priority 'ghost' (one of: urgent, high, medium, low)"),
+        ("ghost=x", "unknown badge field 'ghost' (one of: priority, severity)"),
+    ],
+)
+async def test_badge_refuses_an_unknown_field_or_value(readable, invoke, value, message) -> None:
+    assert await _list(invoke, "--badge", value) == (1, [f"error: {message}"])
+
+
+@pytest.mark.covers("list", "--min-badge")
+async def test_min_badge_refuses_an_unknown_value(readable, invoke) -> None:
+    assert await _list(invoke, "--min-badge", "priority=ghost") == (
+        1,
+        ["error: unknown priority 'ghost' (one of: urgent, high, medium, low)"],
+    )
+
+
+@pytest.mark.covers("list", "--json")
+@pytest.mark.covers("list", "--all")
+async def test_the_item_row_carries_a_stored_field_by_its_code_and_no_other(
+    override_project, invoke
+) -> None:
+    rows = {
+        row["id"]: row for row in json.loads((await invoke(["list", "--json", "--all"])).output)
+    }
+    assert rows["INI-8"]["urgency"] == "now"
+    assert rows["INI-8"]["badges"] == {"urgency": "now"}
+    assert rows["JOB-9"]["work_size"] == "m"
+    assert "urgency" not in rows["JOB-9"]
+    assert not {"priority", "severity"} & set(rows["INI-8"])
+    assert not {"priority", "severity"} & set(rows["REC-10"])

@@ -6,8 +6,11 @@ from typing import Any
 
 import pytest
 
+from tests._profile import selected
 from tests.cli._output import entry_text, json_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+
+P = selected()
 
 pytestmark = pytest.mark.anyio
 
@@ -241,7 +244,8 @@ async def test_list_json_describes_each_activated_role(project, invoke) -> None:
 # ------------------------------------------------------------------------------- activate
 
 
-@pytest.mark.covers("role activate", "SLUG")
+@pytest.mark.covers("role activate", "slug")
+@pytest.mark.bundled_only("activates a catalog role whose text names the bundled workflow")
 async def test_activate_adds_a_catalog_role_and_writes_its_pointer(project, invoke) -> None:
     result = await invoke(["role", "activate", "architect"])
     assert (result.exit_code, result.output) == (
@@ -268,7 +272,7 @@ async def test_activate_adds_a_catalog_role_and_writes_its_pointer(project, invo
     ]
 
 
-@pytest.mark.covers("role activate", "SLUG")
+@pytest.mark.covers("role activate", "slug")
 async def test_activate_refuses_a_slug_the_catalog_does_not_declare(project, invoke) -> None:
     result = await invoke(["role", "activate", "nosuch"])
     assert (result.exit_code, result.output) == (
@@ -391,7 +395,7 @@ async def test_activate_as_refuses_a_slug_that_is_not_registered(project, invoke
 # ---------------------------------------------------------------------------------- add
 
 
-@pytest.mark.covers("role add", "SLUG")
+@pytest.mark.covers("role add", "slug")
 @pytest.mark.covers("role add", "--name")
 @pytest.mark.covers("role add", "--job-title")
 @pytest.mark.covers("role add", "--desc")
@@ -462,7 +466,7 @@ async def test_add_names_the_one_field_it_is_missing(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("role add", "SLUG")
+@pytest.mark.covers("role add", "slug")
 async def test_add_refuses_a_slug_a_role_already_has(project, invoke) -> None:
     await _add_scout(invoke)
     result = await invoke(["role", "add", "scout", *SCOUT])
@@ -472,23 +476,23 @@ async def test_add_refuses_a_slug_a_role_already_has(project, invoke) -> None:
     )
 
 
-@pytest.mark.covers("role add", "SLUG")
+@pytest.mark.covers("role add", "slug")
 async def test_add_needs_a_slug(project, invoke) -> None:
     result = await invoke(["role", "add"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq role add [OPTIONS] SLUG",
+            "Usage: sq role add [OPTIONS] {slug}",
             "sq role add --help",
-            "Missing argument 'SLUG'.",
+            "Missing argument 'slug'.",
         ),
     )
 
 
 @pytest.mark.covers("role add", "--capabilities")
 async def test_add_capabilities_are_split_on_commas_and_trimmed(project, invoke) -> None:
-    await _add_scout(invoke, "--capabilities", "review, , dev")
-    assert (await _role(invoke, "scout"))["capabilities"] == ["review", "dev"]
+    await _add_scout(invoke, "--capabilities", f"{P.third}, , dev")
+    assert (await _role(invoke, "scout"))["capabilities"] == [P.third, "dev"]
 
 
 @pytest.mark.covers("role add", "--model")
@@ -632,7 +636,10 @@ async def test_address_refuses_the_number_of_an_item_that_is_not_a_role(
     populated_project, invoke
 ) -> None:
     result = await invoke(["role", "3", "show"])
-    assert (result.exit_code, result.output) == (1, "error: 3 is TASK-3 (task), not a role\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: 3 is {P.ref_prefix}-3 ({P.ref}), not of type role\n",
+    )
 
 
 # ----------------------------------------------------------------------------------- show
@@ -773,7 +780,7 @@ async def test_body_needs_a_message_or_a_file(project, invoke) -> None:
     result = await invoke(["role", "scout", "body"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: provide the body via -m (repeatable) or --file PATH ('-' for stdin)\n",
+        "error: provide the body via -m (repeatable) or --file path ('-' for stdin)\n",
     )
 
 
@@ -951,7 +958,7 @@ async def test_set_default_as_refuses_a_slug_that_is_not_registered(project, inv
 # ----------------------------------------------------------------------------------- status
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_archives_a_role_and_brings_it_back(project, invoke) -> None:
     await _activate(invoke)
     archived = await invoke(["role", "architect", "status", "Archived"])
@@ -962,7 +969,7 @@ async def test_status_archives_a_role_and_brings_it_back(project, invoke) -> Non
     assert (await _roles(invoke))["architect"]["status"] == "Active"
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_refuses_a_status_the_workflow_does_not_declare(project, invoke) -> None:
     await _activate(invoke)
     result = await invoke(["role", "architect", "status", "Bogus"])
@@ -988,7 +995,7 @@ async def test_status_force_does_not_lift_a_status_the_role_lifecycle_lacks(
     )
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_refuses_to_archive_the_last_live_role(project, invoke) -> None:
     result = await invoke(["role", "manager", "status", "Archived"])
     assert (result.exit_code, result.output) == (
@@ -1000,15 +1007,15 @@ async def test_status_refuses_to_archive_the_last_live_role(project, invoke) -> 
     )
 
 
-@pytest.mark.covers("role status", "STATUS")
+@pytest.mark.covers("role status", "status")
 async def test_status_needs_a_status(project, invoke) -> None:
     result = await invoke(["role", "manager", "status"])
     assert (result.exit_code, result.output) == (
         2,
         usage_error(
-            "Usage: sq role <slug|id|n> status [OPTIONS] STATUS",
+            "Usage: sq role <slug|id|n> status [OPTIONS] {status}",
             "sq role <slug|id|n> status --help",
-            "Missing argument 'STATUS'.",
+            "Missing argument 'status'.",
         ),
     )
 
@@ -1118,7 +1125,7 @@ async def test_update_mission_changes_the_mission_of_a_role_that_defines_itself(
 async def test_update_capabilities_replaces_them_and_a_blank_value_clears_them(
     project, invoke
 ) -> None:
-    await _add_scout(invoke, "--capabilities", "review")
+    await _add_scout(invoke, "--capabilities", P.third)
     await invoke(["role", "scout", "update", "--capabilities", "dev, plan"])
     assert (await _role(invoke, "scout"))["capabilities"] == ["dev", "plan"]
     await invoke(["role", "scout", "update", "--capabilities", ""])
@@ -1253,7 +1260,7 @@ async def test_regen_refuses_a_role_that_is_not_activated(project, invoke) -> No
 # ------------------------------------------------------------------------------------ views
 
 
-@pytest.mark.covers("role view add", "NAME")
+@pytest.mark.covers("role view add", "name")
 async def test_view_add_of_the_view_a_role_already_renders_changes_nothing(project, invoke) -> None:
     result = await invoke(["role", "manager", "view", "add", "role_definition"])
     assert (result.exit_code, result.output) == (
@@ -1262,7 +1269,7 @@ async def test_view_add_of_the_view_a_role_already_renders_changes_nothing(proje
     )
 
 
-@pytest.mark.covers("role view add", "NAME")
+@pytest.mark.covers("role view add", "name")
 async def test_view_add_is_refused_for_a_name_the_role_body_does_not_take(project, invoke) -> None:
     await _add_scout(invoke)
     result = await invoke(["role", "scout", "view", "add", "nosuch"])
@@ -1279,7 +1286,7 @@ async def test_view_add_as_refuses_a_slug_that_is_not_registered(project, invoke
     )
 
 
-@pytest.mark.covers("role view disable", "NAME")
+@pytest.mark.covers("role view disable", "name")
 async def test_view_disable_is_refused_while_the_spec_declares_the_view(project, invoke) -> None:
     """The bundled spec accepts no edit of the role definition view; the refusal is the case."""
     await _add_scout(invoke)

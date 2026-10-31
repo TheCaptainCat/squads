@@ -1,0 +1,117 @@
+# The permanent override test squad: it drops every bundled work-item type, sub-entity kind and
+# badge field and declares its own, so a test that runs on it fails wherever code still names a
+# bundled word.
+
+# [selected] lists what the squad keeps of the bundled vocabulary: the roster types, their views and
+# the ref kinds the engine reads. Everything else is dropped and redeclared below.
+[selected]
+items = ["role", "skill", "operator", "initiative", "job", "record"]
+subentity_kinds = ["outcome", "action"]
+lifecycles = ["work", "adr", "agent", "subentity", "step"]
+collections = ["urgency", "impact", "size"]
+ref_kinds = ["related", "blocks", "depends-on", "scopes", "replaces"]
+views = ["role_definition", "squads_skill", "greeting_skill", "memory_skill", "item_skill"]
+
+[lifecycles.step]
+initial = "Todo"
+
+[lifecycles.step.transitions]
+Todo = ["InProgress", "Deferred", "Done"]
+InProgress = ["Done", "Deferred", "Todo"]
+Deferred = ["Todo"]
+Done = ["InProgress"]
+
+[collections.urgency]
+label = "Urgency"
+ordered = true
+default = "soon"
+badges = [
+  { code = "now", label = "Now", emoji = "🔴" },
+  { code = "soon", label = "Soon", emoji = "🟠" },
+  { code = "later", label = "Later", emoji = "🟢" },
+]
+
+[collections.impact]
+label = "Impact"
+ordered = true
+badges = [
+  { code = "large", label = "Large", emoji = "🔴" },
+  { code = "small", label = "Small", emoji = "🟢" },
+]
+
+[collections.size]
+label = "Size"
+ordered = true
+badges = [
+  { code = "s", label = "S", emoji = "⚪" },
+  { code = "m", label = "M", emoji = "⚪" },
+  { code = "l", label = "L", emoji = "⚪" },
+]
+
+[ref_kinds.replaces]
+label = "Replaces"
+hint = "A (a newer record) replaces B (an older one)"
+role = "supersession"
+
+[items.initiative]
+prefix = "INI"
+folder = "initiatives"
+lifecycle = "work"
+parents = []
+aliases = ["f"]
+order = 10
+category = "work"
+subentity_kind = "outcome"
+ref_rules = []
+fields = [{ code = "urgency", label = "Urgency", collection = "urgency" }]
+
+[items.initiative.attributes]
+horizon = { kind = "date", label = "horizon" }
+themes = { kind = "list", label = "themes" }
+
+[items.job]
+prefix = "JOB"
+folder = "jobs"
+lifecycle = "work"
+parents = ["initiative"]
+aliases = ["j"]
+order = 20
+category = "work"
+subentity_kind = "action"
+parent_required = "initiative"
+ref_rules = []
+fields = [
+  { code = "work_size", label = "Work size", collection = "size", required = false },
+]
+
+[items.job.attributes]
+owner_team = { kind = "str", label = "owner team" }
+needs_review = { kind = "bool", label = "needs review" }
+
+[items.record]
+prefix = "REC"
+folder = "records"
+lifecycle = "adr"
+parents = []
+aliases = ["rec"]
+order = 30
+category = "records"
+ref_rules = [{ kind = "replaces", hint = "" }]
+
+[subentity_kinds.outcome]
+lifecycle = "subentity"
+completion = "Done"
+plural = "outcomes"
+label = "Desired outcome"
+heading = "Desired Outcomes"
+local_prefix = "OC"
+placeholder = "_Describe the outcome._"
+
+[subentity_kinds.action]
+lifecycle = "step"
+completion = "Done"
+plural = "actions"
+local_prefix = "AC"
+placeholder = "_Describe the action._"
+maps_to_parent = true
+fields = [{ code = "impact", label = "Impact", collection = "impact", required = false }]

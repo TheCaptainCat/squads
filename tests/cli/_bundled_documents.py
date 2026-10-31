@@ -259,32 +259,35 @@ TYPES = [
 SUBENTITY_KINDS = [
     {
         "subentity_kind": "finding",
+        "label": "Finding",
         "lifecycle": "finding",
         "plural": "findings",
         "local_prefix": "F",
         "container_heading": "Findings",
         "completion": "Fixed",
-        "maps_parent_story": False,
+        "maps_to_parent": False,
         "fields": [{"code": "severity", "label": "Severity", "collection": "severity"}],
     },
     {
         "subentity_kind": "story",
+        "label": "Story",
         "lifecycle": "subentity",
         "plural": "stories",
         "local_prefix": "US",
         "container_heading": "User Stories",
         "completion": "Done",
-        "maps_parent_story": False,
+        "maps_to_parent": False,
         "fields": [],
     },
     {
         "subentity_kind": "subtask",
+        "label": "Subtask",
         "lifecycle": "subentity",
         "plural": "subtasks",
         "local_prefix": "ST",
         "container_heading": "Subtasks",
         "completion": "Done",
-        "maps_parent_story": True,
+        "maps_to_parent": True,
         "fields": [],
     },
 ]
@@ -674,7 +677,7 @@ VIEWS = [
         "view": "milestone_rollup",
         "source_kind": "ref",
         "source_name": "targets",
-        "transform": {"module": "squads._view_transforms", "function": "milestone_rollup"},
+        "transform": {"module": "squads._view_transforms", "function": "status_rollup"},
     },
     {"view": "role_definition", "source_kind": "role", "source_name": None, "transform": None},
     {"view": "squads_skill", "source_kind": "playbook", "source_name": None, "transform": None},
@@ -1506,6 +1509,35 @@ MIGRATIONS = {
             "defined only by a per-slug file takes that definition into its own "
             "item; the file then layers over it, and `sq check` warns until you "
             "delete the file.",
+        },
+        {
+            "version": "0.19.0",
+            "from_schema": "0.17",
+            "to_schema": "0.19",
+            "summary": "Sub-entity entries are flat: story becomes maps_to, the keys of "
+            "extra move up beside the others, and an empty severity is "
+            "dropped. Item keys keep their values and follow the writer's "
+            "order.",
+            "manual": "Edit what `sq migrate up` does not rewrite. (1) An override that"
+            " spells `maps_parent_story`, `subtask_story_mapping` or the "
+            "transform `milestone_rollup` is refused at load, so `sq migrate "
+            "up` stops before any step and changes nothing until you rename "
+            "them to `maps_to_parent`, `subentity_mapping` and "
+            "`status_rollup`. (2) An override template that reads a name this "
+            "release removes fails to render, on some items or on all. The sub-"
+            "entity head no longer receives `severity`, `severity_label` or "
+            "`story`, but `fields` (a list of `code`, `label` and `badge`) and "
+            "`mapping` (a `label` and a `value`, or none). An item's "
+            "`.priority` and `.severity` are no longer fields: on the `item` an"
+            " item template or a view receives, they still render while that "
+            "item stores a value and fail on an item that stores none; on the "
+            "items of a view's `source` they fail on every item. A sub-entity's"
+            " `.severity`, `.story` and `.extra` fail on every entry. Read a "
+            "badge value with `.badge_value('<code>')`, which works on every "
+            "item and sub-entity in every template and gives none when unset; "
+            "read the mapping with `.maps_to` and any other stored key from "
+            "`.attributes`. (3) Reflog entries keep the keys they recorded: "
+            "they are history and are not rewritten.",
         },
     ]
 }

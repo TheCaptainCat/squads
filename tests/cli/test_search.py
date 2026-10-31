@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from tests.cli._readable import init_readable, lines
+from tests._readable import init_readable, lines
 
 pytestmark = pytest.mark.anyio
 
@@ -19,7 +19,7 @@ async def _search(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
-@pytest.mark.covers("search", "TEXT")
+@pytest.mark.covers("search", "text")
 async def test_search_lists_each_item_with_the_places_the_text_was_found(readable, invoke) -> None:
     assert await _search(invoke, "parse") == (
         0,
@@ -33,12 +33,12 @@ async def test_search_lists_each_item_with_the_places_the_text_was_found(readabl
     )
 
 
-@pytest.mark.covers("search", "TEXT")
+@pytest.mark.covers("search", "text")
 async def test_search_ignores_the_case_of_the_text(readable, invoke) -> None:
     assert await _search(invoke, "PARSE") == await _search(invoke, "parse")
 
 
-@pytest.mark.covers("search", "TEXT")
+@pytest.mark.covers("search", "text")
 async def test_search_finds_text_in_a_comment(readable, invoke) -> None:
     assert await _search(invoke, "tokeniser") == (
         0,
@@ -50,12 +50,12 @@ async def test_search_finds_text_in_a_comment(readable, invoke) -> None:
     )
 
 
-@pytest.mark.covers("search", "TEXT")
+@pytest.mark.covers("search", "text")
 async def test_search_says_when_nothing_matches(readable, invoke) -> None:
     assert await _search(invoke, "zzz") == (0, ["no matches for zzz"])
 
 
-@pytest.mark.covers("search", "TEXT")
+@pytest.mark.covers("search", "text")
 async def test_search_refuses_empty_text(readable, invoke) -> None:
     assert await _search(invoke, "") == (1, ["error: search needs a non-empty query"])
 

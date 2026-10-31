@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.cli._squadwide import region
+from tests._squadwide import region
 
 pytestmark = pytest.mark.anyio
 

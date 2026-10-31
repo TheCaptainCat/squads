@@ -1,0 +1,41 @@
+# The playbook of the override test squad: one authoring guide per declared type, so no type is
+# reported as having no live author.
+
+[types.initiative]
+overview = "A named goal, described through its desired outcomes."
+lifecycle = "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)"
+commands = [
+  'sq create initiative "…" --author manager',
+  'sq initiative <n> add-outcome "…"',
+]
+
+[[types.initiative.roles]]
+slug = "manager"
+authors = true
+enter = ["confirm the goal and who it serves"]
+do = ["author the initiative and write its outcomes"]
+
+[types.job]
+overview = "A unit of work under an initiative; each action may map to one of its outcomes."
+lifecycle = "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)"
+commands = [
+  'sq create job "…" --author manager --parent INI-…',
+  'sq job <n> add-action "…"',
+]
+
+[[types.job.roles]]
+slug = "manager"
+authors = true
+enter = ["confirm the parent initiative exists"]
+do = ["author the job and break it into actions"]
+
+[types.record]
+overview = "A durable decision record; a newer record replaces an older one."
+lifecycle = "Proposed → Accepted → Superseded (+ Rejected, Deprecated)"
+commands = ['sq create record "…" --author manager']
+
+[[types.record.roles]]
+slug = "manager"
+authors = true
+enter = ["read the records the new one touches"]
+do = ["author the record and link what it replaces"]

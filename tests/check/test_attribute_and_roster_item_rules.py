@@ -162,7 +162,10 @@ async def test_an_attribute_check_selected_at_warn_reports_a_warning_and_passes(
 
 
 def _undeclared() -> str:
-    return "frontmatter key 'colour' is not declared on skill"
+    return (
+        "frontmatter key 'colour' is not declared on skill"
+        "; `sq migrate rename-field colour <new> --type skill` moves its value to a declared key"
+    )
 
 
 @pytest.mark.breaches("frontmatter_key_undeclared")

@@ -160,7 +160,7 @@ def _missing_contract(feature: str, level: str) -> dict[str, str]:
         "ref_rule_target_present",
         level,
         feature,
-        "settled with no implements ref to a contract — its functional contract slice may be stale",
+        "settled with no implements ref to contract — its functional contract slice may be stale",
     )
 
 
@@ -201,7 +201,7 @@ async def test_each_selected_target_type_is_resolved_and_the_selections_are_unio
     await remove_ref(invoke, by_milestone, milestone)
 
     message = (
-        "settled with no implements/targets ref to a contract/milestone — "
+        "settled with no implements/targets ref to contract/milestone — "
         "its functional contract slice may be stale"
     )
     assert await check_json() == (
@@ -231,8 +231,8 @@ def _wrong_target(feature: str, epic: str, level: str) -> dict[str, str]:
         "ref_rule_target_typed",
         level,
         feature,
-        f"implements edge to {epic} points at a epic, but a feature's implements refs must "
-        "point at a contract",
+        f"implements edge to {epic} points at epic, but implements refs of "
+        "feature must point at contract",
     )
 
 

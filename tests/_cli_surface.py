@@ -6,17 +6,23 @@ hidden `_addr` dispatcher dropped; the root callback is the empty key. A paramet
 first long flag, or by the usage name of an argument.
 """
 
+import contextlib
+import functools
 import re
+import tempfile
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import typer.main
 from typer._click.core import Context, iter_params_for_processing
 
 from squads._cli import app
+from squads._cli._create import CREATE_ATTRIBUTE_KINDS
+from squads._context import bind_context, get_context
+from squads._workflow import bundled_spec
 from squads._workflow._models import WorkflowSpec
-from tests._help_tree import Node
+from tests._help_tree import Node, command_nodes
 
 type Pair = tuple[str, str | None]
 
@@ -45,13 +51,67 @@ EXCLUDED_PARAMS: dict[Pair, str] = {
 }
 
 
-def param_name(param: Any) -> str:
-    """The name a test declares *param* by: the first long flag, else the first flag, else the
-    usage name of an argument."""
+FIELD = "<field>"
+TARGET_KIND = "<target-kind>"
+
+
+def _dashed(code: str) -> str:
+    return code.replace("_", "-")
+
+
+def derived_names(spec: WorkflowSpec) -> dict[str, str]:
+    """The flags *spec* derives from its declarations, each with the name a marker holds it by, so
+    one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge
+    field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and
+    `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute.
+    """
+    names: dict[str, str] = {}
+
+    def field_flags(code: str) -> None:
+        flag = _dashed(code)
+        names.setdefault(f"--{flag}", f"--{FIELD}")
+        names.setdefault(f"--no-{flag}", f"--no-{FIELD}")
+        names.setdefault(f"--min-{flag}", f"--min-{FIELD}")
+
+    for type_name, item in spec.items.items():
+        if spec.item_is_roster(type_name):
+            continue
+        for declared in item.fields:
+            field_flags(declared.code)
+        for key, attribute in item.attributes.items():
+            if attribute.settable and attribute.kind in CREATE_ATTRIBUTE_KINDS:
+                names.setdefault(f"--{_dashed(key)}", f"--<attribute:{attribute.kind}>")
+    for kind, kind_spec in spec.subentity_kinds.items():
+        for declared in kind_spec.fields:
+            field_flags(declared.code)
+        target = spec.mapping_target_kind(kind)
+        if target is not None:
+            names.setdefault(f"--{_dashed(target)}", f"--{TARGET_KIND}")
+            names.setdefault(f"--no-{_dashed(target)}", f"--no-{TARGET_KIND}")
+    return names
+
+
+def raw_param_name(param: Any) -> str:
+    """The first long flag of an option, else its first flag, else the usage name of an argument."""
     if param.param_type_name == "option":
         longs = [o for o in param.opts if o.startswith("--")]
         return longs[0] if longs else param.opts[0]
     return param.human_readable_name
+
+
+def derives_options(key: str) -> bool:
+    """Whether the command at *key* takes options derived from the spec's declarations: the create,
+    update, listing and sub-entity commands of a work-item type."""
+    return key in ("list", "tree") or key.startswith((f"create {TYPE}", TYPE))
+
+
+def param_name(param: Any, spec: WorkflowSpec | None = None, key: str = TYPE) -> str:
+    """The name a test declares *param* of the command at *key* by: its raw name, or for a flag
+    *spec* derives from its declarations, the derivation."""
+    raw = raw_param_name(param)
+    if param.param_type_name != "option" or not derives_options(key):
+        return raw
+    return derived_names(spec or bundled_spec()).get(raw, raw)
 
 
 @dataclass(frozen=True)
@@ -80,20 +140,10 @@ def param_signature(param: Any) -> ParamSignature:
     )
 
 
-def built_create_class_name() -> str:
-    """The class name of the ``create <type>`` commands the builder mounts, read from the
-    reference type's command."""
-    root: Any = typer.main.get_command(app)
-    create: Any = root.get_command(Context(root, info_name="sq"), "create")
-    leaf = create.get_command(Context(create, info_name="create"), "task")
-    return type(leaf).__qualname__
+def fold_path(path: tuple[str, ...], spec: WorkflowSpec) -> str:
+    """The key of the command at *path* (its names under ``sq``).
 
-
-def fold_path(path: tuple[str, ...], spec: WorkflowSpec, command: Any) -> str:
-    """The key of the command at *path* (its names under ``sq``); *command* is that command.
-
-    A ``create`` command the builder mounts folds onto ``create <type>``; a hand-written one
-    keeps its type's name, so its parameters are required in their own right. The verbs one
+    Every ``create <type>`` command folds onto ``create <type>``. The verbs one
     registrar mounts on every roster host fold onto the reference roster host, and the
     ``comments`` listing onto ``<host> comments``.
     """
@@ -108,8 +158,7 @@ def fold_path(path: tuple[str, ...], spec: WorkflowSpec, command: Any) -> str:
     elif len(segments) > 1 and segments[0] == "create":
         canonical = spec.alias_to_type.get(segments[1], segments[1])
         if canonical in spec.non_roster_types():
-            built = type(command).__qualname__ == built_create_class_name()
-            segments[1] = TYPE if built else canonical
+            segments[1] = TYPE
     if COMMENT in segments[1:]:
         segments[: segments.index(COMMENT)] = [HOST]
     elif len(segments) == 2 and segments[1] == COMMENTS:
@@ -173,21 +222,26 @@ def surface_of(nodes: Iterable[Node], spec: WorkflowSpec) -> Surface:
     pairs: set[Pair] = set()
     leaves: set[str] = set()
     for node in nodes:
-        key = fold_path(node.path, spec, node.command)
+        key = fold_path(node.path, spec)
         if not hasattr(node.command, "list_commands"):
             leaves.add(key)
-        pairs.update((key, param_name(p)) for p in node_params(node))
+        pairs.update((key, param_name(p, spec, key)) for p in node_params(node))
     pairs -= EXCLUDED_PARAMS.keys()
     return Surface(frozenset(pairs), frozenset(leaves))
 
 
-def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = None) -> set[Pair]:
+def reached_pairs(
+    args: list[str],
+    spec: WorkflowSpec,
+    refusal: str | None = None,
+    known: frozenset[Pair] | None = None,
+) -> set[Pair]:
     """The (key, parameter) pairs the argument list *args* names on the live tree.
 
     Each level is parsed with Click's parser, an unknown token routed to the address subgroup. A
-    parameter counts when the call gives it a value, when Click's missing-parameter error at the
-    leaf names it, or when one of its flags appears in the *refusal* a failed call printed; a leaf
-    given none adds ``(key, None)``. A level that does not parse, or asks for ``--help``, ends it.
+    parameter counts when the call gives it a value, when Click's missing-parameter error names it,
+    or when a flag appears in the *refusal* of a failed call; a leaf given none adds `(key, None)`.
+    A parameter outside *known* (the bundled tree's pairs) is not reached, nor is it a bare call.
     """
     root = typer.main.get_command(app)
     ctx = Context(root, info_name="sq")
@@ -202,19 +256,21 @@ def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = Non
             return reached
         if given.get("help"):
             return reached
-        key = fold_path(path, spec, command)
+        key = fold_path(path, spec)
         params = node_params(Node(path, command, ctx))
-        level = {
-            (key, param_name(p))
+        given_pairs = {
+            (key, param_name(p, spec, key))
             for p in params
-            if given.get(p.name) not in (None, ()) and (key, param_name(p)) not in EXCLUDED_PARAMS
+            if given.get(p.name) not in (None, ())
+            and (key, param_name(p, spec, key)) not in EXCLUDED_PARAMS
         }
+        level = {pair for pair in given_pairs if known is None or pair in known}
         reached |= level
         if not hasattr(command, "list_commands") or not rest:
             if not hasattr(command, "list_commands"):
-                reached |= {(key, None)} if not level else set()
-                reached |= _missing(key, params, given)
-            return reached | _named(key, params, refusal or "")
+                reached |= {(key, None)} if not given_pairs else set()
+                reached |= _missing(key, params, given, spec)
+            return reached | _named(key, params, refusal or "", spec)
         child = command.get_command(ctx, rest[0])
         if child is not None:
             name, remaining = rest[0], rest[1:]
@@ -231,26 +287,26 @@ def reached_pairs(args: list[str], spec: WorkflowSpec, refusal: str | None = Non
         command = child
 
 
-def _missing(key: str, params: list[Any], given: dict[str, Any]) -> set[Pair]:
+def _missing(key: str, params: list[Any], given: dict[str, Any], spec: WorkflowSpec) -> set[Pair]:
     """The pair of the required parameter Click's missing-parameter error names for a leaf call
     that leaves it out: the first one Click processes."""
     absent = [p for p in params if p.required and given.get(p.name) in (None, ())]
     first = next(iter(iter_params_for_processing([], absent)), None)
-    return {(key, param_name(first))} if first is not None else set()
+    return {(key, param_name(first, spec, key))} if first is not None else set()
 
 
-def _named(key: str, params: list[Any], refusal: str) -> set[Pair]:
+def _named(key: str, params: list[Any], refusal: str, spec: WorkflowSpec) -> set[Pair]:
     """The pairs of the options of the command a call ended on that have a flag, short or long,
     in *refusal*."""
     return {
-        (key, param_name(p))
+        (key, param_name(p, spec, key))
         for p in params
         if p.param_type_name == "option"
         and any(
             re.search(rf"(?<![\w-]){re.escape(flag)}(?![\w-])", refusal)
             for flag in (*p.opts, *p.secondary_opts)
         )
-        and (key, param_name(p)) not in EXCLUDED_PARAMS
+        and (key, param_name(p, spec, key)) not in EXCLUDED_PARAMS
     }
 
 
@@ -258,3 +314,19 @@ def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:
     """The pairs one marker declares: its key with each parameter, or the key alone."""
     key, *params = arguments
     return {(key, p) for p in params} or {(key, None)}
+
+
+@functools.cache
+def bundled_known() -> frozenset[Pair]:
+    """Every pair a marker may name: the pairs of the bundled tree and the bare call of its
+    leaves, read from a directory outside any squad with no active spec bound, so the options the
+    caller's squad derives never enter the cached answer."""
+    prior = get_context()
+    bind_context(replace(prior, active_spec=None))
+    try:
+        with tempfile.TemporaryDirectory() as empty, contextlib.chdir(empty):
+            return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
+    finally:
+        bind_context(prior)
+        # the tree built outside any squad must not be the one the next command is run on
+        getattr(typer.main.get_command, "cache_clear", lambda: None)()

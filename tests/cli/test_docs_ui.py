@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from squads import _docfiles
-from tests.cli._readable import lines
+from tests._readable import lines
 
 if TYPE_CHECKING:
     from squads._tui._app import SquadsApp
@@ -50,7 +50,7 @@ async def test_docs_lists_the_bundled_documents_by_name_and_title(invoke) -> Non
     assert [name for name, _ in rows] == [stem for stem, _ in _docfiles.available()]
 
 
-@pytest.mark.covers("docs", "NAME")
+@pytest.mark.covers("docs", "name")
 async def test_docs_name_prints_the_document_as_raw_markdown(invoke) -> None:
     result = await invoke(["docs", "faq"])
     assert result.exit_code == 0, result.output
@@ -58,12 +58,12 @@ async def test_docs_name_prints_the_document_as_raw_markdown(invoke) -> None:
     assert result.output == _docfiles.read("faq") + "\n"
 
 
-@pytest.mark.covers("docs", "NAME")
+@pytest.mark.covers("docs", "name")
 async def test_docs_name_ignores_case_and_a_markdown_suffix(invoke) -> None:
     assert await _docs(invoke, "FAQ.md") == await _docs(invoke, "faq")
 
 
-@pytest.mark.covers("docs", "NAME")
+@pytest.mark.covers("docs", "name")
 async def test_docs_name_refuses_a_document_the_bundle_lacks(invoke) -> None:
     names = ", ".join(stem for stem, _ in _docfiles.available())
     assert await _docs(invoke, "ghost") == (1, [f"error: unknown doc 'ghost' (one of: {names})"])

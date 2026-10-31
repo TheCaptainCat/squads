@@ -5,8 +5,8 @@ import json
 
 import pytest
 
+from tests._squadwide import listed
 from tests.cli._output import json_text
-from tests.cli._squadwide import listed
 
 pytestmark = pytest.mark.anyio
 
@@ -23,6 +23,7 @@ UNCERTIFIED = (
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_adds_its_value_to_every_number_from_the_lowest_moved(
     populated_project, invoke
 ) -> None:
@@ -41,15 +42,36 @@ async def test_by_adds_its_value_to_every_number_from_the_lowest_moved(
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_rewrites_the_references_to_a_moved_item(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--from", "2", "--by", "10"])
     assert result.exit_code == 0, result.output
     shown = await invoke(["task", "13", "show", "--json"])
     task = json.loads(shown.output)
-    assert (task["parent"], task["subentities"][0]["story"]) == ("FEAT-12", "US1")
+    assert (task["parent"], task["subentities"][0]["maps_to"]) == ("FEAT-12", "US1")
 
 
 @pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
+async def test_by_moves_the_scaffolded_hints_to_the_new_numbers(populated_project, invoke) -> None:
+    result = await invoke(["renumber", "--from", "2", "--by", "10"])
+    assert result.exit_code == 0, result.output
+    hints = {
+        "tasks/TASK-000013-build-the-query-parser.md": (
+            '_Add with `sq task 13 add-subtask "<title>"`; track with '
+            "`sq task 13 subtask <n> update --status <Status>`._"
+        ),
+        "features/FEAT-000012-search.md": (
+            '_Add with `sq feature 12 add-story "As a <role>, I want … so that …"`; track with '
+            "`sq feature 12 story <n> update --status <Status>`._"
+        ),
+    }
+    for name, hint in hints.items():
+        assert hint in (populated_project.squad_dir / name).read_text(encoding="utf-8")
+
+
+@pytest.mark.covers("renumber", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_by_refuses_an_offset_that_does_not_clear_the_branch_counter(
     populated_project, invoke
 ) -> None:
@@ -64,6 +86,7 @@ async def test_by_refuses_an_offset_that_does_not_clear_the_branch_counter(
 
 
 @pytest.mark.covers("renumber", "--onto")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_onto_moves_the_items_from_the_lowest_just_past_the_other_counter(
     populated_project, invoke
 ) -> None:
@@ -81,6 +104,7 @@ async def test_onto_moves_the_items_from_the_lowest_just_past_the_other_counter(
 
 
 @pytest.mark.covers("renumber", "--json")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_renumber_json_prints_the_items_moved_and_the_counter(
     populated_project, invoke
 ) -> None:
@@ -112,6 +136,7 @@ async def test_onto_reports_when_no_item_is_at_or_above_from(populated_project, 
 
 
 @pytest.mark.covers("renumber", "--onto", "--by")
+@pytest.mark.bundled_only("renumbers items of the bundled types")
 async def test_onto_refuses_by(populated_project, invoke) -> None:
     result = await invoke(["renumber", "--from", "2", "--onto", "9", "--by", "3"])
     assert (result.exit_code, result.output) == (2, BOTH_OR_NEITHER)
@@ -141,6 +166,6 @@ async def test_from_refuses_a_value_that_is_not_an_integer(populated_project, in
     assert (result.exit_code, result.output) == (
         2,
         USAGE + "╭─ Error ──────────────────────────────────────────────────────────────────────╮\n"
-        "│ Invalid value for '--from': 'x' is not a valid integer.                      │\n"
+        "│ Invalid value for '--from': 'x' is not a valid int.                          │\n"
         "╰──────────────────────────────────────────────────────────────────────────────╯\n",
     )

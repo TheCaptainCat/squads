@@ -2,16 +2,19 @@
 resolved against an item, and the override lint."""
 
 import asyncio
+import hashlib
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from squads._paths import SquadPaths
 from tests._helpers import create_item, make_service
+from tests._readable import init_readable, lines
 from tests._squads import paths_of
 from tests.cli import _bundled_documents as documents
-from tests.cli._output import json_text, printed
-from tests.cli._readable import init_readable, lines
+from tests.cli._output import json_text, printed, read_json
 
 pytestmark = pytest.mark.anyio
 
@@ -58,6 +61,7 @@ async def _run(invoke, *args: str) -> tuple[int, list[str]]:
 
 
 @pytest.mark.covers("workflow show")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_workflow_prints_the_rendered_cheatsheet(project, invoke) -> None:
     code, out = await _run(invoke)
     assert (code, out[:5]) == (0, RENDERED_HEAD)
@@ -65,6 +69,7 @@ async def test_workflow_prints_the_rendered_cheatsheet(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow", "--raw")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_the_group_raw_prints_the_cheatsheet_as_plain_markdown(project, invoke) -> None:
     code, out = await _run(invoke, "--raw")
     assert (code, out[:4]) == (0, CHEATSHEET_HEAD)
@@ -79,6 +84,7 @@ async def test_show_raw_prints_the_cheatsheet_as_plain_markdown(project, invoke)
 
 
 @pytest.mark.covers("workflow types")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_types_lists_every_declared_type(project, invoke) -> None:
     assert await _run(invoke, "types") == (
         0,
@@ -101,12 +107,14 @@ async def test_types_lists_every_declared_type(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow types", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_types_json_prints_one_object_per_type(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "types", "--json"])
     assert output == json_text(documents.TYPES)
 
 
 @pytest.mark.covers("workflow subentity-kinds")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> None:
     assert await _run(invoke, "subentity-kinds") == (
         0,
@@ -120,12 +128,14 @@ async def test_subentity_kinds_lists_every_declared_kind(project, invoke) -> Non
 
 
 @pytest.mark.covers("workflow subentity-kinds", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_subentity_kinds_json_prints_one_object_per_kind(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "subentity-kinds", "--json"])
     assert output == json_text(documents.SUBENTITY_KINDS)
 
 
 @pytest.mark.covers("workflow lifecycles")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> None:
     code, out = await _run(invoke, "lifecycles")
     assert (code, out[:3]) == (
@@ -139,12 +149,14 @@ async def test_lifecycles_lists_every_declared_lifecycle(project, invoke) -> Non
 
 
 @pytest.mark.covers("workflow lifecycles", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lifecycles_json_prints_one_object_per_lifecycle(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "lifecycles", "--json"])
     assert output == json_text(documents.LIFECYCLES)
 
 
 @pytest.mark.covers("workflow collections")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_collections_lists_every_declared_badge_collection(project, invoke) -> None:
     code, out = await _run(invoke, "collections")
     assert (code, out[:2]) == (
@@ -157,6 +169,7 @@ async def test_collections_lists_every_declared_badge_collection(project, invoke
 
 
 @pytest.mark.covers("workflow collections", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_collections_json_prints_one_object_per_collection(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "collections", "--json"])
     assert output == json_text(documents.COLLECTIONS)
@@ -208,6 +221,7 @@ async def test_roles_json_prints_one_object_per_status_role(project, invoke) -> 
 
 
 @pytest.mark.covers("workflow ref-kinds")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
     code, out = await _run(invoke, "ref-kinds")
     assert (code, out[:2]) == (
@@ -220,12 +234,14 @@ async def test_ref_kinds_lists_every_declared_ref_kind(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow ref-kinds", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_ref_kinds_json_prints_one_object_per_ref_kind(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "ref-kinds", "--json"])
     assert output == json_text(documents.REF_KINDS)
 
 
 @pytest.mark.covers("workflow views")
+@pytest.mark.bundled_only("lists the bundled vocabulary")
 async def test_views_lists_every_declared_view(project, invoke) -> None:
     assert await _run(invoke, "views") == (
         0,
@@ -242,6 +258,7 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow views", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "views", "--json"])
     assert output == json_text(documents.VIEWS)
@@ -250,8 +267,8 @@ async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
 # --- view -----------------------------------------------------------------------------------
 
 
-@pytest.mark.covers("workflow view", "NAME")
-@pytest.mark.covers("workflow view", "ID")
+@pytest.mark.covers("workflow view", "name")
+@pytest.mark.covers("workflow view", "id")
 async def test_view_resolves_a_declared_view_against_the_item(milestone_project, invoke) -> None:
     expected = (
         0,
@@ -274,7 +291,7 @@ async def test_view_resolves_a_declared_view_against_the_item(milestone_project,
     assert await _run(invoke, "view", "milestone_rollup", "MILE-8") == expected
 
 
-@pytest.mark.covers("workflow view", "NAME")
+@pytest.mark.covers("workflow view", "name")
 async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "ghost", "8") == (
         1,
@@ -282,11 +299,22 @@ async def test_view_refuses_a_name_no_view_declares(milestone_project, invoke) -
     )
 
 
-@pytest.mark.covers("workflow view", "ID")
+@pytest.mark.covers("workflow view", "id")
 async def test_view_refuses_an_item_the_index_lacks(milestone_project, invoke) -> None:
     assert await _run(invoke, "view", "milestone_rollup", "99") == (
         1,
-        ["error: no item '99' in the index"],
+        ["error: no item with number 99 (use a full ID like TYPE-99 or bare 99)"],
+    )
+
+
+@pytest.mark.covers("workflow view", "id")
+@pytest.mark.parametrize("view", ["milestone_rollup", "memory_skill"])
+async def test_view_refuses_an_id_whose_prefix_is_not_its_owners(
+    milestone_project, invoke, view: str
+) -> None:
+    assert await _run(invoke, "view", view, "TASK-8") == (
+        1,
+        ["error: TASK-8 is MILE-8 (milestone)"],
     )
 
 
@@ -300,7 +328,6 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
             "type": "task",
             "title": "Parse queries",
             "status": "Done",
-            "priority": "urgent",
             "assignee": "manager",
             "blocked": False,
             "badges": {"priority": "urgent"},
@@ -330,7 +357,6 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
             "type": "task",
             "title": "Rank results",
             "status": "Draft",
-            "priority": "low",
             "assignee": None,
             "blocked": False,
             "badges": {"priority": "low"},
@@ -360,6 +386,7 @@ async def test_view_json_prints_the_records_the_view_resolves(milestone_project,
 
 
 @pytest.mark.covers("workflow lint")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_accepts_a_squad_with_no_override(project, invoke) -> None:
     assert await _run(invoke, "lint") == (
         0,
@@ -371,6 +398,7 @@ async def test_lint_accepts_a_squad_with_no_override(project, invoke) -> None:
 
 
 @pytest.mark.covers("workflow show", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_show_json_prints_the_cheatsheet_as_markdown(project, invoke) -> None:
     raw = await invoke(["workflow", "show", "--raw"])
     result = await invoke(["workflow", "show", "--json"])
@@ -381,6 +409,7 @@ async def test_show_json_prints_the_cheatsheet_as_markdown(project, invoke) -> N
 
 
 @pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_json_prints_each_error_with_its_location_and_fix(project, invoke) -> None:
     (project.squad_dir / ".overrides").mkdir()
     (project.squad_dir / ".overrides" / "workflow.toml").write_text(
@@ -407,6 +436,150 @@ async def test_lint_json_prints_each_error_with_its_location_and_fix(project, in
         )
         + "\n"
     )
+
+
+async def _lint_messages(project, invoke, override: str) -> list[str]:
+    """The messages `workflow lint --json` prints for a workflow override of *override*."""
+    folder = project.squad_dir / ".overrides"
+    folder.mkdir()
+    (folder / "workflow.toml").write_text(
+        f"# squads:override-base:0.19.0\n{override}", encoding="utf-8"
+    )
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1, result.output
+    return [e["message"] for e in json.loads(result.output)["errors"]]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_an_item_field_code_equal_to_a_core_key(project, invoke) -> None:
+    assert await _lint_messages(
+        project,
+        invoke,
+        '[items.task]\nfields = [{ code = "status", label = "S", collection = "priority" }]\n',
+    ) == [
+        "'task': field code 'status' shadows a reserved frontmatter key — rename the field in "
+        "the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_kind_field_code_a_sub_entity_object_adds(project, invoke) -> None:
+    assert await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.finding]\nfields = [{ code = "badges", label = "B", '
+        'collection = "severity" }]\n',
+    ) == [
+        "'finding': field code 'badges' shadows a reserved key every --json sub-entity object "
+        "adds — rename the field in the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_field_code_equal_to_an_option_of_the_command_it_derives_onto(
+    project, invoke
+) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[items.task]\nfields = [{ code = "force", label = "F", collection = "priority" },'
+        ' { code = "sort", label = "S", collection = "priority" }]\n',
+    )
+    assert messages == [
+        "task update: field 'force' gives --force, which task update already takes — rename it "
+        "in the workflow override",
+        "list: field 'sort' gives --sort, which list already takes — rename it in the workflow "
+        "override",
+        "tree: field 'sort' gives --sort, which tree already takes — rename it in the workflow "
+        "override",
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_field_whose_import_key_equals_a_fixed_key_of_its_op(
+    project, invoke
+) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.finding]\nfields = [{ code = "handle", label = "H",'
+        ' collection = "severity" }]\n',
+    )
+    assert messages == [
+        "import op add-finding: field 'handle' gives handle, which import op add-finding "
+        "already takes — rename it in the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_two_fields_that_give_one_flag(project, invoke) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[items.task]\nfields = [{ code = "x", label = "X", collection = "priority" },'
+        ' { code = "no_x", label = "N", collection = "priority" }]\n',
+    )
+    assert messages == [
+        "task update: field 'no_x' and field 'x' both give --no-x — rename one in the workflow "
+        "override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_target_kind_equal_to_an_option_of_the_command_it_derives_onto(
+    project, invoke
+) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[items.feature]\nsubentity_kind = "status"\n'
+        '[subentity_kinds.status]\nlifecycle = "subentity"\ncompletion = "Done"\n'
+        'plural = "statuses"\nlocal_prefix = "SS"\nplaceholder = "_text_"\n',
+    )
+    assert messages == [
+        "add-subtask: target kind 'status' gives --status, which add-subtask already takes — "
+        "rename it in the workflow override",
+        "subtask update: target kind 'status' gives --status, which subtask update already takes "
+        "— rename it in the workflow override",
+        "import op add-subtask: target kind 'status' gives status, which import op add-subtask "
+        "already takes — rename it in the workflow override",
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_kind_named_like_a_key_of_the_comment_op(project, invoke) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.target]\nlifecycle = "subentity"\ncompletion = "Done"\n'
+        'plural = "targets"\nlocal_prefix = "TG"\nplaceholder = "_text_"\n',
+    )
+    assert messages == [
+        "import op comment: kind 'target' gives target, which import op comment already takes "
+        "— rename it in the workflow override"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_kind_named_like_the_generic_selector(project, invoke) -> None:
+    messages = await _lint_messages(
+        project,
+        invoke,
+        '[subentity_kinds.sub]\nlifecycle = "subentity"\ncompletion = "Done"\n'
+        'plural = "subs"\nlocal_prefix = "SB"\nplaceholder = "_text_"\n',
+    )
+    assert messages == [
+        "subentity kind 'sub': the name is the generic sub-entity verb; rename the kind in the "
+        "workflow override"
+    ]
 
 
 @pytest.mark.covers("workflow lint", "--json")
@@ -473,8 +646,6 @@ GREETING_SKILL_SOURCE = {
     "parent": None,
     "author": "greeting",
     "assignee": None,
-    "priority": None,
-    "severity": None,
     "labels": [],
     "refs": [],
     "subentities": [],
@@ -490,9 +661,9 @@ GREETING_SKILL_SOURCE = {
     "discussion": [],
     "badges": {},
     "spec": {
-        "schema_version": "0.17",
+        "schema_version": "0.19",
         "override": False,
-        "digest": "211060de2abfe6793ecbcfacd9b987a048dbe34f4f70b45b653336d2762820e3",
+        "digest": "e194337afd5234e8a7376fdb05c2c54868a65f4d6803e980b572093ac0e8646b",
     },
     "display": {
         "type": "Skill",
@@ -506,11 +677,128 @@ GREETING_SKILL_SOURCE = {
 }
 
 
+def _etag(project: SquadPaths, source: dict[str, Any]) -> str:
+    """The strong ETag of the item file a view source was read from."""
+    data = (project.squad_dir / source["path"]).read_bytes()
+    return f'"{hashlib.sha256(data).hexdigest()}"'
+
+
 @pytest.mark.covers("workflow view", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
     seeded_project, invoke
 ) -> None:
     role = await printed(invoke, ["workflow", "view", "role_definition", "ROLE-1", "--json"])
     assert role == json_text(MANAGER_ROLE_SOURCE)
     skill = await printed(invoke, ["workflow", "view", "greeting_skill", "SKILL-2", "--json"])
-    assert skill == json_text(GREETING_SKILL_SOURCE)
+    assert skill == json_text(
+        {**GREETING_SKILL_SOURCE, "etag": _etag(seeded_project, GREETING_SKILL_SOURCE)}
+    )
+
+
+# --- the override squad and the grammar an override spells ------------------------------------
+
+
+def _write_override(project, text: str) -> None:
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir(exist_ok=True)
+    (overrides / "workflow.toml").write_text(text, encoding="utf-8")
+
+
+async def _lint_errors(invoke) -> str:
+    """The messages `sq workflow lint` refuses the override with, as one string."""
+    result = await invoke(["workflow", "lint", "--json"])
+    assert result.exit_code == 1, result.output
+    return "\n".join(e["message"] for e in json.loads(result.output)["errors"])
+
+
+@pytest.mark.covers("check")
+@pytest.mark.covers("workflow types", "--json")
+@pytest.mark.covers("workflow subentity-kinds", "--json")
+async def test_the_override_squad_checks_clean_and_lists_only_its_own_vocabulary(
+    override_project, invoke
+) -> None:
+    checked = await invoke(["check"])
+    assert (checked.exit_code, checked.output) == (0, "✓ no issues\n")
+    types = await read_json(invoke, ["workflow", "types", "--json"])
+    kinds = await read_json(invoke, ["workflow", "subentity-kinds", "--json"])
+    assert sorted(t["type"] for t in types) == [
+        "initiative",
+        "job",
+        "operator",
+        "record",
+        "role",
+        "skill",
+    ]
+    assert sorted(k["subentity_kind"] for k in kinds) == ["action", "outcome"]
+    assert {k["subentity_kind"]: k["label"] for k in kinds} == {
+        "action": "Action",
+        "outcome": "Desired outcome",
+    }
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.parametrize(
+    ("override", "refusal"),
+    [
+        (
+            "[subentity_kinds.subtask]\nmaps_parent_story = true\n",
+            "'maps_parent_story' was renamed 'maps_to_parent'",
+        ),
+        (
+            "[items.task]\nvalidators = ['subtask_story_mapping@warn']\n",
+            "'subtask_story_mapping@warn' was renamed 'subentity_mapping'",
+        ),
+        (
+            "[views.milestone_rollup]\n"
+            "transform = { module = 'squads._view_transforms', function = 'milestone_rollup' }\n",
+            "'milestone_rollup' was renamed 'status_rollup'",
+        ),
+    ],
+)
+async def test_an_override_spelling_a_renamed_grammar_name_is_refused_naming_the_new_one(
+    project, invoke, override: str, refusal: str
+) -> None:
+    _write_override(project, override)
+    assert refusal in await _lint_errors(invoke)
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.parametrize(
+    ("override", "cause", "remedy"),
+    [
+        (
+            "[items.bug]\nsubentity_kind = 'subtask'\n",
+            "'bug' has no parent_required",
+            "declare parent_required on 'bug'",
+        ),
+        (
+            "[items.bug]\nsubentity_kind = 'subtask'\nparent_required = 'epic'\n",
+            "its parent_required type 'epic' hosts no sub-entity kind",
+            "declare subentity_kind on 'epic'",
+        ),
+    ],
+)
+async def test_a_mapping_kind_without_a_target_is_refused_naming_both_remedies(
+    project, invoke, override: str, cause: str, remedy: str
+) -> None:
+    _write_override(project, override)
+    refusal = await _lint_errors(invoke)
+    assert cause in refusal
+    assert remedy in refusal
+    assert "drop maps_to_parent on 'subtask'" in refusal
+
+
+@pytest.mark.covers("workflow subentity-kinds", "--json")
+async def test_a_container_heading_is_the_declared_text_or_the_title_cased_plural(
+    override_project, invoke
+) -> None:
+    kinds = await read_json(invoke, ["workflow", "subentity-kinds", "--json"])
+    assert {k["subentity_kind"]: k["container_heading"] for k in kinds} == {
+        "outcome": "Desired Outcomes",
+        "action": "Actions",
+    }
+    initiative = next((override_project.squad_dir / "initiatives").glob("INI-*.md"))
+    job = next((override_project.squad_dir / "jobs").glob("JOB-*.md"))
+    assert "\n## Desired Outcomes\n" in initiative.read_text(encoding="utf-8")
+    assert "\n## Actions\n" in job.read_text(encoding="utf-8")

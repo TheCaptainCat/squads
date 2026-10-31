@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from tests.cli._readable import init_readable_with_history, lines
+from tests._readable import init_readable_with_history, lines
 
 pytestmark = pytest.mark.anyio
 
@@ -115,7 +115,7 @@ async def test_tail_refuses_a_value_that_is_not_an_integer(history, invoke) -> N
             "Usage: sq reflog [OPTIONS]",
             "Try 'sq reflog --help' for help.",
             "╭─ Error ──────────────────────────────────────────────────────────────────────╮",
-            "│ Invalid value for '--tail' / '-n': 'many' is not a valid integer.            │",
+            "│ Invalid value for '--tail' / '-n': 'many' is not a valid int.                │",
             "╰──────────────────────────────────────────────────────────────────────────────╯",
         ],
     )
@@ -142,7 +142,7 @@ async def test_json_prints_one_object_per_entry(history, invoke) -> None:
     assert json.dumps(await _entries(invoke, "--since", "2026-06-08")) == json.dumps(
         [
             {
-                "v": "0.17",
+                "v": "0.19",
                 "ts": "2026-06-08T09:00:00Z",
                 "actor": "manager",
                 "op": "comment",
@@ -152,4 +152,17 @@ async def test_json_prints_one_object_per_entry(history, invoke) -> None:
                 "parent_session_id": None,
             }
         ]
+    )
+
+
+@pytest.mark.covers("reflog", "--op")
+async def test_op_refuses_an_operation_the_log_does_not_know(history, invoke) -> None:
+    assert await _reflog(invoke, "--op", "ghost") == (
+        1,
+        [
+            "error: unknown operation 'ghost' (one of: create, status, update, body, view, "
+            "comment, comment_edit, comment_remove, subentity, ref, link, retype, default_role, "
+            "remove, repair, renumber, migrate, rename-type, rename-status, rename-field, "
+            "rename-kind)"
+        ],
     )
