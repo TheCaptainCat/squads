@@ -3,7 +3,7 @@ id: TASK-1222
 sequence_id: 1222
 type: task
 title: Dogfood the daemon on this repository's board
-status: InProgress
+status: InReview
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -22,16 +22,16 @@ subentities:
   maps_to: US8
 - local_id: ST2
   title: Trial with SQUADS_DAEMON=on and record the result
-  status: InProgress
+  status: Done
   assignee: qa
   maps_to: US8
 - local_id: ST3
   title: Live check of remote timeouts and Ctrl-C
-  status: InProgress
+  status: Done
   assignee: qa
   maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-31T08:21:06Z'
+updated_at: '2026-10-31T08:31:46Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -128,8 +128,40 @@ Afterwards `sq repair` has nothing to fix, `sq check` is clean, and `sq daemon s
   - The dogfood trial waits until the ADR-1261 architecture (TASK-1262 to TASK-1266) is delivered (2026-10-30).
 - [2026-10-31T08:17:58Z] `op-pierre` Pierre Chat:
   - Go for the dogfood (2026-10-31): this repository's squad switches to daemon mode.
-- [2026-10-31T08:21:04Z] `qa` Mara Tester:
-  - trial probe A (daemon write)
-- [2026-10-31T08:21:06Z] `qa` Mara Tester:
-  - trial probe B (local write)
+- [2026-10-31T08:30:28Z] `qa` Mara Tester:
+  - Trial result (qa, 2026-10-31), installed 0.19.0 uv-tool build with the shim against this repository's own squad (daemon enabled by the operator, 9fc0d2a5), host load average 0.4 to 1.8 on 14 cores. Overall: no stale read, lost write, wrong refusal or stuck process found; no bug filed. Untested items are listed at the end.
+    
+    | # | What I ran | Result |
+    |---|---|---|
+    | 1 | Reads: `task 1222 show [--full --comments] [--json]`, `list --json`, `board list`, `tree 1140 --json`, `check --json`, `mine`, `inbox`, `workflow lifecycles`, `docs`, `--help`, `task --help`, `daemon status --json`, plus 5 error cases (unknown subtask, bad status, unknown command, bad hash, missing item), each daemon vs `SQUADS_DAEMON=off` | stdout, stderr and exit code identical (15 reads, 5 errors). One `list --json` differed only by another agent's `updated_at` on TASK-1267 written between the two runs; rerun twice per mode gave 4 identical files. `COLUMNS=60` and `NO_COLOR` forms identical too |
+    | 2 | Writes: `task 1222 comment -m`, `--file -` with a backtick, 8 parallel comments (4 daemon + 4 local at once), 6 alternating daemon/local writes each followed by a read in both modes | all visible at once in both modes (6 of 6 alternations, 8 of 8 parallel); no lost write |
+    | 3 | `task 1222 subtask 2 body --append --file F` (backticks, `[x]`), `--file -` through the daemon and in local mode, missing file in both modes | all applied, read back intact; missing file gives the same `error: cannot read file '/nonexistent.md'` and exit 1 in both modes; no stray `</content>` |
+    | 4 | Subtask status moves: ST2 and ST3 Todo to InProgress (assignee qa) | applied |
+    | 5 | `comment <hash> remove --as qa` in a pty, answer `n` | prompt `Remove this comment? [y/N]:`, `Aborted.`, exit 1, comment still present |
+    | 6 | Same, answer `y` | removed, exit 0, gone in a later read |
+    | 7 | Same, with the comment edited from another process between question and answer | `error: no comment 7fab8bc in TASK-1222's discussion (edited or removed since it was read?)`, exit 1, nothing removed. The documented re-ask on a changed screen was not reached, because an edit changes the hash |
+    | 8 | Completion: bash `_SQ_COMPLETE=complete_bash COMP_WORDS="sq task 1222 " COMP_CWORD=3`, partial `sub`, `sq ta`, zsh `complete_zsh`, `source_bash` | the 14 sub-verbs listed; identical md5 daemon vs local for bash and zsh; 53 ms |
+    | 9 | `daemon status`, `stop`, `stop --json`, status when none, next command | `daemon stopped`; `none running` rc 0; `{"was_running": false}`; the next `show` started a fresh daemon (1.07 s) |
+    | 10 | Whitespace line appended to `.squads.toml`, then a command, then revert | the command ran in local mode (883 ms), the old pid exited, the next command (910 ms) started a new daemon; file restored byte for byte (same sha256, `git diff` empty) |
+    | 11 | Interleaved terminals: daemon writer + local reader and the reverse | see rows 2 and 10; plus `sq repair --json` through the daemon and locally: same bytes, `missing/unreadable/renumbered` all empty |
+    | 12 | ST3 case 1: `kill -STOP` the daemon of a scratch squad (outside the repository, `SQUADS_DAEMON=on`), `sq repair`, resume at 60 s | stderr `waiting for the daemon (squad.repair)…` once at 10.0 s; after resume `rebuilt index: 4 items, counter=4`, exit 0 |
+    | 13 | ST3 case 2: paused daemon, `task 2 comment -m "timeout probe" --as manager` | after 300.1 s stderr `error: no answer from the squad served at /run/user/1000/squads/ba7ea6bc073c.sock after 300 s; the operation may still complete. Check its result before running it again.`, exit 1 (300.2 s total); after resume `show --comments` and `show --json` carry the probe exactly once |
+    | 14 | ST3 case 3: paused daemon, write in a pty, Ctrl-C at 4 s | same sentence without the duration, ended at once, exit 130; the write present exactly once after resume |
+    | 15 | ST3 case 4: daemon stopped, runtime directory `chmod 000` (done on a private `XDG_RUNTIME_DIR`, not the shared `/run/user/1000/squads`), `task 2 show` | `warning: the daemon could not be used (cannot create …/rt/squads: Permission denied); running locally. Set SQUADS_DAEMON=off or enabled = false …`, ran locally, exit 0, no timeout message; mode restored, directory removed |
+    | 16 | After: `sq repair`, `sq check`, `daemon status --json` after `daemon stop` | repair nothing to fix; `check` "no issues"; `{"running": false, "daemon": null}` |
+    
+    Timings (ms, wall clock of the whole command, python `perf_counter`, uv tool build):
+    
+    | Command | Daemon | Local (`SQUADS_DAEMON=off`) |
+    |---|---|---|
+    | `task 1222 show`, cold (no daemon, includes the start) | 969, 1067, 883 to 910 after a retire | |
+    | `task 1222 show`, warm | 95 to 182 (n=5, median 108) | 568 to 670 (n=3) |
+    | `task 1222 show --full --comments`, warm | 163, 163 | |
+    | `check`, cold daemon (start + empty parse cache) | 3907 | |
+    | `check`, warm | 3094 (first after the start), then 1831, 1567, 1752 | 7220, 6851 |
+    | bash completion | 53 | |
+    
+    Not tested, or only partly: `sq ui` (the uv-tool build has no `tui` extra: `error: the sq ui terminal UI needs the optional 'tui' extra`, so browsing through the daemon and a stop while it is open were not run); a real interactive Tab in zsh (a pty session was inconclusive; only the completion protocol in both shells was checked); the changed-screen re-ask of a confirmed removal (row 7); `renumber` dry run; native Windows.
+    
+    Observations, not defects: (a) the 16 trial comments I wrote on this task were not removed. My cleanup loop was blocked by a safety check, so they stay for the operator or the author to remove: they start with "trial probe", "interleave", "par " and "cmt via stdin". (b) With `enabled = true` here, a dev-tree `uv run sq` or a worktree build starts its own daemon on this squad: I saw two (the repository `.venv` and `.claude/worktrees/agent-*`) beside the uv-tool one, each serving the code it started with. It is the documented behaviour, but it now applies to every contributor session in this checkout, so SQUADS_DAEMON=off for dev-tree runs may be worth stating in the contributor notes (ST1). (c) I did not touch ST1.
 <!-- sq:discussion:end -->

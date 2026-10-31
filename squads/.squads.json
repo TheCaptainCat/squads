@@ -33697,7 +33697,7 @@
       "type": "task",
       "title": "Dogfood the daemon on this repository's board",
       "slug": "dogfood-the-daemon-on-this-repository-s-board",
-      "status": "InProgress",
+      "status": "InReview",
       "description": "enabled = false committed with a switch-on step, SQUADS_DAEMON=on trial, result recorded before enabling",
       "parent": "FEAT-1140",
       "author": "tech-lead",
@@ -33724,7 +33724,7 @@
         {
           "local_id": "ST2",
           "title": "Trial with SQUADS_DAEMON=on and record the result",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "qa",
           "maps_to": "US8",
           "deferred_to": null,
@@ -33733,7 +33733,7 @@
         {
           "local_id": "ST3",
           "title": "Live check of remote timeouts and Ctrl-C",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "qa",
           "maps_to": "US3",
           "deferred_to": null,
@@ -33742,7 +33742,7 @@
       ],
       "path": "tasks/TASK-001222-dogfood-the-daemon-on-this-repository-s-board.md",
       "created_at": "2026-10-28T14:08:45Z",
-      "updated_at": "2026-10-31T08:21:53Z",
+      "updated_at": "2026-10-31T08:31:46Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -35625,7 +35625,7 @@
       "type": "task",
       "title": "Hyphenate CLI argument names and guard against underscores",
       "slug": "hyphenate-cli-argument-names-and-guard-against-underscores",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Rename the five underscore argument names to hyphens; tests/meta guard over the command tree.",
       "parent": null,
       "author": "tech-lead",
@@ -35639,7 +35639,7 @@
         {
           "local_id": "ST1",
           "title": "Declare hyphenated metavars on the five arguments; update markers, usage assertions, docs",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -35648,7 +35648,7 @@
         {
           "local_id": "ST2",
           "title": "tests/meta guard: no underscore in any argument name, falsified",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -35657,7 +35657,7 @@
         {
           "local_id": "ST3",
           "title": "Positional-invocation check and CHANGELOG 0.19.0 strings for the writer",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -35666,7 +35666,7 @@
       ],
       "path": "tasks/TASK-001267-hyphenate-cli-argument-names-and-guard-against-underscores.md",
       "created_at": "2026-10-31T08:20:14Z",
-      "updated_at": "2026-10-31T08:21:05Z",
+      "updated_at": "2026-10-31T08:29:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
