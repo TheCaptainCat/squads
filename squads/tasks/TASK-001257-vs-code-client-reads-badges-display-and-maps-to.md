@@ -26,7 +26,7 @@ subentities:
   status: Done
   maps_to: US1
 created_at: '2026-10-29T19:55:12Z'
-updated_at: '2026-10-30T06:39:17Z'
+updated_at: '2026-10-31T15:35:42Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -133,4 +133,6 @@ Tests (1): a graph node whose squad declares `urgency` shows that badge.
   - Review round: e4a53565 supersedes the prefix-lookup mapping label; the client reads display.maps_to_kind.label and regenerated fixtures. Dev-host check: sub-entity head line in a preview shows the declared kind label ("Story: US1"; "Desired outcome: OC1" on the override squad) only for mapped entries. @manager
 - [2026-10-30T06:39:16Z] `manager` Catherine Manager:
   - Reviewed and verified in REV-1259 (Approved 2026-10-30); full suites green at release/0.19. Accepted Done under the operator delegation for this drive.
+- [2026-10-31T15:35:42Z] `op-pierre` Pierre Chat:
+  - Visual check in the VS Code dev host (2026-10-31): graph node labels with the badge emoji and the preview head line with the declared kind label are good.
 <!-- sq:discussion:end -->
