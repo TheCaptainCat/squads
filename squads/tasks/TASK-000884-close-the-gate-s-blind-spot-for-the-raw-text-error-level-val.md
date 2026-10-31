@@ -6,7 +6,6 @@ title: Close the gate's blind spot for the raw-text error-level validator
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-878:fixes
 - ADR-864
@@ -15,6 +14,7 @@ description: ValidatorEngine.gate() passes raw_text=None on a false premise, so 
   call on the record first.
 created_at: '2026-09-02T13:05:18Z'
 updated_at: '2026-09-02T15:26:36Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What is wrong

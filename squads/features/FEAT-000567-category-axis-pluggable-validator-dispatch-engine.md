@@ -6,7 +6,6 @@ title: Category axis + pluggable-validator dispatch engine
 status: Done
 parent: EPIC-538
 author: product-owner
-priority: high
 refs:
 - EPIC-540
 - ADR-541
@@ -20,6 +19,7 @@ subentities:
   status: Todo
 created_at: '2026-07-22T08:37:44Z'
 updated_at: '2026-09-01T13:50:41Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Capability

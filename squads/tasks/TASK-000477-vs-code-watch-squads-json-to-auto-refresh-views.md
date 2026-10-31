@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 description: 'Client: fs watcher auto-refresh (US3/F17 client)'
 created_at: '2026-07-18T20:10:33Z'
 updated_at: '2026-07-18T20:46:57Z'
+priority: medium
 ---
 <!-- sq:body -->
 Story: US3 (REV-448 F17, Medium). **Discipline: CLIENT / TypeScript** (`clients/vscode/`). No new core JSON surface.

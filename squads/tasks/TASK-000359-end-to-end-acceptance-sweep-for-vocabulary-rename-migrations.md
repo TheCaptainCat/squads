@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: End-to-end acceptance of rename-type
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: End-to-end acceptance of rename-status
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-07-09T21:34:36Z'
 updated_at: '2026-07-13T09:27:39Z'
 ---

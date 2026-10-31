@@ -5,8 +5,6 @@ type: bug
 title: Sub-entity update --force writes a status sq check calls an error
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - BUG-865
 description: sq <type> <n> <kind> <k> update --status <S> --force accepts a status
@@ -14,6 +12,8 @@ description: sq <type> <n> <kind> <k> update --status <S> --force accepts a stat
   sub-entity write door reaches ValidatorEngine.gate.
 created_at: '2026-09-02T09:46:36Z'
 updated_at: '2026-09-02T14:19:37Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

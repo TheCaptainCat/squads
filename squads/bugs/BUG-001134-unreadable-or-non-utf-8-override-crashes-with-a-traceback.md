@@ -6,11 +6,11 @@ title: Unreadable or non-UTF-8 override crashes with a traceback
 status: Verified
 parent: MILE-1051
 author: qa
-priority: medium
 refs:
 - REV-1133
 created_at: '2026-10-25T05:10:06Z'
 updated_at: '2026-10-25T19:52:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 Expected: an unreadable or non-UTF-8 override file is reported as a clean SquadsError (message plus exit 1, same wording family as the existing unreadable-override error that `sq role list` already gives), never a Rich traceback.

@@ -6,13 +6,13 @@ title: Spawned dev subagent self-spawns recursively (cascade up to 6 levels)
 status: Verified
 author: op-pierre
 assignee: qa
-priority: high
 refs:
 - FEAT-122
 description: A spawned specialist re-delegates instead of working, cascading same-role
   subagents many levels deep
 created_at: '2026-06-17T20:08:34Z'
 updated_at: '2026-06-21T22:27:41Z'
+priority: high
 ---
 <!-- sq:body -->
 **Observed.** Elias (python-dev) was spawned by the manager with a large implementation task. Instead of doing the work, he spawned another python-dev subagent, reasoning roughly "this is a big task, better call a subagent." The child inherited the same scope and toolset and did exactly the same thing — the spawn cascaded about 6 levels deep before any real work happened.

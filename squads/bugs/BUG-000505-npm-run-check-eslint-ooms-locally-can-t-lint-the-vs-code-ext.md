@@ -5,9 +5,9 @@ type: bug
 title: npm run check (eslint) OOMs locally — can't lint the VS Code extension
 status: Verified
 author: manager
-priority: low
 created_at: '2026-07-20T10:59:20Z'
 updated_at: '2026-07-20T12:23:49Z'
+priority: low
 ---
 <!-- sq:body -->
 npm run check's eslint step (eslint . --max-warnings 0, type-aware @typescript-eslint projectService) exhausts the Node heap and aborts (exit 134) in this WSL2 dev env — even at --max-old-space-size=8192 with 11Gi free. typecheck (tsc) and npm test/e2e run fine; only eslint OOMs.

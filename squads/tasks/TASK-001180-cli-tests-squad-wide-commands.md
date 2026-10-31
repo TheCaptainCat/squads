@@ -13,19 +13,19 @@ subentities:
 - local_id: ST1
   title: init and adopt
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: sync, repair, renumber, check
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST3
   title: import
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST4
   title: migrate group
   status: Done
-  story: US7
+  maps_to: US7
 created_at: '2026-10-27T21:35:13Z'
 updated_at: '2026-10-28T01:02:44Z'
 ---

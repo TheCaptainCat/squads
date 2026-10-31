@@ -15,43 +15,43 @@ subentities:
 - local_id: ST1
   title: Add the typed [squad] table with an empty bundled validators list
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Partition squad-global members into tiers with one default-level table
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Refuse invalid [squad] selections at spec load and in workflow lint
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Run always-on plus selected members in sq check with one clock read
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: Add children_settled_with_parent
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Add dependency_acyclic
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST7
   title: Add wip_limit with the shared active-item helper
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST8
   title: Add unassigned_active
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST9
   title: Add stale_active against the run's single clock instant
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST10
   title: Prove the selection on a scratch copy of this repository's squad
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-10-16T19:58:12Z'
 updated_at: '2026-10-16T21:16:06Z'
 ---

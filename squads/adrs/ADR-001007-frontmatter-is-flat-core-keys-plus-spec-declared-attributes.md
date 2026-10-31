@@ -17,10 +17,11 @@ refs:
 - ADR-323
 - FEAT-980
 - FEAT-986
+- ADR-1250
 description: No extra block; slug is core; roster keys are pinned spec attributes;
   unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner
 created_at: '2026-10-15T18:49:27Z'
-updated_at: '2026-10-25T21:42:32Z'
+updated_at: '2026-10-29T19:50:44Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -114,10 +115,8 @@ A frontmatter document is one flat mapping. Every top-level key is either **core
 
 **Core keys** are the model's own fields, common to every item and read by the internals:
 `id`, `sequence_id`, `type`, `title`, `slug`, `status`, `description`, `parent`, `author`,
-`assignee`, `priority`, `severity`, `labels`, `refs`, `subentities`, `created_at`,
-`updated_at`, `created_session`, `modified_session`. `priority` and `severity` stay core because
-they are already model fields with engine readers; their collections remain spec-declared
-(ADR-323).
+`assignee`, `labels`, `refs`, `subentities`, `created_at`, `updated_at`, `created_session`,
+`modified_session`.
 
 **Attributes** are every other key. A type's attributes are declared in the workflow spec, per
 type, in one grammar, for built-in, reserved and adopter types alike. No Python table lists the
@@ -180,7 +179,7 @@ tech = { kind = "str", settable = false }
 - `settable` (default `true`): whether `sq update --set` writes it. `false` is for keys a
   dedicated verb owns (`is_default` by `sq role set-default`, `tech` by `sq dev add`).
 - **Badge attributes stay in `fields`.** A custom badge field (`fields = [{ code, label,
-  collection }]`) is stored top-level under its code, like `priority`. Its validation is
+  collection }]`) is stored top-level under its code, like every badge field. Its validation is
   collection membership, checked where the index loads.
 - **Names the loader refuses** for an attribute or a badge code: any core key; any other
   attribute or badge code on the same type; the names `--json` adds to an item row (`badges`,
@@ -430,4 +429,6 @@ silently, which is the default.
   - 2026-10-16: accepted that frontmatter values are kept as JSON-representable values: YAML-only types are normalized on write (an unquoted date becomes a string of the same value; a non-string mapping key becomes a string key). Record it as a dated note on decision 5.
 - [2026-10-25T21:42:32Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale passages fixed; decision unchanged. The 2026-10-16 note folded into decision 5; the badge-code row corrected to the index load refusal (FEAT-900 was cancelled); RETIRED_ROLE_KEYS and PERMITTED_ATTRIBUTE_SKEW named; views added to row-added keys; build-order and dated-note bookkeeping removed.
+- [2026-10-29T19:50:44Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. §1: `priority` and `severity` leave the core-key list, and the sentence keeping them core is removed; they are attributes stored under their field code like every badge field (ADR-1250 §6). §4: "like `priority`" becomes "like every badge field". Context and the 0.16 migration section are unchanged, since they record the state at that time.
 <!-- sq:discussion:end -->

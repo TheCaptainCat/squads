@@ -6,7 +6,6 @@ title: Write each item file once per transaction in retype and import
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - MILE-934:targets
 - REV-956:addresses
@@ -28,6 +27,7 @@ subentities:
   status: Done
 created_at: '2026-10-09T20:28:05Z'
 updated_at: '2026-10-16T22:49:57Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

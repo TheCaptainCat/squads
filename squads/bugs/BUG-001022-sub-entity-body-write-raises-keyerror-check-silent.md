@@ -5,7 +5,6 @@ type: bug
 title: Sub-entity body write raises KeyError; check silent
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1020
 - MILE-1051:targets
@@ -13,6 +12,7 @@ description: 'Missing subtask body/block or discussion region: raw traceback on 
   no check finding'
 created_at: '2026-10-15T20:51:12Z'
 updated_at: '2026-10-25T17:52:50Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Summary

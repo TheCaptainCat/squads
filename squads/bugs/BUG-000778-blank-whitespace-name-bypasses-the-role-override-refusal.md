@@ -5,11 +5,11 @@ type: bug
 title: Blank/whitespace --name bypasses the role-override refusal
 status: Verified
 author: qa
-severity: medium
 refs:
 - REV-770
 created_at: '2026-08-22T09:33:45Z'
 updated_at: '2026-08-22T10:33:00Z'
+severity: medium
 ---
 <!-- sq:body -->
 Re-driven, symptom for symptom, in a fresh throwaway squad.

@@ -14,15 +14,15 @@ subentities:
 - local_id: ST1
   title: 'ref/subtree/subentity/role --json: dispatch to each kind''s existing serializer'
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: self/playbook --json + envelope-removal grep + emptiness cases
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: 'Gates: falsification, narration sweep, agreement pinning, sq check'
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-09-03T15:07:18Z'
 updated_at: '2026-09-04T07:36:08Z'
 ---

@@ -6,7 +6,6 @@ title: Rendered show output
 status: Done
 parent: EPIC-38
 author: product-owner
-priority: high
 refs:
 - FEAT-19:depends-on
 - BUG-25:depends-on
@@ -34,6 +33,7 @@ subentities:
   status: Done
 created_at: '2026-06-10T14:57:23Z'
 updated_at: '2026-09-01T13:47:44Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

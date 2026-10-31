@@ -6,7 +6,6 @@ title: 'Read-only browse: sidebar tree + rendered preview'
 status: Done
 parent: EPIC-99
 author: product-owner
-priority: low
 refs:
 - PRD-863:implements
 description: VS Code activity-bar tree from sq tree --json; clicking an item opens
@@ -23,6 +22,7 @@ subentities:
   status: Done
 created_at: '2026-06-14T20:45:15Z'
 updated_at: '2026-09-01T13:48:14Z'
+priority: low
 ---
 <!-- sq:body -->
 The first, browse-only increment of the VS Code extension (EPIC-99). A `SquadsTreeDataProvider` backed by `sq tree --json` renders the hierarchy in an activity-bar view; selecting a node opens the item's `sq show <id> --raw` clean-markdown dossier in VS Code's markdown preview through a `squads:` read-only virtual document. No mutations in this increment.

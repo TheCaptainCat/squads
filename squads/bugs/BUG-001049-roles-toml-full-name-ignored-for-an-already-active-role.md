@@ -5,7 +5,6 @@ type: bug
 title: roles.toml full_name ignored for an already-active role
 status: WontFix
 author: qa
-priority: medium
 refs:
 - REV-1047
 - MILE-934:targets
@@ -13,6 +12,7 @@ description: Catalog-document full_name renames only the catalog and new activat
   not a live role; per-slug file does.
 created_at: '2026-10-16T11:19:07Z'
 updated_at: '2026-10-16T16:18:14Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Repro (dev build, scratch squad)

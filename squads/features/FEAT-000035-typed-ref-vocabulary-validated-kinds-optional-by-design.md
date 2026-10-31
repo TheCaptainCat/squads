@@ -6,7 +6,6 @@ title: 'Typed ref vocabulary: validated kinds, optional by design'
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - BUG-21
 - FEAT-13
@@ -29,6 +28,7 @@ subentities:
   status: Done
 created_at: '2026-06-11T07:19:35Z'
 updated_at: '2026-09-01T13:47:49Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

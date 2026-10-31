@@ -6,13 +6,13 @@ title: Prefer the resolved mission in the role body template
 status: Draft
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - ADR-766:implements
 description: One-line template precedence flip plus a manifest regen that must follow
   the version bump so the prior release's entry stays intact
 created_at: '2026-08-21T19:53:00Z'
 updated_at: '2026-08-21T19:53:21Z'
+priority: low
 ---
 <!-- sq:body -->
 A one-line precedence change in the generated role body template, and a manifest regeneration whose

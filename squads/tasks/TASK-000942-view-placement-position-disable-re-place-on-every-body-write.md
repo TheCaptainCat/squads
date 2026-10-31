@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-948
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-880:implements
 - TASK-941:depends-on
@@ -19,44 +18,44 @@ subentities:
 - local_id: ST1
   title: The required key on the view declaration, and its grammar docs
   status: Cancelled
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Seeded-view helper: required retired, one slug source'
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: This project's spec selection — no selection exists to take
   status: Cancelled
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Replace refused on a required host, in the shared body closure
   status: Cancelled
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Roster bodies refuse prose, naming the authoring surface
   status: Done
   assignee: python-dev
-  story: US7
+  maps_to: US7
 - local_id: ST6
   title: view add places or re-enables; view disable; view rm retired
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST7
   title: 'Exactly-once seeded views: post-write check and sq check'
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST8
   title: All six bundled views declare required
   status: Cancelled
-  story: US5
+  maps_to: US5
 - local_id: ST9
   title: 'Remedy text: role/skill show hints and the shadowed warning'
   status: Done
   assignee: python-dev
-  story: US7
+  maps_to: US7
 - local_id: ST10
   title: 'Regression matrix: position x body shape, host x verb'
   status: Done
@@ -65,38 +64,39 @@ subentities:
   title: Delete the dead body-tag skip channel
   status: Done
   assignee: python-dev
-  story: US6
+  maps_to: US6
 - local_id: ST12
   title: Migration reclaims sq-<type> skills and survives mid-chain skew
   status: Done
   assignee: python-dev
-  story: US6
+  maps_to: US6
 - local_id: ST13
   title: View position key and view-name alphabet, checked at load
   status: Done
   assignee: python-dev
-  story: US8
+  maps_to: US8
 - local_id: ST14
   title: Disabled tag state; view_tag_name returns name and state
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST15
   title: One re-placement routine for every body write
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST16
   title: Regenerate the v0_15 corpus fixture; README check step
   status: Done
   assignee: python-dev
-  story: US6
+  maps_to: US6
 - local_id: ST17
   title: Docs and CHANGELOG for positioned, disableable views
   status: Done
   assignee: tech-writer
 created_at: '2026-09-14T12:15:27Z'
 updated_at: '2026-09-29T09:28:38Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

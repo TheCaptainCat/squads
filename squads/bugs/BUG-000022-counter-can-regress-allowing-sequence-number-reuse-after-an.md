@@ -5,7 +5,6 @@ type: bug
 title: Counter can regress, allowing sequence-number reuse after an item file disappears
 status: Verified
 author: product-owner
-priority: high
 refs:
 - FEAT-19
 - FEAT-23
@@ -14,6 +13,7 @@ description: Hand-edited or repair-rebuilt indexes accept a regressed counter, s
   previous high-water mark
 created_at: '2026-06-10T13:51:32Z'
 updated_at: '2026-06-11T20:40:07Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Observed (live incidents, 2026-06-10, this very squad)

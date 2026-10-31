@@ -12,12 +12,12 @@ subentities:
 - local_id: ST1
   title: Hide aliases from root help; mention the table once (epilog or type help)
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Render the alias table in the workflow cheatsheet with the add-only rule;
     tie into FEAT-000013 contract
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-15T07:42:48Z'
 updated_at: '2026-07-06T15:18:05Z'
 ---

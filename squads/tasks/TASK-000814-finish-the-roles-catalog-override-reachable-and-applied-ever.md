@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-777:implements
 - TASK-800
@@ -19,17 +18,18 @@ subentities:
 - local_id: ST1
   title: Wire the roles kind into the override CLI verbs
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Apply the catalog document to an activated role
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: sq role catalog lists project-declared roles
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-08-25T21:05:19Z'
 updated_at: '2026-08-25T23:40:02Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: typescript-dev
-priority: low
 refs:
 - TASK-1228:depends-on
 description: Comment-only fix of two stale _services/_refs.py pointers in graphDiagrams.ts
@@ -15,9 +14,10 @@ subentities:
 - local_id: ST1
   title: Update the two helper pointers
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-10-29T01:30:24Z'
 updated_at: '2026-10-29T01:31:32Z'
+priority: low
 ---
 <!-- sq:body -->
 The comments at lines 30 and 138 of `clients/vscode/src/domain/graphDiagrams.ts` name `_mermaid_node_id` and `_collect_edges` in `_services/_refs.py`. Both helpers now live in `src/squads/_cli/_render/_graph.py`, where TASK-1228 moved them. Update the two pointers; no code change.

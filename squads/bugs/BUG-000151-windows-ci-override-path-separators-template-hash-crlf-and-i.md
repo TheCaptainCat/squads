@@ -6,11 +6,11 @@ title: 'Windows CI: override path separators, template-hash CRLF, and init promp
   abort'
 status: Verified
 author: manager
-priority: high
 refs:
 - FEAT-15
 created_at: '2026-06-17T12:37:46Z'
 updated_at: '2026-06-17T13:00:48Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Symptom

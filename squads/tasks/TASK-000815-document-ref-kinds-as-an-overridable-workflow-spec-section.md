@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: tech-writer
-priority: medium
 refs:
 - ADR-775:implements
 - TASK-796:depends-on
@@ -21,29 +20,30 @@ subentities:
   title: Name ref_kinds in every override-section enumeration
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Write the ref-kinds field reference in the override docs
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Complete the workflow.md override-format field reference
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Cover ref kinds in the drop-and-rename live-corpus prose
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Restore the duplicate-filing guidance in the docs, not the spec
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T22:33:00Z'
 updated_at: '2026-08-26T16:00:51Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

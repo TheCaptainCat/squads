@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: 'All agents: memory+board load-on-start in CLAUDE.md/AGENTS.md + role sheet'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Manager: load squads skill on start + after compaction'
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-24T13:06:23Z'
 updated_at: '2026-07-24T13:49:22Z'
 ---

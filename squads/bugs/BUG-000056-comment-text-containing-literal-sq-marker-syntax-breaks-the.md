@@ -5,9 +5,9 @@ type: bug
 title: Comment text containing literal sq marker syntax breaks the item's marker integrity
 status: Verified
 author: manager
-priority: high
 created_at: '2026-06-12T08:06:24Z'
 updated_at: '2026-06-12T08:36:01Z'
+priority: high
 ---
 <!-- sq:body -->
 **Repro.** `sq feature 40 comment --as reviewer -m '… touches the sq:body region …'` where the message contains a *well-formed marker tag* (an HTML comment wrapping `sq:body` — not reproduced literally here, because the body guard rejects it). The comment text is appended verbatim into the discussion region, so `sq check` then reports 'duplicate marker' / 'unclosed marker' on the item file. Observed live on FEAT-40, 2026-06-12.

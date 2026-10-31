@@ -6,7 +6,6 @@ title: 'Reflog core: append-only JSONL log wired into the transaction seam'
 status: Done
 parent: FEAT-24
 author: tech-lead
-priority: medium
 refs:
 - FEAT-15
 description: Append-only operation log written atomically inside IndexStore.transaction();
@@ -15,13 +14,14 @@ subentities:
 - local_id: ST1
   title: Append one JSONL reflog line per mutating transaction
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Thread actor + op identity down to the store
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-15T08:20:48Z'
 updated_at: '2026-06-23T09:58:54Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

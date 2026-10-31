@@ -5,11 +5,11 @@ type: bug
 title: sq --json emits ANSI and breaks JSON parsing when FORCE_COLOR is set
 status: Verified
 author: manager
-severity: medium
 refs:
 - FEAT-15
 created_at: '2026-06-24T09:46:27Z'
 updated_at: '2026-07-19T19:05:16Z'
+severity: medium
 ---
 <!-- sq:body -->
 ## Symptom

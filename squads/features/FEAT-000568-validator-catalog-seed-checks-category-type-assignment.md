@@ -6,7 +6,6 @@ title: 'Validator catalog: seed checks + category/type assignment'
 status: Done
 parent: EPIC-540
 author: product-owner
-priority: medium
 refs:
 - FEAT-567
 - ADR-541
@@ -20,6 +19,7 @@ subentities:
   status: Todo
 created_at: '2026-07-22T08:38:35Z'
 updated_at: '2026-09-01T13:50:44Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Capability

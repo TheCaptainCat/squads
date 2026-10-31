@@ -5,12 +5,12 @@ type: bug
 title: Per-item verb help needs an existing item
 status: Verified
 author: qa
-priority: medium
 refs:
 - REV-958
 - MILE-1051:targets
 created_at: '2026-10-17T05:06:10Z'
 updated_at: '2026-10-25T11:11:36Z'
+priority: medium
 ---
 <!-- sq:body -->
 `--help` on a per-item verb cannot be displayed unless the number resolves to an existing item of that type. Found in REV-958 F6; reproduced on release/0.16 HEAD 3c99dcc8 (clean export, fresh scratch squad) and on the released 0.15.0.

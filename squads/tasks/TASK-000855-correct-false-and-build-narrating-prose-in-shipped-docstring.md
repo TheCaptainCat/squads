@@ -5,7 +5,6 @@ type: task
 title: Correct false and build-narrating prose in shipped docstrings
 status: Done
 author: tech-lead
-priority: medium
 refs:
 - REV-854:addresses
 - MILE-836:targets
@@ -36,6 +35,7 @@ subentities:
   status: Done
 created_at: '2026-09-01T11:22:08Z'
 updated_at: '2026-09-02T14:01:19Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

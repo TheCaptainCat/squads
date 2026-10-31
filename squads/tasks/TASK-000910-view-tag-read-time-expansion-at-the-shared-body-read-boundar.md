@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-905
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - TASK-909:depends-on
 - ADR-880:implements
@@ -17,29 +16,30 @@ subentities:
 - local_id: ST1
   title: Expand at the single shared body-read boundary
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Render through the existing view path, additively
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Expansion is read-only; expanded bytes never reach disk
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Unresolvable name stays literal; a render failure is loud
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: View output is never re-scanned for tags
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST6
   title: Gates and test falsification
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-09-03T10:06:15Z'
 updated_at: '2026-09-03T14:37:49Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

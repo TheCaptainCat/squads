@@ -6,16 +6,16 @@ title: Golden-file tests freezing every --json shape
 status: Done
 parent: FEAT-15
 author: tech-lead
-priority: high
 refs:
 - REV-94:addresses
 subentities:
 - local_id: ST1
   title: Golden files freezing every --json shape
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T15:27:48Z'
 updated_at: '2026-07-06T15:19:37Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

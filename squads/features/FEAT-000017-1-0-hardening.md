@@ -6,11 +6,11 @@ title: 1.0 hardening
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 description: Migration fixture corpus in CI, ~1000-item scale sanity test, verified
   shell completion, decision on the Python >= 3.14 floor
 created_at: '2026-06-10T12:41:22Z'
 updated_at: '2026-06-15T12:31:52Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

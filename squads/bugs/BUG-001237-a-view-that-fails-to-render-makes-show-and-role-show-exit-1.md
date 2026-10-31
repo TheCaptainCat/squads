@@ -5,12 +5,12 @@ type: bug
 title: A view that fails to render makes show and role show exit 1
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - FEAT-1226
 created_at: '2026-10-29T06:59:37Z'
 updated_at: '2026-10-29T07:15:50Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Steps

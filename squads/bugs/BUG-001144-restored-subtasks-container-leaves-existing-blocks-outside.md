@@ -5,11 +5,11 @@ type: bug
 title: Restored subtasks container leaves existing blocks outside
 status: Verified
 author: qa
-priority: low
 refs:
 - TASK-1135
 created_at: '2026-10-25T17:53:49Z'
 updated_at: '2026-10-26T06:46:43Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Reproduction

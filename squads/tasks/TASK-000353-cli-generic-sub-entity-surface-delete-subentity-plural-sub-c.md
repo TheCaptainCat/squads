@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: add-<kind> verb built dynamically from spec; e.g. incident add-action
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-09T21:31:33Z'
 updated_at: '2026-07-13T09:27:34Z'
 ---

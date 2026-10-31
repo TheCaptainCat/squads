@@ -7,25 +7,25 @@ status: Done
 parent: FEAT-237
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: Strip refs from comments/docstrings
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Restyle: terse + history-free'
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Remove refs from CLI help/output strings
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 created_at: '2026-07-06T12:55:25Z'
 updated_at: '2026-07-06T13:51:15Z'
+priority: medium
 ---
 <!-- sq:body -->
 SRC WAVE (part 2 of 2). Scope: all Python under src/squads/_services, _index, _migrations, _cli, _backends, _rendering, and the top-level src/squads/*.py. Blast radius: ~180 ref-hits, PLUS every comment/docstring for the restyle pass. This cluster owns _cli, so it carries the bulk of the CLI help/output-string work. Disjoint file set from part 1 — safe to run in parallel. Combines ref-strip (US1), terse/history-free restyle (US2), and CLI/output-string ref-removal (US4) into ONE owner per file so no file is double-touched. Done when: zero squad-item refs remain in these files' comments/docstrings/strings; commentary terse + history-free; CLI help/output strings had real refs removed without rewording (illustrative --parent FEAT-… / sq task <n> shapes may stay); full suite green and UNCHANGED; pyright + ruff clean.

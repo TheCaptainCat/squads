@@ -6,7 +6,6 @@ title: Report import validator levels honestly and exit 3 on error findings
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-878:fixes
 description: sq import flattens error- and warn-level findings into one warning list
@@ -14,6 +13,7 @@ description: sq import flattens error- and warn-level findings into one warning 
   keeping the write.
 created_at: '2026-09-02T13:05:09Z'
 updated_at: '2026-09-02T14:01:37Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What is wrong

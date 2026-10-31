@@ -6,7 +6,6 @@ title: Multi-active agent backends (active_backends)
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - FEAT-16
 - ADR-133
@@ -25,6 +24,7 @@ subentities:
   status: Done
 created_at: '2026-06-16T09:38:58Z'
 updated_at: '2026-09-01T13:48:23Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Decision (op-pierre, 2026-06-16)

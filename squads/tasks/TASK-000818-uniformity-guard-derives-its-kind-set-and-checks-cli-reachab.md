@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - REV-817:addresses
 - TASK-801
@@ -19,19 +18,20 @@ subentities:
   title: Derive the guard's kind set from scan_overrides
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Add CLI reachability as the fifth uniformity element
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Correct the dispatcher claim in _uniformity_gaps' docstring
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 created_at: '2026-08-25T22:57:39Z'
 updated_at: '2026-08-26T16:00:56Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

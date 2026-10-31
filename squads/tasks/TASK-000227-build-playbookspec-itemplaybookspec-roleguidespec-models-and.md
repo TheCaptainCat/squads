@@ -12,11 +12,11 @@ subentities:
   title: PlaybookSpec/ItemPlaybookSpec/RoleGuideSpec models, extra=forbid, ordered
     guides
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Author bundled playbook.toml transcribing today's 7 work-type entries
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-06-26T08:04:10Z'
 updated_at: '2026-07-06T15:20:58Z'
 ---

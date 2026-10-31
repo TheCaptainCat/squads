@@ -7,9 +7,9 @@ status: Done
 parent: FEAT-570
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 created_at: '2026-07-22T13:00:57Z'
 updated_at: '2026-07-23T07:09:24Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-570 US3 (VS Code plumbing). Wire `category` into the extension's type-catalog consumption and use it to exclude records-category types from the work tree (they move to their own view in TASK-601). Depends on US1 (TASK-595 exposes `category` on `sq workflow types --json`).

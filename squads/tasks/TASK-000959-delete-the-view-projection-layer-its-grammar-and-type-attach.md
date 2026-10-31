@@ -6,7 +6,6 @@ title: Delete the view projection layer, its grammar, and type-attachment
 status: Done
 parent: FEAT-904
 author: tech-lead
-priority: urgent
 refs:
 - ADR-880:implements
 description: Rip out the projection middle layer, fields/group_by/order_by, its validators
@@ -15,29 +14,30 @@ subentities:
 - local_id: ST1
   title: Relation sources resolve to real items; delete the record layer
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Collapse the render and --json seams onto one source shape
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Delete fields/group_by/order_by and the validators that proved them
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Delete ItemSpec.views type-attachment and its orphan pruning
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Rebuild milestone_rollup as a one-line source plus a Jinja template
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Update the view reference docs to the reduced declaration
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-09-21T16:48:35Z'
 updated_at: '2026-09-24T08:49:22Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

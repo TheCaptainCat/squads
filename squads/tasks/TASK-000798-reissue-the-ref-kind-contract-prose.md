@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: tech-writer
-priority: high
 refs:
 - ADR-775:implements
 - TASK-797:depends-on
@@ -19,29 +18,30 @@ subentities:
   title: Retire the closed-vocabulary passage from docs/stability.md
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Retire the closed-vocabulary line from the cheatsheet template
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Regenerate the template manifest and managed artifacts
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Make the cheatsheet kinds table spec-driven
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 - local_id: ST5
   title: Retire the closed-vocabulary claim from the README
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 created_at: '2026-08-25T14:40:28Z'
 updated_at: '2026-08-25T23:39:43Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

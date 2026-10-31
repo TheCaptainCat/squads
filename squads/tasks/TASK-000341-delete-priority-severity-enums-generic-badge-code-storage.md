@@ -17,11 +17,11 @@ subentities:
   title: Delete enums/*_EMOJI/DEFAULT_SEVERITY/severity_field; fields_for severity
     lookup
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Generic storage: badge code only, bug severity -> top-level, render fallback'
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-09T08:20:10Z'
 updated_at: '2026-07-09T11:40:37Z'
 ---

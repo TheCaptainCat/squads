@@ -7,7 +7,6 @@ status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - TASK-1112:depends-on
 - TASK-1113:depends-on
@@ -17,33 +16,34 @@ subentities:
 - local_id: ST1
   title: Rebuild spec, override and vocabulary loading at the load boundary
   status: Todo
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: Rebuild the sq check rules as one boundary table per check
   status: Todo
-  story: US7
+  maps_to: US7
 - local_id: ST3
   title: 'Rebuild the CLI spine: -C, schema gate, exit codes and clean --json'
   status: Todo
-  story: US7
+  maps_to: US7
 - local_id: ST4
   title: Rebuild views, view tags, comments and discussion tests
   status: Todo
-  story: US7
+  maps_to: US7
 - local_id: ST5
   title: Rebuild items, sub-entities, refs and roster lifecycle service tests
   status: Todo
-  story: US7
+  maps_to: US7
 - local_id: ST6
   title: Prove engine, services and CLI parity and delete their old files
   status: Todo
-  story: US9
+  maps_to: US9
 - local_id: ST7
   title: Rebuild role resolution and role creation tests
   status: Todo
-  story: US7
+  maps_to: US7
 created_at: '2026-10-24T13:42:16Z'
 updated_at: '2026-10-27T20:16:25Z'
+priority: high
 ---
 <!-- sq:body -->
 Rebuild the spec engine, services and CLI in the new root (US7), then prove parity and delete the old files this area covers (US9). This is the bulk of the suite and the bulk of the duplicate coverage. It runs after the integrity-core increment and before the backend one.

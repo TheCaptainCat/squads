@@ -7,28 +7,28 @@ status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
-priority: high
 description: New root beside the old one, conventions, naming and owner-layer guards,
   copy-per-row fixtures, golden mechanism.
 subentities:
 - local_id: ST1
   title: Write the conventions, layer policy and review checks for the new root
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Add meta guards for test naming and one owner layer per seam
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Create the new root with copy-per-row fixtures and the golden mechanism
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Hold the new root to the one-line test docstring rule
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-10-24T13:42:14Z'
 updated_at: '2026-10-27T20:16:23Z'
+priority: high
 ---
 <!-- sq:body -->
 Set up the new suite's root, its rules and the guards that enforce them, so the area rebuilds that follow write to one standard. Covers US3 (conventions), US4 (meta guards) and US5 (fixtures and goldens). No old test is deleted here except the `tests/meta` guards that move to the new root.

@@ -6,7 +6,6 @@ title: 'Validator assignment grammar: level, threshold, required context'
 status: Done
 parent: EPIC-540
 author: product-owner
-priority: high
 refs:
 - MILE-867:targets
 - ADR-864:implements
@@ -30,6 +29,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:02:24Z'
 updated_at: '2026-09-08T14:56:29Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Why this is first

@@ -5,7 +5,6 @@ type: epic
 title: Pluggable item validators (declarative sq check)
 status: InProgress
 author: product-owner
-priority: medium
 refs:
 - EPIC-538
 - ADR-864
@@ -14,6 +13,7 @@ description: Turn sq check + create/update gating into a declarative, pluggable 
   bundles.
 created_at: '2026-07-21T15:56:09Z'
 updated_at: '2026-09-03T09:02:19Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Outcome

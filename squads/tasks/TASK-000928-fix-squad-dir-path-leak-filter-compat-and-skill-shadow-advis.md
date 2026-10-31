@@ -14,21 +14,21 @@ subentities:
 - local_id: ST1
   title: Fix the squad_dir absolute-path leak in squads_skill and memory_skill
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Keep linearize_lifecycle as a one-release compatibility global alongside
     the filter
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: 'sq check advisory: a declared type''s generated skill guidance is shadowed
     by authored content'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Fix the second narration instance in the repair convergence test docstring
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-09-04T14:39:48Z'
 updated_at: '2026-09-10T09:40:25Z'
 ---

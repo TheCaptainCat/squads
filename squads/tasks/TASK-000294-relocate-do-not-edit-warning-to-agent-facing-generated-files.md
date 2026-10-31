@@ -13,19 +13,19 @@ subentities:
 - local_id: ST1
   title: Remove redundant squad-skill do-not-edit marker and version stamp
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add the warning inside CLAUDE.md and AGENTS.md managed regions
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Make .claude/ pointer files state the pointer itself is regenerated
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Document the tool-generated-warning rule as an AgentBackend contract
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-05T20:53:29Z'
 updated_at: '2026-07-05T21:31:11Z'
 ---

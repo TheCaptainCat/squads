@@ -12,15 +12,15 @@ subentities:
   title: Single slug->description registry in _interactions; backend reads it for
     pointers; descriptions on items
   status: Todo
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Migration stamps and backfills descriptions onto skill items
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Fresh sq init stamps skill descriptions from the registry
   status: Todo
-  story: US3
+  maps_to: US3
 created_at: '2026-06-25T09:28:03Z'
 updated_at: '2026-07-06T15:19:56Z'
 ---

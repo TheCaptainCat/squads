@@ -7,20 +7,20 @@ status: Done
 parent: FEAT-35
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Single canonical eight-row kinds table in workflow.md.j2 (meaning/direction/consumer);
     ref add --kind help points at it
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: depends-on equivalence in sq blocked (A depends-on B == B blocks A; mixed
     usage works)
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-06-11T20:22:02Z'
 updated_at: '2026-07-06T15:18:19Z'
+priority: high
 ---
 <!-- sq:body -->
 Wire the three new kinds into their consumers and ship the one canonical kinds table. Builds on TASK-50 (the `VALID_REF_KINDS` constant must exist first). Per **ADR-49**: closed vocabulary, no project-config lookup; `sq check`'s unknown-kind warning is a flat set-membership test; the docs table is the **contract wording**.

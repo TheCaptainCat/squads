@@ -10,11 +10,12 @@ refs:
 - MILE-1152
 - ADR-1052
 - ADR-1225
+- ADR-1261
 description: Each command validates, calls one operation through an Api (local or
   HTTP) and renders the DTO it returns; --json prints the DTO; the CLI never imports
   the service
 created_at: '2026-10-28T20:58:31Z'
-updated_at: '2026-10-29T12:58:37Z'
+updated_at: '2026-10-30T20:27:15Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -42,7 +43,7 @@ What the code does today, read on `release/0.18` at 44389bb4 on 2026-10-28:
 
 A command does four things, in this order:
 
-1. It parses its arguments and validates what the arguments and the vocabulary alone can decide: syntax, a type, status or badge code, mutually exclusive flags. These refusals keep exit code 2 and their current text. Parsing reads the vocabulary of the repository the command runs in; in remote mode that vocabulary is checked against the daemon's by hash (ADR-1225, section 5).
+1. It parses its arguments and validates what the arguments and the vocabulary alone can decide: syntax, a type, status or badge code, mutually exclusive flags. These refusals keep exit code 2 and their current text. Parsing reads the vocabulary of the repository the command runs in. A command served by the daemon (ADR-1261) parses there, with the vocabulary the daemon loaded, which its retirement check ties to the checkout's files.
 2. It builds one request DTO.
 3. It calls one operation through the API layer (point 4).
 4. It renders the response DTO.
@@ -77,7 +78,7 @@ The one exception to a single call is `comment remove` without `--yes`. Its user
   - `_services` imports `_api` to build DTOs and to bind its handlers.
   - `_cli` imports `_api`. It imports `_services` in exactly one place: the function that builds the local API.
   - A `tests/meta` guard holds this: no `_cli` module other than that factory imports `squads._services`, at any position. The new edges are rows in the import-edge table.
-  - This is what makes "the renderer never calls the service" structural, not a convention. It is also what keeps the remote client from paying the 0.5 s import of `_services` (fact 9).
+  - This is what makes "the renderer never calls the service" structural, not a convention. It is also what keeps the TUI's remote path from paying the 0.5 s import of `_services` (fact 9). The CLI's remote client is the shim of ADR-1261, which imports no `squads` module beyond `_endpoint`.
 - **Their form.** DTOs are pydantic v2 models, frozen, whose fields hold only JSON-native values: strings, numbers, booleans, `None`, lists, string-keyed objects and nested DTOs. Timestamps are the ISO strings the `--json` payloads print today. So `M.model_validate_json(m.model_dump_json()) == m` for every DTO, which is what lets the local API hand the object over directly while the HTTP API parses it from JSON, with the same rendering either way.
   - An item row carries the item's stored attributes flat at the top level, as `to_row()` does today, through `extra="allow"` on that one model.
   - So every key an item row adds is a name an attribute cannot take. The row adds one display key, `display`, and every display-class value an item row carries, now or later, goes inside it, never beside it: the body with its view tags expanded is `display.body` on `show`. The refactor therefore reserves one name and no more.
@@ -115,7 +116,7 @@ The operator ruled on 2026-10-28 that the commands without `--json` get it in 0.
 - **Coverage (ADR-1172).** Each flag is one new (command, `--json`) pair, so 55 pairs, each declared by one surface case that asserts the whole document (rule 5). The coverage guard fails on an increment that adds a flag without its case. Where the bundled spec refuses every call of a command, so that no success document can be reached without an override, its case asserts the refusal under `--json` (exit code and error line), and the success document waits for the override-backed run ADR-1172 names.
 - **The payloads** are the DTOs, so a write prints the resource it wrote, a corpus-wide operation prints its report, and the package-data commands print their text or index as data. None is built in the CLI.
 - **What a write answers.** Every write of one resource whose `--json` is new in 0.18 answers `{entry, …}`: `entry` is the resource it wrote (an item row, a sub-entity object, a roster row, a notice, a memory), or, for a delete, the resource as it was before it went; any outcome the command reports (`severed`, `changed`, `cleared`, `was_present`, a ref's `target`, with `kind` for the ref `ref add` added and `kinds` for the refs `ref rm` removed) is a field beside it. Outcome fields are then added without changing the shape, and one verb answers one shape on every host, item `status` included. A write whose `--json` predates 0.18 (`create`, `add-<kind>`, the item and sub-entity `remove`, the comment verbs that had it) keeps its document as `data`. A write that acts over many resources rather than one (`sync`, `override update`, and the corpus-wide operations of increment 5) answers its report, with no `entry`.
-- **The package-data DTOs.** `docs`, `migrate help` and `migrate chlog` make no call (point 1), so their DTOs are not operation responses. They live in `_api/_dto/_package.py` and are built by a function beside the data they read: `_docfiles` for `docs`, the migration registry for `migrate help` and `migrate chlog`. The command calls that function directly and renders, or prints with `--json`, what it returns. They are not operations and have no route: an operation composes a service on a squad, these commands run outside one, and a call would bring the daemon into commands that ADR-1225, section 5, keeps away from it. A client that wants this data over HTTP later gets an operation that calls the same function, which is an additive change. The edges `_docfiles -> _api` and `_migrations -> _api` are rows in the import-edge table.
+- **The package-data DTOs.** `docs`, `migrate help` and `migrate chlog` make no call (point 1), so their DTOs are not operation responses. They live in `_api/_dto/_package.py` and are built by a function beside the data they read: `_docfiles` for `docs`, the migration registry for `migrate help` and `migrate chlog`. The command calls that function directly and renders, or prints with `--json`, what it returns. They are not operations and have no route: an operation composes a service on a squad, these commands run outside one, and the daemon serves these commands as it serves any command line (ADR-1261), with no operation. A client that wants this data over HTTP later gets an operation that calls the same function, which is an additive change. The edges `_docfiles -> _api` and `_migrations -> _api` are rows in the import-edge table.
 - **Prompts.** `--json` never puts a prompt on stdout: under `--json` a removal's prompt, and `comment remove`'s preview listing, go to stderr, and stdout holds only the document. `init --json` asks for no role names and keeps the defaults, as `--default-names` does. The `<host> comment` callback's flag applies when it adds a comment; given with a verb (`edit`, `remove`, `show`), which carry their own flag, it is a usage error.
 - Commands added in 0.18 (the `daemon` group of ADR-1052) carry `--json` from the start wherever they print a result.
 
@@ -142,8 +143,8 @@ The operator ruled on 2026-10-28 that the commands without `--json` get it in 0.
   - **`HttpApi`** (in `_api`, standard library only) puts the request on the wire, parses `Response[Res]` and turns an error answer back into a `SquadsError` carrying the daemon's message.
 
   ADR-1225 gives the wire rules.
-- **Which API a command uses** is decided once per invocation by the root callback, which puts the API on `RequestContext`; ADR-1225 gives the selection rule. A command never builds a service. `get_service`, its memo on the Click root and the double bridge crossing are removed once no command needs them.
-- **Request metadata** stays on `RequestContext`: the actor from `--as`, the `--at` clock, the session ids, and the directory that paths in messages are spelled from. `LocalApi` reads it in-process; `HttpApi` sends it as headers.
+- **Which API a command uses:** a CLI process uses `LocalApi`, whether it is a command served by the daemon (the daemon's own `LocalApi`, ADR-1261 point 2) or the shim's local fallback. The root callback puts it on `RequestContext`, and a test harness may hand it another `Api`, `HttpApi` among them. `HttpApi`'s production caller is the TUI (point 7), selected by ADR-1225's rule. A command never builds a service. `get_service`, its memo on the Click root and the double bridge crossing are removed once no command needs them.
+- **Request metadata** stays on `RequestContext`: the actor from `--as`, the `--at` clock, the session ids, and the directory that paths in messages are spelled from. `LocalApi` reads it in-process, from the request in a served command; `HttpApi` sends it as headers.
 
 ### 5. The renderer displays only what the DTO carries
 
@@ -173,7 +174,7 @@ Consequences for the contract:
 
 ### 7. The TUI goes through the `Api` in 0.18
 
-The operator ruled on 2026-10-28 that the TUI leaves the service in this release, and it was then agreed with him (comment 73f6e29) that it goes through the same `Api` abstraction as the CLI. `sq ui` hands the app the `Api` the root callback selected, by the same rule as any command: endpoint resolution, fall back per call and the vocabulary hash (ADR-1225, section 5). In local mode it calls `LocalApi` in-process. In remote mode it is a client of the daemon, like the web front, and the terminal stays with the TUI's own process.
+The operator ruled on 2026-10-28 that the TUI leaves the service in this release, and it was then agreed with him (comment 73f6e29) that it goes through the same `Api` abstraction as the CLI. `sq ui` runs in the client's process (it is in the shim's local-only table, ADR-1261 point 4) and hands the app an `Api` selected by ADR-1225, section 5: endpoint resolution, fall back per call and the vocabulary hash. The TUI is `HttpApi`'s only production caller. In local mode it calls `LocalApi` in-process. In remote mode it is a client of the daemon, like the web front, and the terminal stays with the TUI's own process.
 
 Its screens map onto operations that the CLI increments create; it needs none of its own:
 
@@ -190,7 +191,7 @@ Its screens map onto operations that the CLI increments create; it needs none of
 - The TUI is an interactive session, so it makes one call per screen load rather than one per invocation. In local mode each call opens its own read scope through `LocalApi`, which the reader skips today.
 - **Display comes from the DTOs only,** as for the CLI renderer (point 5). Its screens use only operations whose DTOs carry what they show, and `_tui/` falls under the same guard as `_cli/_render/`: no `_tui` module imports `squads._services`, `squads._workflow`, `squads._paths` or the configuration model. Its sibling ordering and tree building (`sort_siblings`, `populate_tree`) work on DTOs instead of `TreeNode` and `Item`.
 - **A long session against a daemon that can go away.** A command makes one call; the TUI makes calls for as long as it is open, while the daemon can retire on a configuration edit or exit on its idle timeout. So the TUI holds the selection rule, not one selected API:
-  - A `503 retiring` answer is handled as for any command (ADR-1225, section 5): against a local daemon the call runs on `LocalApi`, and against a squad hosted elsewhere it is sent once more to the re-resolved endpoint. Either way the next call resolves the endpoint again, which reaches a daemon on the new configuration, so the TUI does not stay in local mode for the rest of the session.
+  - A `503 retiring` answer is handled by ADR-1225, section 5: against a local daemon the call runs on `LocalApi`, and against a squad hosted elsewhere it is sent once more to the re-resolved endpoint. Either way the next call resolves the endpoint again, which reaches a daemon on the new configuration, so the TUI does not stay in local mode for the rest of the session.
   - A connection refused before the request is sent (a daemon that exited) also resolves the endpoint again for that call. A local daemon is started again, or `LocalApi` answers when that fails. For a squad hosted elsewhere the screen shows the error, nothing runs locally, and the session stays open for the user to refresh.
   - A connection lost after the request was sent is never replayed (ADR-1052, point 10). The screen shows the error and the user refreshes it.
   - The vocabulary hash is computed from the checkout on every call (0.2 ms), not once at start, because the TUI parses nothing with it. A configuration edited mid-session therefore retires the old daemon and matches the new one. After a retirement the TUI reloads the workflow catalogs that drive its filter choices.
@@ -216,10 +217,10 @@ Increment 0 (for `status`) and increments 2 to 5 each add the `--json` flags of 
 - Every command that prints a result has `--json` (point 3a): 55 new flags, 55 new coverage pairs and cases. Their shapes are provisional until the web front consumes them.
 - Display strings travel in the payloads (point 5). That makes every payload larger and puts the presentation decisions in the service, where the web front gets them too; a client that wants different presentation still has the codes and the catalogs.
 - The guard proves that no renderer reaches the service, and the edge table records the single function-level import that remains.
-- The remote client never imports `_services`. That is the 0.5 s of fact 9.
+- The shim, the CLI's remote client, imports no `squads` module beyond `_endpoint` (ADR-1261, point 4); the TUI's remote path never imports `_services`. That is the 0.5 s of fact 9. The client import guard is the shim's.
 - Local mode does the same work as today. Commands that used to repeat a lookup now do it once, inside the operation.
 - Vocabulary checks can run twice: in the CLI for exit code 2, and in the operation for callers that are not the CLI. That is already the case today, where the service validates what it is given.
-- The TUI calls operations through the `Api` like the CLI does, selected by the same rule, and needs no operation of its own (point 7). In remote mode it is a daemon client, and it re-resolves the endpoint after a retirement or a refused connection.
+- The TUI calls operations through the `Api` like the CLI does, selected by ADR-1225's rule, and needs no operation of its own (point 7). In remote mode it is a daemon client, and it re-resolves the endpoint after a retirement or a refused connection.
 
 ## Options considered and rejected
 
@@ -319,4 +320,13 @@ Increment 0 (for `status`) and increments 2 to 5 each add the `--json` flags of 
   - 2026-10-29: amend point 2. Reserving display needs no 0.18 migration record and no schema bump; the CHANGELOG entry with its refusal text and What to do is enough (tech-lead ruling on TASK-1234).
 - [2026-10-29T12:58:37Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 per op-pierre (comment of 2026-10-29T12:57) and the tech-lead ruling on TASK-1234, board rule 6. Status unchanged. Point 2: the sentence about the 0.18 migration's manual step (`sq migrate chlog`) is removed. The rule now reads: the changelog names `display` with its refusal text and what to do, and reserving it needs no migration record and no schema bump.
+- [2026-10-30T20:27:15Z] `architect` Robert Architect:
+  - Amended in place 2026-10-30 on the acceptance of ADR-1261 (board rule 6, linked related, status unchanged).
+    - Point 1: a served command parses in the daemon with the vocabulary the daemon loaded; the hash no longer applies to the CLI.
+    - Point 2: the import-guard sentence now names the TUI's remote path, and the shim for the CLI.
+    - Package-data DTOs: the daemon serves these commands as command lines, with no operation.
+    - Point 4: a CLI process uses `LocalApi`, either the daemon's own or the shim's fallback, and a harness may hand it another `Api`. `HttpApi`'s production caller is the TUI. Request metadata comes from the request in a served command.
+    - Point 7: `sq ui` runs in the client's process and is `HttpApi`'s only production caller; selection follows ADR-1225 section 5.
+    - Consequences: the client import guard is the shim's.
+    - Unchanged: points 3, 3a, 5, 6 and 8.
 <!-- sq:discussion:end -->

@@ -6,7 +6,6 @@ title: Honour adopter template overrides on the leaf-verb render path
 status: Done
 parent: FEAT-693
 author: tech-lead
-priority: urgent
 refs:
 - REV-840:addresses
 description: A view's presentation template is ignored on sq <type> <n> show because
@@ -15,17 +14,18 @@ subentities:
 - local_id: ST1
   title: Carry the active squad dir across both bridge crossings
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: CLI-level override proof for the milestone roll-up on show
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Guard every leaf-verb render site against the same seam
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-08-26T17:02:39Z'
 updated_at: '2026-08-26T17:48:09Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Problem

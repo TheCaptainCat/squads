@@ -6,7 +6,6 @@ title: 'Async to the core: the service and IO go async end-to-end'
 status: Done
 parent: EPIC-31
 author: product-owner
-priority: high
 refs:
 - FEAT-33:blocks
 - FEAT-32:blocks
@@ -22,6 +21,7 @@ subentities:
   status: Todo
 created_at: '2026-06-10T15:49:05Z'
 updated_at: '2026-06-23T09:58:23Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

@@ -6,11 +6,11 @@ title: 'F1 characterization golden: pin sq workflow + badges + blocked/list at H
 status: Done
 parent: FEAT-211
 author: tech-lead
-priority: high
 refs:
 - REV-284:addresses
 created_at: '2026-07-02T09:20:17Z'
 updated_at: '2026-07-02T10:22:07Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal (GATING — must land FIRST, against HEAD)

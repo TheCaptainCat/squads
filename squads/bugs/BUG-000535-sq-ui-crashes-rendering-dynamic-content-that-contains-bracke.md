@@ -5,7 +5,6 @@ type: bug
 title: sq ui crashes rendering dynamic content that contains bracket markup
 status: Verified
 author: op-pierre
-priority: high
 refs:
 - FEAT-526
 - FEAT-513
@@ -14,6 +13,7 @@ description: MarkupError on search hits (and latent in tree/reader) — rich esc
   not honored by Textual's markup parser
 created_at: '2026-07-21T13:20:08Z'
 updated_at: '2026-07-21T14:14:19Z'
+priority: high
 ---
 <!-- sq:body -->
 **Repro.** Open `sq ui`, open the search page, run a query that matches item bodies/discussion. It crashes immediately with `MarkupError: closing tag '[/dim]' does not match any open tag` while rendering the result rows.

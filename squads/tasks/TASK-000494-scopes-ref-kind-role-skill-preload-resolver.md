@@ -15,7 +15,7 @@ subentities:
 - local_id: ST1
   title: Resolve a role's preload set from system membership + scopes edges
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-20T08:59:18Z'
 updated_at: '2026-07-20T09:56:26Z'
 ---

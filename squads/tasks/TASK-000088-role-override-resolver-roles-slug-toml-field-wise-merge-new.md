@@ -6,7 +6,6 @@ title: 'Role override resolver: roles/<slug>.toml field-wise merge + new slugs'
 status: Done
 parent: FEAT-14
 author: tech-lead
-priority: high
 refs:
 - TASK-89:blocks
 - TASK-91:blocks
@@ -16,13 +15,14 @@ subentities:
 - local_id: ST1
   title: Field-wise roles/<slug>.toml resolver over PREDEFINED + new-slug admission
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: activate_role/add_dev read through resolver; full_name seed; tests
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-12T20:56:51Z'
 updated_at: '2026-07-06T15:19:39Z'
+priority: high
 ---
 <!-- sq:body -->
 Role-override task for FEAT-14 (ADR-85 §2 'roles merge field-wise', §1 roles-as-TOML, Consequences 'roles gain a merge step').

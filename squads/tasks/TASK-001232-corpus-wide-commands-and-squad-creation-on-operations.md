@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1224:implements
 - TASK-1228:depends-on
@@ -20,25 +19,26 @@ subentities:
 - local_id: ST1
   title: repair, renumber and the migrate operations
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: import
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: init and adopt, local only
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Delete get_service, CLI gates and JSON builders
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: JSON output on the 8 corpus and creation keys
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-10-28T22:12:41Z'
 updated_at: '2026-10-29T10:14:55Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

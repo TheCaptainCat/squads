@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: sq check one-line invalid-workflow-spec warning
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-06-30T07:49:54Z'
 updated_at: '2026-07-06T15:21:08Z'
 ---

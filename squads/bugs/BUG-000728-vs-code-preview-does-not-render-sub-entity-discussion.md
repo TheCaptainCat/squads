@@ -5,12 +5,12 @@ type: bug
 title: VS Code preview does not render sub-entity discussion
 status: Verified
 author: qa
-priority: medium
 refs:
 - REV-726:addresses
 - BUG-727:depends-on
 created_at: '2026-08-03T07:45:57Z'
 updated_at: '2026-08-03T13:59:23Z'
+priority: medium
 ---
 <!-- sq:body -->
 The item-preview webview renders the item-level discussion section, but a sub-entity pane (story/subtask/finding) shows only header + head-badges + body — no comments, so a comment added to a finding or story is invisible in the VS Code preview even once the sub-entity carries discussion data.

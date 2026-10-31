@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-693
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-776:implements
 - ADR-775
@@ -20,25 +19,26 @@ subentities:
 - local_id: ST1
   title: Declare [items.milestone] and its lifecycle
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: The target date field and its generic --set path
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Membership by targets refs, written only on the work item
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Playbook entries and the generated sq-milestone surface
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: The milestone roll-up as the first declared view
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-08-26T13:32:03Z'
 updated_at: '2026-08-26T16:02:03Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

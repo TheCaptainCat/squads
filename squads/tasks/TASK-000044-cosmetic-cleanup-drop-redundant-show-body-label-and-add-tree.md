@@ -7,12 +7,12 @@ title: 'Cosmetic cleanup: drop redundant show ''Body'' label and add tree separa
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - BUG-25:fixes
 - BUG-30:fixes
 created_at: '2026-06-11T12:14:53Z'
 updated_at: '2026-06-11T12:50:23Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Goal

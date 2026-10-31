@@ -7,7 +7,6 @@ status: Draft
 parent: FEAT-986
 author: tech-lead
 assignee: tech-writer
-priority: medium
 refs:
 - TASK-990:depends-on
 - ADR-984:implements
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Document capabilities and developers in roles and overrides
   status: Todo
-  story: US10
+  maps_to: US10
 - local_id: ST2
   title: Write the 0.16 upgrade section and the changelog entries
   status: Todo
-  story: US10
+  maps_to: US10
 - local_id: ST3
   title: Refresh stability.md, internals, agents and the README
   status: Todo
-  story: US10
+  maps_to: US10
 created_at: '2026-10-09T20:28:03Z'
 updated_at: '2026-10-12T06:58:55Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

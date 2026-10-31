@@ -6,7 +6,6 @@ title: 'CLI test harness can''t see a startup-state bug: fixtures pre-seed the r
   ContextVar'
 status: Verified
 author: qa
-priority: medium
 refs:
 - TASK-841
 - MILE-836:targets
@@ -15,6 +14,7 @@ description: project/svc build a Service in-process, leaking the correct active-
   test passes whether or not the code under test establishes that state itself
 created_at: '2026-09-01T07:38:33Z'
 updated_at: '2026-09-02T08:23:36Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Mechanism

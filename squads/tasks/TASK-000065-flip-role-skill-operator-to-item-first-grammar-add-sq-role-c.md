@@ -8,37 +8,37 @@ status: Done
 parent: FEAT-64
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Item-first grammar for role/skill/operator show/regen/rm (slug|id|n, exact
     match)
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Extend the resolver with exact slug lookup (full-id, then number, then slug)
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Add sq role catalog; remove role/skill/operator list and --available (no
     shim)
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Update grammar in claude_section / greeting / squads templates; regen artifacts
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Rewrite CLI tests to item-first; add slug/id/n + catalog + removed-list coverage
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Top up the FEAT-000013 deferral comment if the shipped grammar deviated from
     the PO note
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T12:05:15Z'
 updated_at: '2026-07-06T15:19:00Z'
+priority: high
 ---
 <!-- sq:body -->
 Bring `sq role`, `sq skill`, and `sq operator` into the uniform item CLI grammar (FEAT-19 / the FEAT-13 contract). This task covers everything EXCEPT styled body rendering, which is TASK-66 — but both touch the same three CLI modules, so coordinate (one PR or stacked).

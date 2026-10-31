@@ -5,9 +5,9 @@ type: bug
 title: sq import --dry-run could rename real item files on disk
 status: Verified
 author: qa
-severity: high
 created_at: '2026-07-27T15:31:48Z'
 updated_at: '2026-07-27T15:32:18Z'
+severity: high
 ---
 <!-- sq:body -->
 ## Description

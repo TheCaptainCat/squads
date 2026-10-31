@@ -5,7 +5,6 @@ type: task
 title: Make CLI diagnostics exact and attribute every edit
 status: Done
 author: tech-lead
-priority: low
 refs:
 - MILE-1051:targets
 - REV-724:addresses
@@ -49,6 +48,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T19:56:56Z'
 updated_at: '2026-10-26T08:12:51Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Goal

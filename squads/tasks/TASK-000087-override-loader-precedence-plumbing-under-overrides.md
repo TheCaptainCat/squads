@@ -6,7 +6,6 @@ title: Override loader + precedence plumbing under .overrides/
 status: Done
 parent: FEAT-14
 author: tech-lead
-priority: high
 refs:
 - TASK-88:blocks
 - TASK-89:blocks
@@ -17,13 +16,14 @@ subentities:
 - local_id: ST1
   title: ChoiceLoader engine swap + squad-aware cache key
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: .overrides/ path resolution + traversal guard + partial-override test
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-12T20:56:38Z'
 updated_at: '2026-07-06T15:19:38Z'
+priority: high
 ---
 <!-- sq:body -->
 Foundation task for FEAT-14 (ADR-85 §1, §2). Lay the override lookup path that both template and role overrides build on.

@@ -6,7 +6,6 @@ title: Complete the sq workflow catalog family per ADR-738
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-732:fixes
 - ADR-738:implements
@@ -24,6 +23,7 @@ subentities:
   status: Done
 created_at: '2026-08-21T12:42:49Z'
 updated_at: '2026-08-21T18:36:55Z'
+priority: medium
 ---
 <!-- sq:body -->
 Close the `sq workflow` catalog family so every top-level declared map on `WorkflowSpec` has exactly

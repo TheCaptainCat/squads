@@ -12,8 +12,9 @@ refs:
 - REV-337:addresses
 - ADR-738
 - ADR-1007
+- ADR-1250
 created_at: '2026-07-09T21:18:55Z'
-updated_at: '2026-10-25T21:25:33Z'
+updated_at: '2026-10-29T22:42:19Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -50,7 +51,9 @@ Stored (each earns its place — none is derivable from existing structure):
 | `plural` | `str` | CLI list verb **and** the container marker name |
 | `local_prefix` | `str` | Local-id prefix (`US`/`ST`/`F`/…) |
 | `placeholder` | `str \| None = None` | Optional scaffold prose; a generic one derived from the kind name otherwise |
-| `maps_parent_story` | `bool = False` | Capability: this kind maps to a parent story (drives `--story` + the `Story` column) |
+| `maps_to_parent` | `bool = False` | Capability: this kind maps to a sub-entity of the host's `parent_required` type (drives `--<target-kind>` and its column) |
+| `heading` | `str \| None = None` | The container heading; the title-cased `plural` when absent |
+| `label` | `str \| None = None` | The kind's label; the title-cased name when absent |
 
 **Deliberately NOT stored — derived instead** (questioning each per "don't store what you can
 derive"):
@@ -63,8 +66,8 @@ derive"):
 - **Parent type(s)** = *inversion* of `ItemSpec.subentity_kind` (invariant #4, forward edges only),
   computed from the **active** spec. No `carried_by`/`parents` list on the kind.
 - **Summary / list columns** = a fixed base (`local_id`, Status, Assignee, Title) + **one column per
-  declared `field`** (headed by the field `label`, e.g. Severity) + a `Story` column iff
-  `maps_parent_story`. Not a stored column list — ADR-323's "derive columns from declared fields"
+  declared `field`** (headed by the field `label`, e.g. Severity) + a column headed by the target kind's label iff
+  `maps_to_parent`. Not a stored column list — ADR-323's "derive columns from declared fields"
   applied to the sub-entity axis, one derivation shared by the CLI table and the body summary.
 
 ### 2. Machine and completion live on the kind
@@ -93,8 +96,8 @@ any collection under any field code, relabeled per ADR-323's field-`label` mecha
 
 ### 4. Storage & round-trip
 
-`SubEntity` keeps a typed `severity` slot for the finding `severity` field and stores any *other*
-declared field's badge code in its `extra` mapping, keyed by field code. (On an item, every field is
+A sub-entity entry stores every declared field's badge code flat under its code, and the mapping
+under `maps_to` (ADR-1250 §6). (On an item, every field is
 a top-level frontmatter key under its code, per ADR-1007.) The discipline is ADR-323 §4's: the badge
 code is the authoritative stored value, so `--json` and no-spec reads work and label/emoji resolve
 at render time with a neutral fallback.
@@ -107,8 +110,8 @@ sub-entity surface from `spec.item_subentity_kind(item_type)` → the kind's `Su
 
 - **`add-<kind>`** — base flags (title, `--assignee`, `--status`, `--deferred-to`,
   `-m/--message`, `--file`, `--json`) + one `--<field-code>` option per declared field (the kind is
-  known when its type's app is built, so these flags are generated) + `--story` iff
-  `maps_parent_story`.
+  known when its type's app is built, so these flags are generated) + `--<target-kind>` iff
+  `maps_to_parent` (§7).
 - **`<plural>`** list verb + the nested `<kind> <n> …` subgroup (show/update/body/comment) built the
   same generic way; `update` derives its `--<field-code>` flags identically.
 - All verbs call the **kind-parameterized service surface** (`add_block`/`list_blocks`/
@@ -134,15 +137,12 @@ reference an undeclared status. The per-kind checks add:
 - `plural` and `local_prefix` are non-empty and unique across kinds (a duplicate `plural` would
   collide the list verb / container marker; a duplicate `local_prefix` would collide local ids).
 
-### 7. Story-mapping stays a bounded built-in
+### 7. Sub-entity mapping is declared
 
-The subtask→user-story mapping (`SubEntity.story`, `--story`, the `Story` column,
-`_validate_subtask_story`'s check against the grandparent feature's stories) is a deep structural
-relation specific to the feature→task→story spine. Generalizing it to arbitrary custom kinds is a
-**non-goal**. It is gated by the declared `maps_parent_story` capability flag (bundled:
-true for `subtask` only) so the CLI/columns derive `--story`/`Story` from a declared capability rather
-than a `kind == "subtask"` literal — but its *semantics* (validation against the mapped story) are
-unchanged and remain wired to the built-in story kind.
+A kind declaring `maps_to_parent` maps each sub-entity to a sub-entity of the host type's
+`parent_required` type, whose hosted kind is the target. The option is `--<target-kind>`, the stored
+key is `maps_to`, the validator is `subentity_mapping`, and every label and message names the target
+kind. See ADR-1250 §3.
 
 ## Compatibility
 
@@ -155,7 +155,7 @@ custom kind serialize as §4 states.
 
 - **`plural` has three consumers**: the CLI list verb, the on-disk container marker tag, and the
   `sq workflow subentity-kinds --json` catalog (ADR-738), which publishes it with `local_prefix`,
-  `completion`, `maps_parent_story`, the resolved container heading and the kind's `fields` so a
+  `completion`, `maps_to_parent`, the resolved container heading and the kind's `fields` so a
   client reads the list verb and marker name instead of guessing a pluralization. Renaming a
   `plural` renames a persisted marker (a data migration) and changes a published catalog value a
   client may join on; the spec-author and catalog docs say so. `plural` remains the single declared
@@ -164,7 +164,7 @@ custom kind serialize as §4 states.
 ## Options considered
 
 - **Recommended (above)** — explicit `lifecycle` + per-kind `completion` + minimal stored vocab
-  (`plural`/`local_prefix`/optional `placeholder`/`maps_parent_story`), everything else derived
+  (`plural`/`local_prefix`/optional `placeholder`/`maps_to_parent`), everything else derived
   (singular/initial/container/parents/columns/field-flags). Symmetric with the type axis, resolves
   F3, no static per-kind table, bundled behaviour unchanged.
 - **Rejected — the kind-name==lifecycle convention** (no `lifecycle` field): saves one field but is
@@ -175,7 +175,8 @@ custom kind serialize as §4 states.
   structure (fields drive columns, the dict key is the singular, `ItemSpec.subentity_kind` is the
   forward parent edge). Violates "don't store what you can derive."
 - **Rejected — generalize story-mapping to arbitrary kinds now**: out of scope (FEAT-212 non-goal);
-  its semantics are tied to the feature→task→story spine and would balloon this feature.
+  its semantics are tied to the feature→task→story spine and would balloon this feature. ADR-1250 §3
+  generalizes it (§7).
 
 ## Relationships
 
@@ -202,4 +203,10 @@ custom kind serialize as §4 states.
   - Nothing in this decision's model changes — `plural` is still the single declared name, and the derived-vs-stored split holds. What changes is reach: a rename now also moves a published catalog value. `placeholder` is deliberately left unpublished (content the engine writes, not vocabulary a client resolves). Linked `related` both ways.
 - [2026-10-25T21:25:33Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body edited to the present tense; the kind schema is unchanged. Context now states the problem instead of the pre-implementation code (StatusSpec.completion, _SUBENTITY_PLURAL and the other static tables no longer exist). §2 states the shipped result (story and subtask share the subentity lifecycle). §5 corrected: the per-kind service wrappers are kept as test-only delegators and stay in vulture ignore_names (the body said they drop out). Folded the dated ADR-1007 note into §4 and the 2026-08-03 ADR-738 widening into Risks. Removed the Blast radius section, the TASK-330 churn risk and the schema-line planning.
+- [2026-10-29T19:09:16Z] `architect` Robert Architect:
+  - 2026-10-29: ADR-1250 (related) narrows §7. Story mapping resolves to the kind the parent hosts; `--story` keeps its name and its wording follows that kind. §1 gains a `heading` key. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment (board rule 6).
+- [2026-10-29T19:50:39Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. §1: `maps_parent_story` becomes `maps_to_parent` (target is the kind hosted by the host type's `parent_required` type), a new `heading` row, and the derived mapping column is headed by the target kind's label. §4: entries store fields flat and the mapping under `maps_to`. §7 is retitled "Sub-entity mapping is declared" and rewritten to the generic mapping. Following from §1, the key is also renamed in §5's `add-<kind>` bullet (now `--<target-kind>`), in Risks and in Options considered, and the rejected "generalize story-mapping" option points at ADR-1250 §3. This replaces the draft note in my earlier comment on §7.
+- [2026-10-29T22:42:19Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 section 11 (REV-1259 F24): section 1 gains a `label` row, `str | None = None`, the kind's label, its title-cased name when absent. Status unchanged.
 <!-- sq:discussion:end -->

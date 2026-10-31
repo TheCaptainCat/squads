@@ -13,15 +13,15 @@ subentities:
 - local_id: ST1
   title: Add _check_unwritten_subentity_bodies helper + wire into check()
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Emit the check at warn severity per the recorded decision
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 'Tests: add-story stub is flagged, real body clears; CLI smoke'
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-06T11:37:22Z'
 updated_at: '2026-07-06T12:10:01Z'
 ---

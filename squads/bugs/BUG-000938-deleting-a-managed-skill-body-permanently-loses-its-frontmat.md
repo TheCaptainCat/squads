@@ -5,12 +5,12 @@ type: bug
 title: Deleting a managed skill body permanently loses its frontmatter
 status: Verified
 author: qa
-priority: low
 refs:
 - MILE-934:targets
 - REV-926:addresses
 created_at: '2026-09-10T08:37:34Z'
 updated_at: '2026-10-09T15:38:04Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Problem

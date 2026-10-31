@@ -12,19 +12,19 @@ subentities:
 - local_id: ST1
   title: id_padding becomes constant 0; every surface renders unpadded
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Format padded filenames from sequence_id at rename/retype seams
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 'Pin lookup tolerance: FEAT-283 and FEAT-000283 both resolve'
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Regenerate managed artifacts + goldens; verify managed-section diff
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-04T20:45:37Z'
 updated_at: '2026-07-04T22:20:34Z'
 ---

@@ -15,38 +15,38 @@ subentities:
 - local_id: ST1
   title: End role show with how to change the role's definition
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: Scaffold every overridable role field with its bundled value and the append
     idiom
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST3
   title: Add sq list --compact, one line per item with a truncated title
   status: Done
-  story: US9
+  maps_to: US9
 - local_id: ST4
   title: Declare bundled capabilities and resolve @*name tokens in skills
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST5
   title: Give the tech writer the narration sweep, name it in loop step 5, and default
     it to sonnet
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST6
   title: Write the 0.17.0 CHANGELOG entries for the role, list and guidance changes
   status: Done
   assignee: tech-writer
-  story: US7
+  maps_to: US7
 - local_id: ST7
   title: Convert every bundled hand-off to capability tokens
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST8
   title: Report unheld capability tokens in override guides
   status: Done
-  story: US8
+  maps_to: US8
 created_at: '2026-10-24T10:04:05Z'
 updated_at: '2026-10-28T12:11:19Z'
 ---

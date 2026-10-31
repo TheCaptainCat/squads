@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - REV-823:addresses
 - TASK-822
@@ -20,19 +19,20 @@ subentities:
   title: Report restored and dropped as two counted sets
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Write both documents atomically in both scripts
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Let the release gate's success line state what it verified
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 created_at: '2026-08-26T00:11:27Z'
 updated_at: '2026-08-26T16:01:08Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

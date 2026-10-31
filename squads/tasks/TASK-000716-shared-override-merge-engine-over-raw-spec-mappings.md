@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-712
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-696:implements
 - ADR-541
@@ -18,29 +17,30 @@ subentities:
 - local_id: ST1
   title: Splat-ref resolution pass against the bundled base
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Deep recursive merge at leaf granularity
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: 'selected deselect: apply, strip, record provenance'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Ordered entry point with fail-fast and collect-all modes
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Closed top-level key space for the override document
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Declared nesting bound on both recursive walks
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-31T13:19:12Z'
 updated_at: '2026-07-31T16:22:46Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What to build

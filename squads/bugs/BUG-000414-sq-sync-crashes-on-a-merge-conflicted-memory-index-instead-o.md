@@ -7,7 +7,6 @@ title: sq sync crashes on a merge-conflicted memory index instead of regeneratin
 status: Verified
 author: qa
 assignee: python-dev
-priority: medium
 refs:
 - FEAT-315
 - REV-412
@@ -16,6 +15,7 @@ description: sync() regenerates role pointers (reading the index) before it rege
   JSONDecodeError; repair is unaffected
 created_at: '2026-07-15T10:02:49Z'
 updated_at: '2026-07-15T13:14:43Z'
+priority: medium
 ---
 <!-- sq:body -->
 `sq sync` regenerates managed role pointers before it regenerates content indexes

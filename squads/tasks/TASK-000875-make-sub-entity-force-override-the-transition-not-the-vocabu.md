@@ -6,7 +6,6 @@ title: Make sub-entity --force override the transition, not the vocabulary
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-873:fixes
 description: A sub-entity status update under --force writes a value outside that
@@ -24,6 +23,7 @@ subentities:
   status: Done
 created_at: '2026-09-02T09:58:51Z'
 updated_at: '2026-09-02T14:01:30Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What is wrong

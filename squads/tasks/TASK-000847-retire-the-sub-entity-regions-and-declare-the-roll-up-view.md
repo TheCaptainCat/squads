@@ -6,7 +6,6 @@ title: Retire the sub-entity regions and declare the roll-up view
 status: Done
 parent: FEAT-694
 author: tech-lead
-priority: high
 refs:
 - ADR-776:implements
 description: Stop writing the sub-entity summary and head regions, drop them from
@@ -16,33 +15,34 @@ subentities:
 - local_id: ST1
   title: Declare the three sub-entity roll-up views
   status: Cancelled
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Presentation templates for the three roll-up views
   status: Cancelled
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Drop the region writes from the live sub-entity path
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Keep set_head and ensure_summary as migration-only machinery
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Remove the regions from the bundled item and block templates
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST6
   title: Freeze the five shipped renderings and pin the badge divergence
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST7
   title: Regenerate the template manifest and content store
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-09-01T08:02:31Z'
 updated_at: '2026-09-01T09:54:26Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

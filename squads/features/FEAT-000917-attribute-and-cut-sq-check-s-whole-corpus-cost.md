@@ -6,11 +6,11 @@ title: Attribute and cut sq check's whole-corpus cost
 status: Draft
 parent: EPIC-31
 author: product-owner
-priority: low
 refs:
 - FEAT-916
 created_at: '2026-09-03T13:06:55Z'
 updated_at: '2026-09-03T13:32:07Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Capability

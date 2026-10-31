@@ -7,20 +7,20 @@ status: Done
 parent: FEAT-237
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: Strip refs from bundled prose templates
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Verify/clean CLAUDE.md (removal only)
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 created_at: '2026-07-06T12:55:27Z'
 updated_at: '2026-07-06T14:06:18Z'
+priority: medium
 ---
 <!-- sq:body -->
 USER-FACING WAVE. Scope: the bundled agent-facing prose templates (src/squads/_rendering/templates/agents/greeting_skill.md.j2, agents/squads_skill.md.j2, agents_md/agents_section.md.j2, workflow.md.j2) plus CLAUDE.md. Blast radius: 4 templates + CLAUDE.md; CLAUDE.md currently has ZERO digit-refs (only template forms like --parent FEAT-… / USn) so it is a verify-clean, not a rewrite. REMOVAL ONLY — no restyling/rewording of the guidance wording. Disjoint files from all other tasks — parallel-safe. Done when: zero real-citation refs remain in the .j2 templates and CLAUDE.md; the generated skill/agent output (via sq sync) carries no refs; wording is otherwise unchanged; managed-region regeneration unaffected.

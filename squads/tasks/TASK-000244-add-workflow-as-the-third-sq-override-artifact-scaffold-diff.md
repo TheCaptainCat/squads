@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: workflow as third sq override artifact (scaffold/diff/drift)
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-30T07:49:54Z'
 updated_at: '2026-07-06T15:21:08Z'
 ---

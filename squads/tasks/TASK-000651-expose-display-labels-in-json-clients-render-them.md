@@ -12,19 +12,19 @@ subentities:
 - local_id: ST1
   title: Add resolved labels to sq workflow types --json
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Extension renders per-type Records buckets with plural labels
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Route Work tree group-by-type headers through the shared resolver
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: De-hardcode Roster tree bucket labels from the catalog
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-24T12:55:56Z'
 updated_at: '2026-07-27T08:32:00Z'
 ---

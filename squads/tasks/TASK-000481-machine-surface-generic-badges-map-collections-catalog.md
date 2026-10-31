@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: python-dev
-priority: high
 description: 'Core: ADR-474 Part A collections + type-catalog fields (US7/F20)'
 created_at: '2026-07-18T20:10:47Z'
 updated_at: '2026-07-18T20:37:05Z'
+priority: high
 ---
 <!-- sq:body -->
 Story: US7 (REV-448 F20, High). **Discipline: CORE / Python** (machine surfaces + spec code). Implements ADR-474 Part A (collections) and A3 (type-catalog field binding).

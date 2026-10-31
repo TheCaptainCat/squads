@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 description: 'Client: graph presentation F23+F24+F25 (US6 client)'
 created_at: '2026-07-18T20:10:46Z'
 updated_at: '2026-07-18T20:36:48Z'
+priority: medium
 ---
 <!-- sq:body -->
 Story: US6 (REV-448 F23 + F24 + F25, Medium). **Discipline: CLIENT / TypeScript** (`clients/vscode/`). No new core surface.

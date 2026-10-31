@@ -5,13 +5,13 @@ type: epic
 title: Road to 1.0
 status: Done
 author: product-owner
-priority: high
 refs:
 - BUG-22:depends-on
 - BUG-21:depends-on
 description: Define and prove the 1.0 stability promise across our public surfaces
 created_at: '2026-06-10T12:40:41Z'
 updated_at: '2026-07-06T11:33:35Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Why

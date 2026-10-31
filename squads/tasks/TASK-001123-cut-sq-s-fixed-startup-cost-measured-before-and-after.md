@@ -6,7 +6,6 @@ title: Cut sq's fixed startup cost, measured before and after
 status: Done
 parent: FEAT-916
 author: tech-lead
-priority: medium
 refs:
 - TASK-1104:depends-on
 - TASK-1105:depends-on
@@ -17,17 +16,18 @@ subentities:
 - local_id: ST1
   title: Attribute the fixed startup cost by phase
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Defer startup work the invoked command does not need
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Record before and after timings on FEAT-916
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-10-24T21:53:14Z'
 updated_at: '2026-10-25T10:45:53Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

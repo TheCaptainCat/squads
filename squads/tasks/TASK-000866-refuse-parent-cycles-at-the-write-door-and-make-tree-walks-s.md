@@ -6,7 +6,6 @@ title: Refuse parent cycles at the write door and make tree walks safe
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-865:fixes
 description: A parent cycle is accepted with exit 0 and hangs every tree surface;
@@ -34,6 +33,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-09-02T07:52:13Z'
 updated_at: '2026-09-02T14:01:26Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What is wrong

@@ -12,19 +12,19 @@ subentities:
 - local_id: ST1
   title: Reconciliation and duplicate-id tests
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST2
   title: Raw-text scan tests
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST3
   title: File load and orphaned skill tests
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST4
   title: Falsify each test two ways
   status: Done
-  story: US7
+  maps_to: US7
 created_at: '2026-10-28T08:38:03Z'
 updated_at: '2026-10-28T10:41:12Z'
 ---

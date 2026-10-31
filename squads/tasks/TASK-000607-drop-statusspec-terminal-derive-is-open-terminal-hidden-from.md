@@ -6,11 +6,11 @@ title: Drop StatusSpec.terminal; derive is_open/terminal/hidden from role
 status: Done
 parent: FEAT-605
 author: tech-lead
-priority: high
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:19Z'
 updated_at: '2026-07-22T18:42:50Z'
+priority: high
 ---
 <!-- sq:body -->
 Implements FEAT-605 US1. Drop the explicit `terminal` field and re-express terminal / open / default-visibility as reads of the referenced role object. No expressiveness loss — `settled` + `hidden` on the role carry what a single `terminal` flag plus a category branch would.

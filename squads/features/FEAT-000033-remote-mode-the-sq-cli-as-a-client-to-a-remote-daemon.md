@@ -6,7 +6,6 @@ title: 'Remote mode: the sq CLI as a client to a remote daemon'
 status: Draft
 parent: EPIC-29
 author: product-owner
-priority: medium
 refs:
 - FEAT-15
 - FEAT-13
@@ -36,6 +35,7 @@ subentities:
   status: Todo
 created_at: '2026-06-10T15:33:16Z'
 updated_at: '2026-10-28T22:06:04Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

@@ -16,33 +16,33 @@ subentities:
 - local_id: ST1
   title: Report index-lock waits on stderr and fail a timeout as a clean SquadsError
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Stop a milestone body write-back from duplicating the roll-up, and name the
     fix for a view tag
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Expose every declared field as a create option and store a declared default
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Render a type's Team workflow line for any number of authoring roles
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Word a regenerated pointer and the post-migrate line accurately
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Allow Todo to Done in the bundled sub-entity lifecycle
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST7
   title: Write the 0.17.0 CHANGELOG entries for this task's defect fixes
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 - local_id: ST8
   title: Rebuild the index when init --force runs over an existing squad
   status: Done

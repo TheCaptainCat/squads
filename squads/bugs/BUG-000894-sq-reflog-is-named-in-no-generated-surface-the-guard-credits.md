@@ -6,14 +6,14 @@ title: sq reflog is named in no generated surface; the guard credits a word
 status: Verified
 author: qa
 assignee: python-dev
-priority: medium
-severity: medium
 refs:
 - BUG-872
 description: sq reflog appears in no generated agent surface; the naming guard credits
   it via one ordinary-noun sentence.
 created_at: '2026-09-02T14:28:22Z'
 updated_at: '2026-09-03T07:09:15Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

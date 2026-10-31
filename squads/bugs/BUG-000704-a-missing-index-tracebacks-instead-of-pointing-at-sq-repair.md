@@ -5,10 +5,10 @@ type: bug
 title: A missing index tracebacks instead of pointing at sq repair
 status: Verified
 author: manager
-priority: high
 description: load() handles a corrupt index cleanly but lets FileNotFoundError escape
 created_at: '2026-07-30T10:43:42Z'
 updated_at: '2026-07-30T12:36:52Z'
+priority: high
 ---
 <!-- sq:body -->
 `IndexStore.load` catches ValidationError and UndecodableFileError and raises a clean SquadsError naming `sq repair` as the remedy. A *missing* .squads.json is not caught, so `read_text` raises FileNotFoundError and the CLI prints a raw traceback. Every read path is affected — reproduced on `sq list`, `sq role list` and `sq check` — while the remedy itself works: `sq repair` rebuilds the index from the markdown files (verified, 18 items).

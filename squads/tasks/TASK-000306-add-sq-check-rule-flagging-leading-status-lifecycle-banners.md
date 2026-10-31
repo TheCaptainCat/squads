@@ -13,15 +13,15 @@ subentities:
 - local_id: ST1
   title: Implement the leading-banner detector helper + wire into check
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add positive + negative detector tests
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Reconcile broken fixtures/goldens without weakening the detector
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-06T12:13:33Z'
 updated_at: '2026-07-06T12:31:55Z'
 ---

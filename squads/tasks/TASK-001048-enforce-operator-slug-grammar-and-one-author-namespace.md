@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-980
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-979:implements
 - REV-1026:addresses
@@ -18,29 +17,30 @@ subentities:
   title: Operator slug grammar at creation; skills out of the author namespace
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Default roster_slug_valid check
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 0.16 migration refuses a role or operator in breach
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Refuse --as squads in every comment writer
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Docs and CHANGELOG for the operator slug rule
   status: Done
   assignee: tech-writer
-  story: US5
+  maps_to: US5
 created_at: '2026-10-16T11:18:03Z'
 updated_at: '2026-10-16T12:35:07Z'
+priority: high
 ---
 <!-- sq:body -->
 Builds ADR-979 amendments A1 to A5, confirmed by op-pierre on 2026-10-16. The amendment text in ADR-979 ("Amendments — 2026-10-16") is the spec; the subtasks add acceptance only. A6 (the slug fallback in the 0.16 migration) is already built and is out of scope here.

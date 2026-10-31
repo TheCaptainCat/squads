@@ -5,7 +5,6 @@ type: epic
 title: sq web — a local web view of the squad
 status: InProgress
 author: product-owner
-priority: low
 refs:
 - EPIC-28
 - FEAT-15:depends-on
@@ -13,6 +12,7 @@ description: An sq web command serving the squad in a browser through the daemon
   /v1 routes; read-only first, with full CRUD as a possible long-term destination
 created_at: '2026-06-10T15:16:05Z'
 updated_at: '2026-10-28T22:07:54Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Outcome

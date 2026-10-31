@@ -5,11 +5,11 @@ type: bug
 title: Level-suffixed ref_rule_target_present survives a type drop
 status: Verified
 author: qa
-severity: high
 refs:
 - MILE-1051:targets
 created_at: '2026-10-26T13:45:16Z'
 updated_at: '2026-10-26T14:20:27Z'
+severity: high
 ---
 <!-- sq:body -->
 ## Summary

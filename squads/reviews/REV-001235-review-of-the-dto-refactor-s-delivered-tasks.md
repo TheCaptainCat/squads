@@ -3,7 +3,7 @@ id: REV-1235
 sequence_id: 1235
 type: review
 title: Review of the DTO refactor's delivered tasks
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-1226
@@ -60,15 +60,13 @@ subentities:
 - local_id: F10
   title: Transitional verb set and second gate copy are not on TASK-1232's deletion
     list
-  status: Deferred
+  status: Verified
   severity: info
-  deferred_to: TASK-1232
 - local_id: F11
   title: JSON mode prints no response warnings, so the language notice goes once the
     root callback stops printing it
-  status: Deferred
+  status: Verified
   severity: info
-  deferred_to: TASK-1232
 - local_id: F12
   title: The labelled-attribute case asserts a substring of --raw, runs on an override,
     and leaves the panel line unasserted
@@ -138,9 +136,8 @@ subentities:
 - local_id: F26
   title: Roster comment bridge, a stale registrar comment and two duplicates are on
     no deletion list
-  status: Deferred
+  status: Verified
   severity: info
-  deferred_to: TASK-1232
 - local_id: F27
   title: 'TASK-1227 tests: an unmarked milestone case asserting three forms, and an
     extended types case'
@@ -329,7 +326,7 @@ subentities:
   status: Verified
   severity: low
 created_at: '2026-10-28T23:26:20Z'
-updated_at: '2026-10-29T12:38:38Z'
+updated_at: '2026-10-29T16:23:37Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1226's delivered tasks, one commit at a time, against ADR-1224, ADR-1225 (section 9) and ADR-1172.
@@ -606,6 +603,8 @@ TASK-1232's body names the CLI-side gates (`require_current_schema`, `apply_gate
 <!-- sq:finding:F10:discussion -->
 - [2026-10-28T23:32:28Z] `tech-lead` Olivia Lead:
   - Deferred to TASK-1232 ST4: its deletion list now names _VERBS_ON_OPERATIONS, the _resolve_in_store branch, and the bridge gate copy (_api Ground/Grant/Mode and check_grant against the CLI Ground/GateGrant/apply_gate), keeping one.
+- [2026-10-29T16:23:15Z] `reviewer` Paul Reviewer:
+  - Verified at HEAD: _VERBS_ON_OPERATIONS and the _resolve_in_store branch went in c459d709; the CLI gate copy (Ground/GateGrant/apply_gate) in c2bd74f2, leaving _api Ground/Grant with check_grant; the duplicate Mode enum went in fc9fe17d. Forced from Deferred per op-pierre 4584811 (no lifecycle edge out of Deferred).
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -625,6 +624,8 @@ ADR-1224 point 3 says "human mode renders data and prints warnings on stderr" an
 <!-- sq:finding:F11:discussion -->
 - [2026-10-28T23:32:30Z] `tech-lead` Olivia Lead:
   - Deferred to TASK-1232 ST5. Decided: in --json mode the CLI prints response warnings on stderr, one line each, as omitted already goes to stderr, so stdout stays one document. One surface case pins it (show --json with an unrecognised working_language); TASK-1232 now expects 9 new cases.
+- [2026-10-29T16:23:26Z] `reviewer` Paul Reviewer:
+  - Verified at HEAD: print_json prints response warnings on stderr before the document (c2bd74f2, _cli/_calls.py); tests/cli/test_show.py pins it with show --json on working_language klingon!!; list --json on a scratch squad gives one warning line, stdout one document. Forced from Deferred per op-pierre 4584811.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -1108,6 +1109,8 @@ Some transitional code from this task is on no task's deletion list. TASK-1232's
   - Deferred. Item 1 (roster comment bridge, refusal order) is on TASK-1229, see its comment. Items 2 (tests/_cli_surface.py lines 36-37) and 3 (_print_body, _DUPLICATE_READ_NOTE) are in TASK-1232 ST4 deletion list.
 - [2026-10-29T04:55:38Z] `reviewer` Paul Reviewer:
   - - Item 1 verified on 90e64424. `COMMENT_VERBS`, `_resolve_for_comments`, `_comment_target`, `resolve_agent_addr` and the `ctx.obj["id"]` lambdas have no hit left in src or tests. `_role.py`, `_skill.py` and `_operator.py` build their host through `roster_comments`. The refusal order is back to the parent's: `sq role nobody comment -m x` answers "--as is required: the actor's slug" (exit 1), as at fd56122e. Items 2 and 3 stay with TASK-1232.
+- [2026-10-29T16:23:28Z] `reviewer` Paul Reviewer:
+  - Verified at HEAD: (1) roster comment bridge gone in c459d709 (TASK-1229), roster hosts use register_comment_verbs on the comment operations; sq role nobody comment -m x refuses --as first again. (2) tests/_cli_surface.py names register_write_verbs/register_roster_status_verb (c459d709). (3) one print_body in _render/_style.py and one _DUPLICATE_READ_NOTE in _services/_item_ops.py (c2bd74f2). Forced from Deferred per op-pierre 4584811.
 <!-- sq:finding:F26:discussion:end -->
 <!-- sq:finding:F26:end -->
 
@@ -2476,4 +2479,8 @@ So `add-<kind>` gains a key in this release, appended last as the rule asks, but
   - - Docs commit 145cd933 (TASK-1234) reviewed against the dev tree on scratch squads. Findings: F61-F66 (1 medium, 5 low). @tech-writer for the docs lines, @tech-lead for disposition.
     - Verified as stated: `{entry}` on `status`; `{entry, target, kind}` / `{entry, target, kinds}` on `ref add`/`ref rm`; `{override, errors, warnings}` on `workflow lint`; `ui --json` and `workflow --json` exit 2; the 36 `json_field` operations match the Tier 3 list (8 catalogs, `source` for `workflow view`); `dev list` is the one listing that prints `columns`; tree node key order (`display`, `notebook`, `closed`, `updated_at`) and `display.{dimmed, anchor, pronouns}`; graph `display.{edge, edge_label}`; refs `display.kind`; `tree --label` dims ancestors; `[display] pronouns = false` on roster `display.name` and tree `display.pronouns`, with the roster `pronouns` key unchanged; the `display`/`title`/`views`/`extra` refusal texts; a badge field named `display` refused; the attribute `label` on `show`, `display.attributes` and `workflow types --json`; exit 2 for skill/memory with the argument missing; `role catalog` on a malformed toml exits 1 for both outputs; `role show --json` on a missing file exits 1; view render failure exits 0 with the warning; the `sq check` compile finding; removal prompt on stderr with stdout empty; `init --json` under a pty does not prompt; `_spans.py` names and marks; the benchmark flags and runbook steps; every module, guard file, `LAZY_GROUPS`, `check_grant`, `VOCABULARY_FALLBACKS` and `Mode` member CLAUDE.md names. No sq IDs or dev-process text in the added adopter-doc lines.
     - Not in this review's scope, raised for @qa: `sq workflow view <name> SKILL-2 --json` resolves a wrong-prefix id to whatever item has number 2 (ROLE-2 here), where `sq show SKILL-2` refuses with "SKILL-2 is ROLE-2 (role)". The released 0.17.0 behaves the same, so it is not a regression.
+- [2026-10-29T16:19:58Z] `op-pierre` Pierre Chat:
+  - 2026-10-29: the reviewer checks that TASK-1232 settled F10, F11 and F26, marks each Noted or Verified (re-homing any left unsettled), then approves this review.
+- [2026-10-29T16:23:37Z] `reviewer` Paul Reviewer:
+  - Approved: F10, F11 and F26 verified at HEAD (c459d709, c2bd74f2, fc9fe17d); every finding is Verified or Noted. FEAT-1226 is closed out for review.
 <!-- sq:discussion:end -->

@@ -7,7 +7,6 @@ status: Cancelled
 parent: FEAT-1096
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - TASK-1112:depends-on
 - TASK-1114:depends-on
@@ -17,17 +16,18 @@ subentities:
 - local_id: ST1
   title: Rebuild pointer and skill generation through init, sync and migrate
   status: Todo
-  story: US8
+  maps_to: US8
 - local_id: ST2
   title: Rebuild goldens, rendering, Windows path rows and the TUI tests
   status: Todo
-  story: US8
+  maps_to: US8
 - local_id: ST3
   title: Prove backend and rendering parity and delete the old files they cover
   status: Todo
-  story: US9
+  maps_to: US9
 created_at: '2026-10-24T13:42:18Z'
 updated_at: '2026-10-27T20:16:26Z'
+priority: high
 ---
 <!-- sq:body -->
 Rebuild the backend, skills, rendering and TUI tests in the new root (US8), then prove parity and delete the old files this area covers (US9). Generated artifacts are checked by pinned goldens and `tests_next/meta` guards rather than per-instance tests. This is the last area increment, after the engine one.

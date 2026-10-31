@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-903
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - ADR-880:implements
 - REV-920:addresses
@@ -36,6 +35,7 @@ subentities:
   status: Done
 created_at: '2026-09-04T08:05:11Z'
 updated_at: '2026-09-04T08:59:02Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

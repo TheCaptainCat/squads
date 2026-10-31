@@ -6,7 +6,6 @@ title: Resolve roles from a catalog entry, a template or the item
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - MILE-1051:targets
 - ADR-1151:implements
@@ -53,6 +52,7 @@ subentities:
   status: Done
 created_at: '2026-10-25T22:01:52Z'
 updated_at: '2026-10-26T14:03:06Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

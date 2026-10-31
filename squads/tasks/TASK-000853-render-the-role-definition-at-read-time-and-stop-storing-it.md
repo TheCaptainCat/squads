@@ -6,7 +6,6 @@ title: Render the role definition at read time and stop storing it
 status: Done
 parent: FEAT-694
 author: tech-lead
-priority: high
 refs:
 - ADR-776:implements
 - ADR-781:implements
@@ -33,6 +32,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-09-01T08:43:24Z'
 updated_at: '2026-09-02T14:01:18Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

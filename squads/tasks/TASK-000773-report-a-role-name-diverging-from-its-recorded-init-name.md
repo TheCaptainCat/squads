@@ -6,13 +6,13 @@ title: Report a role name diverging from its recorded init name
 status: Draft
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-754:implements
 description: An sq check rule so an already-damaged squad is told, reading only on-disk
   data and repairing nothing
 created_at: '2026-08-21T21:06:35Z'
 updated_at: '2026-08-21T21:07:06Z'
+priority: medium
 ---
 <!-- sq:body -->
 A squad whose operator-set role name was already reverted by an earlier sync has no way to learn

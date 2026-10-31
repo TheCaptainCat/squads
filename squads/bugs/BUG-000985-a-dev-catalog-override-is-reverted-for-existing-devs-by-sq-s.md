@@ -5,12 +5,12 @@ type: bug
 title: A [dev] catalog override is reverted for existing devs by sq sync
 status: Verified
 author: qa
-priority: medium
 refs:
 - ADR-984
 - MILE-934:targets
 created_at: '2026-10-09T18:42:59Z'
 updated_at: '2026-10-16T21:04:04Z'
+priority: medium
 ---
 <!-- sq:body -->
 A project override of the `[dev]` table in the role catalog (`.overrides/roles.toml`) is applied to a developer when it is added, then silently reverted for that same developer by the next `sq sync`. An existing developer's template is not read from the catalog the squad resolves.

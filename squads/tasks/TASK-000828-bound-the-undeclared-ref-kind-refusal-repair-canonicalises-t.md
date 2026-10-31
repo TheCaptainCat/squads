@@ -5,7 +5,6 @@ type: task
 title: Bound the undeclared-ref-kind refusal; repair canonicalises the file
 status: Done
 author: tech-lead
-priority: medium
 refs:
 - BUG-827:fixes
 - ADR-775:implements
@@ -27,6 +26,7 @@ subentities:
   status: Done
 created_at: '2026-08-26T11:51:47Z'
 updated_at: '2026-08-26T16:01:11Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## What is wrong

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-980
 author: tech-lead
 assignee: tech-writer
-priority: medium
 refs:
 - ADR-979:implements
 - TASK-1004:depends-on
@@ -17,13 +16,14 @@ subentities:
 - local_id: ST1
   title: State the header grammar and slug permanence in the contract
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Describe the 0.16 migration and write the changelog entries
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-10-12T06:48:46Z'
 updated_at: '2026-10-16T08:39:08Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

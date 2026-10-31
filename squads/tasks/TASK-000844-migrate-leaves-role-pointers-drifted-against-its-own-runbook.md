@@ -6,7 +6,6 @@ title: Migrate leaves role pointers drifted against its own runbook
 status: Done
 parent: FEAT-693
 author: tech-lead
-priority: medium
 refs:
 - REV-840:addresses
 - FEAT-321:addresses
@@ -23,6 +22,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-08-26T17:06:57Z'
 updated_at: '2026-08-26T17:48:11Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

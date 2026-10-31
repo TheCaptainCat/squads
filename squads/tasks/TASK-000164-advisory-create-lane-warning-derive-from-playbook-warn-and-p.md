@@ -8,7 +8,6 @@ status: Done
 parent: FEAT-122
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-163
 subentities:
@@ -16,19 +15,20 @@ subentities:
   title: 'Seam A: allowed_create_types/in_lane_owner/_is_lane_exempt in _interactions.py
     + table-pinning test'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Seam B: compute warning in ServiceCore.create, return on CreateResult.lane_warning,
     tag reflog delta (no print)'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: 'Seam C: CLI render warning (escaped, exit 0, --json) + creates row in sq
     role show'
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-22T12:37:03Z'
 updated_at: '2026-07-06T15:18:57Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements **FEAT-122 Slice B / US1** per **ADR-163** (Accepted) — *advisory*

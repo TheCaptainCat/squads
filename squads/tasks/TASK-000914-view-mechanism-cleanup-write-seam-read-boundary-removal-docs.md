@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-905
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-880:implements
 - REV-912:addresses
@@ -18,37 +17,38 @@ subentities:
 - local_id: ST1
   title: Fold the third frontmatter write seam into the core
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Bail before the index load when no tag is present
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST3
   title: Removal reports honestly on a duplicate tag
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Splice the removal instead of normalising the region
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Anchor the catalog-exclusion canary
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST6
   title: Translate template failures in the rendering engine
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST7
   title: Document both check tiers at the catalog end
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST8
   title: Strip build-process narration from delivered text
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-09-03T12:03:23Z'
 updated_at: '2026-09-03T14:37:57Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

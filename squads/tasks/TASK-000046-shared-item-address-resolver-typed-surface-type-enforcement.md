@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-19
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - TASK-47:blocks
 subentities:
@@ -15,14 +14,15 @@ subentities:
   title: 'Shared resolver: typed (live-DB type check) + type-less variants, both-forms
     unknown-item errors'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Close the silent type-mismatch hole on the item-verb surface (13 is FEAT-000013,
     not a task)
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-11T13:59:31Z'
 updated_at: '2026-07-06T15:17:48Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1016
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1007:implements
 - BUG-1049:fixes
@@ -18,55 +17,56 @@ subentities:
   title: 'Model: one attribute mapping, slug as a core key, AttributeKey and the accessor'
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Spec: the attributes grammar, pinned roster attributes and the refused names'
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 'Validation: attribute kinds in sq check, --set and import; opt-in undeclared
     check'
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: 'Write invariant: the write-path by key-shape table and its falsification'
   status: Done
   assignee: python-dev
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: 'One meaning per name: skill description, operator title, tech'
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST6
   title: The flat-frontmatter contribution of the 0.16 step, absorbing operator-identity
   status: Done
   assignee: python-dev
-  story: US6
+  maps_to: US6
 - local_id: ST7
   title: Run the 0.16 step on a scratch copy of this repository's squad
   status: Done
   assignee: python-dev
-  story: US6
+  maps_to: US6
 - local_id: ST8
   title: Flat --json rows, workflow attributes and flat render contexts
   status: Done
   assignee: python-dev
-  story: US7
+  maps_to: US7
 - local_id: ST9
   title: 'VS Code skew canary: flat rows and type attributes'
   status: Done
   assignee: typescript-dev
-  story: US7
+  maps_to: US7
 - local_id: ST10
   title: Docs and changelog for the flat frontmatter
   status: Done
   assignee: tech-writer
-  story: US8
+  maps_to: US8
 created_at: '2026-10-16T13:05:35Z'
 updated_at: '2026-10-16T17:12:14Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

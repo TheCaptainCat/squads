@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-790
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - ADR-775:implements
 - BUG-804:fixes
@@ -18,17 +17,18 @@ subentities:
 - local_id: ST1
   title: Normalise at the fold input via a required keyword
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Convergence table and the call-site drift guard
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Refreeze the 0.1-to-0.2 runner fold and guard the boundary
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T15:57:20Z'
 updated_at: '2026-08-25T23:39:51Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

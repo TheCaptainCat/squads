@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-907
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - ADR-880:implements
 description: The creation template seeds the tag; a schema-gated one-time runner places
@@ -16,29 +15,30 @@ subentities:
 - local_id: ST1
   title: Seed the roll-up tag in the milestone creation template
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Derive a type's template-seeded view names, override-aware
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: One-time runner places the tag through the placement operation
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Register the schema step and bump the schema version
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Report the count of bodies the run changed
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Shape coverage, override fixture, and test falsification
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-09-14T12:15:23Z'
 updated_at: '2026-09-15T09:36:08Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

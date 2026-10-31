@@ -5,12 +5,12 @@ type: bug
 title: 'Reflog --op vocab: docstring/--help lists disagree, both miss retype'
 status: Verified
 author: qa
-priority: low
-severity: low
 refs:
 - FEAT-24:addresses
 created_at: '2026-08-03T08:49:48Z'
 updated_at: '2026-08-15T19:55:19Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 Three independent, hand-maintained enumerations of the reflog op vocabulary exist, none complete, and no code enforces any of them.

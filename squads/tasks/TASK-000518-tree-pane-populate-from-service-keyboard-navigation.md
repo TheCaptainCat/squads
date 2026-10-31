@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Populate tree from svc.tree_view matching sq tree
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Keyboard navigation with visible selection indicator
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-21T09:18:49Z'
 updated_at: '2026-07-21T12:05:08Z'
 ---

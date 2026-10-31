@@ -15,32 +15,32 @@ subentities:
   title: Add Babel, the resolver and the raw config key
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Validate on every command and warn on stderr
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Render the rule in both backends and the squads skill
   status: Done
   assignee: python-dev
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Write working_language on init and adopt
   status: Done
   assignee: python-dev
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Document the key and add the CHANGELOG entry
   status: Done
   assignee: tech-writer
-  story: US4
+  maps_to: US4
 - local_id: ST6
   title: Report a malformed working_language in sq check
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 created_at: '2026-10-24T09:11:31Z'
 updated_at: '2026-10-24T19:01:44Z'
 ---

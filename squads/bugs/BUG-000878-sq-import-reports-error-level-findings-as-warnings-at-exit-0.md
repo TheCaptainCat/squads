@@ -5,8 +5,6 @@ type: bug
 title: sq import reports error-level findings as warnings at exit 0
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - BUG-873
 description: 'sq import flattens error- and warn-level validator findings into one
@@ -14,6 +12,8 @@ description: 'sq import flattens error- and warn-level validator findings into o
   members.'
 created_at: '2026-09-02T10:21:15Z'
 updated_at: '2026-09-02T14:20:03Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

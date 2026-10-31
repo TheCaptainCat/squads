@@ -5,12 +5,12 @@ type: bug
 title: override diff --json prints text when nothing drifted
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1033
 - MILE-1051:targets
 created_at: '2026-10-16T09:09:22Z'
 updated_at: '2026-10-25T11:11:49Z'
+priority: low
 ---
 <!-- sq:body -->
 Reproduced on the dev build in a fresh scratch squad (git-inited, `sq init`, nothing overridden).

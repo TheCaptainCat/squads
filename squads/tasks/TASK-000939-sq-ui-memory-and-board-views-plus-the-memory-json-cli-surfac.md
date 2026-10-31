@@ -11,23 +11,23 @@ subentities:
 - local_id: ST1
   title: Carry created_at into sq memory list --json
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add sq memory show --json
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Nest memory under Roster identities in the sq ui tree
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: A memory-shaped reader for the sq ui drill-in step
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Board screen in sq ui
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-09-14T12:14:24Z'
 updated_at: '2026-09-15T07:44:23Z'
 ---

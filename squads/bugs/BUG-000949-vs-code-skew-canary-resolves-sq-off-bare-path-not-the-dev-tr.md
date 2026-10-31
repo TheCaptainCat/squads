@@ -5,13 +5,13 @@ type: bug
 title: VS Code skew canary resolves sq off bare PATH, not the dev tree
 status: Verified
 author: qa
-severity: medium
 refs:
 - BUG-896
 - MILE-934:targets
 - BUG-935
 created_at: '2026-09-15T08:00:34Z'
 updated_at: '2026-09-29T16:06:17Z'
+severity: medium
 ---
 <!-- sq:body -->
 ## Problem

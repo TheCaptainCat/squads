@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-901
 author: tech-lead
 assignee: python-dev
-priority: low
 refs:
 - ADR-864:implements
 - BUG-1003:fixes
@@ -18,49 +17,50 @@ subentities:
 - local_id: ST1
   title: 'item_title_max: flag an item title over the declared length'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'ref_rule_target_typed: flag an edge to a type its rule excludes'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 'body_written: flag an item body still at its scaffold'
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: 'description_present: flag an item with no summary'
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: 'assignee_present: flag an active item with no assignee'
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST6
   title: 'blocked_has_blocker: flag a blocked item with no dependency edge'
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST7
   title: 'settled_requires_discussion: flag a settled item with no comment'
   status: Done
-  story: US7
+  maps_to: US7
 - local_id: ST8
   title: 'external_id_not_in_title: flag a tracker id in a title'
   status: Done
-  story: US8
+  maps_to: US8
 - local_id: ST9
   title: Prove the two-check selection on a copy of this squad
   status: Done
-  story: US9
+  maps_to: US9
 - local_id: ST10
   title: Let a status role declare that it means blocked
   status: Done
-  story: US11
+  maps_to: US11
 - local_id: ST11
   title: Run only the checks that can refuse at the create/update gate
   status: Done
-  story: US8
+  maps_to: US8
 created_at: '2026-10-12T05:46:24Z'
 updated_at: '2026-10-16T16:20:53Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Scope

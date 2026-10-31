@@ -16,30 +16,30 @@ subentities:
   title: Declare Noted, Deferred and the deferred role flag, and refuse the flag on
     item lifecycles
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: 'Store deferred_to: update and add flags, refusals, head line, JSON row and
     import op'
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Remap deferred_to on retype, type rename and renumber, and sever it on remove
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Add the subentity_deferral_resolved check, with the retired-carrier warning
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST5
   title: Add the Noted and Deferred line to the bundled reviewer guidance
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST6
   title: Refresh the stability and workflow docs for the finding lifecycle, and write
     the CHANGELOG entry
   status: Done
   assignee: tech-writer
-  story: US6
+  maps_to: US6
 created_at: '2026-10-24T10:04:03Z'
 updated_at: '2026-10-28T12:11:18Z'
 ---

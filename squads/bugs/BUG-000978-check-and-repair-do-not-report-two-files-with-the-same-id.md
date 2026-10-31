@@ -5,14 +5,14 @@ type: bug
 title: check and repair do not report two files with the same id
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - REV-975:addresses
 - MILE-934:targets
 description: check and repair stay silent when two files carry one id
 created_at: '2026-09-29T14:25:57Z'
 updated_at: '2026-10-09T15:38:07Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 ## Summary

@@ -6,13 +6,13 @@ title: Soft-wrap CLI error output so piped stderr stays copyable
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: medium
 refs:
 - BUG-745:fixes
 description: soft_wrap at the three single-line error render sites plus a platform-independent
   regression guard
 created_at: '2026-08-21T12:42:50Z'
 updated_at: '2026-08-21T18:36:57Z'
+priority: medium
 ---
 <!-- sq:body -->
 `sq` renders error output at a fixed 80-column width whether or not stderr is a terminal, so Rich

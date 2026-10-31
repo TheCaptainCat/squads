@@ -5,14 +5,14 @@ type: bug
 title: Operator-identity guard never scans operator names
 status: Verified
 author: qa
-priority: low
-severity: low
 refs:
 - MILE-1051:targets
 description: 'Guard reads full_name: but operators store title:, so a first-name leak
   in a template passes.'
 created_at: '2026-10-26T17:36:27Z'
 updated_at: '2026-10-28T12:16:19Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 The meta guard `tests/meta/test_bundled_templates_carry_no_operator_identity.py` is meant to fail when a bundled template names one of this squad's operators. It reads each operator's name with `_FULL_NAME_RE = ^\s*full_name:\s*(.+?)\s*$`, but the operator files under `squads/operators/` carry the name under `title:` (for example `title: Pierre Chat`) and have no `full_name:` key.

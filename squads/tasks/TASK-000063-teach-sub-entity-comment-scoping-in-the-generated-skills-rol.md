@@ -7,22 +7,22 @@ status: Done
 parent: FEAT-62
 author: tech-lead
 assignee: python-dev
-priority: medium
 subentities:
 - local_id: ST1
   title: State the scoping convention once in squads_skill.md.j2
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Add role-specific scoped-comment guidance in _interactions.py
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: 'Tests: scoping convention in skills/roles + @mention inbox no-regression'
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-12T09:55:14Z'
 updated_at: '2026-06-23T09:58:09Z'
+priority: medium
 ---
 <!-- sq:body -->
 **Goal.** Teach agents the comment-scoping convention — sub-entity discussions for scoped material, the main item discussion for cross-cutting material — across the generated skills and role templates. Content/template only — NO CLI behaviour changes, no parsing or inbox changes (the inbox already surfaces sub-entity @mentions; the PO verified this empirically 2026-06-12). The convention is preference-based guidance, not a hard rule.

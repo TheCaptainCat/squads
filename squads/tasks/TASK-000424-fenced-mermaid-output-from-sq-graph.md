@@ -11,7 +11,7 @@ subentities:
 - local_id: ST1
   title: Pre-fenced Mermaid variant of graph_to_mermaid + CLI smoke test
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-07-15T14:02:32Z'
 updated_at: '2026-07-15T14:44:34Z'
 ---

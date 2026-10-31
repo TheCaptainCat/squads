@@ -12,7 +12,7 @@ subentities:
 - local_id: ST1
   title: Filter dropdown + any other TUI type-display via label_for
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-27T07:51:30Z'
 updated_at: '2026-07-27T08:05:03Z'
 ---

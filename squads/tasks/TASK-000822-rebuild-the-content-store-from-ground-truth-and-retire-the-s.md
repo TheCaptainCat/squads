@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: urgent
 refs:
 - REV-817:addresses
 - ADR-777:implements
@@ -23,29 +22,30 @@ subentities:
   title: Withdraw the sweep from the generator's write mode
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Rebuild the store from the tags, all-or-nothing
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Widen --check to the whole index and state what it checked
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Move the orphan assertion to the release gate
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 - local_id: ST5
   title: Parametrise the retention fixture off the running version
   status: Done
   assignee: python-dev
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T23:08:49Z'
 updated_at: '2026-08-26T16:01:06Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Scope

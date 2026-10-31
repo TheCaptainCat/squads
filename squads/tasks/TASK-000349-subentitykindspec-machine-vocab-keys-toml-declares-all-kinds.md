@@ -10,7 +10,7 @@ subentities:
 - local_id: ST1
   title: Declare custom-kind machine/vocab in TOML; bundled kinds byte-identical
   status: Todo
-  story: US1
+  maps_to: US1
 created_at: '2026-07-09T21:31:26Z'
 updated_at: '2026-07-13T09:27:33Z'
 ---

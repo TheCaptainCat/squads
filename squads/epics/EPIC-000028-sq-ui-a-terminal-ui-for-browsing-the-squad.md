@@ -5,7 +5,6 @@ type: epic
 title: sq ui — a terminal UI for browsing the squad
 status: InProgress
 author: product-owner
-priority: low
 refs:
 - FEAT-15:depends-on
 - FEAT-19:depends-on
@@ -13,6 +12,7 @@ description: 'An sq ui command opening a TUI: navigate the tree, read items with
   for stories/body/discussion; browse-first, mutations a later increment'
 created_at: '2026-06-10T15:15:37Z'
 updated_at: '2026-07-21T11:26:52Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Outcome

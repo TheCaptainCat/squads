@@ -10,11 +10,11 @@ subentities:
 - local_id: ST1
   title: Ordered migration walks agents/skills, allocates ids, stamps frontmatter
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Migration runs repair, stamps schema bump, ordering parity with init
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-24T18:46:56Z'
 updated_at: '2026-07-06T15:19:52Z'
 ---

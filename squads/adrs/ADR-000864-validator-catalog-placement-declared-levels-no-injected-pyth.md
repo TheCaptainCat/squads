@@ -14,10 +14,11 @@ refs:
 - ADR-167:supersedes
 - ADR-982
 - ADR-1109
+- ADR-1250
 description: What a complete validator catalog looks like, which members are always
   on vs opt-in, and why adopter-supplied Python is not built.
 created_at: '2026-09-01T15:26:04Z'
-updated_at: '2026-10-25T21:42:21Z'
+updated_at: '2026-10-29T19:50:51Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -130,7 +131,7 @@ parent cycle is a silent corpus state that made `sq tree` non-terminating.
 
 **On by default for a category (`CATEGORY_BUNDLES`):** `work` turns on `parent_in`,
 `subentity_status_valid`, `subentity_container_marker`, `subentity_body_written`,
-`subentity_deferral_resolved` and `subtask_story_mapping`; `records` turns on `no_parent` and
+`subentity_deferral_resolved` and `subentity_mapping`; `records` turns on `no_parent` and
 `supersedes_incoming`; `roster` turns on `pronouns_valid`.
 
 **Opt-in, selected by the types that want them:**
@@ -397,4 +398,6 @@ content already executes in-process without anyone having decided that on purpos
   - 2026-10-25: renamed for plain terms (TASK-1077 ST1). Title "three tiers" -> "placement"; heading "The tiering test" -> "The placement test"; body: Floor -> always on, Category bundle -> on by default for a category, Catalog-only -> opt-in, tier -> placement. Wording only, the decision is unchanged. The level floor (a selection may raise a level, never lower it) keeps its name: it is a different concept.
 - [2026-10-25T21:42:21Z] `architect` Robert Architect:
   - 2026-10-25 audit: body rewritten in present tense; decision unchanged. Parts 1-2, the 2026-09-02 gate correction and the 2026-09-03 ruling folded into sections 1-6; the catalog is listed as built (validator_names.py). field_value_declared is recorded as not a member (the index load refuses the value; FEAT-900 cancelled), the ADR-864/982 amendment notes folded (blocked flag, regex pattern). Part 3 reasoning kept.
+- [2026-10-29T19:50:51Z] `architect` Robert Architect:
+  - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. The validator name `subtask_story_mapping` becomes `subentity_mapping` (ADR-1250 §1); no other change.
 <!-- sq:discussion:end -->

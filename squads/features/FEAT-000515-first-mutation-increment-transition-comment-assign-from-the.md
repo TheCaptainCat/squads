@@ -6,9 +6,9 @@ title: 'First mutation increment: transition/comment/assign from the TUI'
 status: Draft
 parent: EPIC-28
 author: product-owner
-priority: low
 created_at: '2026-07-21T09:11:27Z'
 updated_at: '2026-07-21T09:12:07Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Capability

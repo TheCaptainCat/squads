@@ -11,12 +11,12 @@ subentities:
   title: Add a canonical ALIASES map and register each type sub-app under its hidden
     alias names
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'CLI test matrix: every alias routes deep chains; output and errors stay
     canonical'
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-06-15T07:42:47Z'
 updated_at: '2026-07-06T15:18:04Z'
 ---

@@ -6,7 +6,6 @@ title: 'View source layer: widen to role, playbook, and self kinds'
 status: Done
 parent: EPIC-897
 author: product-owner
-priority: urgent
 refs:
 - MILE-867:targets
 - ADR-880:implements
@@ -33,6 +32,7 @@ subentities:
   status: Done
 created_at: '2026-09-03T09:10:55Z'
 updated_at: '2026-09-04T08:59:07Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Why

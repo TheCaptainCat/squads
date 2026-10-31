@@ -5,12 +5,12 @@ type: bug
 title: Search snippet windowing can truncate the matched term out
 status: Verified
 author: qa
-severity: medium
 refs:
 - FEAT-537
 - REV-562
 created_at: '2026-07-21T23:53:46Z'
 updated_at: '2026-07-22T08:00:30Z'
+severity: medium
 ---
 <!-- sq:body -->
 `sq search`'s snippet windowing (`_windowed_snippet` in `src/squads/_services/_collab.py`,

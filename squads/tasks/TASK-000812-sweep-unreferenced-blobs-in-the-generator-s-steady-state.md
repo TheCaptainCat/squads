@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-791
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-777:implements
 - REV-808:addresses
@@ -19,13 +18,14 @@ subentities:
 - local_id: ST1
   title: Reachability sweep in the generator's write mode
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Orphan guard as a maintained invariant
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-08-25T18:11:01Z'
 updated_at: '2026-08-25T23:40:08Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

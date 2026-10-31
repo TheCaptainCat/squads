@@ -6,7 +6,6 @@ title: Name the id-collision remedy in agent guidance and guard the class
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - BUG-872:fixes
 description: Two shipped commands are named in no agent-facing surface; add the collision
@@ -27,6 +26,7 @@ subentities:
   assignee: python-dev
 created_at: '2026-09-02T09:58:56Z'
 updated_at: '2026-09-02T14:01:32Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What is wrong

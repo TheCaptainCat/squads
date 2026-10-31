@@ -5,12 +5,12 @@ type: bug
 title: No JSON surface exposes a type's per-status lifecycle/transitions
 status: Verified
 author: qa
-priority: medium
-severity: medium
 refs:
 - FEAT-334:addresses
 created_at: '2026-08-03T08:51:02Z'
 updated_at: '2026-08-21T16:57:33Z'
+priority: medium
+severity: medium
 ---
 <!-- sq:body -->
 A machine client cannot resolve which statuses a given item type accepts, or the transitions between them, from any `--json` surface.

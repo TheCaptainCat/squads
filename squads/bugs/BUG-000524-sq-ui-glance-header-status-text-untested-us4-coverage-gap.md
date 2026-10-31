@@ -5,12 +5,12 @@ type: bug
 title: 'sq ui glance header: status text untested (US4 coverage gap)'
 status: Verified
 author: qa
-priority: low
 refs:
 - FEAT-514
 - TASK-519
 created_at: '2026-07-21T11:48:26Z'
 updated_at: '2026-07-21T14:14:21Z'
+priority: low
 ---
 <!-- sq:body -->
 **Gap.** FEAT-514/US4 requires status, priority, and assignee visible at a glance. The reader

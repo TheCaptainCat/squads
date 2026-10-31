@@ -6,7 +6,6 @@ title: Type aliases in the CLI grammar
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: medium
 refs:
 - FEAT-13
 - PRD-859:implements
@@ -22,6 +21,7 @@ subentities:
   status: Done
 created_at: '2026-06-11T07:37:01Z'
 updated_at: '2026-09-01T13:47:50Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Problem

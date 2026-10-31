@@ -3,10 +3,9 @@ id: FEAT-1140
 sequence_id: 1140
 type: feature
 title: 'The daemon: a local API the CLI and web client share'
-status: Ready
+status: Done
 parent: EPIC-29
 author: product-owner
-priority: high
 refs:
 - FEAT-33
 - ADR-1052:depends-on
@@ -20,16 +19,16 @@ description: A local process serving the squad as resource routes, called by the
 subentities:
 - local_id: US1
   title: Every operation served at its own resource route
-  status: Todo
+  status: InProgress
 - local_id: US2
   title: Writes through the routes, safe against concurrent edits
-  status: Todo
+  status: InProgress
 - local_id: US3
   title: CLI remote and local modes
-  status: Todo
+  status: InProgress
 - local_id: US4
   title: Daemon lifecycle and discovery
-  status: Todo
+  status: InProgress
 - local_id: US5
   title: Daemon settings in .squads.toml
   status: Todo
@@ -44,10 +43,10 @@ subentities:
   status: Todo
 - local_id: US9
   title: Documentation for adopters
-  status: Todo
+  status: InProgress
 - local_id: US10
   title: Actor, time, session and paths travel with each call
-  status: Todo
+  status: InProgress
 - local_id: US11
   title: Client and daemon refuse a schema or vocabulary mismatch
   status: Todo
@@ -58,64 +57,140 @@ subentities:
   title: The terminal UI as a daemon client
   status: Todo
 created_at: '2026-10-25T10:47:24Z'
-updated_at: '2026-10-29T13:13:23Z'
+updated_at: '2026-10-31T10:48:53Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem
 
-Every `sq` invocation starts cold: it builds the CLI, loads the vocabulary and reads the squad again, then exits. Nothing is kept between two commands, and nothing other than the CLI can ask a running process about the squad. The browser frontend (MILE-868) needs exactly that: typed resources it can call from a Vue or Angular front. The CLI benefits from the same door.
+Every `sq` invocation starts cold: it builds the CLI, loads the vocabulary and 
+reads the squad again, then exits. Nothing is kept between two commands, and 
+nothing other than the CLI can ask a running process about the squad. The 
+browser frontend (MILE-868) needs exactly that: typed resources it can call from
+a Vue or Angular front. The CLI benefits from a running process too.
 
 ## What the daemon gives an adopter
 
-- A local process that serves the squad as resource routes under `/v1`, one route per operation, with a typed JSON answer and an OpenAPI document a front can generate its types from.
-- A CLI that uses it without being asked: the first command starts the daemon, later commands are answered by it, and the daemon exits by itself after a quiet period. The CLI still parses and renders in the user's own process, so output is the same in both modes.
-- Local mode kept as it is: with the daemon switched off, or when a local daemon cannot start, the CLI reads and writes the squad directly.
-- One API for every client. The CLI's remote mode, the terminal UI and the future browser frontend call the same routes (op-pierre rulings, 2026-10-16 and 2026-10-28); there is no second protocol.
-- Writes that refuse to overwrite what changed since a client read it, and a client and daemon that refuse each other before running anything when their schema or vocabulary differ.
+- A local process that serves the squad as resource routes under `/v1`, one 
+route per operation, with a typed JSON answer and an OpenAPI document a front 
+can generate its types from. These routes are the public API for every client 
+other than the CLI.
+- A CLI that uses the daemon without being asked: the first command starts it, 
+later commands are answered by it, and it exits by itself after a quiet period. 
+In remote mode the `sq` process is a thin shim: it sends the command line to a 
+private command endpoint, the daemon runs the CLI in its own process and 
+renders, and the shim prints the answer. Output and exit code are the same in 
+both modes.
+- Faster commands: the daemon keeps the parsed index, the parsed item 
+frontmatter and the outcome of the override check between requests, keyed by the
+content of the files read, so a read never serves a stale answer.
+- Local mode kept as it is: with the daemon switched off, or when it cannot be 
+reached before a command is sent, the CLI runs the command in its own process, 
+reading and writing the squad directly.
+- Two doors, one set of operations: the CLI's private command endpoint, and the 
+resource routes that the terminal UI and the future browser frontend call (op-pierre 
+rulings, 2026-10-16, 2026-10-28 and 2026-10-30). Both run the same operations.
+- Writes that refuse to overwrite what changed since a client read it, and a 
+client and daemon that refuse each other before running anything when their 
+schema or vocabulary differ.
 
 ## Scope
 
-- The routes: every operation of the command layer (the operation table that FEAT-1226 builds) served at its own route, plus daemon status, stop and the OpenAPI document; reads and local single-user writes, and everything local mode does, including migrate, repair, repad and renumber.
-- The errors a client can act on: an HTTP status and a machine-readable type per failure, with the same sentence local mode prints.
-- The request headers: actor, clock, session ids, client directory, schema and vocabulary checks, and `If-Match` for writes on an item.
-- The CLI's two modes, remote (answered by the daemon) and local (direct), chosen once per invocation, with the fall back from the first to the second for a local daemon, and the timeouts a remote call applies.
+- The routes: every operation of the command layer (the operation table that 
+FEAT-1226 builds) served at its own route, plus daemon status, stop and the 
+OpenAPI document; reads and local single-user writes, and everything local mode 
+does, including migrate, repair, repad and renumber.
+- The private command endpoint: one request carries a command line, the client's
+directory, a fixed list of environment values, terminal facts and client files; 
+the answer is the ordered output and the exit code, or a prompt to put to the 
+user. It is served on the CLI listener only and is not part of the public API.
+- The errors a client can act on: an HTTP status and a machine-readable type per
+failure, with the same sentence local mode prints.
+- The request headers: actor, clock, session ids, client directory, schema and 
+vocabulary checks, and `If-Match` for writes on an item.
+- The CLI's two modes, remote (answered by the daemon) and local (direct), 
+chosen once per invocation, with the fall back from the first to the second 
+before a command is sent, and the timeouts a remote call applies.
+- The daemon's cache of parsed files, never a source of truth.
 - The terminal UI on the same selection: a daemon client in remote mode.
-- The client budget: what a remote command costs in the client's own process, measured at release.
-- The daemon's lifecycle: implicit start, discovery, staleness, idle exit, stop, and settings in `.squads.toml`.
+- The client budget: what a remote command costs in the shim, measured at 
+release.
+- The daemon's lifecycle: implicit start, discovery, staleness, idle exit, stop,
+and settings in `.squads.toml`.
 - Native Windows supported, remote mode included.
-- This repository dogfooding the daemon, switched off at first and enabled once it has earned trust.
+- This repository dogfooding the daemon, switched off at first and enabled once 
+it has earned trust.
 - The browser-facing listener exists but is off by default.
 
-The command layer the routes serve (one operation per command, its result shape, `--json` on every command) is FEAT-1226. The transport, discovery, lifecycle and request model are decided in ADR-1052; the routes, wire format, errors and mode selection in ADR-1225. This feature states outcomes and leaves those choices to them.
+The command layer the routes serve (one operation per command, its result shape,
+`--json` on every command) is FEAT-1226. The transport, discovery, lifecycle and
+request model are decided in ADR-1052; the routes, wire format, errors and mode 
+selection in ADR-1225; the shim, the command endpoint and the cache in 
+ADR-1261. This feature states outcomes and leaves those choices to them.
 
 ## Non-goals
 
-- The browser frontend (MILE-868). It consumes these routes and is not built here.
-- Authentication and authorization. The API assumes a trusted local caller, and the actor a request names is declared, not verified.
-- A squad hosted on another machine (FEAT-33), and any listener reachable beyond the adopter's machine.
+- The browser frontend (MILE-868). It consumes these routes and is not built 
+here.
+- Authentication and authorization. The API assumes a trusted local caller, and 
+the actor a request names is declared, not verified.
+- A squad hosted on another machine (FEAT-33), and any listener reachable beyond
+the adopter's machine.
 - Pagination of listings and search results; it comes with the web front.
-- Cutting the fixed startup cost of a local invocation (FEAT-916, Done) as a criterion: local mode benefits from the client's lighter start where it can, but only remote mode carries a budget.
-- Progress output while an operation runs: a remote answer arrives when the operation ends.
+- Cutting the fixed startup cost of a local invocation (FEAT-916, Done) as a 
+criterion: only remote mode carries a budget.
+- Progress output while a command runs: a remote answer arrives when the 
+command ends.
+- Concurrent execution of commands: the daemon runs one at a time.
 
 ## Boundary with FEAT-33
 
-FEAT-33 is the client side of a squad hosted elsewhere. This feature delivers the server side on one machine and the seam that case plugs into: endpoint resolution returns an endpoint, and the CLI and the terminal UI call it through the same HTTP client the local daemon uses. The endpoint says whether a local mode exists; only a local daemon has one. FEAT-33 adds a source for that endpoint (an address the client's own settings name), authentication, a listener beyond loopback, the hosted-squad fall back rule as a user-facing behaviour, synchronising the workflow configuration between a checkout and a hosted squad, and the `.claude/` pointer gap. No second client or service interface is built for it.
+FEAT-33 is the client side of a squad hosted elsewhere. This feature delivers 
+the server side on one machine and the seam that case plugs into: endpoint 
+resolution returns an endpoint, and the terminal UI and any other client call 
+the daemon through the same resource routes. The endpoint says whether a local 
+mode exists; only a local daemon has one. FEAT-33 adds a source for that 
+endpoint (an address the client's own settings name), authentication, a listener
+beyond loopback, the hosted-squad fall back rule as a user-facing behaviour, 
+synchronising the workflow configuration between a checkout and a hosted squad, 
+and the `.claude/` pointer gap. No second client or service interface is built 
+for it.
 
 ## Acceptance criteria
 
-- On a machine with the daemon enabled, any `sq` command starts a daemon if none is running, and its output and exit code are identical to local mode, `--json` included.
-- A second command is answered by the same daemon; stopping it, or leaving it idle for the configured time, ends the process and removes its runtime files.
-- With the daemon disabled in `.squads.toml` or by `SQUADS_DAEMON=off`, `sq` never starts or contacts one.
-- When a local daemon cannot start, the command still succeeds in local mode and one line on stderr says why.
-- A write made through the daemon is visible to a local-mode command right after, and the reverse, with no stale answer.
+- On a machine with the daemon enabled, any `sq` command starts a daemon if none
+is running, and its output and exit code are identical to local mode, `--json` 
+included.
+- A second command is answered by the same daemon; stopping it, or leaving it 
+idle for the configured time, ends the process and removes its runtime files.
+- With the daemon disabled in `.squads.toml` or by `SQUADS_DAEMON=off`, `sq` 
+never starts or contacts one.
+- When a local daemon cannot start, the command still succeeds in local mode and
+one line on stderr says why.
+- A write made through the daemon is visible to a local-mode command right 
+after, and the reverse, with no stale answer, including a file changed outside 
+the daemon.
 - Two commands started at once end up on one daemon.
-- A client other than the CLI reads and writes the squad through the documented routes, generates its types from `GET /v1/openapi.json`, and tells failures apart by HTTP status and error type.
-- A write that names an item version the item no longer has is refused with `409` and writes nothing.
-- A client and a daemon at different schema versions, or parsing with different workflow vocabularies, refuse each other before anything runs, and the CLI's message names the remedy.
-- The terminal UI browses the squad through the daemon in remote mode and directly in local mode, with the same screens.
-- Client budget, a release criterion: the client's overhead for `sq <type> <n> show` (wall time minus the daemon's own handling time), as the median of 31 interleaved runs on the reference host, is at most 275 ms in human mode and 235 ms with `--json`, and the measurement is recorded with the release.
+- A client other than the CLI reads and writes the squad through the documented 
+routes, generates its types from `GET /v1/openapi.json`, and tells failures 
+apart by HTTP status and error type.
+- A write that names an item version the item no longer has is refused with 
+`409` and writes nothing.
+- A client and a daemon at different schema versions, or parsing with different 
+workflow vocabularies, refuse each other before anything runs, and the message 
+names the remedy.
+- The terminal UI browses the squad through the daemon in remote mode and 
+directly in local mode, with the same screens.
+- Client budget, a release criterion: the shim's overhead for `sq <type> <n> 
+show` (wall time minus the daemon's own handling time), as the median of 31 
+interleaved runs on the GitHub-hosted Linux runner of the budget-report job, is 
+at most 100 ms, and the measurement is recorded with the release.
+- With the daemon's cache warm, `sq check` on this repository's squad runs in 
+about a quarter of its local time (1.75 s against 7.0 s on the development 
+host), and a file edited behind the daemon's back is seen by the next command.
 - The same behaviour holds on Linux, macOS and native Windows.
-- This repository runs with the daemon disabled and a documented step to enable it.
+- This repository runs with the daemon disabled and a documented step to enable 
+it.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -128,17 +203,43 @@ _Add with `sq feature 1140 add-story "As a <role>, I want … so that …"`; tra
 ### US1 — Every operation served at its own resource route
 
 <!-- sq:story:US1:body -->
-As a front author or tool author, I call every operation of the squad at its own route under `/v1` and get a typed JSON answer, described by an OpenAPI document I can generate my client's types from.
+As a front author or tool author, I call every operation of the squad at its own
+route under `/v1` and get a typed JSON answer, described by an OpenAPI document 
+I can generate my client's types from.
 
 Done when:
-- Every operation of the command layer (FEAT-1226) is served at its route: items by id at `/v1/items/{id}`, so a custom type needs no new route; roles, skills and operators under `/v1/roles/{addr}`, `/v1/skills/{addr}` and `/v1/operators/{addr}`, addressed by slug, id or number as on the CLI; squad-wide operations under `/v1/squad/`.
-- `GET` reads and never changes anything; filters are query parameters, and a repeated filter repeats its key. Creation is a `POST` on a collection, a partial update a `PATCH`, a body replacement a `PUT` on `…/body`, a removal a `DELETE`, and any other action a `POST` on a sub-resource named after it (`…/status`, `…/retype`).
-- A successful answer is `200` with `data`, `omitted` and `warnings`; a partial read is a `200` with a non-empty `omitted`, never a lost result.
-- A failure answers `{"error": {"type", "message"}}` with a status a client can act on: `404 not_found` for an unknown item, roster entry, comment or sub-entity; `409 conflict` for a refused transition or a squad whose schema is behind; `423 locked` when the squad's lock is held too long; `400 invalid` for any other refusal; `500 internal`, with the details in the daemon's log. The message is the sentence local mode prints, and the CLI prints it and exits 1 as in local mode.
-- `GET /v1/openapi.json` describes every operation: its method and path, its parameters, its request and response schemas, and the error body of each status.
-- `GET /v1/daemon` reports the daemon's identity and state, and `POST /v1/daemon/stop` stops it.
-- File content a command takes (`--file`, `-`, the import file) travels as text in the request; the daemon never reads a path a client names.
-- Requests run one at a time, and nothing from one request (clock, actor, client directory) is visible to the next.
+- Every operation of the command layer (FEAT-1226) is served at its route: items
+by id at `/v1/items/{id}`, so a custom type needs no new route; roles, skills 
+and operators under `/v1/roles/{addr}`, `/v1/skills/{addr}` and 
+`/v1/operators/{addr}`, addressed by slug, id or number as on the CLI; 
+squad-wide operations under `/v1/squad/`.
+- `GET` reads and never changes anything; filters are query parameters, and a 
+repeated filter repeats its key. Creation is a `POST` on a collection, a partial
+update a `PATCH`, a body replacement a `PUT` on `…/body`, a removal a `DELETE`, 
+and any other action a `POST` on a sub-resource named after it (`…/status`, 
+`…/retype`).
+- A successful answer is `200` with `data`, `omitted` and `warnings`; a partial 
+read is a `200` with a non-empty `omitted`, never a lost result.
+- A failure answers `{"error": {"type", "message"}}` with a status a client can 
+act on: `404 not_found` for an unknown item, roster entry, comment or 
+sub-entity; `409 conflict` for a refused transition or a squad whose schema is 
+behind; `423 locked` when the squad's lock is held too long; `400 invalid` for 
+any other refusal; `500 internal`, with the details in the daemon's log. The 
+message is the sentence local mode prints, and the CLI prints it and exits 1 as 
+in local mode.
+- `GET /v1/openapi.json` describes every operation: its method and path, its 
+parameters, its request and response schemas, and the error body of each status.
+- `GET /v1/daemon` reports the daemon's identity and state, and `POST 
+/v1/daemon/stop` stops it.
+- File content a route takes (the body of a `--file` or import request) travels 
+as text in the request; the daemon never reads a path a client names.
+- The CLI's own door is a private command endpoint, `POST /v1/commands`, served 
+on the CLI listener only: absent from the OpenAPI document and from the browser 
+port. It takes a command line and answers with the command's output and exit 
+code, which the daemon produced by running the CLI in process on its own 
+operations.
+- Requests run one at a time, and nothing from one request (clock, actor, client
+directory, environment, output) is visible to the next.
 <!-- sq:story:US1:body:end -->
 
 #### Discussion
@@ -151,16 +252,38 @@ Done when:
 ### US2 — Writes through the routes, safe against concurrent edits
 
 <!-- sq:story:US2:body -->
-As the person at this machine, or a front acting for them, I create, edit, comment on and transition items, and run migrate, repair, repad and renumber, through the routes, and a write never overwrites a change I have not seen.
+As the person at this machine, or a front acting for them, I create, edit, 
+comment on and transition items, and run migrate, repair, repad and renumber, 
+through the routes, and a write never overwrites a change I have not seen.
 
 Done when:
-- Every write the CLI can make, corpus-wide operations included, runs through its route as a peer of a local-mode process under the squad's file lock, synchronously, as a command does.
-- A write made through the daemon is seen by a local-mode command straight after, and the reverse; two writers at once never corrupt the squad; no squad data is kept between requests, so edits made outside the daemon need no invalidation.
-- Every read of one item, and every write on one, answers with the item's version as an `ETag`, and the item's result carries it too. A sub-entity, whose state lives in its parent item, shares the parent's version, and roster entries follow the same rule.
-- A write on an item that sends `If-Match` with a version the item no longer has answers `409 changed_since_read` and writes nothing; the check and the write cannot be separated by another writer.
-- Comment edits and removals address the comment by its content hash, so a comment changed since it was read no longer resolves and nothing is changed.
-- `comment remove` without `--yes` removes exactly the comments it showed and the user confirmed; if one was edited or removed in between, nothing is removed and the command says so.
-- The actor a write is recorded under is the one the request declares (`--as` on the CLI); it is not verified, as US9 tells adopters.
+- Every write the CLI can make, corpus-wide operations included, runs through 
+its route as a peer of a local-mode process under the squad's file lock, 
+synchronously, as a command does.
+- A write made through the daemon is seen by a local-mode command straight 
+after, and the reverse; two writers at once never corrupt the squad.
+- The daemon keeps three parsed results between requests, the index, the item 
+frontmatter and the outcome of the override check, each keyed by the content of 
+the bytes just read. A read still reads the file and skips only the parse, so an
+edit made outside the daemon (git, an editor, a local-mode command) is seen by 
+the next read with no invalidation step. A write re-reads from disk under the 
+file lock and never uses the cache, which is never a source of truth.
+- With these results warm, `sq check` on this repository's squad takes about a 
+quarter of its local time (1.75 s against 7.0 s on the development host).
+- Every read of one item, and every write on one, answers with the item's 
+version as an `ETag`, and the item's result carries it too. A sub-entity, whose 
+state lives in its parent item, shares the parent's version, and roster entries 
+follow the same rule.
+- A write on an item that sends `If-Match` with a version the item no longer has
+answers `409 changed_since_read` and writes nothing; the check and the write 
+cannot be separated by another writer.
+- Comment edits and removals address the comment by its content hash, so a 
+comment changed since it was read no longer resolves and nothing is changed.
+- `comment remove` without `--yes` removes exactly the comments it showed and 
+the user confirmed; if one was edited or removed in between, nothing is removed 
+and the command says so.
+- The actor a write is recorded under is the one the request declares (`--as` on
+the CLI); it is not verified, as US9 tells adopters.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -173,19 +296,49 @@ Done when:
 ### US3 — CLI remote and local modes
 
 <!-- sq:story:US3:body -->
-As an adopter, my commands are answered by the daemon when it is on and directly when it is off or cannot start, with the same output either way, and a remote call never hangs silently.
+As an adopter, my commands are answered by the daemon when it is on and directly
+when it is off or cannot be reached, with the same output either way, and a 
+remote call never hangs silently.
 
 Done when:
 - Output and exit code, `--json` included, are identical across modes.
-- The CLI chooses once per invocation between the daemon and local mode. Commands that make no call (`docs`, `migrate help`, `migrate chlog`, `--version`, `--help`, shell completion) never contact or start a daemon, and neither do `init`, `adopt` and `daemon`.
-- A failed start of a local daemon (spawn error, no answer within 5 seconds, unusable runtime directory) runs the command in local mode with one line on stderr giving the reason and how to turn the daemon off, and the next command tries again.
-- A local daemon that declines a call before running it (it is retiring after a configuration edit) has that call answered in local mode, silently. It is the only answer after which a call is sent again.
-- A connection lost after the request was sent is reported as an error and never replayed.
-- Prompts (item, sub-entity and comment removal) are asked in the user's own terminal in both modes.
-- An ordinary call waits at most 5 s to connect and 300 s for its answer, queue time included; migrate, repair, renumber and import wait for as long as they take, and print a waiting notice on stderr after 10 s.
-- A timeout or Ctrl-C ends only the client's wait: an operation the daemon has started runs to completion, nothing is replayed or run locally, and the message says the operation may still complete and to check before running it again (exit 1, or 130 for Ctrl-C). In local mode Ctrl-C ends the process. Both behaviours are documented (US9).
+- The CLI chooses once per invocation between the daemon and local mode. `init`,
+`adopt`, `daemon` and `ui` always run in the user's own process and never 
+contact or start a daemon. Every other command is sent to the daemon, 
+`--version` excepted (answered by the shim), including `--help`, `docs`, `migrate help`, 
+`migrate chlog` and shell completion, which the daemon answers from the 
+vocabulary it holds.
+- The shim sends the command line, the starting directory, a fixed list of 
+environment values and the terminal's facts, and prints the answer's output in 
+the order the command wrote it, then exits with its code.
+- A client file a command names (`--file`, `-` for stdin, the import file) is 
+read by the shim and sent with the request; the daemon reads no path a client 
+names, and a path the request did not attach is refused. A file the shim cannot 
+read runs the command locally, so the error is local mode's own.
+- A command that asks the user (item, sub-entity and comment removal) puts its 
+question in the user's own terminal: the daemon answers with the prompt before 
+writing anything, the shim asks and sends the command again with the answer, 
+and the answer applies only if the screen is the one the user saw. A daemon lost
+between the two steps has written nothing, and the command runs locally.
+- Before the request is sent, a failed start of a local daemon (spawn error, no 
+answer within 5 seconds, unusable runtime directory), a refused connection, or 
+a daemon that declines the call because it is retiring after a configuration 
+edit runs the command in local mode. A failed start prints one line on stderr 
+giving the reason and how to turn the daemon off; the next command tries again, 
+and the retiring case is silent.
+- After the request is sent, nothing is replayed or run locally: a connection 
+lost, a timeout or Ctrl-C is reported as an error.
+- An ordinary call waits at most 5 s to connect and 300 s for its answer, queue 
+time included; migrate, repair, renumber and import wait for as long as they 
+take, and print a waiting notice on stderr after 10 s.
+- A timeout or Ctrl-C ends only the client's wait: an operation the daemon has 
+started runs to completion, and the message says the operation may still 
+complete and to check before running it again (exit 1, or 130 for Ctrl-C). In 
+local mode Ctrl-C ends the process. Both behaviours are documented (US9).
 - With no squad found, the command fails with a clear message.
-- The CLI's surface test suite runs again in remote mode, in its own CI job, and passes.
+- The CLI's surface test suite runs again through the command endpoint, in its 
+own CI job, and passes; the same suite runs once more over the resource routes, 
+so every operation stays covered over HTTP.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -338,12 +491,22 @@ Done when:
 ### US12 — Remote commands within a measured client budget
 
 <!-- sq:story:US12:body -->
-As an adopter, a command answered by the daemon costs well under what a local run costs today in my own process, and every release says what it costs.
+As an adopter, a command answered by the daemon costs well under what a local 
+run costs in my own process, and every release says what it costs.
 
 Done when:
-- The client's overhead for `sq <type> <n> show` (the process's wall time minus the daemon's own handling time, which the daemon reports with each answer), as the median of 31 interleaved runs on the reference host, is at most 275 ms in human mode and 235 ms with `--json`.
-- The release runbook measures it on the reference host and records the numbers with the release; CI runs the same measurement as a report.
-- A repository guard fails when the remote command path loads the squad's service layer, the template engine, the daemon's server packages or the other modules the budget leaves out.
+- The shim's overhead for `sq <type> <n> show` (the process's wall time minus 
+the daemon's own handling time, which the daemon sends with each answer), as the
+median of 31 interleaved runs on the GitHub-hosted Linux runner of the 
+budget-report job, is at most 100 ms. One figure covers human output, `--json` 
+and shell completion.
+- The release runbook measures it and records the numbers with the release; CI 
+runs the same measurement as a report.
+- A repository guard fails when the shim's path loads any `squads` module beyond
+its small fixed set, or any third-party package.
+- With the daemon's cache warm, `sq check` on this repository's squad runs in 
+about a quarter of its local time, measured with the same interleaved method 
+and recorded with the release.
 <!-- sq:story:US12:body:end -->
 
 #### Discussion
@@ -501,4 +664,44 @@ Done when:
   - Re 45306f7 (2026-10-29): US10 trimmed to what the daemon owes (per-call actor, time, session ids and client directory; path spelling; reflog parity); the invocation-entry bullet is delivered under FEAT-1226. US1 and US10 back to Todo: TASK-1218/1219 still owe both and nothing under this feature has started them. @tech-lead
 - [2026-10-29T13:13:23Z] `manager` Catherine Manager:
   - Back to Ready: TASK-1217 moved to FEAT-1226 and shipped in 0.18.0; nothing else under this feature has started, and it now targets 0.18.1 (MILE-1241).
+- [2026-10-30T00:32:40Z] `tech-lead` Olivia Lead:
+  - Daemon tasks TASK-1218 to TASK-1222 brought up to date with release/0.19 (bug batch, FEAT-1249, FEAT-1242); decisions unchanged, all still Draft. Open points, each with my recommendation:
+    
+    1. @manager for the operator: should the remote-mode run also cover the override squad (`--squad override` plus remote mode on `tests/cli`, one more ubuntu job like `override-squad`)? Recommendation: yes. The bundled squad has no workflow override, so otherwise no CI run hashes a present override or carries a custom field, kind or flat attribute over the wire.
+    2. @architect: server-side stderr in remote mode. `_index/_store.py` prints the index-lock wait notice (asserted by `tests/cli/test_index_lock.py`, from FEAT-1242) and `_index/_reflog.py` its warnings straight to `sys.stderr`. In the daemon these go to its log, so a remote client never sees them. In the in-process parity harness they would leak into the captured output and pass falsely. Recommendation: carry them as `warnings` on the response or error envelope, the slot that already exists. The other option is a documented remote-mode difference with those cases skipped in remote mode, which would be the first parity exemption.
+    3. @architect: ADR-1172's time-bound sentence says the remote-mode run on Windows is the full suite, while mode parity and the override job run `tests/cli`. Recommendation: `tests/cli` on every OS, and amend the sentence.
+    4. @architect, clerical: ADR-1225 section 1's `/v1/squad/` list and section 3's timeout table predate `rename-field` and `rename-kind`. The operation table already serves both at `/v1/squad/rename-field|rename-kind` with class `long`. The budget is still called a 0.18 criterion, and it now ships in 0.19.
+    5. @architect: `uvicorn` brings the real `click` into every install, while the CLI imports typer's vendored `typer._click` (typer 0.27). Recommendation: add `click` to the remote-path import guard list, so a stray `import click` cannot bind to the wrong copy.
+    6. @manager for the operator: the dogfood trial (TASK-1222 ST2) needs this repository's squad at schema 0.19. The pre-release build refuses the current 0.17 squad, and migrating it is the operator's call. ST1 (`[daemon] enabled = false`) does not wait for it: 0.17.0 and 0.18.0 ignore unknown config keys.
+    
+    Parallel plan for the 2-developer cap is in the TASK-1218 and TASK-1219 bodies. In short: the TASK-1218 dependency commit (ST11) goes first. Then lane A (request path: ST3, ST8, ST4, ST9, ST10) and lane B (process: ST1, ST2, ST5, ST6, ST7) run in two worktrees and merge A then B. TASK-1219 follows with lane D (wire: ST4, ST5, ST7, ST6) and lane C (process: ST1, ST2, ST3, ST8, ST9, cross-process set) and merges D then C. TASK-1220 (devops), TASK-1221 (writer; ST2 can start after TASK-1218) and TASK-1222 (qa) come after TASK-1219.
+- [2026-10-30T00:39:24Z, edited 2026-10-30T00:39:59Z] `architect` Robert Architect:
+  - Answers to points 2-5 of 3d31d94 (2026-10-30). ADR-1225, ADR-1172 and ADR-1052 are amended in place; each records it in its discussion. @tech-lead, the task bodies are yours to update.
+    - (2) Server-side stderr: carried in `warnings`, no parity exemption (ADR-1225 section 3, "Notices raised inside an operation"). Nothing below `_cli`/`_tui` writes to stdout or stderr. The index lock's waiting notice and the reflog warnings are recorded on the `RequestContext`, and `LocalApi` adds them to the response's or the error's `warnings`, as it does the working-language notice. Local mode still prints the lock notice as it happens, through a sink the root callback sets on the `RequestContext`; remote mode prints it when the answer arrives. The lines are the same and print through the one notice printer, so they now read `warning: waiting for the index lock <path>…`, and the reflog texts lose their own `[squads reflog]` prefix. A `tests/meta` guard forbids stdout/stderr writes outside `_cli`, `_tui`, `squads.__main__` and `_spans`.
+      - TASK-1218: the store and reflog changes, the `RequestContext` notice record and sink, the `LocalApi` merge, the guard, and the updated expected lines in `tests/cross_process/test_the_index_lock.py`. The daemon's request scope sets no sink. The `423 locked` route test asserts the waiting notice in the error's `warnings`. Lane A (request path) fits it best.
+      - TASK-1219: no client code beyond what section 3 already asks: `HttpApi` puts the error's `warnings` on the `SquadsError` it raises, and the CLI prints them with a response's. Note that the lock test now lives in the cross-process set, not in `tests/cli`, so the parity run never asserted it; the guard is what keeps a daemon line out of the harness's capture.
+    - (3) Remote-mode scope: `tests/cli` on every OS, as recommended (ADR-1172, Mode parity and Time bound). Every remote-mode job is bounded at 10 minutes, Windows included; 15 minutes stays for the Windows full-suite job only. With point 1, the jobs are: bundled squad on Linux, macOS and native Windows, plus the override squad on Linux. TASK-1220 builds these four jobs. TASK-1219 makes sure the parity harness takes `--squad override`.
+    - (4) Clerical, done in ADR-1225: `rename-field` and `rename-kind` are in the `/v1/squad/` list and the `long` timeout row. The budget is "a release criterion", and the other references to 0.18 as the daemon's release name no version. No task change, provided TASK-1219's timeout table matches the operation table, which already uses `long` for both.
+    - (5) `click` joins the client import guard, with the reason in ADR-1225 section 5: uvicorn installs the real package beside `typer._click`. TASK-1219 adds it to the guard list.
+- [2026-10-30T00:41:00Z] `manager` Catherine Manager:
+  - Ruling under the operator delegation (2026-10-30): the remote-mode parity run also covers the override squad, as one more ubuntu job. Recorded in ADR-1172 by the architect.
+- [2026-10-30T19:06:19Z] `op-pierre` Pierre Chat:
+  - Daemon direction (2026-10-30), after the benchmark recorded on TASK-1219 (gain 1.0-1.3x, client ~450 ms of which ~236 ms imports):
+    - The CLI gets a new remote mode: one private command endpoint (argv, cwd, -C, a fixed env list, terminal facts, file attachments in; stdout, stderr, exit code out). The daemon runs the same Typer app in process, and its commands call the daemon's own operations directly through LocalApi: no fork, no subprocess, no network call to itself. Rendering happens in the daemon.
+    - HttpApi stays, for the TUI. The resource routes stay the public API for every other client.
+    - The TASK-1217 attachment system comes back (attachments keyed by the argument as written, an unattached path refused), with needs_terminal for prompts.
+    - If the daemon does not answer before the request is sent, the CLI switches entirely to local mode. After the request is sent, nothing is replayed.
+    - The daemon keeps a cache of parsed files, validated against the files on disk (stat per file, under the read lock); the cache is never a source of truth.
+- [2026-10-30T20:33:10Z] `tech-lead` Olivia Lead:
+  - - ADR-1261 breakdown (2026-10-30), five Draft tasks, unassigned:
+      - TASK-1262 (python-dev) the command endpoint and served execution, stdio and env proxies, attachments, two-phase prompts, endpoint and route parity modes: US1, US3, US10. 13 tests, 2 guards.
+      - TASK-1263 (python-dev) the daemon's content-keyed cache of the index, frontmatter and the override check: US2. 3 tests.
+      - TASK-1264 (python-dev) the stdlib shim, the CLI off `HttpApi`, the 100 ms budget: US3, US6, US12. 3 cross-process tests, 4 guards (5 with the timeout table), one guard replaced.
+      - TASK-1265 (devops) the endpoint and route parity jobs and the shim budget report: US3, US12.
+      - TASK-1266 (tech-writer) the docs and CHANGELOG for the new remote mode: US9.
+      - Order: TASK-1262 and TASK-1263 in parallel; TASK-1264 after TASK-1262; TASK-1265 after both 1262 and 1264 (its ST1 can start after 1262); TASK-1266 after 1262-1264. TASK-1222 (dogfood) now also depends on 1263 and 1264 and stays gated on the operator.
+      - TASK-1219: ST8 moved to TASK-1264 ST1/ST7 and TASK-1265 ST2; ST2 and ST3 were built and are now Done. TASK-1221 stays for review as delivered; TASK-1266 rewrites it.
+    - @product-owner these stories and bullets contradict ADR-1261 and need your rewrite: the body's "The CLI still parses and renders in the user's own process" and "call the same routes ... there is no second protocol" (the CLI now uses a private endpoint; other clients the routes); the budget acceptance bullet and US12 (100 ms of shim overhead on the GitHub-hosted runner, a shim import guard instead of the service-layer guard); US3's "commands that make no call ... never contact or start a daemon" (`--help`, `docs` and completion are served now; only `init`, `adopt`, `daemon`, `ui` stay local) and its fall back rules (local before sending, never after); US2's "no squad data is kept between requests" (the three content-keyed results of point 7); US1's "file content travels as text in the request" (true for routes; the CLI sends attachments). No story states the cache's outcome (`check` 7.0 to 1.75 s); I mapped TASK-1263 to US2 for its correctness rule. Add a bullet to US12 or a story if you want the speed-up held as an outcome.
+- [2026-10-31T10:48:52Z] `op-pierre` Pierre Chat:
+  - sq ui through the daemon checked by the operator (2026-10-31): good.
 <!-- sq:discussion:end -->

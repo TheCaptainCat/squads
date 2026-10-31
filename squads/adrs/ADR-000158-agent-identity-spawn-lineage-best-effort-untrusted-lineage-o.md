@@ -6,7 +6,6 @@ title: 'Agent identity & spawn lineage: best-effort, untrusted lineage observabi
   (squads records env, never spawns)'
 status: Accepted
 author: architect
-priority: medium
 refs:
 - FEAT-125:implements
 - ADR-155
@@ -19,6 +18,7 @@ description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocat
   on it is advisory.
 created_at: '2026-06-22T07:44:10Z'
 updated_at: '2026-10-25T21:36:49Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Context

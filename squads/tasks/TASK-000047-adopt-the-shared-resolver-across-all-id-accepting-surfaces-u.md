@@ -8,18 +8,18 @@ status: Done
 parent: FEAT-19
 author: tech-lead
 assignee: python-dev
-priority: high
 subentities:
 - local_id: ST1
   title: Wire all ID-accepting paths through the resolver
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Uniform unknown-item error wording mentioning both accepted forms everywhere
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-11T13:59:33Z'
 updated_at: '2026-07-06T15:17:49Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

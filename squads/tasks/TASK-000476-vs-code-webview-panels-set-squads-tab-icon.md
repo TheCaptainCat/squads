@@ -7,10 +7,10 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: low
 description: 'Client: webview panel iconPath (US2/F16 client)'
 created_at: '2026-07-18T20:10:33Z'
 updated_at: '2026-07-18T20:39:44Z'
+priority: low
 ---
 <!-- sq:body -->
 Story: US2 (REV-448 F16, Low). **Discipline: CLIENT / TypeScript** (`clients/vscode/`). No core change.

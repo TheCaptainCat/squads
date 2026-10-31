@@ -3,13 +3,15 @@ id: BUG-1194
 sequence_id: 1194
 type: bug
 title: list/tree --badge filters accept unknown code or value
-status: Open
+status: Verified
 author: qa
-severity: low
 refs:
 - FEAT-1173
+- MILE-1241:targets
 created_at: '2026-10-27T23:37:41Z'
-updated_at: '2026-10-27T23:38:00Z'
+updated_at: '2026-10-29T20:40:23Z'
+priority: low
+severity: low
 ---
 <!-- sq:body -->
 Found while writing the CLI surface tests (FEAT-1173). Reproduced on the release/0.17 dev tree.
@@ -30,4 +32,6 @@ low
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-10-29T20:40:23Z] `reviewer` Paul Reviewer:
+  - Verified under REV-1247 (Approved at a56413b4).
 <!-- sq:discussion:end -->

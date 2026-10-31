@@ -6,7 +6,6 @@ title: Implement the agents_md backend (AGENTS.md)
 status: Done
 parent: FEAT-16
 author: tech-lead
-priority: high
 refs:
 - TASK-131:depends-on
 - BUG-134:fixes
@@ -16,14 +15,15 @@ subentities:
 - local_id: ST1
   title: Implement AgentsMdBackend writing/refreshing AGENTS.md
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Parametrize the conformance suite over agents_md and make both backends pass
     it
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-06-15T13:03:01Z'
 updated_at: '2026-07-06T15:18:53Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

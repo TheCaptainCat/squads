@@ -6,7 +6,6 @@ title: Scope the roster gate to its own delta and rename its clauses
 status: Done
 parent: FEAT-691
 author: tech-lead
-priority: urgent
 refs:
 - REV-706:addresses
 - ADR-697:implements
@@ -17,52 +16,53 @@ subentities:
 - local_id: ST1
   title: Refuse only what this transition introduces
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Sever only the edges the refusal enumerated
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: Withdraw the default-role clause and warn instead
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST4
   title: Omit the default role from generated prose when none is live
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Condition the clause family on an active backend
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST6
   title: Derive the always-on floor instead of listing it
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST7
   title: Report one finding per detected dependency
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST8
   title: Name clauses for their condition, keep the name internal
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST9
   title: Define a retirement as a move out of a live status
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST10
   title: Leave one gated entry point for a roster status change
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST11
   title: Say retired, not unknown, for a retired slug
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST12
   title: Restate the module's rationale, drop the dead parameter
   status: Done
 created_at: '2026-07-31T09:36:29Z'
 updated_at: '2026-07-31T12:41:29Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Context

@@ -5,12 +5,12 @@ type: bug
 title: 'create --help understates --author/--assignee: op slug accepted'
 status: Verified
 author: qa
-priority: low
 refs:
 - REV-1036
 - MILE-1051:targets
 created_at: '2026-10-16T09:09:24Z'
 updated_at: '2026-10-17T05:06:30Z'
+priority: low
 ---
 <!-- sq:body -->
 Reproduced on the dev build in a scratch squad.

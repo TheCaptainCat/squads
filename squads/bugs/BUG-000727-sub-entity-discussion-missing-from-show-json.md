@@ -5,11 +5,11 @@ type: bug
 title: sub-entity discussion missing from show --json
 status: Verified
 author: qa
-priority: high
 refs:
 - REV-726:addresses
 created_at: '2026-08-03T07:45:41Z'
 updated_at: '2026-08-06T19:24:16Z'
+priority: high
 ---
 <!-- sq:body -->
 `sq show <id> --json` and `sq <type> <n> show --json` include a top-level `discussion` array, but each entry in `subentities` carries only local_id/title/status/assignee/severity/story/extra/body/badges — no discussion, even though the data exists and renders correctly on the human-readable surfaces.

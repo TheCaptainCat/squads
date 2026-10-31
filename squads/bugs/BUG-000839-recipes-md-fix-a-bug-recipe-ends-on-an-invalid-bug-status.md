@@ -5,12 +5,12 @@ type: bug
 title: recipes.md 'Fix a bug' recipe ends on an invalid bug status
 status: Verified
 author: qa
-priority: low
 refs:
 - TASK-833
 - MILE-836:targets
 created_at: '2026-08-26T16:35:42Z'
 updated_at: '2026-09-02T08:23:07Z'
+priority: low
 ---
 <!-- sq:body -->
 ## What happens

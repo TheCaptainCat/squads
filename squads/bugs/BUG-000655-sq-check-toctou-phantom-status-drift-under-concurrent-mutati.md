@@ -5,9 +5,9 @@ type: bug
 title: 'sq check TOCTOU: phantom status-drift under concurrent mutation'
 status: Verified
 author: qa
-severity: high
 created_at: '2026-07-24T14:38:21Z'
 updated_at: '2026-07-28T07:25:01Z'
+severity: high
 ---
 <!-- sq:body -->
 ## Symptom

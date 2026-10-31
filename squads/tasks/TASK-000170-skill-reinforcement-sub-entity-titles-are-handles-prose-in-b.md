@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Add handle-vs-body note to sq-review add-finding guidance
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Add handle-vs-body note to sq-task add-subtask guidance
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Add handle-vs-body note to sq-feature add-story guidance
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-23T08:37:43Z'
 updated_at: '2026-06-23T09:30:07Z'
 ---

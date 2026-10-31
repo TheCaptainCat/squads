@@ -6,7 +6,6 @@ title: 'Onboard through the CLI: roles readable via sq, not the filesystem'
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - FEAT-40
 - FEAT-33
@@ -24,6 +23,7 @@ subentities:
   status: Done
 created_at: '2026-06-11T09:02:40Z'
 updated_at: '2026-09-01T13:48:06Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

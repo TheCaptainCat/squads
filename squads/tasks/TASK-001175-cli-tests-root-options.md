@@ -13,7 +13,7 @@ subentities:
 - local_id: ST1
   title: Root options module
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-10-27T21:35:08Z'
 updated_at: '2026-10-28T01:02:39Z'
 ---

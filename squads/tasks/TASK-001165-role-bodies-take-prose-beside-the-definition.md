@@ -5,7 +5,6 @@ type: task
 title: Role bodies take prose beside the definition
 status: Done
 author: tech-lead
-priority: medium
 refs:
 - MILE-1051:targets
 - ADR-880:implements
@@ -28,6 +27,7 @@ subentities:
   assignee: tech-writer
 created_at: '2026-10-26T13:05:15Z'
 updated_at: '2026-10-26T16:13:11Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

@@ -12,15 +12,15 @@ subentities:
 - local_id: ST1
   title: Selectable squad-wide member tests
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST2
   title: Per-item work policy tests
   status: Done
-  story: US6
+  maps_to: US6
 - local_id: ST3
   title: Falsify each test three ways
   status: Done
-  story: US6
+  maps_to: US6
 created_at: '2026-10-28T08:38:02Z'
 updated_at: '2026-10-28T10:41:10Z'
 ---

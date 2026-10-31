@@ -14,28 +14,28 @@ subentities:
 - local_id: ST1
   title: Register the four playbook-derivation helpers as Jinja filters
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST2
   title: Resolve the per-type view generalization design question
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Seed the per-type tag at skill creation, bundled and custom types alike
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: Backfill the tag into every existing per-item-type skill body
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST5
   title: Delete skill_definition_text, _item_skill_definition_text, and the CLI's
     system branch
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST6
   title: Consumer enumeration and generated-artefact diff
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-09-04T09:12:39Z'
 updated_at: '2026-09-10T09:40:21Z'
 ---

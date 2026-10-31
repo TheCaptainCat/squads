@@ -6,11 +6,11 @@ title: sq workflow roles --json + statuses catalog drops terminal + goldens
 status: Done
 parent: FEAT-605
 author: tech-lead
-priority: medium
 refs:
 - ADR-604
 created_at: '2026-07-22T15:37:24Z'
 updated_at: '2026-07-22T16:37:16Z'
+priority: medium
 ---
 <!-- sq:body -->
 Implements FEAT-605 US2. Expose the role catalog on the machine surface and drop `terminal` from the status catalog, so clients join `status -> role -> {settled, hidden, color}` themselves and re-derive no policy. Depends on the US1 model.

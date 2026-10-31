@@ -6,13 +6,13 @@ title: 'Slug arguments not validated: sq mine accepts unknown agents and silentl
   defaults to manager'
 status: Verified
 author: op-pierre
-priority: medium
 refs:
 - FEAT-19
 description: sq mine/inbox exit 0 for unknown slugs and bare sq mine defaults to manager;
   slug args should be required and validated against the roster across commands
 created_at: '2026-06-10T13:35:26Z'
 updated_at: '2026-06-11T13:19:21Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Observed

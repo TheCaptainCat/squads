@@ -6,7 +6,6 @@ title: Fix the check rule harness review findings
 status: Done
 parent: FEAT-1202
 author: tech-lead
-priority: high
 refs:
 - REV-1211:addresses
 description: Teardown, guard, select_validators, helper API and production table fixes
@@ -15,21 +14,22 @@ subentities:
 - local_id: ST1
   title: 'Teardown and guard holes: F1, F4, F5, F7, F10'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'select_validators: F2, F3'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: 'Shared helpers and CLI arrangement: F8, F9'
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: 'Required-param table entry: F6'
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-10-28T09:10:36Z'
 updated_at: '2026-10-28T10:19:17Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

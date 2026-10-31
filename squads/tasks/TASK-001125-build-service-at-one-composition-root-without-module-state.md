@@ -6,7 +6,6 @@ title: Build Service at one composition root, without module state
 status: Done
 parent: FEAT-1092
 author: tech-lead
-priority: medium
 refs:
 - REV-956:addresses
 - TASK-1124:depends-on
@@ -17,21 +16,22 @@ subentities:
 - local_id: ST1
   title: Route every Service construction through one function
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Pass store and backends in; make the registry a table
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Pass the squad directory to the renderer explicitly
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST4
   title: Resolve the spec documents once at the root
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-10-24T21:53:44Z'
 updated_at: '2026-10-28T12:46:04Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Goal

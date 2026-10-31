@@ -6,9 +6,9 @@ title: Clear pre-existing lint/format debt on the release branch (F401 + format 
 status: Done
 author: tech-lead
 assignee: tech-lead
-priority: low
 created_at: '2026-06-11T12:49:16Z'
 updated_at: '2026-06-11T12:50:45Z'
+priority: low
 ---
 <!-- sq:body -->
 Pre-existing branch debt, unrelated to TASK-42/43/44 (those files are unmodified in git status). CLAUDE.md requires clean lint/format gates.

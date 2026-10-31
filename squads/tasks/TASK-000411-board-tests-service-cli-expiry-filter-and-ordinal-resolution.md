@@ -12,19 +12,19 @@ subentities:
 - local_id: ST1
   title: Test post writes notice + hash id + index; distinct ids
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Test list ordinal; expired filtered; no spurious diffs
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Test clear resolves ordinal to hash and deletes; out-of-range error
   status: Done
-  story: US4
+  maps_to: US4
 - local_id: ST4
   title: Test boot surfacing excludes expired; empty surfaces nothing
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-07-15T07:48:50Z'
 updated_at: '2026-07-15T11:09:22Z'
 ---

@@ -12,11 +12,11 @@ subentities:
 - local_id: ST1
   title: Item type/status narrowing forwarded to svc.search
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Select hit -> push ReaderScreen (not tree navigation)
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-21T12:20:46Z'
 updated_at: '2026-07-21T14:37:59Z'
 ---

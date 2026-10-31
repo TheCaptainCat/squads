@@ -6,7 +6,6 @@ title: Refuse incoherent view and ref-rule declarations at spec load
 status: Done
 parent: FEAT-693
 author: tech-lead
-priority: urgent
 refs:
 - REV-840:addresses
 - BUG-837:fixes
@@ -19,15 +18,15 @@ subentities:
 - local_id: ST1
   title: Validate ItemSpec.views on its three spec-resolvable axes
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Missing presentation template raises a SquadsError
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Repair the spec fixtures and the six [selected] enumerations
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Refuse a paramless ref_rule_target_present at load
   status: Done
@@ -37,13 +36,14 @@ subentities:
 - local_id: ST6
   title: Scaffolded view example says it needs its own template
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST7
   title: Let a ref source project a badge some declared type carries
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-08-26T17:03:38Z'
 updated_at: '2026-08-26T17:48:10Z'
+priority: urgent
 ---
 <!-- sq:body -->
 ## Problem

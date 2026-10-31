@@ -6,7 +6,6 @@ title: Project-level template and role overrides
 status: Done
 parent: EPIC-12
 author: product-owner
-priority: high
 refs:
 - PRD-859:implements
 description: squads/.templates/ overrides; lookup path and precedence join the durable
@@ -27,6 +26,7 @@ subentities:
   status: Todo
 created_at: '2026-06-10T12:41:06Z'
 updated_at: '2026-09-01T13:47:18Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Problem

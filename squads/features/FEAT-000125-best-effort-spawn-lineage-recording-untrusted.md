@@ -6,7 +6,6 @@ title: Best-effort spawn-lineage recording (untrusted)
 status: Done
 parent: EPIC-121
 author: product-owner
-priority: low
 refs:
 - FEAT-24
 - ADR-158
@@ -19,6 +18,7 @@ subentities:
   status: Done
 created_at: '2026-06-15T11:56:19Z'
 updated_at: '2026-06-22T12:01:00Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Reframe note

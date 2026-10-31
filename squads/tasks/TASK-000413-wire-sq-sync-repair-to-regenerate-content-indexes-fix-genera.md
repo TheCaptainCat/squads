@@ -16,15 +16,15 @@ subentities:
 - local_id: ST1
   title: Regenerate all content indexes on sq sync (memory folders + board)
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Correct GENERATED_STAMP to the add/forget/sq sync string; drop phantom edit
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: sq repair/sync mechanically regenerates a conflicted index from the .md files
   status: Done
-  story: US5
+  maps_to: US5
 created_at: '2026-07-15T09:30:17Z'
 updated_at: '2026-07-15T09:45:14Z'
 ---

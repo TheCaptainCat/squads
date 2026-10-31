@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-907
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - REV-952:fixes
 - BUG-950
@@ -18,37 +17,38 @@ subentities:
 - local_id: ST1
   title: An unresolvable view name skips that pair, not the whole run
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: Skew, a missing file or a missing body region skips one item
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: The run reports every item it skipped, by id, with the count
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST4
   title: The idempotent skip tests the whole file, not just the region
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST5
   title: Runner docstring and MANUAL describe the delivered behaviour
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Failure-shape coverage on the corpus, spec and filesystem axis
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST7
   title: A milestone in the v0_14 and v0_15 corpus fixtures
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST8
   title: Writer-site classifications account for the migration case
   status: Done
-  story: US2
+  maps_to: US2
 created_at: '2026-09-15T08:41:09Z'
 updated_at: '2026-09-15T09:36:02Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Scope

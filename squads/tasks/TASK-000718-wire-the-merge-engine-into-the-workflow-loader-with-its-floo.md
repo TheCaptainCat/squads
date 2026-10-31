@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-713
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-696:implements
 - EPIC-538
@@ -19,21 +18,22 @@ subentities:
 - local_id: ST1
   title: Merge at the raw-mapping layer, retire the additive refusal
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Loader floor: roster key lock and the naming refusal'
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: Drift stamp for an override that shadows a built-in
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: 'Consumer audit: every site reads the merged spec'
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-07-31T13:37:27Z'
 updated_at: '2026-08-03T07:45:56Z'
+priority: high
 ---
 <!-- sq:body -->
 ## What to build

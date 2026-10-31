@@ -6,10 +6,10 @@ title: Fix private re-export imports flagged by Pylance
 status: Done
 author: tech-lead
 assignee: python-dev
-priority: low
 description: Read names from their defining module, not a re-exporter
 created_at: '2026-09-24T11:53:08Z'
 updated_at: '2026-09-24T12:35:39Z'
+priority: low
 ---
 <!-- sq:body -->
 Pylance reports 33 `reportPrivateImportUsage` errors: names read through a module that only re-exports them instead of the module that defines them. The `uv run --all-extras pyright` gate reports none of them, so they currently slip through.

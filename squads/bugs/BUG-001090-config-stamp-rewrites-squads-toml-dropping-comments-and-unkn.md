@@ -5,13 +5,13 @@ type: bug
 title: Config stamp rewrites .squads.toml, dropping comments and unknown keys
 status: Verified
 author: qa
-priority: medium
 refs:
 - REV-1089
 - MILE-1051:targets
 - ADR-1119
 created_at: '2026-10-17T02:50:08Z'
 updated_at: '2026-10-24T19:45:02Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Repro (released sq 0.15.0, scratch squad, `sq --dir <squad>/squads sync`)

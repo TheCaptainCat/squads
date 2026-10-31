@@ -6,13 +6,13 @@ title: 'Custom work-item types: records category create/retype/list'
 status: Done
 parent: EPIC-538
 author: product-owner
-priority: high
 refs:
 - FEAT-567
 - FEAT-573
 - PRD-859:implements
 created_at: '2026-07-22T08:39:16Z'
 updated_at: '2026-09-01T13:50:46Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Capability

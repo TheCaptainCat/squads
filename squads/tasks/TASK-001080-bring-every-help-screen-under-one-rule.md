@@ -6,7 +6,6 @@ title: Bring every --help screen under one rule
 status: Done
 parent: FEAT-1024
 author: tech-lead
-priority: medium
 refs:
 - TASK-1072:depends-on
 - REV-958:addresses
@@ -18,59 +17,60 @@ subentities:
   title: Write the help rule into CONTRIBUTING.md
   status: Done
   assignee: tech-writer
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Move the JSON field reference from 13 help bodies into the stability docs
   status: Done
   assignee: tech-writer
-  story: US3
+  maps_to: US3
 - local_id: ST3
   title: Give help one exit-code line form, mechanics in the faq
   status: Done
   assignee: tech-writer
-  story: US6
+  maps_to: US6
 - local_id: ST4
   title: Describe every option and argument, with one wording per shared flag
   status: Done
   assignee: tech-writer
-  story: US4
+  maps_to: US4
 - local_id: ST5
   title: Move maintainer reasoning and private names out of help bodies
   status: Done
   assignee: tech-writer
-  story: US2
+  maps_to: US2
 - local_id: ST6
   title: Rewrite hand-written summaries and drop flags described twice
   status: Done
   assignee: tech-writer
-  story: US8
+  maps_to: US8
 - local_id: ST7
   title: Declare each shared flag once in _cli/_common.py
   status: Done
   assignee: python-dev
-  story: US5
+  maps_to: US5
 - local_id: ST8
   title: Apply one markup dialect and an 80-column layout to help
   status: Done
   assignee: python-dev
-  story: US7
+  maps_to: US7
 - local_id: ST9
   title: 'Fix generated summaries: kind labels and articles'
   status: Done
   assignee: python-dev
-  story: US8
+  maps_to: US8
 - local_id: ST10
   title: Add the tests/meta guard that walks the command tree
   status: Done
   assignee: python-dev
-  story: US9
+  maps_to: US9
 - local_id: ST11
   title: Match the docs and CHANGELOG to the shipped help
   status: Done
   assignee: tech-writer
-  story: US10
+  maps_to: US10
 created_at: '2026-10-16T21:15:20Z'
 updated_at: '2026-10-17T05:11:49Z'
+priority: medium
 ---
 <!-- sq:body -->
 ## Scope

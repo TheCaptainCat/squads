@@ -16,11 +16,11 @@ subentities:
 - local_id: ST1
   title: link-role / unlink-role verbs scope a skill to roles
   status: Done
-  story: US3
+  maps_to: US3
 - local_id: ST2
   title: Partial-sync hook keeps affected role pointers current
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-20T08:59:19Z'
 updated_at: '2026-07-20T10:23:48Z'
 ---

@@ -5,11 +5,11 @@ type: bug
 title: 'Interrupted rename: item-file reads crash raw, not clean'
 status: Verified
 author: qa
-severity: medium
 refs:
 - BUG-675
 created_at: '2026-07-27T22:40:47Z'
 updated_at: '2026-07-28T07:25:10Z'
+severity: medium
 ---
 <!-- sq:body -->
 ## Symptom

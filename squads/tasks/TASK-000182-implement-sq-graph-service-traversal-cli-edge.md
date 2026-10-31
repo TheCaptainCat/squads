@@ -10,15 +10,15 @@ subentities:
 - local_id: ST1
   title: Depth-bounded ref traversal in the service layer
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Kind + direction filters on the traversal and CLI
   status: Done
-  story: US2
+  maps_to: US2
 - local_id: ST3
   title: dot/mermaid export of the traversed graph
   status: Done
-  story: US3
+  maps_to: US3
 created_at: '2026-06-23T14:01:30Z'
 updated_at: '2026-06-24T12:26:00Z'
 ---

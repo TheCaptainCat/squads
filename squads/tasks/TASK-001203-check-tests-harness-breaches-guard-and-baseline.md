@@ -10,19 +10,19 @@ subentities:
 - local_id: ST1
   title: check_json, select_validators and teardown
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: Check surface derivation and breaches guard
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST3
   title: Baseline test
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST4
   title: Show the guard and teardown red
   status: Done
-  story: US1
+  maps_to: US1
 created_at: '2026-10-28T08:37:57Z'
 updated_at: '2026-10-28T10:31:31Z'
 ---

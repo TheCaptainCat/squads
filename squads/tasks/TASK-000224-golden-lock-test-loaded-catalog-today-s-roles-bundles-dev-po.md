@@ -11,11 +11,11 @@ subentities:
 - local_id: ST1
   title: 'Golden-lock test: loaded catalog == frozen snapshot of today''s _catalog.py'
   status: Todo
-  story: US2
+  maps_to: US2
 - local_id: ST2
   title: 'Build test: roles.toml ships in the wheel'
   status: Todo
-  story: US2
+  maps_to: US2
 created_at: '2026-06-26T07:35:29Z'
 updated_at: '2026-07-06T15:20:57Z'
 ---

@@ -5,12 +5,12 @@ type: bug
 title: Out-of-region view tag is invisible to show/check/view rm
 status: Verified
 author: qa
-priority: low
 refs:
 - MILE-934:targets
 - REV-952
 created_at: '2026-09-15T09:34:39Z'
 updated_at: '2026-09-29T16:05:43Z'
+priority: low
 ---
 <!-- sq:body -->
 ## Symptom

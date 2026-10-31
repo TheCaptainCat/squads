@@ -7,7 +7,6 @@ status: Done
 parent: FEAT-1226
 author: tech-lead
 assignee: python-dev
-priority: high
 refs:
 - ADR-1224:implements
 - TASK-1228:depends-on
@@ -19,17 +18,18 @@ subentities:
 - local_id: ST1
   title: sq ui hands the app a per-call API selector
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST2
   title: Screens onto operations
   status: Done
-  story: US5
+  maps_to: US5
 - local_id: ST3
   title: _tui under the renderer guard
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-10-28T22:12:42Z'
 updated_at: '2026-10-29T13:05:43Z'
+priority: high
 ---
 <!-- sq:body -->
 ## Goal

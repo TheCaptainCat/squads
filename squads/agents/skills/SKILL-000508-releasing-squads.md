@@ -13,7 +13,7 @@ refs:
 description: 'The team''s runbook for cutting a squads release: gates, prep, and drafting
   the release (the operator publishes).'
 created_at: '2026-07-20T12:32:09Z'
-updated_at: '2026-10-29T12:06:58Z'
+updated_at: '2026-10-30T22:07:42Z'
 when_to_use: When preparing or cutting a squads release.
 allowed_tools: ''
 origin: project
@@ -51,6 +51,21 @@ actual GitHub publish. Never `git tag` or publish yourself.
   (`sq milestone <n> comment --file`), so the numbers stay with the release. Both builds must accept the squad's schema: on a release that
   changes `SCHEMA_VERSION` the old build refuses the copy, so say so in the comment and post the
   new build's `--spans` medians instead.
+- **The CLI shim's overhead is at most 100 ms.** In remote mode `sq` is a standard-library shim that
+  sends the command line to the daemon, and the cost it adds is the process's wall time minus the
+  handler time the daemon sends back. Measure it on a copy of this repo's squad, with the release
+  tree's `sq` (the script starts a daemon on its own copy and stops it at the end):
+  ```bash
+  uv run python scripts/bench_remote_client.py --squad ~/.cache/sq-bench/squad \
+    --sq "$PWD/.venv/bin/sq" --task <n of any task in the squad>
+  ```
+  It runs `task <n> show`, `list --json` and a bash completion interleaved, 31 rounds, and prints
+  the median and p25-p75 of the overhead for each with the host's load average. The criterion is
+  the median at most **100 ms on the GitHub-hosted Linux runner** of the budget-report CI job (the
+  figure CI reports); this development host runs about 1.3 times faster, so a median above about
+  75 ms here is worth a look before the cut. A median over the budget on the runner is raised with
+  the operator before the cut. Post the table on the release's milestone alongside the run-time
+  one.
 - **The content-store gate is not a standalone step here** — it is the last item of §2's ordered
   sequence below, because it depends on the version bump having already landed. Do not run
   `gen_template_manifest.py --release-gate` before that sequence; see §2 for why and for what its

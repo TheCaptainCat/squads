@@ -7,12 +7,12 @@ status: Done
 parent: FEAT-471
 author: tech-lead
 assignee: typescript-dev
-priority: medium
 refs:
 - TASK-481:depends-on
 description: 'Client: badge hover, consumes US7 surface (US8/F19)'
 created_at: '2026-07-18T20:10:48Z'
 updated_at: '2026-07-18T21:10:32Z'
+priority: medium
 ---
 <!-- sq:body -->
 Story: US8 (REV-448 F19, Medium). **Discipline: CLIENT / TypeScript** (`clients/vscode/`, `domain/displayNode.ts::buildTooltip`). Depends on US7's core collections surface.

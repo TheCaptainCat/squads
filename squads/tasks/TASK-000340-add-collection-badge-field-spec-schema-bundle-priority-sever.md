@@ -14,12 +14,12 @@ subentities:
 - local_id: ST1
   title: Add Collection/Badge/Field schema + bundle byte-identical priority/severity
   status: Done
-  story: US1
+  maps_to: US1
 - local_id: ST2
   title: 'Fail-closed validation: field-code uniqueness, reserved-key, collection
     integrity'
   status: Done
-  story: US4
+  maps_to: US4
 created_at: '2026-07-09T08:19:59Z'
 updated_at: '2026-07-09T09:47:08Z'
 ---
