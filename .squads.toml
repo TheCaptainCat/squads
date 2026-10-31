@@ -5,4 +5,4 @@ active_backends = ["claude_code"]
 squads_version = "0.17.0"
 
 [daemon]
-enabled = false
+enabled = true

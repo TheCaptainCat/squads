@@ -3,7 +3,7 @@ id: TASK-1222
 sequence_id: 1222
 type: task
 title: Dogfood the daemon on this repository's board
-status: Draft
+status: Ready
 parent: FEAT-1140
 author: tech-lead
 refs:
@@ -29,7 +29,7 @@ subentities:
   status: Todo
   maps_to: US3
 created_at: '2026-10-28T14:08:45Z'
-updated_at: '2026-10-30T20:50:17Z'
+updated_at: '2026-10-31T08:18:16Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -124,4 +124,6 @@ Afterwards `sq repair` has nothing to fix, `sq check` is clean, and `sq daemon s
   - - Stays Draft and gated on the operator's go (2026-10-30): the trial needs this squad at schema 0.19, which is op-pierre's call. Now depends on TASK-1264 and TASK-1263 as well; the body gains the ADR-1261 additions to the trial. @manager
 - [2026-10-30T20:50:17Z] `op-pierre` Pierre Chat:
   - The dogfood trial waits until the ADR-1261 architecture (TASK-1262 to TASK-1266) is delivered (2026-10-30).
+- [2026-10-31T08:17:58Z] `op-pierre` Pierre Chat:
+  - Go for the dogfood (2026-10-31): this repository's squad switches to daemon mode.
 <!-- sq:discussion:end -->

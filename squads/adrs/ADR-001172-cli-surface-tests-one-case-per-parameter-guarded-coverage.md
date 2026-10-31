@@ -15,7 +15,7 @@ description: 'CLI tests in-process on the bundled squad and a full-override squa
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-30T20:27:17Z'
+updated_at: '2026-10-31T08:17:57Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -277,4 +277,6 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
     - Mode parity: the remote-mode jobs go through the command endpoint. One Linux route-parity job reruns `tests/cli` with an `HttpApi` handed to the root callback.
     - Time bound and Consequences: the route-parity run is added to the jobs.
     - Unchanged: rules 1 to 6, scope and regression tests.
+- [2026-10-31T08:17:57Z] `op-pierre` Pierre Chat:
+  - Argument names use hyphens, never underscores (2026-10-31): normalize every CLI argument name that has an underscore (old_status, new_status, root_id and the like) to hyphens.
 <!-- sq:discussion:end -->
