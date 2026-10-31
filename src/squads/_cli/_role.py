@@ -7,7 +7,7 @@ Grammar:
   sq role add <slug> …               — create a role that defines itself
   sq role <slug|id|n> show           — show a role's card + body
   sq role <slug|id|n> regen          — regenerate the Claude pointer
-  sq role <slug|id|n> status <S>     — transition the role's status
+  sq role <slug|id|n> status <status>     — transition the role's status
   sq role <slug|id|n> set-default    — move the default-role designation here
   sq role <slug|id|n> update …       — edit the name, pronouns, model or (own definition) fields
   sq role <slug|id|n> view add <n>       — place or re-enable a view tag in sq:body
@@ -76,7 +76,7 @@ role_app = typer.Typer(
             "sq role manager show",
             "sq role 1 regen",
             "sq role ROLE-1 remove --purge",
-            "sq role manager status Archived",
+            "sq role manager status <status>",
             "sq role qa set-default",
             "sq role qa view disable role_definition",
         ),
@@ -209,7 +209,7 @@ def _read_definition(file: str | None) -> str | None:
 def add_role(  # noqa: PLR0913 — a flag per definition field
     slug: str = typer.Argument(..., help="Slug to file the new role under."),
     name: str | None = typer.Option(None, "--name", help="Full name of the agent."),
-    file: str | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP, metavar="PATH"),
+    file: str | None = common.file_option(common.ROLE_DEFINITION_FILE_HELP, metavar="path"),
     job_title: str | None = typer.Option(None, "--job-title", help="The role's job title."),
     desc: str | None = common.desc_option(None),
     mission: str | None = typer.Option(None, "--mission", help="What the role is there to do."),
@@ -371,7 +371,7 @@ def update_role(  # noqa: PLR0913 — a flag per role field
         "--can-spawn",
         help="`yes` or `no`: may the role spawn agents (a role that defines itself only).",
     ),
-    file: str | None = common.file_option(common.ROLE_DELTA_FILE_HELP, metavar="PATH"),
+    file: str | None = common.file_option(common.ROLE_DELTA_FILE_HELP, metavar="path"),
     as_: str | None = common.edit_as_option(),
     json_out: bool = json_option("Print one JSON object: the role after the update."),
 ) -> None:

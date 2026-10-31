@@ -9,7 +9,7 @@ import os
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from pathlib import Path, PurePath
+from pathlib import Path
 from typing import Any, cast
 
 import typer
@@ -19,7 +19,6 @@ import typer.core
 import typer.main
 from pydantic import BaseModel
 from rich.console import Console
-from rich.panel import Panel
 from rich.text import Text
 
 from squads import _actor as actor
@@ -35,18 +34,15 @@ from squads._api._dto._comment_writes import (
     CommentRequest,
     CommentSelection,
     CommentShown,
-    RosterCommentAddRequest,
-    RosterCommentEditRequest,
-    RosterCommentRequest,
 )
 from squads._api._dto._comments import Comments, CommentsRequest
-from squads._api._dto._roster import RosterAddress
 from squads._cli._markup import escape_markup
 from squads._cli._render import _comments as comment_render
 from squads._cli._render import _writes as write_render
-from squads._cli._render._style import intent_style
-from squads._context import get_context
+from squads._context import ServedCommand, get_context
+from squads._endpoint import ChangeDirError, change_directory
 from squads._errors import (
+    ClientInterruptedError,
     NotInitializedError,
     SquadsError,
 )
@@ -60,14 +56,61 @@ from squads._models._participants import refuse_system_actor
 from squads._paths import process_dir, resolve
 from squads._spec_documents import SpecSources, spec_sources
 from squads._specload import override_present
-from squads._util import article
 from squads._workflow import CATEGORIES, bundled_spec
-from squads._workflow._models import RESERVED_CLI_ALIASES, WorkflowSpec, reserved_alias_owner
+from squads._workflow._models import WorkflowSpec
+
+
+def _dimension(name: str, terminal: int | None, fallback: int) -> int:
+    """A console dimension as Rich reads one: the exported variable *name*, else the terminal's
+    size, else *fallback*."""
+    raw = os.environ.get(name)
+    chosen = int(raw) if raw is not None and raw.isdigit() else terminal
+    return chosen or fallback
+
+
+def windows_color_system(
+    detected: str | None, legacy: bool | None, truecolor: bool | None
+) -> str | None:
+    """The colour system of a Windows client's console. Rich asks the console of its own process,
+    which for a served command is the daemon's, so once it detected a colour system the client's
+    facts decide: the Windows palette on a legacy console, else 24-bit or 256 colours."""
+    if detected is None or truecolor is None:
+        return detected
+    if legacy:
+        return "windows"
+    return "truecolor" if truecolor else "256"
+
+
+def build_console(
+    *, stderr: bool, force_terminal: bool | None = None, width: int | None = None
+) -> Console:
+    """A console for the standard stream it names. A served command's is sized and featured as
+    its client's terminal is, not as the daemon's; *force_terminal* and *width* are Typer's own
+    settings for its help and error consoles."""
+    served = get_context().served
+    if served is None:
+        return Console(stderr=stderr, force_terminal=force_terminal, width=width)
+    legacy = None if served.windows_vt is None else not served.windows_vt
+    console = Console(stderr=stderr, legacy_windows=legacy, force_terminal=force_terminal)
+    system = windows_color_system(console.color_system, legacy, served.windows_truecolor)
+    if system != console.color_system:
+        console = Console(
+            stderr=stderr,
+            legacy_windows=legacy,
+            force_terminal=force_terminal,
+            color_system=system,  # type: ignore[arg-type]
+        )
+    if not console.is_dumb_terminal:
+        console.size = (
+            width or _dimension("COLUMNS", served.columns, 80),
+            _dimension("LINES", served.lines, 25),
+        )
+    return console
 
 
 def build_consoles() -> tuple[Console, Console]:
     """The stdout and stderr consoles of one invocation."""
-    return Console(), Console(stderr=True)
+    return build_console(stderr=False), build_console(stderr=True)
 
 
 class _ConsoleHandle:
@@ -84,7 +127,7 @@ class _ConsoleHandle:
         if ctx.consoles is not None:
             target = ctx.consoles[1 if self._stderr else 0]
         else:
-            target = Console(stderr=self._stderr)
+            target = build_console(stderr=self._stderr)
         return getattr(target, name)
 
 
@@ -141,46 +184,17 @@ CHANGE_DIR_PARAM = "change_dir"
 _ROOT_CALLBACK_RAN_KEY = "squads.root_callback_ran"
 
 
-class ChangeDirError(Exception):
-    """A ``-C`` value that ``chdir`` would refuse; the message names the path and the reason."""
-
-
-def _enter(path: Path, part: str) -> Path:
-    """Step from *path* into *part* the way ``chdir`` does, one component at a time."""
-    if part == "..":
-        return path.parent
-    candidate = path / part
-    try:
-        resolved = candidate.resolve(strict=True)
-    except FileNotFoundError:
-        raise ChangeDirError(f"{candidate} does not exist") from None
-    except OSError as exc:
-        reason = "permission denied" if isinstance(exc, PermissionError) else exc.strerror
-        raise ChangeDirError(f"{candidate} cannot be entered: {reason}") from None
-    if not resolved.is_dir():
-        raise ChangeDirError(f"{candidate} is not a directory")
-    if not os.access(resolved, os.X_OK):
-        raise ChangeDirError(f"{candidate} cannot be entered: permission denied")
-    return resolved
-
-
 def effective_dir(values: Sequence[str]) -> Path:
     """The directory ``-C`` selects: the process directory, then each value entered in order
     as ``chdir`` would (an absolute value replaces what came before, an empty one changes
     nothing, a link is followed before a ``..``). Raises :class:`ChangeDirError` for a
     component that is missing, not a directory, or not searchable. A request that carries its
-    own starting directory begins there instead of at the process directory."""
+    own starting directory begins there instead of at the process directory. A command the
+    daemon serves has the daemon's squad and reads no path its client names."""
+    if get_context().served is not None:
+        return get_context().client_cwd or process_dir()
     start = get_context().start_dir
-    path = (start if start is not None else process_dir()).resolve()
-    for value in values:
-        pure = PurePath(value)
-        parts = pure.parts
-        if pure.is_absolute():
-            path, parts = Path(pure.anchor), parts[1:]
-        for part in parts:
-            if part != ".":
-                path = _enter(path, part)
-    return path
+    return change_directory(start if start is not None else process_dir(), values)
 
 
 def root_effective_dir(ctx: Any) -> Path:
@@ -286,7 +300,7 @@ def resolve_spec_for_ctx(ctx: Any) -> WorkflowSpec:
     to the answering surfaces, :func:`get_active_spec` and ``compose_service``.
     """
     try:
-        if ctx is None or _root_callback_ran(ctx):
+        if ctx is None or _root_callback_ran(ctx) or get_context().served is not None:
             active = get_context().active_spec
             if active is not None:
                 return active
@@ -327,6 +341,32 @@ def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
         return merged
 
 
+def bundled_alias_owner(name: str) -> str | None:
+    """The bundled type that declares *name* as an alias, or ``None`` when no bundled type does."""
+    return next(
+        (t for t, ts in bundled_spec().items.items() if name in ts.aliases),
+        None,
+    )
+
+
+def retargeted_type(ctx: Any, cmd_name: str) -> str | None:
+    """The type the active spec routes the root token *cmd_name* to when that is not the bundled
+    type the root table registers it for (a type name or alias the spec gives to another type),
+    else ``None``. Any spec-resolution error returns ``None``."""
+    bundled = bundled_spec()
+    registered = cmd_name if cmd_name in bundled.items else bundled_alias_owner(cmd_name)
+    if registered is None:
+        return None
+    try:
+        spec = resolve_spec_for_ctx(ctx)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    declared = cmd_name if cmd_name in spec.non_roster_types() else spec.alias_to_type.get(cmd_name)
+    if declared is None or declared == registered or declared not in spec.non_roster_types():
+        return None
+    return declared
+
+
 def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
     """Static type aliases whose owner is still declared but no longer declares them.
 
@@ -336,8 +376,11 @@ def stale_static_aliases(spec: WorkflowSpec) -> frozenset[str]:
     """
     return frozenset(
         alias
-        for alias, owner in RESERVED_CLI_ALIASES
-        if (owner_spec := spec.items.get(owner)) is not None and alias not in owner_spec.aliases
+        for owner, owner_bundled in bundled_spec().items.items()
+        for alias in owner_bundled.aliases
+        if (owner_spec := spec.items.get(owner)) is not None
+        and alias not in owner_spec.aliases
+        and alias not in spec.alias_to_type
     )
 
 
@@ -350,7 +393,7 @@ def static_alias_is_stale(ctx: Any, cmd_name: str) -> bool:
     valid), so the caller substitutes :func:`stale_alias_command`. Any spec-resolution error
     returns ``False``.
     """
-    if reserved_alias_owner(cmd_name) is None:
+    if bundled_alias_owner(cmd_name) is None:
         return False
     try:
         spec = resolve_spec_for_ctx(ctx)
@@ -366,7 +409,7 @@ def stale_alias_command(ctx: Any, cmd_name: str) -> _click.Command:
     built from the raw ``self.commands`` table and would suggest the stale string just typed. The
     command swallows every trailing token and its own ``--help``.
     """
-    owner = reserved_alias_owner(cmd_name) or ""
+    owner = bundled_alias_owner(cmd_name) or ""
     try:
         owner_spec = resolve_spec_for_ctx(ctx).items.get(owner)
     except Exception:  # pylint: disable=broad-except
@@ -455,8 +498,8 @@ def _pending_spec_error(ctx: Any) -> str | None:
     from squads._context import get_context
 
     bound = get_context()
-    if ctx is None or _root_callback_ran(ctx):
-        return bound.spec_error  # the callback ran: its verdict is the whole answer
+    if ctx is None or _root_callback_ran(ctx) or bound.served is not None:
+        return bound.spec_error  # the callback ran, or the daemon bound it: that is the answer
     try:
         _spec, error = bind_active_spec(root_effective_dir(ctx))
     except Exception:  # pylint: disable=broad-except
@@ -529,7 +572,7 @@ ROLE_DELTA_FILE_HELP = (
 )
 
 
-def file_option(help: str = FILE_HELP, metavar: str | None = None) -> Any:
+def file_option(help: str = FILE_HELP, metavar: str = "path") -> Any:
     return typer.Option(None, "--file", help=help, metavar=metavar)
 
 
@@ -575,11 +618,18 @@ def closed_option() -> Any:
     return typer.Option(False, "--all", "-a", help="Include closed items.")
 
 
+def _refuse_negative_depth(value: int | None) -> int | None:
+    if value is not None and value < 0:
+        raise typer.BadParameter("must be 0 or more")
+    return value
+
+
 def depth_option(default: int | None, *flags: str) -> Any:
     return typer.Option(
         default,
         "--depth",
         *flags,
+        callback=_refuse_negative_depth,
         help="How many levels below the root to show; 0 shows only the root.",
     )
 
@@ -641,7 +691,7 @@ def move_status_option() -> Any:
 
 def type_group_help(item_type: str) -> str:
     """The summary of ``sq <type>``, for a bundled or a declared type alike."""
-    return f"Operate on {article(item_type)} {item_type} by number or ID."
+    return f"Operate on one {item_type} by number or ID."
 
 
 def e(value: object) -> str:
@@ -652,6 +702,8 @@ def e(value: object) -> str:
 def status_style(status: str, spec: WorkflowSpec) -> str:
     """The concrete `rich` style for *status*: its role's colour intent, uncoloured when this
     build does not know the intent."""
+    from squads._cli._render._style import intent_style
+
     return intent_style(spec.role_for(status).color)
 
 
@@ -693,6 +745,7 @@ def _render_comments_styled(
 ) -> None:
     """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
     from rich.markdown import Markdown
+    from rich.panel import Panel
 
     for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
         title = (
@@ -735,11 +788,25 @@ def not_text_refusal(exc: UnicodeDecodeError, file: str, what: str) -> SquadsErr
     )
 
 
+def _attachment(served: ServedCommand, file: str) -> bytes:
+    """The bytes the request carries for *file*; a name it does not carry is a defect in the
+    client's list of file arguments, not a user's mistake."""
+    try:
+        return served.attachments[file]
+    except KeyError:
+        raise LookupError(f"the request carries no attachment named {file!r}") from None
+
+
 def read_client_text(file: str, *, what: str = "file") -> str:
     """The text of *file* as the command line names it: ``-`` is stdin, anything else a path
-    under the client's directory, read as UTF-8. Every failure is a :class:`SquadsError` naming
-    *file*."""
+    under the client's directory, read as UTF-8. A command the daemon serves reads both from the
+    request's attachments. Every failure is a :class:`SquadsError` naming *file*."""
     try:
+        served = get_context().served
+        if served is not None:
+            return _decode(
+                _attachment(served, file), served.stdin_encoding if file == "-" else "utf-8"
+            )
         if file == "-":
             return sys.stdin.read()
         return _decode(client_path(file).read_bytes(), "utf-8")
@@ -769,7 +836,7 @@ def resolve_body_optional(messages: list[str] | None, file: str | None) -> str |
 def resolve_body(messages: list[str] | None, file: str | None) -> str:
     body = resolve_body_optional(messages, file)
     if body is None:
-        raise SquadsError("provide the body via -m (repeatable) or --file PATH ('-' for stdin)")
+        raise SquadsError("provide the body via -m (repeatable) or --file path ('-' for stdin)")
     return body
 
 
@@ -790,7 +857,7 @@ def resolve_comment_messages(messages: list[str] | None, file: str | None) -> li
         return [content]
     if messages:
         return messages
-    raise SquadsError("provide the comment via -m (repeatable) or --file PATH ('-' for stdin)")
+    raise SquadsError("provide the comment via -m (repeatable) or --file path ('-' for stdin)")
 
 
 #: ``click.Context.meta`` key for the documents this invocation has read, by squad directory (see
@@ -827,9 +894,14 @@ def handle_errors[**P, R](fn: Callable[P, R]) -> Callable[P, R]:
         except SquadsError as exc:
             print_notices(exc.warnings)
             err_console.print(f"[red]error:[/red] {e(error_text(exc))}", soft_wrap=True)
-            raise typer.Exit(1) from exc
+            raise typer.Exit(130 if isinstance(exc, ClientInterruptedError) else 1) from exc
 
     return wrapper
+
+
+def print_notice(text: str) -> None:
+    """One notice on stderr as the engine raises it, once per invocation."""
+    print_notices([text])
 
 
 def print_notices(warnings: Sequence[str]) -> None:
@@ -1014,9 +1086,9 @@ def address_epilog(group: str, noun: str, examples: Sequence[str], group_verbs: 
     """The epilog of a roster group: how to address one entry, with examples, one per line
     (Rich renders each blank-line-separated paragraph of an epilog on its own line). The
     ``{verbs}`` marker is filled in once the addressed verbs are registered."""
-    one = f"{article(noun)} {noun}"
+    one = f"one {noun}"
     paragraphs = [
-        f"Address {one}: sq {group} {ADDRESS_METAVAR} VERB, where VERB is one of {{verbs}}.",
+        f"Address {one}: sq {group} {ADDRESS_METAVAR} verb, where verb is one of {{verbs}}.",
         "Examples:",
         *examples,
         f"A slug matching a group verb ({group_verbs}) cannot address {one} by slug; "
@@ -1130,7 +1202,7 @@ class CommentGroup(typer.core.TyperGroup):
                 soft_wrap=True,
             )
             raise typer.Exit(2)
-        return "HASH", addr_cmd, args
+        return "hash", addr_cmd, args
 
 
 class _HashGroup(typer.core.TyperGroup):
@@ -1177,12 +1249,12 @@ def _register_comment_append(comment_app: typer.Typer, host: CommentHost) -> Non
         """Add a comment to the discussion, or act on one by its hash.
 
         Add:
-          comment -m TEXT [-m TEXT ...] --as SLUG
-          comment --file PATH --as SLUG
+          comment -m text [-m text ...] --as slug
+          comment --file path --as slug
         By hash:
-          comment HASH show|edit|remove
+          comment hash show|edit|remove
 
-        HASH is any 4 or more leading hex characters. -m, --file and --as go after
+        hash is any 4 or more leading hex characters. -m, --file and --as go after
         the verb. Only a comment's author can edit or remove it.
         """
         from squads._cli import _calls as calls  # _calls imports this module
@@ -1191,13 +1263,13 @@ def _register_comment_append(comment_app: typer.Typer, host: CommentHost) -> Non
             if message or file or as_:
                 err_console.print(
                     "[red]error:[/red] -m, --file and --as go after the verb: "
-                    "comment HASH edit -m TEXT --as SLUG",
+                    "comment hash edit -m text --as slug",
                     soft_wrap=True,
                 )
                 raise typer.Exit(2)
             if json_out:
                 err_console.print(
-                    "[red]error:[/red] --json goes after the verb: comment HASH show --json",
+                    "[red]error:[/red] --json goes after the verb: comment hash show --json",
                     soft_wrap=True,
                 )
                 raise typer.Exit(2)
@@ -1318,7 +1390,7 @@ def register_comment_group(app: typer.Typer, host: CommentHost) -> None:
     def _hash(  # pyright: ignore[reportUnusedFunction] — registered by the decorator
         ctx: typer.Context,
         hash_value: str = typer.Argument(
-            ..., metavar="HASH", help="4 or more leading hex characters."
+            ..., metavar="hash", help="4 or more leading hex characters."
         ),
     ) -> None:
         """Show, edit or remove one comment, addressed by its hash."""
@@ -1387,6 +1459,13 @@ def roster_comments(
 ) -> CommentHost:
     """A roster entry's discussion, from its kind's operations (listing, add, show, edit, removal,
     remove) and the address its group parsed."""
+    from squads._api._dto._comment_writes import (
+        RosterCommentAddRequest,
+        RosterCommentEditRequest,
+        RosterCommentRequest,
+    )
+    from squads._api._dto._roster import RosterAddress
+
     listing, add, show, edit, removal, remove = kind_ops
     return CommentHost(
         add=add,
@@ -1424,6 +1503,9 @@ def resolve_local_id(token: str, kind: str) -> str:
 def confirm(text: str, *, json_out: bool) -> None:
     """Ask *text* and abort unless the answer is yes. Under ``--json`` the prompt goes to stderr
     and the answer is read from stdin directly, so stdout carries the document alone."""
+    served = get_context().served
+    if served is not None:
+        served.begin_prompt()
     if not json_out:
         typer.confirm(text, abort=True)
         return
@@ -1520,6 +1602,22 @@ def parse_badge_code(collection_code: str, value: str, spec: WorkflowSpec | None
     if coll is None or code not in coll.badge_codes:
         choices = ", ".join(b.code for b in coll.badges) if coll else ""
         raise SquadsError(f"unknown {collection_code} {value!r} (one of: {choices})")
+    return code
+
+
+def parse_badge_field(
+    field_code: str, *, ordered: bool = False, spec: WorkflowSpec | None = None
+) -> str:
+    """Validate *field_code* as a badge field some non-roster type declares.
+
+    With *ordered*, only a field bound to an ordered collection is accepted (the ones that rank).
+    """
+    active_spec = spec if spec is not None else get_active_spec()
+    codes = [f.code for f in badges.filterable_fields(active_spec, ordered=ordered)]
+    code = field_code.strip()
+    if code not in codes:
+        kind = "sort field" if ordered else "badge field"
+        raise SquadsError(f"unknown {kind} {field_code!r} (one of: {', '.join(codes)})")
     return code
 
 

@@ -23,32 +23,11 @@ from pydantic import BaseModel
 from rich.console import Console
 
 import squads._cli._common as common
+import squads._cli._field_options as field_options
 from squads import _badges as badges
 from squads._api import _ops as ops
 from squads._api._api import Operation
-from squads._api._dto._comment_writes import (
-    SubentityCommentAddRequest,
-    SubentityCommentEditRequest,
-    SubentityCommentRequest,
-)
-from squads._api._dto._item_writes import (
-    ItemBodyRequest,
-    ItemRefRemoveRequest,
-    ItemRefRequest,
-    ItemRemoveRequest,
-    ItemRetypeRequest,
-    ItemUpdateRequest,
-    ItemViewChanged,
-    ItemViewRequest,
-    SubentityAddRequest,
-    SubentityBodyRequest,
-    SubentityRemoveRequest,
-    SubentityUpdated,
-    SubentityUpdateRequest,
-)
-from squads._api._dto._items import ItemShowRequest, ItemStatusRequest
-from squads._api._dto._refs import RefsRequest
-from squads._api._dto._subentities import SubentitiesRequest, SubentityRequest
+from squads._api._dto._item_writes import ItemViewChanged, ItemViewRequest, SubentityUpdated
 from squads._cli import _calls as calls
 from squads._cli._common import (
     console,
@@ -59,19 +38,6 @@ from squads._cli._common import (
     resolve_body,
     resolve_body_optional,
     resolve_local_id,
-)
-from squads._cli._render._items import render_show, render_status
-from squads._cli._render._refs import render_refs
-from squads._cli._render._roster import render_body_written, render_view_change
-from squads._cli._render._subentities import render_subentities, render_subentity
-from squads._cli._render._writes import (
-    render_item_removed,
-    render_ref_added,
-    render_ref_removed,
-    render_retyped,
-    render_subentity_added,
-    render_subentity_removed,
-    render_updated,
 )
 from squads._errors import SquadsError
 from squads._workflow._models import Field, WorkflowSpec
@@ -107,6 +73,8 @@ def _view_change(
     json_out: bool,
     enable: bool,
 ) -> None:
+    from squads._cli._render._roster import render_view_change
+
     common.declare_actor(as_)
 
     def render(changed: ItemViewChanged, console: Console) -> None:
@@ -124,6 +92,12 @@ def _view_change(
 
 def _subentity_comments(kind: str) -> common.CommentHost:
     """The discussion of a sub-entity of *kind*."""
+    from squads._api._dto._comment_writes import (
+        SubentityCommentAddRequest,
+        SubentityCommentEditRequest,
+        SubentityCommentRequest,
+    )
+
     return common.CommentHost(
         add=ops.SUBENTITY_COMMENT_ADD,
         show=ops.SUBENTITY_COMMENT_SHOW,
@@ -135,6 +109,16 @@ def _subentity_comments(kind: str) -> common.CommentHost:
         edit_request=SubentityCommentEditRequest,
         address=lambda ctx: {**_address(ctx), "kind": kind, "local": ctx.obj["local"]},
     )
+
+
+def _target_kind(spec: WorkflowSpec, kind: str) -> str:
+    """The sub-entity kind that *kind*'s mapping points at, *kind* itself when it maps nowhere."""
+    return spec.mapping_target_kind(kind) or kind
+
+
+def _flag(code: str) -> str:
+    """The option spelling of a declared code: underscores become dashes."""
+    return code.replace("_", "-")
 
 
 def _kw_str(kwargs: dict[str, object], key: str) -> str | None:
@@ -175,38 +159,19 @@ def _guard_update(*, has_any: bool, assignee: str | None, clear_assignee: bool) 
         raise SquadsError("nothing to update (pass at least one field, e.g. --title/--status)")
 
 
-def _priority_help(item_type: str, spec: WorkflowSpec, template: str) -> str:
-    """``--priority`` help from the collection *item_type* binds, or a spec pointer if it has none.
-
-    Resolution is strict (:func:`squads._badges.declared_collection`): the same-name fallback
-    would list the bundled ``priority`` codes for a type that never declared the field,
-    advertising a flag that can only error.
-    """
-    # sanctioned field-code literal: `--priority` is the flag *for* this field code
-    coll_code = badges.declared_collection(item_type, "priority", spec)
-    coll = spec.collections.get(coll_code) if coll_code else None
-    if coll and coll.badges:
-        return template.format(codes="|".join(b.code for b in coll.badges))
-    return "Priority code (as defined by your workflow's priority collection)."
-
-
-def _declares_priority(item_type: str, spec: WorkflowSpec) -> bool:
-    """Whether *item_type* declares a ``priority`` field — drives whether ``--priority`` is
-    advertised at all (a type that doesn't can only ever be refused by the service gate)."""
-    # sanctioned field-code literal: `--priority` is the flag *for* this field code
-    return badges.declared_collection(item_type, "priority", spec) is not None
-
-
 #: One entry per aspect of a sub-entity kind that shapes the generated command surface.
 type _FieldSignature = tuple[str, str, str, bool, str | None]
-type KindSignature = tuple[str, str, bool, tuple[_FieldSignature, ...]] | None
+type KindSignature = (
+    tuple[str, str, str | None, tuple[str, str], tuple[_FieldSignature, ...]] | None
+)
 
 
 def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
     """What ``_register_subentity`` bakes into the generated commands for *item_type*'s kind.
 
-    The kind name, its plural (the list verb), whether it maps a parent story (``--story``), and
-    every declared field's code, label, bound collection, requiredness and default (the
+    The kind name, its plural (the list verb), the kind its mapping targets (the ``--<target-kind>``
+    option) with that kind's local prefix and label, and every declared field's code, label, bound
+    collection, requiredness and default (the
     ``--<field-code>`` options, their help and the omitted-flag fallback). Equal signatures
     produce identical command trees, so comparing them tests whether the static tree still
     describes a spec; a name-only comparison would miss a field swap. ``None`` when the type
@@ -219,7 +184,11 @@ def _kind_signature(item_type: str, spec: WorkflowSpec) -> KindSignature:
     fields = tuple(
         (f.code, f.label, f.collection, f.required, f.default) for f in spec.fields_for(kind)
     )
-    return (kind, ks.plural, ks.maps_parent_story, fields)
+    target = spec.mapping_target_kind(kind)
+    named = (
+        (spec.subentity_kinds[target].local_prefix, spec.kind_label(target)) if target else ("", "")
+    )
+    return (kind, ks.plural, target, named, fields)
 
 
 def _dynamic_subentity_group_cls(item_type: str) -> type[typer.core.TyperGroup]:
@@ -317,7 +286,7 @@ def build_item_app(
         cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else common.HelpAwareGroup,
     )
 
-    # Resolved once, so every builder below (retype's target help, update's --priority help)
+    # Resolved once, so every builder below (retype's target help, the sub-entity surface)
     # derives its help from the same spec that decides eligibility.
     if spec is None:
         spec = common.get_active_spec()
@@ -326,12 +295,12 @@ def build_item_app(
     @handle_errors
     def _resolve(
         ctx: typer.Context,
-        num: str = typer.Argument(..., metavar="N", help=f"Number or ID of the {item_type}."),
+        num: str = typer.Argument(..., metavar="n", help=f"Number or ID of the {item_type}."),
     ):
         ctx.obj = common.parsed_address(ctx, lambda: common.item_address(num, item_type))
 
     _cmd_show(item)
-    _cmd_update(item, item_type, spec)
+    _cmd_update(item, item_type)
     _cmd_status(item)
     _cmd_body(item)
     common.register_comment_verbs(item, common.ITEM_COMMENTS)
@@ -354,6 +323,9 @@ def build_item_app(
 
 
 def _cmd_show(item: typer.Typer) -> None:
+    from squads._api._dto._items import ItemShowRequest
+    from squads._cli._render._items import render_show
+
     @item.command("show")
     @handle_errors
     def show(
@@ -377,23 +349,11 @@ def _cmd_show(item: typer.Typer) -> None:
         calls.finish(response, json_out=json_out)
 
 
-def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
-    priority_help = _priority_help(item_type, spec, "Priority: {codes}.")
+def _cmd_update(item: typer.Typer, item_type: str) -> None:
+    from squads._api._dto._item_writes import ItemUpdateRequest
+    from squads._cli._render._writes import render_updated
 
-    def _refresh_priority_help(params: list[object]) -> None:
-        live_spec = common.get_active_spec()
-        text = _priority_help(item_type, live_spec, "Priority: {codes}.")
-        # Hidden, not removed, on a type declaring no priority field: the flag still parses
-        # so the service's declared-field gate owns the one accurate refusal, but a flag that
-        # can only ever error is never offered in --help (same split as the create side).
-        declared = _declares_priority(item_type, live_spec)
-        for p in params:
-            if getattr(p, "name", None) in ("priority", "no_priority"):
-                p.hidden = not declared  # type: ignore[attr-defined]
-            if getattr(p, "name", None) == "priority":
-                p.help = text  # type: ignore[attr-defined]
-
-    @item.command("update", cls=common.spec_aware_command_cls(_refresh_priority_help))
+    @item.command("update", cls=field_options.update_command_cls(item_type))
     @handle_errors
     def update(  # noqa: PLR0913 — the one metadata entry point
         ctx: typer.Context,
@@ -406,8 +366,6 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
         no_parent: bool = typer.Option(False, "--no-parent", help="Clear the parent."),
         assignee: str | None = common.assignee_option(),
         clear_assignee: bool = typer.Option(False, "--clear-assignee", help="Remove the assignee."),
-        priority: str | None = typer.Option(None, "--priority", help=priority_help),
-        no_priority: bool = typer.Option(False, "--no-priority", help="Clear the priority."),
         add_label: list[str] = typer.Option(None, "--add-label", help="Label to add (repeatable)."),
         rm_label: list[str] = typer.Option(
             None, "--rm-label", help="Label to remove (repeatable)."
@@ -425,11 +383,14 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
     ):
         """Change the item's title, status, parent, assignee, labels or attributes."""
         # `is not None`, not truthiness: `--parent ""` is a supplied value, and a truth test
-        # let it through and report "updated" for a parent never written. Same for priority.
+        # would let it through and report "updated" for a parent never written.
         if parent is not None and no_parent:
             raise SquadsError("use either --parent or --no-parent, not both")
-        if priority is not None and no_priority:
-            raise SquadsError("use either --priority or --no-priority, not both")
+        field_values = field_options.given_values(ctx)
+        cleared = field_options.given_unset(ctx)
+        if both := sorted(field_values.keys() & set(cleared)):
+            flag = field_options.flag_name(both[0])
+            raise SquadsError(f"use either --{flag} or --no-{flag}, not both")
         if parent is not None and not parent.strip():
             raise SquadsError("--parent needs an item ID; use --no-parent to clear the parent")
         set_attributes: dict[str, str] = {}
@@ -439,7 +400,7 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_attributes[key.strip()] = value
         others = (
-            title, desc, author, status, parent, no_parent, priority, no_priority,
+            title, desc, author, status, parent, no_parent, field_values, cleared,
             add_label, rm_label, set_, unset,
         )  # fmt: skip
         _guard_update(
@@ -459,24 +420,25 @@ def _cmd_update(item: typer.Typer, item_type: str, spec: WorkflowSpec) -> None:
             clear_parent=no_parent,
             assignee=assignee,
             clear_assignee=clear_assignee,
-            # No pre-parse: the collection `priority` binds is per-type, resolved by the operation
-            # from this item's own declared field.
-            priority=priority,
-            clear_priority=no_priority,
             add_labels=add_label or [],
             rm_labels=rm_label or [],
-            set_attributes=set_attributes,
-            unset_attributes=unset or [],
+            # No pre-parse: the collection a field binds is per-type, resolved by the operation
+            # from this item's own declared field.
+            set_attributes={**set_attributes, **field_values},
+            unset_attributes=[*(unset or []), *cleared],
         )
         _finish(ops.ITEM_UPDATE, request, json_out, render_updated)
 
 
 def _cmd_status(item: typer.Typer) -> None:
+    from squads._api._dto._items import ItemStatusRequest
+    from squads._cli._render._items import render_status
+
     @item.command("status")
     @handle_errors
     def status(
         ctx: typer.Context,
-        new_status: str = typer.Argument(..., metavar="STATUS", help=common.MOVE_STATUS_HELP),
+        new_status: str = typer.Argument(..., metavar="status", help=common.MOVE_STATUS_HELP),
         force: bool = common.force_transition_option(),
         as_: str | None = common.edit_as_option(),
         json_out: bool = typer.Option(
@@ -496,6 +458,9 @@ def _cmd_status(item: typer.Typer) -> None:
 
 
 def _cmd_body(item: typer.Typer) -> None:
+    from squads._api._dto._item_writes import ItemBodyRequest
+    from squads._cli._render._roster import render_body_written
+
     @item.command("body")
     @handle_errors
     def body(
@@ -527,13 +492,16 @@ def _cmd_body(item: typer.Typer) -> None:
 
 
 def _cmd_retype(item: typer.Typer) -> None:
+    from squads._api._dto._item_writes import ItemRetypeRequest
+    from squads._cli._render._writes import render_retyped
+
     @item.command("retype")
     @handle_errors
     def retype(
         ctx: typer.Context,
         new_type: str = typer.Argument(
             ...,
-            metavar="NEW-TYPE",
+            metavar="new-type",
             help=(
                 "Type to reclassify to, not a roster type (see `sq workflow types`). "
                 "The item number is kept; only the ID prefix changes."
@@ -546,9 +514,9 @@ def _cmd_retype(item: typer.Typer) -> None:
     ):
         """Reclassify this item to a different type, keeping its number and body.
 
-        Only the prefix changes, as `TASK-<n>` to `BUG-<n>`, and every reference to
-        the item is rewritten. The status is kept when both types share a lifecycle,
-        and reset to the new type's first status otherwise.
+        Only the prefix changes, as `<prefix>-<n>` to `<new-prefix>-<n>`, and every
+        reference to the item is rewritten. The status is kept when both types share
+        a lifecycle, and reset to the new type's first status otherwise.
         """
         target = parse_type(new_type)
         wt = common.get_active_spec().non_roster_types()
@@ -561,6 +529,9 @@ def _cmd_retype(item: typer.Typer) -> None:
 
 
 def _cmd_remove(item: typer.Typer) -> None:
+    from squads._api._dto._item_writes import ItemRemoveRequest
+    from squads._cli._render._writes import render_item_removed
+
     @item.command("remove")
     @handle_errors
     def remove(
@@ -593,6 +564,11 @@ def _cmd_remove(item: typer.Typer) -> None:
 
 
 def _cmd_refs(item: typer.Typer) -> None:
+    from squads._api._dto._item_writes import ItemRefRemoveRequest, ItemRefRequest
+    from squads._api._dto._refs import RefsRequest
+    from squads._cli._render._refs import render_refs
+    from squads._cli._render._writes import render_ref_added, render_ref_removed
+
     @item.command("refs")
     @handle_errors
     def refs(
@@ -641,7 +617,7 @@ def _cmd_refs(item: typer.Typer) -> None:
             False, "--json", help="Print one JSON object: the item's row after the write."
         ),
     ):
-        """Add a ref from this item to TARGET."""
+        """Add a ref from this item to the target."""
         common.declare_actor(as_)
         request = ItemRefRequest(**_address(ctx), target=target, kind=kind)
         _finish(ops.ITEM_REF_ADD, request, json_out, render_ref_added)
@@ -656,7 +632,7 @@ def _cmd_refs(item: typer.Typer) -> None:
             False, "--json", help="Print one JSON object: the item's row after the write."
         ),
     ):
-        """Remove this item's ref to TARGET."""
+        """Remove this item's ref to the target."""
         common.declare_actor(as_)
         request = ItemRefRemoveRequest(**_address(ctx), target=target)
         _finish(ops.ITEM_REF_RM, request, json_out, render_ref_removed)
@@ -722,15 +698,40 @@ def _edit_as_param() -> inspect.Parameter:
     )
 
 
-def _field_param(field: Field) -> inspect.Parameter:
+def _field_help(field: Field, spec: WorkflowSpec) -> str:
+    """The help of a field option: its label and the codes of the collection it binds."""
+    coll = spec.collections.get(field.collection)
+    if coll and coll.badges:
+        return f"{field.label}: {'|'.join(b.code for b in coll.badges)}."
+    return f"{field.label} badge code."
+
+
+def _field_param(field: Field, spec: WorkflowSpec) -> inspect.Parameter:
     """One dynamic ``--<field-code>`` CLI option for a declared field — used to build both
     ``add-<kind>``'s and ``update``'s parameter list at spec-resolution time."""
     return inspect.Parameter(
         field.code,
         inspect.Parameter.KEYWORD_ONLY,
-        default=typer.Option(None, f"--{field.code}", help=f"{field.label} badge code."),
+        default=typer.Option(None, f"--{_flag(field.code)}", help=_field_help(field, spec)),
         annotation=str | None,
     )
+
+
+def _clear_field_param(field: Field) -> inspect.Parameter:
+    """The ``--no-<field-code>`` flag of an optional field, which removes its value."""
+    return inspect.Parameter(
+        f"no_{field.code}",
+        inspect.Parameter.KEYWORD_ONLY,
+        default=typer.Option(False, f"--no-{_flag(field.code)}", help=f"Clear {field.label}."),
+        annotation=bool,
+    )
+
+
+def _mapping_help(spec: WorkflowSpec, kind: str, verb: str) -> str:
+    """The help of the mapping option: the target kind and the local id it takes."""
+    target = _target_kind(spec, kind)
+    prefix = spec.subentity_kinds[target].local_prefix
+    return f"{spec.kind_label(target)} {verb}, as `{prefix}<n>` or `<n>`."
 
 
 def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
@@ -744,6 +745,9 @@ def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
 
 
 def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
+    from squads._api._dto._subentities import SubentitiesRequest
+    from squads._cli._render._subentities import render_subentities
+
     plural = spec.subentity_plural(kind)
 
     @item.command(plural)
@@ -768,7 +772,7 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
 
     sub = typer.Typer(
         no_args_is_help=True,
-        help=f"Operate on {common.article(kind)} {kind} by number or local ID.",
+        help=f"Operate on one {kind} sub-entity by number or local ID.",
     )
 
     @sub.callback()
@@ -776,7 +780,7 @@ def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> Non
     def _resolve_sub(
         ctx: typer.Context,
         n: str = typer.Argument(
-            ..., metavar="LOCAL-ID", help=f"Number or local ID of the {kind}, such as 2."
+            ..., metavar="local-id", help=f"Number or local ID of the {kind}, such as 2."
         ),
     ):
         assert ctx.parent is not None  # the parent item group always runs first
@@ -819,9 +823,13 @@ def _deferred_to_params(kind: str, spec: WorkflowSpec) -> list[inspect.Parameter
 
 def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """Register ``add-<kind>``: base flags + one ``--<field-code>`` option per declared field
-    + ``--story`` iff the kind maps to a parent story + ``--status`` to seed a non-initial
+    + ``--<target-kind>`` iff the kind maps to a parent's sub-entity + ``--status`` to seed a
+    non-initial
     status at creation — built dynamically from the resolved ``SubentityKindSpec``. Replaces
     the three hand-written per-kind ``_register_add`` closures."""
+    from squads._api._dto._item_writes import SubentityAddRequest
+    from squads._cli._render._writes import render_subentity_added
+
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
 
@@ -830,18 +838,20 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         inspect.Parameter(
             "title",
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            default=typer.Argument("", help="Optional short title; put the detail in the body."),
+            default=typer.Argument(..., help="Short title; put the detail in the body."),
             annotation=str,
         ),
-        *(_field_param(field) for field in fields),
+        *(_field_param(field, spec) for field in fields),
     ]
-    if ks.maps_parent_story:
+    if ks.maps_to_parent:
         params.append(
             inspect.Parameter(
-                "story",
+                "maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
                 default=typer.Option(
-                    None, "--story", help="Story it implements, as `US<n>` or `<n>`."
+                    None,
+                    f"--{_flag(_target_kind(spec, kind))}",
+                    help=_mapping_help(spec, kind, "it maps to"),
                 ),
                 annotation=str | None,
             )
@@ -885,16 +895,14 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
 
     def _add(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
-        story = _kw_str(kwargs, "story")
+        maps_to = _kw_str(kwargs, "maps_to")
         status = _kw_str(kwargs, "status")
         message = _kw_list(kwargs, "message")
         request = SubentityAddRequest(
             **_address(ctx),
             kind=kind,
             title=cast(str, kwargs["title"]),
-            # Story-mapping semantics stay wired to the built-in "story" kind regardless of which
-            # kind declares maps_parent_story: a bounded built-in, not per-kind.
-            story=resolve_local_id(story, "story") if story else None,
+            maps_to=resolve_local_id(maps_to, _target_kind(spec, kind)) if maps_to else None,
             fields=_given_fields(kind, spec, kwargs),
             assignee=_kw_str(kwargs, "assignee"),
             status=parse_status(status) if status else None,
@@ -904,14 +912,17 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
         common.declare_actor(_kw_str(kwargs, "as_"))
         _finish(ops.SUBENTITY_ADD, request, _kw_bool(kwargs, "json_out"), render_subentity_added)
 
-    _add.__doc__ = f"Scaffold {common.article(kind)} {kind} on this item."
+    _add.__doc__ = f"Scaffold a new {kind} sub-entity on this item."
     _add.__signature__ = inspect.Signature(params)  # pyright: ignore[reportFunctionMemberAccess]
     item.command(f"add-{kind}")(handle_errors(_add))
 
 
 def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """The sub-entity metadata entry point — one ``--<field-code>`` option per declared field
-    (identically to ``add-<kind>``) + ``--story``/``--no-story`` iff maps_parent_story."""
+    (identically to ``add-<kind>``) + ``--no-<field-code>`` per optional field +
+    ``--<target-kind>``/``--no-<target-kind>`` iff maps_to_parent."""
+    from squads._api._dto._item_writes import SubentityUpdateRequest
+
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
 
@@ -923,22 +934,28 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             default=typer.Option(None, "--title", help="New title."),
             annotation=str | None,
         ),
-        *(_field_param(field) for field in fields),
+        *(_field_param(field, spec) for field in fields),
     ]
-    if ks.maps_parent_story:
+    params += [_clear_field_param(field) for field in fields if not field.required]
+    if ks.maps_to_parent:
+        target = _target_kind(spec, kind)
         params += [
             inspect.Parameter(
-                "story",
+                "maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
                 default=typer.Option(
-                    None, "--story", help="Story to map it to, as `US<n>` or `<n>`."
+                    None, f"--{_flag(target)}", help=_mapping_help(spec, kind, "to map it to")
                 ),
                 annotation=str | None,
             ),
             inspect.Parameter(
-                "no_story",
+                "no_maps_to",
                 inspect.Parameter.KEYWORD_ONLY,
-                default=typer.Option(False, "--no-story", help="Clear the story mapping."),
+                default=typer.Option(
+                    False,
+                    f"--no-{_flag(target)}",
+                    help=f"Clear {spec.kind_label(target)} mapping.",
+                ),
                 annotation=bool,
             ),
         ]
@@ -982,21 +999,27 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     def _update(**kwargs: object) -> None:
         ctx = cast(typer.Context, kwargs["ctx"])
         title = _kw_str(kwargs, "title")
-        story = _kw_str(kwargs, "story")
-        no_story = _kw_bool(kwargs, "no_story")
+        maps_to = _kw_str(kwargs, "maps_to")
+        no_maps_to = _kw_bool(kwargs, "no_maps_to")
         assignee = _kw_str(kwargs, "assignee")
         clear_assignee = _kw_bool(kwargs, "clear_assignee")
         status = _kw_str(kwargs, "status")
         field_values = _given_fields(kind, spec, kwargs)
-        if story and no_story:
-            raise SquadsError("use --story or --no-story, not both")
+        unset_fields = [f.code for f in fields if _kw_bool(kwargs, f"no_{f.code}")]
+        for code in unset_fields:
+            if code in field_values:
+                raise SquadsError(f"use --{_flag(code)} or --no-{_flag(code)}, not both")
+        if maps_to and no_maps_to:
+            flag = _flag(_target_kind(spec, kind))
+            raise SquadsError(f"use --{flag} or --no-{flag}, not both")
         _guard_update(
             has_any=any(
                 (
                     title is not None,
                     field_values,
-                    story,
-                    no_story,
+                    unset_fields,
+                    maps_to,
+                    no_maps_to,
                     assignee,
                     clear_assignee,
                     status,
@@ -1013,8 +1036,9 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
             local=ctx.obj["local"],
             title=title,
             fields=field_values,
-            story=resolve_local_id(story, "story") if story else None,
-            clear_story=no_story,
+            unset_fields=unset_fields,
+            maps_to=resolve_local_id(maps_to, _target_kind(spec, kind)) if maps_to else None,
+            clear_maps_to=no_maps_to,
             assignee=assignee,
             clear_assignee=clear_assignee,
             status=parse_status(status) if status else None,
@@ -1043,21 +1067,26 @@ def _remove_help(kind: str, spec: WorkflowSpec) -> str:
             child
             for item_type, ts in spec.items.items()
             if (child := ts.subentity_kind) is not None
-            and spec.subentity_kinds[child].maps_parent_story
+            and spec.subentity_kinds[child].maps_to_parent
             and spec.item_subentity_kind(spec.item_parent_required(item_type) or "") == kind
         }
     )
     note = "Its local id is never reused."
     if mapping:
         note += (
-            f" {common.article(kind).capitalize()} {kind} that {common.article(mapping[0])} "
-            f"{mapping[0]} still maps to is refused; remap or remove the {mapping[0]} first."
+            f" Removal is refused while any {spec.subentity_plural(mapping[0])} still map to it;"
+            f" remap or remove them first."
         )
     summary = f"Delete this {kind} for good, with its body and discussion."
     return f"{summary}\n\n{textwrap.fill(note, 78)}"
 
 
 def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
+    from squads._api._dto._item_writes import SubentityBodyRequest, SubentityRemoveRequest
+    from squads._api._dto._subentities import SubentityRequest
+    from squads._cli._render._subentities import render_subentity
+    from squads._cli._render._writes import render_subentity_removed
+
     @sub.command("show")
     @handle_errors
     @_doc(f"Show the {kind}'s status, assignee, body and discussion.")

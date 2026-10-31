@@ -91,7 +91,7 @@ def scaffold(
 ):
     """Copy a bundled default into `.overrides/` to start an override from.
 
-    Pick one: a template by `NAME`; one role (`--role`); or a whole document, the
+    Pick one: a template by `name`; one role (`--role`); or a whole document, the
     workflow spec, the playbook or the role catalog. Each document has two
     spellings, a name or a flag: `workflow` or `--workflow`, `playbook` or
     `--playbook`, `roles` or `--roles-catalog`. Edit the file, then check it with

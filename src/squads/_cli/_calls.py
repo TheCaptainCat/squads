@@ -1,7 +1,6 @@
-"""How a command reaches its operation: the API an invocation selects, the call, and the
+"""How a command reaches its operation: the API an invocation starts with, the call, and the
 notices and omissions a response carries."""
 
-import asyncio
 import json
 from typing import Any
 
@@ -22,18 +21,28 @@ def local_api() -> Api:
     return LocalApi(sources=common.invocation_sources)
 
 
-def select_api() -> Api:
-    """The API this invocation's commands call."""
-    return local_api()
+def invocation_api(prior: Api | None) -> Api:
+    """The API an invocation starts with: *prior* when the context it replaces already carries
+    one (a harness hands the root callback its own), else this process's own."""
+    return prior if prior is not None else local_api()
 
 
 def call[Req: BaseModel, Res](op: Operation[Req, Res], req: Req) -> Response[Res]:
     """Make the one call a command makes, through the invocation's API."""
     api = get_context().api
     if api is None:
-        api = select_api()
+        api = local_api()
     with spans.span("api_call"):
-        response = asyncio.run(api.call(op, req))
+        sync = getattr(api, "call_sync", None)
+        if sync is not None:
+            response = sync(op, req)
+        else:
+            import asyncio
+
+            response = asyncio.run(api.call(op, req))
+    handled = getattr(api, "handler_ms", None)
+    if handled is not None:
+        spans.value("handler", handled)
     spans.mark("call_done")
     return response
 

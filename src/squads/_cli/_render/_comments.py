@@ -1,10 +1,8 @@
 """The discussion renderers: comment panes on a terminal, delimited text otherwise."""
 
 from rich.console import Console
-from rich.panel import Panel
 
 from squads._api._dto._items import Comment
-from squads._cli._render._style import e
 
 
 def is_styled(console: Console) -> bool:
@@ -24,6 +22,8 @@ def edited_suffix(cmt: Comment) -> str:
 
 def comment_title(cmt: Comment) -> str:
     """A comment pane's title: its hash, time and author, escaped."""
+    from squads._cli._render._style import e
+
     return f"{e(cmt.short_hash)}  {e(cmt.ts)}  {e(author_label(cmt))}{e(edited_suffix(cmt))}"
 
 
@@ -39,6 +39,7 @@ def print_comments_plain(console: Console, comments: list[Comment]) -> None:
 def print_comments_styled(console: Console, comments: list[Comment]) -> None:
     """Each comment as a pane of rendered markdown."""
     from rich.markdown import Markdown
+    from rich.panel import Panel
 
     for cmt in comments:
         console.print(Panel(Markdown(cmt.body), title=comment_title(cmt), expand=False))

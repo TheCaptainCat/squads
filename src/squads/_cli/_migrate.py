@@ -2,10 +2,12 @@
 
 - `sq migrate up`                          run the automatic migration(s) for this squad
 - `sq migrate help`                        the migration changelog index (every shipped migration)
-- `sq migrate chlog vA..vB`                the complete manual steps for migrating across a
+- `sq migrate chlog vfrom..vto`                the complete manual steps for migrating across a
                                             release range
-- `sq migrate rename-type OLD NEW`         bulk-rename every OLD-type item to NEW type
-- `sq migrate rename-status TYPE OLD NEW`  bulk-move every TYPE item at OLD status to NEW status
+- `sq migrate rename-type old new`         bulk-rename every old-type item to new type
+- `sq migrate rename-status type old new`  bulk-move every type item at old status to new status
+- `sq migrate rename-field old new`        move the values stored under key old to key new
+- `sq migrate rename-kind old new`         bring the stored spellings of kind old to kind new
 """
 
 import typer
@@ -14,6 +16,8 @@ import squads._cli._common as common
 from squads._api import _ops as ops
 from squads._api._dto._squad import (
     MigrateRequest,
+    RenameFieldRequest,
+    RenameKindRequest,
     RenameStatusRequest,
     RenameTypeRequest,
     RepadRequest,
@@ -23,12 +27,16 @@ from squads._cli._common import console, handle_errors
 from squads._cli._render._package import render_migrations, render_steps
 from squads._cli._render._squad import (
     render_migration,
+    render_rename_field,
+    render_rename_kind,
     render_rename_status,
     render_rename_type,
     render_repad,
 )
 from squads._errors import SquadsError
 from squads._migrations._registry import manual_steps, migration_index
+from squads._models._item import MAX_ID_PADDING
+from squads._util import is_version, version_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")
 
@@ -80,8 +88,8 @@ def migrate_help(
 def migrate_chlog(
     span: str = typer.Argument(
         ...,
-        metavar="vFROM..vTO",
-        help="Releases after vFROM up to and including vTO, such as `v0.1.1..v0.2.0`.",
+        metavar="vfrom..vto",
+        help="Releases after vfrom up to and including vto, such as `v0.1.1..v0.2.0`.",
     ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the migrations with manual steps."
@@ -99,7 +107,9 @@ def migrate_chlog(
 @handle_errors
 def migrate_repad(
     new_width: int = typer.Argument(
-        ..., metavar="WIDTH", help="Digits to pad item numbers to; more than the current width."
+        ...,
+        metavar="width",
+        help=f"Digits to pad item numbers to: above the current width, up to {MAX_ID_PADDING}.",
     ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the padding before and after."
@@ -121,8 +131,8 @@ def migrate_repad(
 @migrate_app.command("rename-type")
 @handle_errors
 def migrate_rename_type(
-    old_type: str = typer.Argument(..., metavar="OLD_TYPE", help="Declared type to rename from."),
-    new_type: str = typer.Argument(..., metavar="NEW_TYPE", help="Declared type to rename to."),
+    old_type: str = typer.Argument(..., metavar="old-type", help="Declared type to rename from."),
+    new_type: str = typer.Argument(..., metavar="new-type", help="Declared type to rename to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: the items moved and their new ids."
     ),
@@ -130,7 +140,7 @@ def migrate_rename_type(
     """Move every item of one type to another, with the new prefix and folder.
 
     Both types must already be declared, non-roster types; this does not declare
-    NEW_TYPE. Run `sq check` afterwards.
+    the new type. Run `sq check` afterwards.
     """
     request = RenameTypeRequest(old_type=old_type, new_type=new_type)
     response = calls.call(ops.RENAME_TYPE, request)
@@ -145,19 +155,20 @@ def migrate_rename_type(
 @handle_errors
 def migrate_rename_status(
     item_type: str = typer.Argument(
-        ..., metavar="TYPE", help="Declared type whose items carry the status."
+        ..., metavar="type", help="Declared type whose items carry the status."
     ),
     old_status: str = typer.Argument(
-        ..., metavar="OLD_STATUS", help="Status value to rename from."
+        ..., metavar="old-status", help="Status value to rename from."
     ),
-    new_status: str = typer.Argument(..., metavar="NEW_STATUS", help="Status value to rename to."),
+    new_status: str = typer.Argument(..., metavar="new-status", help="Status value to rename to."),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: how many items were relabelled."
     ),
 ):
     """Relabel a status on every item of one type, without a transition.
 
-    NEW_STATUS must already be in TYPE's lifecycle. Run `sq check` afterwards.
+    The new status must already be in the type's lifecycle. Run `sq check`
+    afterwards.
     """
     request = RenameStatusRequest(type=item_type, old_status=old_status, new_status=new_status)
     response = calls.call(ops.RENAME_STATUS, request)
@@ -168,8 +179,69 @@ def migrate_rename_status(
     render_rename_status(response.data, console)
 
 
+@migrate_app.command("rename-field")
+@handle_errors
+def migrate_rename_field(
+    old: str = typer.Argument(..., metavar="old", help="Stored key to move values from."),
+    new: str = typer.Argument(..., metavar="new", help="Declared key to move them to."),
+    types: list[str] = typer.Option(
+        [], "--type", help="Move only the item key of this type (repeatable)."
+    ),
+    kinds: list[str] = typer.Option(
+        [], "--kind", help="Move only the entry key of this sub-entity kind (repeatable)."
+    ),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: how many items and entries were moved."
+    ),
+):
+    """Move the values stored under key old to key new.
+
+    Covers items and sub-entity entries, or only the given --type and --kind
+    scopes. Refuses, changing nothing, when a holder does not declare new,
+    already holds it, or holds a value new does not accept. Run `sq check`
+    afterwards.
+    """
+    request = RenameFieldRequest(old=old, new=new, types=types, kinds=kinds)
+    response = calls.call(ops.RENAME_FIELD, request)
+    if json_out:
+        calls.print_json(ops.RENAME_FIELD, response)
+        return
+    calls.print_warnings(response)
+    render_rename_field(response.data, console)
+
+
+@migrate_app.command("rename-kind")
+@handle_errors
+def migrate_rename_kind(
+    old: str = typer.Argument(..., metavar="old", help="Kind name the block markers carry."),
+    new: str = typer.Argument(..., metavar="new", help="Declared kind to bring them to."),
+    json_out: bool = typer.Option(
+        False, "--json", help="Print one JSON object: how many items were rewritten."
+    ),
+):
+    """Bring the stored spellings of kind old to the declaration of kind new.
+
+    Rewrites block markers, the container marker, local ids and mappings. Refuses,
+    changing nothing, when new is undeclared, a type does not host it, an item
+    mixes prefixes or a marker pair is missing. Run `sq check` afterwards.
+    """
+    request = RenameKindRequest(old=old, new=new)
+    response = calls.call(ops.RENAME_KIND, request)
+    if json_out:
+        calls.print_json(ops.RENAME_KIND, response)
+        return
+    calls.print_warnings(response)
+    render_rename_kind(response.data, console)
+
+
 def _parse_span(span: str) -> tuple[str, str]:
+    expected = f"expected a range like v0.1.1..v0.2.0 (vfrom..vto, from below to), got {span!r}"
     lo, sep, hi = span.partition("..")
     if not sep:
-        raise SquadsError(f"expected a range like v0.1.1..v0.2.0, got {span!r}")
-    return lo.strip().lstrip("vV"), hi.strip().lstrip("vV")
+        raise SquadsError(expected)
+    lo, hi = lo.strip().lstrip("vV"), hi.strip().lstrip("vV")
+    if not (is_version(lo) and is_version(hi)):
+        raise SquadsError(expected)
+    if version_tuple(lo) >= version_tuple(hi):
+        raise SquadsError(expected)
+    return lo, hi

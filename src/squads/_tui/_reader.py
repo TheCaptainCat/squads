@@ -98,8 +98,8 @@ def _subentity_head_line(sub: Subentity) -> str:
     parts = _badge_parts(sub.display)
     if sub.assignee:
         parts.append(sub.assignee)
-    if sub.display.story:
-        parts.append(sub.display.story)
+    if sub.display.maps_to:
+        parts.append(sub.display.maps_to)
     return "  ·  ".join(parts)
 
 

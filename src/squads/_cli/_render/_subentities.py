@@ -22,14 +22,14 @@ def render_subentities(listing: SubentityList, console: Console) -> None:
 
 
 def _meta_line(sub: SubentityShow) -> str:
-    """Status, assignee, each badge field with a value, story and deferral, on one line."""
+    """Status, assignee, each badge field with a value, mapping and deferral, on one line."""
     shown = sub.display
     meta = [f"status: {e(sub.status)}"]
     if sub.assignee:
         meta.append(f"assignee: {e(sub.assignee)}")
-    meta += [f"{b.label.lower()}: {e(sub.badges[code])}" for code, b in shown.badges.items()]
-    if sub.story:
-        meta.append(f"story: {e(sub.story)}")
+    meta += [f"{b.label}: {e(sub.badges[code])}" for code, b in shown.badges.items()]
+    if sub.maps_to and shown.maps_to_kind:
+        meta.append(f"{e(shown.maps_to_kind.label)}: {e(sub.maps_to)}")
     if sub.deferred_to:
         carrier = f" — {e(shown.carrier_title)}" if shown.carrier_title else ""
         meta.append(f"deferred to: {e(sub.deferred_to)}{carrier}")
