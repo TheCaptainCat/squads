@@ -6,6 +6,8 @@ a runner that needs to report more than a count can import it without a cycle.
 
 from dataclasses import dataclass
 
+from squads._errors import SquadsError
+
 
 @dataclass(frozen=True)
 class MigrationOutcome:
@@ -21,3 +23,8 @@ class MigrationOutcome:
     count: int
     skipped: tuple[str, ...] = ()
     report: tuple[str, ...] = ()
+
+
+class EntriesRefused(SquadsError):
+    """A runner's refusal that names the entries to fix by hand, so the run's note about changing
+    the roster does not apply."""
