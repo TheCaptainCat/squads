@@ -1,9 +1,10 @@
 """The view-tag engine: placing a ``sq:view:<name>`` tag in a body, finding and stripping them,
 and expanding each into its view's rendered output at read time.
 
-A tag names a view and nothing else; this module owns where tags may sit, how a placement
-resolves conflicting states, and how a body reads once its tags are expanded. Resolving and
-rendering a view's source stays in :mod:`squads._views`.
+A tag names a view and nothing else, and a stored view's tag is a pair that also holds its stored
+body (:mod:`squads._view_bodies`); this module owns where tags may sit, how a placement resolves
+conflicting states, and how a body reads once its tags are expanded. Resolving and rendering a
+view's source stays in :mod:`squads._views`.
 """
 
 import re
@@ -22,6 +23,7 @@ from squads._models._item import (
 from squads._roles._models import CatalogSource
 from squads._sections import get_section, iter_marker_spans, split_frontmatter, strip_marker_lines
 from squads._transform import TransformLoader
+from squads._view_bodies import ViewPair, collapse_pairs, encode_inner, find_view_pairs
 from squads._view_remedies import view_placement_invocation
 from squads._views import (
     RosterProvider,
@@ -57,20 +59,31 @@ def view_tag_settled(region: str, name: str, *, disabled: bool) -> bool:
     return len(matches) == 1 and matches[0].disabled == disabled
 
 
-def out_of_region_view_tags(text: str) -> list[str]:
-    """Every ``sq:view:*`` tag in *text* that sits outside the ``sq:body`` region, in file
-    order. Those tags neither render nor answer to ``view add``/``view disable``. Empty when the
-    file has no complete ``sq:body`` region, which is reported on its own."""
+def body_region_span(text: str) -> tuple[int, int] | None:
+    """Where the complete ``sq:body`` region of *text* starts and ends, markers included, or
+    ``None`` when the file has no complete region."""
     open_tag, close_tag = markers.open_marker(markers.BODY), markers.close_marker(markers.BODY)
     start = text.find(open_tag)
     end = text.find(close_tag, start + len(open_tag)) if start != -1 else -1
-    if end == -1:
+    return None if end == -1 else (start, end + len(close_tag))
+
+
+def out_of_region_view_tags(text: str, *, pairs: bool = True) -> list[str]:
+    """Every ``sq:view:*`` tag in *text* that sits outside the ``sq:body`` region, in file
+    order, the opening tag of a pair included unless *pairs* is false. Those tags neither render
+    nor answer to ``view add``/``view disable``. Empty when the file has no complete ``sq:body``
+    region, which is reported on its own."""
+    region = body_region_span(text)
+    if region is None:
         return []
-    region_end = end + len(close_tag)
+    start, region_end = region
+    paired: set[int] = set() if pairs else {p.start for p in find_view_pairs(text)}
     return [
         tag
         for tag, tag_start, _tag_end in iter_marker_spans(text)
-        if markers.view_tag_parts(tag) is not None and not start <= tag_start < region_end
+        if markers.view_tag_parts(tag) is not None
+        and not start <= tag_start < region_end
+        and tag_start not in paired
     ]
 
 
@@ -110,6 +123,60 @@ def unplaced_view_tags(region: str, incoming: str) -> list[str]:
     ]
 
 
+def altered_view_pairs(region: str, incoming: str) -> list[str]:
+    """The views whose pair in *incoming* holds other text than the pair *region* stores, or that
+    *region* stores no pair for, in file order. A body read back from the item holds only the
+    stored pairs, so it answers empty."""
+    stored: dict[str, ViewPair] = {}
+    for found in find_view_pairs(region.replace("\r\n", "\n")):
+        stored.setdefault(found.parts.name, found)
+    altered: list[str] = []
+    for pair in find_view_pairs(incoming.replace("\r\n", "\n")):
+        kept = stored.get(pair.parts.name)
+        if (kept is None or kept.inner != pair.inner) and pair.parts.name not in altered:
+            altered.append(pair.parts.name)
+    return altered
+
+
+def with_view_inner(region: str, name: str, inner: str) -> str:
+    """*region* with the text between *name*'s tags replaced by *inner*; a tag with no end tag
+    gets one after it. *region* is unchanged when it carries no tag for *name*."""
+    for pair in find_view_pairs(region):
+        if pair.parts.name == name:
+            return region[: pair.open_end] + inner + region[pair.close_start :]
+    for raw, _start, end in iter_marker_spans(region):
+        if (parts := markers.view_tag_parts(raw)) is not None and parts.name == name:
+            return region[:end] + inner + markers.view_close_marker(name) + region[end:]
+    return region
+
+
+def view_pair_missing(region: str, name: str, spec: WorkflowSpec) -> bool:
+    """Whether *region* carries a tag for the stored view *name* but no pair, so `view add` has an
+    end tag to complete."""
+    view = spec.views.get(name)
+    if view is None or not view.stored or not view_tag_states(region, name):
+        return False
+    return all(p.parts.name != name for p in find_view_pairs(region.replace("\r\n", "\n")))
+
+
+def conflicting_pair_view(region: str) -> str | None:
+    """The first view in *region* with two pairs holding different text, else ``None``. Placement
+    keeps the first pair of a view, so it refuses these rather than drop a body."""
+    first: dict[str, str] = {}
+    for pair in find_view_pairs(region.replace("\r\n", "\n")):
+        if first.setdefault(pair.parts.name, pair.inner) != pair.inner:
+            return pair.parts.name
+    return None
+
+
+def conflicting_pair_message(item_type: str, addr: int | str, view: str) -> str:
+    """The refusal for a view holding two pairs with different text."""
+    return (
+        f"{item_type} {addr}: view {view} has two stored bodies that differ; keep the pair "
+        "to use and delete the other from the file, then run the command again"
+    )
+
+
 def strip_view_tags(text: str) -> str:
     """*text* with every view tag stripped, each together with its own line — so a tag's state
     or location never by itself makes a body count as authored when the authored-content guard
@@ -130,10 +197,11 @@ def body_is_unwritten(body: str, scaffold: str | None) -> bool:
 
 
 def _region_view_tags(region: str) -> tuple[str, list[markers.ViewTagParts]]:
-    """*region* with every view tag — enabled or disabled, named or not — stripped together
-    with its own line, and the parsed tags taken out, in file order (duplicates included). The
-    read half of :func:`place_view_tags`, built on
+    """*region* with every view tag — enabled or disabled, named or not, a pair with its stored
+    body — stripped together with its own line, and the parsed tags taken out, in file order
+    (duplicates included). The read half of :func:`place_view_tags`, built on
     :func:`~squads._sections.strip_marker_lines`."""
+    region, _inners = collapse_pairs(region)
     stripped, raw = strip_marker_lines(region, lambda tag: markers.view_tag_parts(tag) is None)
     parts = [p for tag in raw if (p := markers.view_tag_parts(tag)) is not None]
     return stripped, parts
@@ -213,13 +281,18 @@ def place_view_tags(
 
     It strips every view tag out of *region*, applies the prose edit, and re-inserts one tag per
     view at its declared position and prior state, plus any *seeded* view that was missing, so no
-    caller inserts, removes or moves a tag itself. A tag mirrors the separator already at its
+    caller inserts, removes or moves a tag itself. A pair is one tag: it leaves with its stored
+    body and returns with the same bytes, and a stored view placed for the first time gets an
+    empty pair. A tag mirrors the separator already at its
     landing spot (never manufacturing a blank line), which makes stripping it back out the exact
     inverse. Conflicting states raise :class:`ConflictingViewStateError`; *force* is how ``view
     add``/``view disable`` settle one. The result has LF line endings whatever *region* had; the
     write seam restores the file's own.
     """
-    prose, existing = _region_view_tags(region.replace("\r\n", "\n"))
+    if (clash := conflicting_pair_view(region)) is not None:
+        raise SquadsError(conflicting_pair_message(item_type, addr, clash))
+    collapsed, inners = collapse_pairs(region.replace("\r\n", "\n"))
+    prose, existing = _region_view_tags(collapsed)
     prose = prose.strip("\n")
     if edit is not None:
         prose = (f"{prose}\n\n{edit}" if prose else edit) if append else edit
@@ -232,21 +305,48 @@ def place_view_tags(
         key=lambda n: first_seen.get(n, len(existing)),
     )
 
+    inners = _pair_inners(inners, {part.name for part in existing}, final, spec, force)
+    texts: dict[str, str] = {}
+    for name, disabled in final.items():
+        opening = markers.open_marker(markers.view_tag(name, disabled=disabled))
+        inner = inners.get(name)
+        close = "" if inner is None else inner + markers.view_close_marker(name)
+        texts[name] = opening + close
+
     name_cut_points = _resolve_cut_points(prose, declared, decl_order, spec)
-    tag_cut_points = {
-        off: [markers.open_marker(markers.view_tag(n, disabled=final[n])) for n in names]
-        for off, names in name_cut_points.items()
-    }
+    tag_cut_points = {off: [texts[n] for n in names] for off, names in name_cut_points.items()}
     atoms = _build_segments(prose, tag_cut_points)
-    atoms.extend(
-        (markers.open_marker(markers.view_tag(n, disabled=final[n])), len(prose), len(prose))
-        for n in undeclared
-    )
+    atoms.extend((texts[n], len(prose), len(prose)) for n in undeclared)
     seps = _boundary_separators(prose, atoms)
     out = atoms[0][0] if atoms else ""
     for (text, _left, _right), sep in zip(atoms[1:], seps, strict=True):
         out += sep + text
     return out
+
+
+def _pair_inners(
+    inners: dict[str, str],
+    placed: set[str],
+    final: dict[str, bool],
+    spec: WorkflowSpec,
+    force: tuple[str, bool] | None,
+) -> dict[str, str]:
+    """*inners*, the text each existing pair holds, plus an empty pair for every stored view in
+    *final* that the region carried no tag for (*placed*), and for the stored view `view add`
+    names when its tag has no end tag. Any other open-only tag of a stored view stays unpaired:
+    `sq check` reports it."""
+    empty = encode_inner("")
+    adding = force[0] if force is not None and not force[1] else None
+    return {
+        **{
+            name: empty
+            for name in final
+            if (name not in placed or name == adding)
+            and name in spec.views
+            and spec.views[name].stored
+        },
+        **inners,
+    }
 
 
 def _resolve_final_states(
@@ -406,6 +506,19 @@ def _keep_unless_disabled_view_tag(raw: str) -> bool:
     return parts is None or not parts.disabled
 
 
+def _without_disabled_pair_bodies(text: str) -> str:
+    """*text* with each disabled pair reduced to its opening tag, so stripping that tag removes
+    the stored body and end tag with it."""
+    out: list[str] = []
+    last = 0
+    for pair in find_view_pairs(text):
+        if pair.parts.disabled:
+            out.append(text[last : pair.open_end])
+            last = pair.end
+    out.append(text[last:])
+    return "".join(out)
+
+
 @dataclass(frozen=True, slots=True)
 class ExpandedBody:
     """A body as it reads with its view tags expanded, and a warning for each view whose
@@ -432,10 +545,15 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
     output, in place, except the tag of the view *keep* names, which stays as written. A disabled
     tag is removed the way ``strip_marker_lines`` removes a marker, never left as a blank line; an
     unresolvable enabled tag stays literal. A tag whose template fails to render stays as written
-    too, with one warning per such view. Read-only, and pads a rendered view with a blank line
-    against neighbouring prose. A view that declares a transform runs it once per tag; a failing
-    transform raises rather than leaving the tag."""
-    text, _ = strip_marker_lines(text, _keep_unless_disabled_view_tag)
+    too, with one warning per such view. A pair is replaced whole, and the view's transform and
+    template receive its unescaped stored body as ``body`` (empty for an empty pair or a view not
+    declared stored); a disabled pair is removed with its body. Read-only, and pads a rendered
+    view with a blank line against neighbouring prose. A view that declares a transform runs it
+    once per tag; a failing transform raises rather than leaving the tag."""
+    text, _ = strip_marker_lines(
+        _without_disabled_pair_bodies(text), _keep_unless_disabled_view_tag
+    )
+    pair_at = {pair.start: pair for pair in find_view_pairs(text)}
     loader = TransformLoader(squad_dir)
     failed: dict[str, str] = {}
     segments: list[tuple[str, str]] = []
@@ -456,9 +574,13 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         if reason is not None:
             continue  # undeclared, template missing, or source inapplicable — left literal
         view = spec.views[name]
+        pair = pair_at.get(start)
+        body = pair.body if pair is not None and view.stored else ""
+        if pair is not None:
+            end = pair.end
         result = resolve_source(view, name, item, db, spec, playbook, roster, squad_dir, catalog)
         data = (
-            loader.run(name, view.transform, result, item=item, spec=spec)
+            loader.run(name, view.transform, result, item=item, spec=spec, body=body)
             if view.transform is not None
             else None
         )
@@ -472,6 +594,7 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
                 working_language,
                 data,
                 from_squad=squad_dir,
+                body=body,
             )
         except SquadsError as exc:
             failed[name] = f"{exc} -- its tag is shown as written"

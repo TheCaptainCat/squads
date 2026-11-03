@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1267,
+  "counter": 1280,
   "padding": 6,
   "items": {
     "12": {
@@ -41457,7 +41457,7 @@
       "subentities": [],
       "path": "adrs/ADR-000622-bulk-event-import-sq-import.md",
       "created_at": "2026-07-23T07:56:31Z",
-      "updated_at": "2026-10-29T19:50:42Z",
+      "updated_at": "2026-11-03T22:50:36Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -41763,7 +41763,7 @@
       "subentities": [],
       "path": "adrs/ADR-000776-derived-views-one-computed-projection-and-no-body-sink.md",
       "created_at": "2026-08-22T09:28:29Z",
-      "updated_at": "2026-10-26T12:47:13Z",
+      "updated_at": "2026-11-03T22:50:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -41914,7 +41914,7 @@
       "subentities": [],
       "path": "adrs/ADR-000880-views-as-a-source-plus-a-template-rendered-at-a-document-tag.md",
       "created_at": "2026-09-02T12:23:01Z",
-      "updated_at": "2026-10-26T13:01:40Z",
+      "updated_at": "2026-11-03T23:10:51Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42051,7 +42051,7 @@
       "subentities": [],
       "path": "adrs/ADR-000979-comment-headers-carry-the-author-s-permanent-slug.md",
       "created_at": "2026-09-29T14:33:58Z",
-      "updated_at": "2026-10-25T21:42:26Z",
+      "updated_at": "2026-11-03T22:50:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42206,7 +42206,7 @@
       "subentities": [],
       "path": "adrs/ADR-001007-frontmatter-is-flat-core-keys-plus-spec-declared-attributes.md",
       "created_at": "2026-10-15T18:49:27Z",
-      "updated_at": "2026-10-29T19:50:44Z",
+      "updated_at": "2026-11-03T22:50:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42401,7 +42401,7 @@
       "subentities": [],
       "path": "adrs/ADR-001109-view-transforms-and-the-show-json-view-contract.md",
       "created_at": "2026-10-24T13:07:46Z",
-      "updated_at": "2026-10-29T19:50:53Z",
+      "updated_at": "2026-11-03T23:47:16Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42684,7 +42684,7 @@
       "subentities": [],
       "path": "adrs/ADR-001261-the-cli-s-remote-mode-a-shim-and-a-private-command-endpoint.md",
       "created_at": "2026-10-30T19:12:57Z",
-      "updated_at": "2026-10-30T23:09:45Z",
+      "updated_at": "2026-11-03T22:50:35Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42892,8 +42892,8 @@
     "868": {
       "sequence_id": 868,
       "type": "milestone",
-      "title": "squads 0.21 - the web frontend",
-      "slug": "squads-0-21-the-web-frontend",
+      "title": "squads 0.22 - the web frontend",
+      "slug": "squads-0-22-the-web-frontend",
       "status": "Draft",
       "description": "",
       "parent": null,
@@ -42905,9 +42905,9 @@
         "MILE-1241:depends-on"
       ],
       "subentities": [],
-      "path": "milestones/MILE-000868-squads-0-21-the-web-frontend.md",
+      "path": "milestones/MILE-000868-squads-0-22-the-web-frontend.md",
       "created_at": "2026-09-02T08:03:39Z",
-      "updated_at": "2026-10-31T08:55:43Z",
+      "updated_at": "2026-11-03T15:57:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42963,8 +42963,8 @@
     "1061": {
       "sequence_id": 1061,
       "type": "milestone",
-      "title": "squads 0.20 - more backends",
-      "slug": "squads-0-20-more-backends",
+      "title": "squads 0.21 - more backends",
+      "slug": "squads-0-21-more-backends",
       "status": "Draft",
       "description": "Codex, Cursor and other agent backends, with a role's model held per backend",
       "parent": null,
@@ -42973,9 +42973,9 @@
       "labels": [],
       "refs": [],
       "subentities": [],
-      "path": "milestones/MILE-001061-squads-0-20-more-backends.md",
+      "path": "milestones/MILE-001061-squads-0-21-more-backends.md",
       "created_at": "2026-10-16T13:39:05Z",
-      "updated_at": "2026-10-29T19:20:21Z",
+      "updated_at": "2026-11-03T15:57:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -43009,7 +43009,7 @@
       "type": "milestone",
       "title": "squads 0.19 - the daemon and the overridable vocabulary",
       "slug": "squads-0-19-the-daemon-and-the-overridable-vocabulary",
-      "status": "InProgress",
+      "status": "Done",
       "description": "The daemon serving the command layer's operations as resource routes, the bundled vocabulary fully overridable on generic storage, a bug batch, and dependencies upgraded and tested",
       "parent": null,
       "author": "product-owner",
@@ -43022,7 +43022,7 @@
       "subentities": [],
       "path": "milestones/MILE-001241-squads-0-19-the-daemon-and-the-overridable-vocabulary.md",
       "created_at": "2026-10-29T12:59:12Z",
-      "updated_at": "2026-10-31T15:55:20Z",
+      "updated_at": "2026-10-31T16:57:21Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66263,6 +66263,855 @@
       "attributes": {},
       "slug_in_file": true,
       "id": "OP-10"
+    },
+    "1268": {
+      "sequence_id": 1268,
+      "type": "epic",
+      "title": "External sources: work tracked elsewhere",
+      "slug": "external-sources-work-tracked-elsewhere",
+      "status": "InProgress",
+      "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
+      "created_at": "2026-11-03T15:57:06Z",
+      "updated_at": "2026-11-03T23:11:30Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "EPIC-1268"
+    },
+    "1269": {
+      "sequence_id": 1269,
+      "type": "milestone",
+      "title": "squads 0.20 - external sources",
+      "slug": "squads-0-20-external-sources",
+      "status": "Draft",
+      "description": "Pull issues from GitLab, GitHub and Jira into the squad, with a schema migration",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1241:depends-on",
+        "EPIC-1268"
+      ],
+      "subentities": [],
+      "path": "milestones/MILE-001269-squads-0-20-external-sources.md",
+      "created_at": "2026-11-03T15:57:06Z",
+      "updated_at": "2026-11-03T15:57:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "MILE-1269"
+    },
+    "1270": {
+      "sequence_id": 1270,
+      "type": "feature",
+      "title": "Stored view bodies",
+      "slug": "stored-view-bodies",
+      "status": "Done",
+      "description": "A view tag can store a body its projection reads at render time",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Paired view tags carry a stored body",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Body writes keep stored view bodies intact",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "One operation writes a view body, escaping markers",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Projections read the stored body at render time",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001270-stored-view-bodies.md",
+      "created_at": "2026-11-03T15:57:07Z",
+      "updated_at": "2026-11-03T23:59:26Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1270"
+    },
+    "1271": {
+      "sequence_id": 1271,
+      "type": "feature",
+      "title": "Sources spec and pull",
+      "slug": "sources-spec-and-pull",
+      "status": "Ready",
+      "description": "Declare sources in sources.toml and pull opted-in issues into items",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1270:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Sources declared in a sources.toml spec document",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "A durable source identity on each item",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Map attribute kind and operator identities",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "sq source pull creates and refreshes items",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "The source_description view",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Source-owned fields refused, broken links checked",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "List sources, unlink and relink an item",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "Comments carry attributes",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "Source credentials held where the squad is served",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001271-sources-spec-and-pull.md",
+      "created_at": "2026-11-03T15:57:07Z",
+      "updated_at": "2026-11-03T23:18:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1271"
+    },
+    "1272": {
+      "sequence_id": 1272,
+      "type": "feature",
+      "title": "sq source check and text converters",
+      "slug": "sq-source-check-and-text-converters",
+      "status": "Ready",
+      "description": "A per-source readiness checklist, and shared tracker-text converters",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1271:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "sq source check prints a checklist per source",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "A registry of named text converters",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001272-sq-source-check-and-text-converters.md",
+      "created_at": "2026-11-03T15:57:08Z",
+      "updated_at": "2026-11-03T22:54:55Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1272"
+    },
+    "1273": {
+      "sequence_id": 1273,
+      "type": "feature",
+      "title": "Connectors: GitLab, GitHub and Jira",
+      "slug": "connectors-gitlab-github-and-jira",
+      "status": "Ready",
+      "description": "The first connectors, registered by name and version",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1271:depends-on",
+        "FEAT-1272:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Connector registry by name and version",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "GitLab connector, any instance",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "GitHub connector, including Enterprise",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Jira Cloud connector (cloud-v3)",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Jira Data Center connector (dc-v2)",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001273-connectors-gitlab-github-and-jira.md",
+      "created_at": "2026-11-03T15:57:08Z",
+      "updated_at": "2026-11-03T23:18:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1273"
+    },
+    "1274": {
+      "sequence_id": 1274,
+      "type": "decision",
+      "title": "External sources: source record, stored views, sourced comments",
+      "slug": "external-sources-source-record-stored-views-sourced-comments",
+      "status": "Accepted",
+      "description": "Source record and derived lookup, nested records, stored view bodies, comment attributes, namespaced authors, server-side credentials, sources.toml, pull as import events, schema 0.20",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "EPIC-1268:addresses",
+        "FEAT-1270:addresses",
+        "FEAT-1271:addresses",
+        "FEAT-1272:addresses",
+        "FEAT-1273:addresses",
+        "ADR-880",
+        "ADR-776",
+        "ADR-1007",
+        "ADR-979",
+        "ADR-1261",
+        "ADR-622",
+        "ADR-1013",
+        "ADR-1109"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
+      "created_at": "2026-11-03T22:41:36Z",
+      "updated_at": "2026-11-03T23:51:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1274"
+    },
+    "1275": {
+      "sequence_id": 1275,
+      "type": "task",
+      "title": "Stored view bodies, escape grammar and the 0.20 schema",
+      "slug": "stored-view-bodies-escape-grammar-and-the-0-20-schema",
+      "status": "Done",
+      "description": "Paired view tags with an escaped stored body, set_view_body, read-time body; schema 0.20 runner",
+      "parent": "FEAT-1270",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Paired view tags and their check findings",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Body writes keep stored bodies intact",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "set_view_body and the escape grammar",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Projections read the stored body",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Schema 0.20 and its migration runner",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001275-stored-view-bodies-escape-grammar-and-the-0-20-schema.md",
+      "created_at": "2026-11-03T23:02:36Z",
+      "updated_at": "2026-11-03T23:59:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1275"
+    },
+    "1276": {
+      "sequence_id": 1276,
+      "type": "task",
+      "title": "Sources spec, source record, credentials and sq source pull",
+      "slug": "sources-spec-source-record-credentials-and-sq-source-pull",
+      "status": "Draft",
+      "description": "sources.toml, GitLab connector and harness, source record, map kind and identities, comment attributes, credentials, pull as import events, refusals, check rules",
+      "parent": "FEAT-1271",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1275:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sources.toml spec document and its validation",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Source record, derived lookups, namespaced author",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Map attribute kind and operator identities",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Comment attributes and sourced-comment display",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US8",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Credential store and the hidden prompt",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US9",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "sq source pull compiled to import events",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "The source_description view and show --refresh",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Ownership refusals and sq check reports",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US6",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Source list, unlink and relink",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US7",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "HTTP helper, loopback harness, GitLab connector",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001276-sources-spec-source-record-credentials-and-sq-source-pull.md",
+      "created_at": "2026-11-03T23:02:45Z",
+      "updated_at": "2026-11-03T23:19:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1276"
+    },
+    "1277": {
+      "sequence_id": 1277,
+      "type": "task",
+      "title": "sq source check probes and the converter registry",
+      "slug": "sq-source-check-probes-and-the-converter-registry",
+      "status": "Draft",
+      "description": "Connector-neutral probe checklist served with the pull's credentials, and the four named text converters",
+      "parent": "FEAT-1272",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1276:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Probe framework, GitLab probes and sq source check",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "The adf, jira-wiki and github-md converters",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001277-sq-source-check-probes-and-the-converter-registry.md",
+      "created_at": "2026-11-03T23:02:45Z",
+      "updated_at": "2026-11-03T23:19:01Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1277"
+    },
+    "1278": {
+      "sequence_id": 1278,
+      "type": "task",
+      "title": "GitHub and Jira connectors behind the registry",
+      "slug": "github-and-jira-connectors-behind-the-registry",
+      "status": "Draft",
+      "description": "GitHub, Jira cloud-v3 and dc-v2 connectors with their probes on recorded responses; a multi-version connector requires version",
+      "parent": "FEAT-1273",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1276:depends-on",
+        "TASK-1277:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "A multi-version connector requires version",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "GitLab connector",
+          "status": "Cancelled",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "GitHub connector",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Jira Cloud connector, cloud-v3",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Jira Data Center connector, dc-v2",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001278-github-and-jira-connectors-behind-the-registry.md",
+      "created_at": "2026-11-03T23:02:46Z",
+      "updated_at": "2026-11-03T23:19:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1278"
+    },
+    "1279": {
+      "sequence_id": 1279,
+      "type": "task",
+      "title": "Adopter docs, stability guide and changelog for sources",
+      "slug": "adopter-docs-stability-guide-and-changelog-for-sources",
+      "status": "Draft",
+      "description": "Stability contracts, the external sources adopter page, connector docs and the 0.20 changelog section",
+      "parent": "FEAT-1273",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1275:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Stability guide contracts",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Adopter page for external sources",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "CHANGELOG 0.20 section",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Connector documentation",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001279-adopter-docs-stability-guide-and-changelog-for-sources.md",
+      "created_at": "2026-11-03T23:02:46Z",
+      "updated_at": "2026-11-03T23:19:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1279"
+    },
+    "1280": {
+      "sequence_id": 1280,
+      "type": "review",
+      "title": "Stored view bodies (FEAT-1270, TASK-1275)",
+      "slug": "stored-view-bodies-feat-1270-task-1275",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1270",
+        "TASK-1275"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "CRLF in a stored body is lost on read and makes set_view_body rewrite on every call",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "views.<name> entry shape and transform body keyword are not recorded in any ADR",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "Duplicate stored pairs: the check remedy drops the second body, round trip is refused",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F4",
+          "title": "A stored-view tag without its end tag is a check error no verb can clear",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "New CLI tests read item files and assert substrings, against ADR-1172 section 5",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F6",
+          "title": "The clean 0.19 fixture carries a pair for an undeclared view",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F7",
+          "title": "CLAUDE.md architecture map does not name _view_bodies.py",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        }
+      ],
+      "path": "reviews/REV-001280-stored-view-bodies-feat-1270-task-1275.md",
+      "created_at": "2026-11-03T23:44:57Z",
+      "updated_at": "2026-11-03T23:59:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1280"
     }
   }
 }

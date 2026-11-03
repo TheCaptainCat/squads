@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from tests import _stored_view as stored
 from tests._profile import selected
 from tests._readable import init_readable, lines
 
@@ -46,6 +47,18 @@ PARSER_COMMENT = [
 @pytest.fixture
 def readable(copy_squad):
     return copy_squad("readable", init_readable)
+
+
+async def _readable_task_with_stored_body(readable, invoke) -> Path:
+    """The readable squad's task 4 once its stored view holds `STORED`: `view add` places the
+    empty pair and no verb writes a stored body, so the text goes between the tags in the file."""
+    stored.declare_stored_view(readable.squad_dir)
+    result = await invoke([P.ref, "4", "view", "add", stored.VIEW])
+    assert result.exit_code == 0, result.output
+    path = readable.squad_dir / f"{P.ref_folder}/{P.ref_prefix}-000004-rank-results.md"
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace(stored.pair(""), stored.pair()), encoding="utf-8")
+    return path
 
 
 def _etag(path: Path) -> str:
@@ -270,3 +283,45 @@ async def test_a_refused_show_prints_the_notices_before_the_error(project, invok
         "recognises; using English (en)\n"
         "error: no item with number 99 (use a full ID like TYPE-99 or bare 99)\n",
     )
+
+
+@pytest.mark.covers("show", "--raw")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_a_template_reads_the_stored_body_with_its_comment_openers_restored(
+    readable, invoke
+) -> None:
+    await _readable_task_with_stored_body(readable, invoke)
+
+    assert await _show(invoke, "4", "--raw") == (
+        0,
+        [
+            f"# {P.ref_prefix}-4 — Rank results",
+            "",
+            "- **status:** Draft",
+            "- **priority:** 🟢 low",
+            f"- **parent:** {P.host_prefix}-2",
+            "- **author:** manager",
+            f"- **refs:** {P.ref_prefix}-3 (depends-on), {P.third_prefix}-7",
+            "",
+            "## Description",
+            "",
+            f"_TODO: describe this {P.ref}._",
+            "",
+            "Imported:",
+            *stored.RESTORED.splitlines(),
+        ],
+    )
+
+
+@pytest.mark.covers("show", "--json")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_json_carries_the_stored_pair_in_the_body_and_the_restored_text_under_views(
+    readable, invoke
+) -> None:
+    await _readable_task_with_stored_body(readable, invoke)
+
+    result = await invoke(["show", "4", "--json"])
+
+    shown = json.loads(result.output)
+    assert shown["body"] == f"## Description\n\n_TODO: describe this {P.ref}._\n\n{stored.pair()}"
+    assert shown["views"] == {stored.VIEW: {"body": stored.RESTORED, "data": None}}

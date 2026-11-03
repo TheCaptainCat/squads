@@ -21,7 +21,7 @@ refs:
 description: No extra block; slug is core; roster keys are pinned spec attributes;
   unknown keys kept; writes remove only targeted keys; flattened by the 0.16 runner
 created_at: '2026-10-15T18:49:27Z'
-updated_at: '2026-10-29T19:50:44Z'
+updated_at: '2026-11-03T22:50:34Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -109,6 +109,8 @@ file.
 
 ### 1. Two kinds of key, one flat mapping
 
+> **Narrowed 2026-11-03 by ADR-1274 §1 and §2.** A nested object is allowed on a wire surface when it is a declared record with a known shape and one owner: `subentities`, the core `source` record, and an attribute of kind `map`. An open bag of undeclared keys, like the retired `extra`, stays refused. `source` joins the core keys.
+
 A frontmatter document is one flat mapping. Every top-level key is either **core** or an
 **attribute**. There is no nested container on any wire surface: not in frontmatter, not in
 `--json`, not in render contexts.
@@ -156,6 +158,8 @@ on) wrap it and treat a stored value of the wrong kind as unset; `sq check` repo
 (decision 5). No reader indexes the mapping by a string literal.
 
 ### 4. The declaration grammar
+
+> **Extended 2026-11-03 by ADR-1274 §2.** `kind` also takes `map`, a mapping of string keys to string values, set through a derived repeatable `--<name> key=value` option (`key=` removes a key) and refused by `--set`. The operator type carries the pinned `identities` map (ADR-1274 §3).
 
 `extra_fields` (a list of catalog names) is replaced by a table, `[items.<type>.attributes]`:
 
@@ -431,4 +435,6 @@ silently, which is the default.
   - 2026-10-25 audit: partly stale passages fixed; decision unchanged. The 2026-10-16 note folded into decision 5; the badge-code row corrected to the index load refusal (FEAT-900 was cancelled); RETIRED_ROLE_KEYS and PERMITTED_ATTRIBUTE_SKEW named; views added to row-added keys; build-order and dated-note bookkeeping removed.
 - [2026-10-29T19:50:44Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. §1: `priority` and `severity` leave the core-key list, and the sentence keeping them core is removed; they are attributes stored under their field code like every badge field (ADR-1250 §6). §4: "like `priority`" becomes "like every badge field". Context and the 0.16 migration section are unchanged, since they record the state at that time.
+- [2026-11-03T22:50:34Z] `architect` Robert Architect:
+  - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at §1 (nested declared records allowed, source joins the core keys) and §4 (the map kind). No other text changed. Status unchanged. ADR-1274 is not yet accepted.
 <!-- sq:discussion:end -->

@@ -19,7 +19,7 @@ refs:
 - ADR-422:supersedes
 - ADR-880
 created_at: '2026-08-22T09:28:29Z'
-updated_at: '2026-10-26T12:47:13Z'
+updated_at: '2026-11-03T22:50:34Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -55,6 +55,8 @@ rendering is worse than none) decides the head.
 ## Decision
 
 ### 1. A derived view is computed, never materialised
+
+> **Narrowed 2026-11-03 by ADR-1274 §4.** The rule reads: no file squads stores holds derived content the CLI can compute **from the squad alone**. A stored view body holding text whose only source is outside the squad (a tracker issue description) is not duplication. §8's sweep never matches a view tag, paired or not.
 
 There is no sink to declare and none to derive. What a view is (a declared source plus a template,
 rendered on read wherever a content-free `sq:view:<name>` tag sits in a body) is ADR-880's
@@ -255,4 +257,6 @@ touched, in the result and the reflog delta, so the diff it produces is stated, 
   - 2026-10-25 audit: body rewritten in present tense; the rule (no derived content stored, every view computed) unchanged. Folded the four 2026-09-01 amendments and the 2026-09-02 correction. The clause "views do not widen; definitions render through their own resolver" is replaced by a pointer to ADR-880, which widened the source grammar (role/playbook/self) and owns roster bodies; related ref added.
 - [2026-10-26T12:47:13Z] `architect` Robert Architect:
   - Narrowed §5 in place: a role body may hold authored prose beside its role_definition tag, never part of the definition. The rule lives in ADR-880 §8 (op-pierre, 2026-10-26).
+- [2026-11-03T22:50:34Z] `architect` Robert Architect:
+  - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at §1: the rule is narrowed to content computable from the squad alone. No other text changed. Status unchanged. ADR-1274 is not yet accepted.
 <!-- sq:discussion:end -->

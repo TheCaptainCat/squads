@@ -2,7 +2,7 @@
 
 A transform is declared on a view as ``{ module, function }`` (bundled code, a normal import) or
 ``{ path, function }`` (an override file under ``<squad-dir>/.overrides/``). It is called as
-``fn(source, *, item, spec)`` with only the keywords it declares, and returns plain JSON data
+``fn(source, *, item, spec, body)`` with only the keywords it declares, and returns plain JSON data
 that feeds the view's template as ``data`` and ``show --json`` as ``views.<name>``.
 
 Override files are trusted code. Each one is executed under a module name derived from its
@@ -55,6 +55,7 @@ class _Loaded:
     own_file: str | None
     takes_item: bool
     takes_spec: bool
+    takes_body: bool
 
 
 def declaration(transform: ViewTransform) -> str:
@@ -78,8 +79,10 @@ class TransformLoader:
         *,
         item: Item,
         spec: WorkflowSpec,
+        body: str = "",
     ) -> TransformData:
-        """The validated output of *transform* called on *source* for host *item*."""
+        """The validated output of *transform* called on *source* for host *item*; *body* is the
+        view's stored body, empty when it has none."""
         where = _Where(view_name, transform, item.id)
         loaded = self._load(where, transform)
         kwargs: dict[str, object] = {}
@@ -87,6 +90,8 @@ class TransformLoader:
             kwargs["item"] = _copy(item)
         if loaded.takes_spec:
             kwargs["spec"] = _copy(spec)
+        if loaded.takes_body:
+            kwargs["body"] = body
         try:
             value = loaded.function(_copy(source), **kwargs)
         except (Exception, SystemExit) as exc:
@@ -113,9 +118,9 @@ class TransformLoader:
         function = getattr(module, transform.function, None)
         if function is None:
             raise where.error(f"module has no attribute {transform.function!r}")
-        takes_item, takes_spec = _bind(where, function)
+        takes = _bind(where, function)
         own_file = getattr(module, "__file__", None)
-        return _Loaded(function, own_file, takes_item, takes_spec)
+        return _Loaded(function, own_file, takes["item"], takes["spec"], takes["body"])
 
     def _import(self, where: _Where, name: str) -> ModuleType:
         try:
@@ -190,8 +195,9 @@ def _exec_file(where: _Where, target: Path) -> ModuleType:
     return module
 
 
-def _bind(where: _Where, function: object) -> tuple[bool, bool]:
-    """Whether *function* takes ``item`` and ``spec``; refuses anything sq cannot call."""
+def _bind(where: _Where, function: object) -> dict[str, bool]:
+    """Whether *function* takes ``item``, ``spec`` and ``body``; refuses anything sq cannot
+    call."""
     if not callable(function):
         raise where.error(f"{where.transform.function!r} is not callable")
     if inspect.iscoroutinefunction(function) or inspect.iscoroutinefunction(
@@ -207,7 +213,7 @@ def _bind(where: _Where, function: object) -> tuple[bool, bool]:
         params[0].kind not in positional and params[0].kind is not inspect.Parameter.VAR_POSITIONAL
     ):
         raise where.error("its first parameter must accept the source positionally")
-    takes = {"item": False, "spec": False}
+    takes = {"item": False, "spec": False, "body": False}
     for param in params[1:]:
         if param.kind is inspect.Parameter.VAR_KEYWORD:
             takes = dict.fromkeys(takes, True)
@@ -220,7 +226,7 @@ def _bind(where: _Where, function: object) -> tuple[bool, bool]:
             inspect.Parameter.VAR_POSITIONAL
         ):
             raise where.error(f"it requires an unsupported parameter {param.name!r}")
-    return takes["item"], takes["spec"]
+    return takes
 
 
 def _copy(value: object) -> object:

@@ -186,7 +186,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   it resolves off the declared `ViewSpec` instead.
   The view-name constants for the always-on skills and roles live here too. `_view_tags.py` holds the
   tag placement and read-time expansion engine beside `_sections.py`, and `_view_remedies.py` the
-  command text a message names to place, disable or clear a view tag.
+  command text a message names to place, disable or clear a view tag. `_view_bodies.py` holds the
+  stored-view pair (a view declared `stored`): its escape grammar, recognition and `ViewPair`.
 - `_cli/` — Typer app (`__init__` holds the root `-C` callback and builds the command table);
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
   The root builds each command group on first lookup: `LAZY_GROUPS` in `_cli/__init__.py` names

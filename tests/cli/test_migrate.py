@@ -31,6 +31,7 @@ browser = false
 
 OLD_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_14"
 SCHEMA_17_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_17"
+SCHEMA_19_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_19"
 CHECK_HINT = "  run `sq check` to verify integrity\n"
 NO_SQUAD = "error: no .squads.toml found in this or any parent directory — run `sq init`\n"
 
@@ -282,6 +283,62 @@ async def test_up_flattens_the_mapping_of_a_squad_with_its_own_vocabulary(
     result = await invoke(["migrate", "up"])
     assert result.exit_code == 0, result.output
     assert _text(job) == flat
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_stamps_a_clean_0_19_squad_and_leaves_every_item_file_as_it_was(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    before = _snapshot(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert f'schema_version = "{SCHEMA_VERSION}"' in _text(squad / ".squads.toml")
+    after = _snapshot(squad)
+    after.pop(".reflog.jsonl", None)
+    assert {k: v for k, v in after.items() if k != ".squads.toml"} == {
+        k: v for k, v in before.items() if k != ".squads.toml"
+    }
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_lists_every_case_a_0_19_corpus_holds_and_stamps_nothing(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    _edit(
+        squad / "features/FEAT-000002-user-login.md",
+        "title: User login\n",
+        "title: User login\nsource: tracker\n",
+    )
+    _edit(squad / "agents/roles/ROLE-000001-manager.md", "slug: manager\n", "slug: source\n")
+    _edit(
+        squad / "tasks/TASK-000003-implement-auth.md",
+        "<!-- sq:discussion -->\n",
+        "<!-- sq:discussion -->\n- [2026-11-02T09:14:00Z] `manager` Catherine Manager:\n"
+        '  <!-- sq:attrs {"author_handle":"pchat"} -->\n  - A comment.\n',
+    )
+    before = _snapshot(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: ROLE-1: is a role with the reserved slug 'source'\n"
+        "FEAT-2: has a top-level 'source' key, now a core key\n"
+        "TASK-3: line 64 directly under a comment header has the shape of a comment attribute\n"
+        "3 problem(s) found; fix them by hand (`sq migrate chlog v0.19.0..v0.20.0` lists the "
+        "steps).\n"
+        "This step wrote nothing and the schema stamp is unchanged.\n"
+        "The squad is still at schema v0.19: fix the cause, then re-run `sq migrate up`, "
+        "which rebuilds the index from the files first.\n",
+    )
+    assert _snapshot(squad) == before
+    assert 'schema_version = "0.19"' in _text(squad / ".squads.toml")
 
 
 @pytest.mark.covers("migrate up")
@@ -649,12 +706,13 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
                         ],
                     ),
                     applied("0.19.0", 1, []),
+                    applied("0.20.0", 0, []),
                 ],
                 "reconciled": {"indexed": [], "missing": []},
                 "config_dropped": ["squads_version"],
                 "notice": "stripped retired regions from 3 item files — review the diff",
                 "unreadable": [],
-                "manual_span": "v0.14.0..v0.19.0",
+                "manual_span": "v0.14.0..v0.20.0",
             }
         ),
     )

@@ -13,6 +13,7 @@ from squads._models._item import Item
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._transform import TransformLoader
+from squads._view_bodies import encode_inner, find_view_pairs
 from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, ViewSpec
 
 
@@ -70,7 +71,11 @@ class ViewsMixin(ServiceCore):
             # A reinstated region always counts as changed: the wrapper is new, and
             # `_section_edit_core` skips the write when `changed` is False, which would discard the
             # reinstatement.
-            if not reinstating and view_tags.view_tag_settled(current, name, disabled=False):
+            if (
+                not reinstating
+                and view_tags.view_tag_settled(current, name, disabled=False)
+                and not view_tags.view_pair_missing(current, name, self.spec)
+            ):
                 return text, False
             slug = item.slug
             addr: int | str = (
@@ -141,6 +146,46 @@ class ViewsMixin(ServiceCore):
         _, disabled = await self._locked_section_edit(item_id, mutate)
         return disabled
 
+    async def set_view_body(self, item_id: str, view: str, text: str) -> Item:
+        """Set the stored body of *view* on *item_id* to *text*, escaped, placing the view's
+        pair first when the body has none. The one writer of a stored body; it refuses a view not
+        declared stored. Line endings are stored as LF, so the body reads back equal up to them."""
+        declared = self.spec.views.get(view)
+        if declared is None or not declared.stored:
+            raise SquadsError(f"view {view!r} is not declared stored; it has no body to set")
+        inner = encode_inner(text.replace("\r\n", "\n").replace("\r", "\n"))
+
+        def mutate(file_text: str, item: Item) -> tuple[str, bool]:
+            self._refuse_classified_roster_write(item_id, item, "A view edit", allow_view=view)
+            if (stray := view_tags.out_of_region_view_error(item_id, view, file_text)) is not None:
+                raise SquadsError(stray)
+            current = sections.get_section(file_text, markers.BODY)
+            if current is None:
+                raise SquadsError(f"{item_id} has no sq:body region; a view body cannot be set")
+            slug = item.slug
+            addr: int | str = (
+                slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
+            )
+            placed = view_tags.place_view_tags(
+                current,
+                None,
+                seeded=views.seeded_view_names(
+                    item.type, slug, self.spec, from_squad=self.paths.squad_dir
+                )
+                | {view},
+                spec=self.spec,
+                item_type=item.type,
+                addr=addr,
+            )
+            new_inner = view_tags.with_view_inner(placed, view, inner)
+            if new_inner == current.replace("\r\n", "\n").strip("\n"):
+                return file_text, False
+            self.store.log("view", item.id, {"view": view, "body": True})
+            return sections.replace_section(file_text, markers.BODY, new_inner), True
+
+        updated, _changed = await self._locked_section_edit(item_id, mutate)
+        return updated
+
     async def resolve_view_source(
         self, view_name: str, item_id: str
     ) -> tuple[ViewSpec, Item, views.SourceResult]:
@@ -176,9 +221,10 @@ class ViewsMixin(ServiceCore):
         index load.
         """
         view, item, result = await self.resolve_view_source(view_name, item_id)
+        body = await self._stored_view_body(item, view_name) if view.stored else ""
         data = (
             TransformLoader(self.paths.squad_dir).run(
-                view_name, view.transform, result, item=item, spec=self.spec
+                view_name, view.transform, result, item=item, spec=self.spec, body=body
             )
             if view.transform is not None
             else None
@@ -192,4 +238,12 @@ class ViewsMixin(ServiceCore):
             self.working_language,
             data,
             from_squad=self.paths.squad_dir,
+            body=body,
         )
+
+    async def _stored_view_body(self, item: Item, view_name: str) -> str:
+        """The unescaped stored body of *view_name* on *item*, empty without a pair."""
+        text = await self._read_item_file(item, item_file(self.paths, item))
+        region = sections.get_section(text, markers.BODY) or ""
+        pair = next((p for p in find_view_pairs(region) if p.parts.name == view_name), None)
+        return pair.body if pair is not None else ""

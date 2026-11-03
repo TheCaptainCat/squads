@@ -661,9 +661,9 @@ GREETING_SKILL_SOURCE = {
     "discussion": [],
     "badges": {},
     "spec": {
-        "schema_version": "0.19",
+        "schema_version": "0.20",
         "override": False,
-        "digest": "e194337afd5234e8a7376fdb05c2c54868a65f4d6803e980b572093ac0e8646b",
+        "digest": "1c8f609219d2ea0ba84c97f7829636d30abbad970f8fcf0fffb62e09798facbe",
     },
     "display": {
         "type": "Skill",

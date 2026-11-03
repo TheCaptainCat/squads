@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from tests import _stored_view as stored
 from tests._squadwide import listed
 from tests.cli._output import json_text
 
@@ -290,3 +291,29 @@ async def test_repair_with_a_lock_file_it_cannot_open_does_not_blame_the_file_sy
         f"error: cannot take the index lock {populated_project.lock_path}: Permission denied\n",
     )
     assert (await invoke(["list", "--json"])).output == before
+
+
+@pytest.mark.covers("repair")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_repair_leaves_the_pair_of_a_stored_view_named_head_alone(
+    populated_project, invoke
+) -> None:
+    # the tag of a view named `head` is shaped like a retired badge region's; the sweep must skip it
+    stored.declare_stored_view(populated_project.squad_dir, "head")
+    added = await invoke(["task", "3", "view", "add", "head"])
+    assert added.exit_code == 0, added.output
+    path = populated_project.squad_dir / TASK_FILE
+    pair = stored.pair().replace(stored.VIEW, "head")
+    # no verb writes a stored body yet: put the text between the tags in the file
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            stored.pair("").replace(stored.VIEW, "head"), pair
+        ),
+        encoding="utf-8",
+    )
+    shown = await invoke(["task", "3", "show", "--json"])
+
+    repaired = await invoke(["repair"])
+
+    assert repaired.exit_code == 0, repaired.output
+    assert (await invoke(["task", "3", "show", "--json"])).output == shown.output

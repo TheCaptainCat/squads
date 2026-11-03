@@ -423,6 +423,7 @@ _services -> _specload top
 _services -> _specmerge top
 _services -> _transform top
 _services -> _util top
+_services -> _view_bodies top
 _services -> _view_remedies top
 _services -> _view_tags top
 _services -> _views top
@@ -451,6 +452,8 @@ _transform -> _workflow typing
 _tui -> _api top
 _tui -> _clock top
 _tui -> _errors top
+_view_bodies -> _models top
+_view_bodies -> _sections top
 _view_remedies -> _workflow top
 _view_tags -> _errors top
 _view_tags -> _interactions top
@@ -459,6 +462,7 @@ _view_tags -> _models top
 _view_tags -> _roles top
 _view_tags -> _sections top
 _view_tags -> _transform top
+_view_tags -> _view_bodies top
 _view_tags -> _view_remedies top
 _view_tags -> _views top
 _view_tags -> _workflow top
@@ -473,6 +477,7 @@ _views -> _rendering top
 _views -> _roles top
 _views -> _sections top
 _views -> _transform top
+_views -> _view_bodies top
 _views -> _workflow top
 _workflow -> _context local
 _workflow -> _errors local

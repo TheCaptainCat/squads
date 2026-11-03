@@ -25,7 +25,7 @@ nothing else, and is turned into the rendered output on every read, never stored
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from squads._errors import SquadsError
 from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
@@ -61,6 +61,7 @@ from squads._roles._projection import RoleView
 from squads._roles._resolver import resolve_role_for_item
 from squads._sections import get_section, iter_marker_spans
 from squads._transform import TransformData, TransformLoader
+from squads._view_bodies import find_view_pairs
 from squads._workflow._models import (
     ROSTER_ROLE,
     ROSTER_SKILL,
@@ -485,7 +486,7 @@ class ViewTemplateMissingError(SquadsError):
     """
 
 
-def render_source_view(
+def render_source_view(  # noqa: PLR0913 — the render context is the view's whole input
     view_name: str,
     result: SourceResult,
     item: Item,
@@ -495,6 +496,7 @@ def render_source_view(
     data: TransformData | None = None,
     *,
     from_squad: Path | None,
+    body: str = "",
 ) -> str:
     """Render *view_name*'s resolved *result* through ``templates/views/<view_name>.md.j2``.
 
@@ -513,7 +515,8 @@ def render_source_view(
     resolved :class:`Path`, whose last segment equals the configured value only for a
     single-segment name. *data* is the view's transform output; the template gets it as ``data``
     only when given, so a transform-less view that reads ``data`` fails under ``StrictUndefined``.
-    *working_language* reaches the template as ``working_language``.
+    *working_language* reaches the template as ``working_language``, and *body*, the view's
+    unescaped stored body (empty when it has none), as ``body``.
     """
     template_name = view_template_name(view_name)
     if not has_template(template_name, from_squad=from_squad):
@@ -529,6 +532,7 @@ def render_source_view(
         "spec": spec,
         "squad_dir": squad_dir_display,
         "working_language": working_language,
+        "body": body,
     }
     if data is not None:
         context["data"] = data
@@ -664,13 +668,16 @@ def view_data(
     squad_dir: Path | None,
     catalog: CatalogSource,
 ) -> dict[str, TransformData]:
-    """Each enabled, resolvable ``sq:view:<name>`` tag of *text* whose view declares a
-    transform, mapped to that transform's output. Gated by :func:`resolve_view_target` exactly
-    as :func:`expand_view_tags` is, so text and data agree on which tags are live; a disabled,
-    unresolvable or transform-less tag contributes nothing."""
+    """Each enabled, resolvable ``sq:view:<name>`` tag of *text* whose view declares a transform,
+    mapped to that transform's output. A view declared stored maps to ``{"body", "data"}``
+    instead: its unescaped stored body and the transform's output, ``None`` without one. Gated by
+    :func:`resolve_view_target` exactly as :func:`expand_view_tags` is, so text and data agree on
+    which tags are live; a disabled, unresolvable or transform-less, non-stored tag contributes
+    nothing."""
     loader = TransformLoader(squad_dir)
     data: dict[str, TransformData] = {}
-    for raw, _start, _end in iter_marker_spans(text):
+    pair_at = {pair.start: pair for pair in find_view_pairs(text)}
+    for raw, start, _end in iter_marker_spans(text):
         parts = markers.view_tag_parts(raw)
         if parts is None or parts.disabled or parts.name in data:
             continue
@@ -680,16 +687,25 @@ def view_data(
         ):
             continue
         view = spec.views[parts.name]
-        if view.transform is None:
+        if view.transform is None and not view.stored:
             continue
+        pair = pair_at.get(start)
+        body = pair.body if pair is not None and view.stored else ""
         result = resolve_source(
             view, parts.name, item, db, spec, playbook, roster, squad_dir, catalog
         )
-        data[parts.name] = loader.run(parts.name, view.transform, result, item=item, spec=spec)
+        out = (
+            loader.run(parts.name, view.transform, result, item=item, spec=spec, body=body)
+            if view.transform is not None
+            else None
+        )
+        data[parts.name] = (
+            {"body": body, "data": out} if view.stored else cast("TransformData", out)
+        )
     return data
 
 
-def render_resolved_source_or_raise(
+def render_resolved_source_or_raise(  # noqa: PLR0913 — same inputs as `render_source_view`
     view_name: str,
     result: SourceResult,
     item: Item,
@@ -699,6 +715,7 @@ def render_resolved_source_or_raise(
     data: TransformData | None = None,
     *,
     from_squad: Path | None,
+    body: str = "",
 ) -> str:
     """:func:`render_source_view`, with a ``StrictUndefined`` template failure naming *item*.
 
@@ -718,6 +735,7 @@ def render_resolved_source_or_raise(
             working_language,
             data,
             from_squad=from_squad,
+            body=body,
         )
     except ViewTemplateMissingError:
         raise

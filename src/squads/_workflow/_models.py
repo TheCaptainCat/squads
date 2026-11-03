@@ -539,6 +539,11 @@ class ViewSpec(BaseModel):
     pass instead of aborting the load; :func:`parse_view_position` types it for both that check and
     the placement routine. Several views resolving to one place go in the declared order of the
     merged ``[views]``.
+
+    ``stored`` declares that the view's content cannot be derived from the squad, so its tag is a
+    pair that also holds the text a source outside the squad provided (``body`` to the transform
+    and the template). A view whose content is derivable locally leaves it ``False`` and keeps an
+    unpaired tag.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -546,6 +551,7 @@ class ViewSpec(BaseModel):
     source: ViewSource
     position: str = "bottom"
     transform: ViewTransform | None = None
+    stored: StrictBool = False
 
 
 class RoleSpec(BaseModel):

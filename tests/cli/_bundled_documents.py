@@ -1539,5 +1539,23 @@ MIGRATIONS = {
             "`.attributes`. (3) Reflog entries keep the keys they recorded: "
             "they are history and are not rewritten.",
         },
+        {
+            "version": "0.20.0",
+            "from_schema": "0.19",
+            "to_schema": "0.20",
+            "summary": "`source` becomes a core item key and a reserved role slug, and a"
+            " line shaped like a comment attribute under a comment header is "
+            "read as one. Nothing is rewritten: the run refuses a squad that "
+            "holds any of the three.",
+            "manual": "Clear what `sq migrate up` refuses before running it again; it "
+            "lists every case and writes nothing. (1) An item whose "
+            "frontmatter has a top-level `source` key: rename the key, since "
+            "`source` is now the item's link to an external tracker. (2) A "
+            "role whose slug is `source`: `source` is reserved, so give the "
+            "role another slug. (3) A comment whose header is directly "
+            "followed by a line holding `sq:attrs` in an HTML comment: reword"
+            " or remove the line, since it would be read as the comment's "
+            "attributes.",
+        },
     ]
 }

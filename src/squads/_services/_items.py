@@ -598,8 +598,26 @@ class ItemsMixin(ServiceCore):
 
     def _refuse_unplaced_view_tags(self, item: Item, region: str, body: str) -> None:
         """Raise when *body* carries a view tag that *region* (the item's current ``sq:body``
-        content) has not placed with the same name and state. The one check the body write and
-        the importer's pre-pass both run."""
+        content) has not placed with the same name and state, or a pair whose stored body differs
+        from the stored one. The one check the body write and the importer's pre-pass both run."""
+        if clash := view_tags.conflicting_pair_view(region):
+            raise SquadsError(
+                view_tags.conflicting_pair_message(
+                    item.type,
+                    item.slug
+                    if item.type in (ROSTER_ROLE, ROSTER_SKILL)
+                    else number_for_id(item.id),
+                    clash,
+                )
+            )
+        if altered := view_tags.altered_view_pairs(region, body):
+            addr = item.slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+            raise SquadsError(
+                f"the body carries a stored body for view {altered[0]!r} that differs from the one "
+                f"stored on {item.id}. A stored view body is written only by "
+                f"`sq {item.type} {addr} show --refresh`: leave the pair out of the body, or send "
+                "it back unchanged"
+            )
         if unplaced := view_tags.unplaced_view_tags(region, body):
             raise SquadsError(self._unplaced_view_tag_message(item, unplaced[0]))
 
