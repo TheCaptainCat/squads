@@ -166,13 +166,14 @@ _RETIRED_HEAD_SUFFIX = ":head"
 def _retired_region_tags(text: str) -> list[str]:
     """Every retired marker region in *text*, as section tags in file order, matched by shape: the
     fixed :data:`~squads._models._markers.SUMMARY` region and every tag ending in
-    :data:`_RETIRED_HEAD_SUFFIX`. Close markers are skipped so each region is named once, and an
+    :data:`_RETIRED_HEAD_SUFFIX`. Close markers are skipped so each region is named once, no view
+    tag, paired or not, is ever named (a view called ``head`` would match by shape), and an
     unbalanced region is left for ``check`` to report rather than cut through.
     """
     seen: list[str] = []
     for raw in sections.find_markers(text):
         tag = raw[len(markers.PREFIX) :]
-        if tag.endswith(":end") or tag in seen:
+        if tag.endswith(":end") or tag in seen or markers.view_tag_parts(tag) is not None:
             continue
         if tag != markers.SUMMARY and not tag.endswith(_RETIRED_HEAD_SUFFIX):
             continue

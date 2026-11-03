@@ -10,6 +10,7 @@ import pytest
 import yaml
 
 from squads._workflow import bundled_spec
+from tests import _stored_view as stored
 from tests.check._arrange import (
     activate,
     add_roster,
@@ -386,6 +387,115 @@ async def test_a_body_region_that_is_never_closed_is_an_error(project, invoke, c
         ],
         3,
     )
+
+
+async def _task_with_stored_view(project, invoke) -> str:
+    """A task whose body region holds the paired tag of the declared stored view, and a check that
+    finds nothing wrong with it."""
+    stored.declare_stored_view(project.squad_dir)
+    damaged = await _task(invoke, "Damaged")
+    edit_item_file(
+        project, damaged, "<!-- sq:body:end -->", f"{stored.pair()}\n<!-- sq:body:end -->"
+    )
+    return damaged
+
+
+@pytest.mark.breaches("markers_balanced")
+async def test_the_tag_of_a_stored_view_without_its_end_tag_is_an_error(
+    project, invoke, check_json
+) -> None:
+    damaged = await _task_with_stored_view(project, invoke)
+    assert await check_json() == ([], 0)
+
+    # no command removes an end tag: edit the file
+    edit_item_file(project, damaged, f"{stored.CLOSE_TAG}\n", "")
+    number = int(damaged.split("-")[1])
+
+    assert await check_json() == (
+        [
+            issue(
+                "markers_balanced",
+                "error",
+                item_path(project, damaged).name,
+                f"stored view {stored.VIEW!r} has a tag {stored.OPEN_TAG} with no end tag "
+                f"{stored.CLOSE_TAG}; complete it with `sq task {number} view add {stored.VIEW}`",
+            )
+        ],
+        3,
+    )
+
+
+@pytest.mark.breaches("markers_balanced")
+async def test_the_end_tag_of_a_view_with_no_tag_before_it_is_an_error(
+    project, invoke, check_json
+) -> None:
+    damaged = await _task_with_stored_view(project, invoke)
+    assert await check_json() == ([], 0)
+
+    # no command removes an opening tag: edit the file
+    edit_item_file(project, damaged, f"{stored.OPEN_TAG}\n", "")
+
+    assert await check_json() == (
+        [
+            issue(
+                "markers_balanced",
+                "error",
+                item_path(project, damaged).name,
+                f"close without open {stored.CLOSE_TAG} for view {stored.VIEW!r}",
+            )
+        ],
+        3,
+    )
+
+
+@pytest.mark.breaches("markers_balanced")
+async def test_a_stored_view_pair_outside_the_body_region_is_an_error(
+    project, invoke, check_json
+) -> None:
+    damaged = await _task_with_stored_view(project, invoke)
+    assert await check_json() == ([], 0)
+
+    # `view add` places a pair inside the body and no command moves it: edit the file
+    edit_item_file(
+        project, damaged, f"{stored.pair()}\n<!-- sq:body:end -->", "<!-- sq:body:end -->"
+    )
+    edit_item_file(
+        project, damaged, "<!-- sq:discussion -->", f"{stored.pair()}\n<!-- sq:discussion -->"
+    )
+
+    assert await check_json() == (
+        [
+            issue(
+                "markers_balanced",
+                "error",
+                item_path(project, damaged).name,
+                f"view {stored.VIEW!r} has a tag pair {stored.OPEN_TAG} outside sq:body",
+            )
+        ],
+        3,
+    )
+
+
+@pytest.mark.breaches("markers_balanced")
+async def test_a_tag_pair_for_a_view_not_declared_stored_is_an_error(
+    project, invoke, check_json
+) -> None:
+    await _task_with_stored_view(project, invoke)
+    assert await check_json() == ([], 0)
+
+    # the declaration is what makes a pair legitimate: drop `stored` from the override
+    write_override(
+        project,
+        "workflow.toml",
+        f'[views.{stored.VIEW}]\nsource = {{ kind = "ref", name = "targets" }}\n',
+    )
+
+    (found, code) = await check_json()
+    assert code == 3
+    assert [i["message"] for i in found if i["rule"] == "markers_balanced"] == [
+        f"view {stored.VIEW!r} has a tag pair {stored.OPEN_TAG}, but is not declared stored; "
+        "declare `stored = true` on the view or remove the pair"
+    ]
 
 
 # view_target_resolves

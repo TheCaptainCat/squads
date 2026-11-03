@@ -12,7 +12,7 @@ refs:
 description: Spec-declared Python transforms feed a view's template and a views key
   in show --json; body returns the stored text
 created_at: '2026-10-24T13:07:46Z'
-updated_at: '2026-10-29T19:50:53Z'
+updated_at: '2026-11-03T23:47:16Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -50,6 +50,8 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 
 ### Call
 
+> **Extended 2026-11-04 by ADR-1274 §14.** A transform may also declare `body`, passed under the same rule as `item` and `spec`: the unescaped stored body of a view declared `stored = true`, and `""` for any other view.
+
 - The call is `fn(source, *, item, spec)`, run synchronously. `source` is the value `resolve_source` returns, in its native shape (`list[Item]`, `list[SubEntity]`, `RoleDef`, `PlaybookSource`, `Item`). `item` is the host and `spec` is the active `WorkflowSpec`.
 - **sq passes only the keywords the function declares.** It reads `inspect.signature(fn)`. The first parameter must accept a positional argument. `item` and `spec` are passed when a parameter of that name exists, and both are passed when the function takes `**kwargs`. A function that requires any other parameter is refused, with the parameter named. A keyword sq adds later is therefore never a breaking change for an existing transform.
 - **Read-only, enforced by copying.** `Item` and `SubEntity` are mutable pydantic models, and `WorkflowSpec`'s `frozen=True` blocks attribute assignment but not changes to its `dict` fields. Under a daemon the parsed spec stays warm across requests, so a mutation of any argument could leak into a later request. So `source`, `item` and `spec` are all passed as deep copies (`model_copy(deep=True)`, element by element for a list) made for each call. Copying the bundled spec costs about 0.4 ms. Nothing a transform returns or mutates reaches disk, because the read path has no write.
@@ -67,6 +69,8 @@ Grounding: `src/squads/_views.py` (`resolve_source`, `render_source_view`, `expa
 - An unresolvable tag (undeclared view, missing template, inapplicable source) stays literal and quiet, as today. The transform never runs for it.
 
 ### `show --json`
+
+> **Narrowed 2026-11-04 by ADR-1274 §14.** For a view declared `stored = true`, the `views` entry is `{"body": <unescaped stored body>, "data": <transform output, or null>}`, and it is present without a transform. Below, "transform output" and "a placed view without a transform is left out" stand for every view that is not stored.
 
 - `body` is the stored `sq:body` region text with its view tags as tags, read through a new service read of the stored region (`read_stored_body`). `read_body` keeps expanding tags and stays the boundary for every text surface: `sq show`, `--raw`, the TUI reader, the operator pane, and role/skill text show.
 - A new `views` key, always present, maps view name to transform output: `{"milestone_rollup": {...}}`. It holds exactly the views whose tag is placed and enabled in the stored body, that pass `resolve_view_target` (the same gate text expansion uses, so text and JSON agree on which tags are live), and that declare a transform. A disabled tag is left out, as it is on text surfaces. A placed view without a transform is left out. `views` is `{}` when nothing qualifies. Sub-entity bodies never carry view tags, so sub-entities get no `views` key.

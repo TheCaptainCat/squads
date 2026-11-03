@@ -2,6 +2,7 @@
 
 import re
 from collections import Counter
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -71,6 +72,7 @@ from squads._services._validators import (
     on_disk_not_indexed,
     squad_global_level,
 )
+from squads._view_bodies import find_view_pairs
 from squads._view_remedies import clear_roster_body_cmd, view_placement_invocation
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL
 from squads._workflow._models import WorkflowSpec
@@ -97,36 +99,69 @@ def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssu
     ]
 
 
-def _marker_issues(text: str) -> list[str]:
-    """Detect unbalanced or duplicated sq markers in a file. The unpaired view-tag family
-    (:func:`~squads._models._markers.view_tag_parts`, no ``close_marker``) is exempt from the
-    pairing count, and its duplicates are left to :func:`_seeded_view_issues`, which can name the
-    ``view add``/``view disable`` remedy; every other tag family reports its own duplicates here.
+def _marker_issues(text: str, spec: WorkflowSpec, add_cmd: Callable[[str], str]) -> list[str]:
+    """Detect unbalanced or duplicated sq markers in a file. The view-tag family
+    (:func:`~squads._models._markers.view_tag_parts`) is exempt from the pairing count: a
+    duplicate is left to :func:`_seeded_view_issues`, which can name the ``view add``/``view
+    disable`` remedy, and a view's pair is judged by :func:`_view_pair_issues`; every other tag
+    family reports its own duplicates here.
     """
     opens: Counter[str] = Counter()
     closes: Counter[str] = Counter()
     for raw in sections.find_markers(text):  # e.g. "sq:body", "sq:body:end"
         tag = raw[len(markers.PREFIX) :]
+        if markers.view_tag_parts(tag) is not None or markers.view_close_name(tag) is not None:
+            continue
         if tag.endswith(":end"):
             closes[tag[: -len(":end")]] += 1
         else:
             opens[tag] += 1
     problems: list[str] = []
     for tag, n in opens.items():
-        # A same-state view-tag duplicate is left to `_seeded_view_issues`, the one place that
-        # names the `view add`/`view disable` remedy; reporting it here would double-report it with
-        # no remedy.
-        if n > 1 and markers.view_tag_parts(tag) is None:
+        if n > 1:
             problems.append(f"duplicate marker <!-- sq:{tag} -->")
-        if markers.view_tag_parts(tag) is None and closes[tag] < n:
+        if closes[tag] < n:
             problems.append(f"unclosed marker <!-- sq:{tag} -->")
     for tag, n in closes.items():
         if opens[tag] < n:
             problems.append(f"close without open <!-- sq:{tag}:end -->")
     for tag, n in opens.items():
-        paired = n == 1 and closes[tag] == 1 and markers.view_tag_parts(tag) is None
+        paired = n == 1 and closes[tag] == 1
         if paired and text.find(markers.close_marker(tag)) < text.find(markers.open_marker(tag)):
             problems.append(f"close before open <!-- sq:{tag}:end -->")
+    return problems + _view_pair_issues(text, spec, add_cmd)
+
+
+def _view_pair_issues(text: str, spec: WorkflowSpec, add_cmd: Callable[[str], str]) -> list[str]:
+    """The pairing defects of the view tags in *text*: a stored view's tag with no end tag, an end
+    tag with no tag before it, a pair for a view not declared stored, and a pair outside
+    ``sq:body``. A balanced pair of a stored view inside the region reports nothing."""
+    problems: list[str] = []
+    pairs = find_view_pairs(text)
+    region = view_tags.body_region_span(text)
+    in_pair = {pair.start for pair in pairs} | {pair.close_start for pair in pairs}
+    for pair in pairs:
+        name = pair.parts.name
+        opening = text[pair.start : pair.open_end]
+        if name not in spec.views or not spec.views[name].stored:
+            problems.append(
+                f"view {name!r} has a tag pair {opening}, but is not declared stored; "
+                "declare `stored = true` on the view or remove the pair"
+            )
+        if region is not None and not region[0] <= pair.start < region[1]:
+            problems.append(f"view {name!r} has a tag pair {opening} outside sq:body")
+    for raw, start, _end in sections.iter_marker_spans(text):
+        if start in in_pair:
+            continue
+        if (parts := markers.view_tag_parts(raw)) is not None:
+            if parts.name in spec.views and spec.views[parts.name].stored:
+                close = markers.view_close_marker(parts.name)
+                problems.append(
+                    f"stored view {parts.name!r} has a tag <!-- {raw} --> with no end tag {close}; "
+                    f"complete it with `{add_cmd(parts.name)}`"
+                )
+        elif (closed := markers.view_close_name(raw)) is not None:
+            problems.append(f"close without open <!-- {raw} --> for view {closed!r}")
     return problems
 
 
@@ -885,9 +920,19 @@ class CheckMixin(ServiceCore):
                 )
                 continue
             text = record.text
+            host_slug = _check_slug(md, item_type, text, self.spec)
+            host_addr: int | str = (
+                host_slug
+                if item_type in (ROSTER_ROLE, ROSTER_SKILL)
+                else _stem_seq(md, item_type, self.spec) or "<n>"
+            )
+
+            def add_cmd(name: str, item_type: str = item_type, addr: int | str = host_addr) -> str:
+                return view_placement_invocation(item_type, addr, "add", name)
+
             issues += [
                 CheckIssue("error", md.name, msg, "markers_balanced")
-                for msg in _marker_issues(text)
+                for msg in _marker_issues(text, self.spec, add_cmd)
             ]
             issues += [
                 CheckIssue("error", md.name, msg, "view_target_resolves")
@@ -899,7 +944,7 @@ class CheckMixin(ServiceCore):
                 CheckIssue(
                     "warn", md.name, view_tags.out_of_region_view_warning(tag), "view_tag_in_region"
                 )
-                for tag in view_tags.out_of_region_view_tags(text)
+                for tag in view_tags.out_of_region_view_tags(text, pairs=False)
             ]
             check_slug = _check_slug(md, item_type, text, self.spec)
             issues += [

@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+from tests import _stored_view as stored
 from tests._populated import FEATURE, REVIEW, TASK
 from tests._profile import selected
 from tests.cli._output import unknown_option
@@ -972,6 +973,10 @@ async def test_body_reads_the_text_from_stdin_for_a_dash(populated_project, invo
     assert (await _show(invoke))["body"] == "Piped in"
 
 
+def _write_text(text: str) -> None:
+    Path("body.md").write_text(text, encoding="utf-8")
+
+
 def _write_bytes(raw: bytes) -> None:
     Path("body.md").write_bytes(raw)
 
@@ -1301,6 +1306,130 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 
 
 # --- view add / view disable ----------------------------------------------------------------
+
+
+async def _task_with_stored_body(project, invoke) -> None:
+    """Task 3 once its stored view holds `STORED`: `view add` places the empty pair and no verb
+    writes a stored body yet, so the text goes between the tags in the file."""
+    stored.declare_stored_view(project.squad_dir)
+    await _ok(invoke, [P.ref, str(TASK), "view", "add", stored.VIEW])
+    path = project.squad_dir / TASK_PATH
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace(stored.pair(""), stored.pair()), encoding="utf-8")
+
+
+@pytest.mark.covers("<type> view add", "name")
+@pytest.mark.covers("<type> view disable", "name")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_view_add_and_disable_keep_a_stored_body_byte_for_byte(
+    populated_project, invoke
+) -> None:
+    await _task_with_stored_body(populated_project, invoke)
+    enabled = (await _show(invoke))["body"]
+    assert enabled.endswith(stored.pair())
+
+    await _ok(invoke, [P.ref, str(TASK), "view", "disable", stored.VIEW])
+    disabled_tag = f"<!-- sq:view:{stored.VIEW}:disabled -->"
+    assert (await _show(invoke))["body"] == enabled.replace(stored.OPEN_TAG, disabled_tag)
+
+    await _ok(invoke, [P.ref, str(TASK), "view", "add", stored.VIEW])
+    assert (await _show(invoke))["body"] == enabled
+
+
+@pytest.mark.covers("<type> view add", "name")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_view_add_completes_the_open_only_tag_of_a_stored_view(
+    populated_project, invoke
+) -> None:
+    await _task_with_stored_body(populated_project, invoke)
+    enabled = (await _show(invoke))["body"]
+    path = populated_project.squad_dir / TASK_PATH
+    # no verb removes an end tag: leave the opening tag alone in the file
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(stored.pair(), stored.OPEN_TAG), encoding="utf-8"
+    )
+    assert (await _show(invoke))["body"] == enabled.removesuffix(stored.pair()) + stored.OPEN_TAG
+
+    out = await _ran(invoke, [P.ref, str(TASK), "view", "add", stored.VIEW])
+
+    assert out == (0, f"{P.ref_prefix}-3: view {stored.VIEW} placed in sq:body\n")
+    assert (await _show(invoke))["body"] == enabled.removesuffix(stored.pair()) + stored.pair("")
+
+
+@pytest.mark.covers("<type> body", "--message")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_body_keeps_a_stored_body_when_the_new_text_leaves_it_out(
+    populated_project, invoke
+) -> None:
+    await _task_with_stored_body(populated_project, invoke)
+
+    await _ok(invoke, [P.ref, str(TASK), "body", "-m", "Fresh prose"])
+
+    assert (await _show(invoke))["body"] == f"Fresh prose\n\n{stored.pair()}"
+
+
+@pytest.mark.covers("<type> body", "--message")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_body_refuses_to_drop_the_second_of_two_different_stored_bodies(
+    populated_project, invoke
+) -> None:
+    await _task_with_stored_body(populated_project, invoke)
+    path = populated_project.squad_dir / TASK_PATH
+    # a merge can leave two pairs of one view: add a second, different one in the file
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            stored.CLOSE_TAG, f"{stored.CLOSE_TAG}\n\n{stored.pair('Other text')}", 1
+        ),
+        encoding="utf-8",
+    )
+    before = (await _show(invoke))["body"]
+
+    message = (
+        f"error: {P.ref} 3: view {stored.VIEW} has two stored bodies that differ; keep the pair "
+        "to use and delete the other from the file, then run the command again\n"
+    )
+    out = await _ran(invoke, [P.ref, str(TASK), "body", "-m", "Fresh prose", "--force"])
+    assert out == (1, message)
+    _write_text(before)
+    out = await _ran(invoke, [P.ref, str(TASK), "body", "--file", "body.md", "--force"])
+    assert out == (1, message)
+    assert (await _show(invoke))["body"] == before
+
+
+@pytest.mark.covers("<type> body", "--file", "--force")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_body_takes_back_the_body_show_printed_with_its_stored_pair(
+    populated_project, invoke
+) -> None:
+    await _task_with_stored_body(populated_project, invoke)
+    await _ok(invoke, [P.ref, str(TASK), "body", "-m", "Prose"])
+    printed = (await _show(invoke))["body"]
+    _write_text(printed)
+
+    await _ok(invoke, [P.ref, str(TASK), "body", "--file", "body.md", "--force"])
+
+    assert (await _show(invoke))["body"] == printed
+
+
+@pytest.mark.covers("<type> body", "--file", "--force")
+@pytest.mark.bundled_only("the stored view is declared by an override")
+async def test_body_refuses_a_pair_whose_text_differs_from_the_stored_one(
+    populated_project, invoke
+) -> None:
+    await _task_with_stored_body(populated_project, invoke)
+    printed = (await _show(invoke))["body"]
+    _write_text(printed.replace("Reported", "Rewritten"))
+
+    out = await _ran(invoke, [P.ref, str(TASK), "body", "--file", "body.md", "--force"])
+
+    assert out == (
+        1,
+        f"error: the body carries a stored body for view '{stored.VIEW}' that differs from the "
+        f"one stored on {P.ref_prefix}-3. A stored view body is written only by "
+        f"`sq {P.ref} 3 show --refresh`: leave the pair out of the body, or send it back "
+        "unchanged\n",
+    )
+    assert (await _show(invoke))["body"] == printed
 
 
 @pytest.mark.covers("<type> view add", "name")

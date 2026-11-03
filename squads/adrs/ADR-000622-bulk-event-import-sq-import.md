@@ -14,7 +14,7 @@ description: A JSONL event-import command that replays a project's history in on
   process, with per-event timestamps and attribution, to replace hundreds of per-mutation
   sq calls.
 created_at: '2026-07-23T07:56:31Z'
-updated_at: '2026-10-29T19:50:42Z'
+updated_at: '2026-11-03T22:50:36Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -80,6 +80,8 @@ transaction. Preserving a *source* project's original IDs (migrating between squ
 a distinct, harder problem and is out of scope here.
 
 ### The op set
+
+> **Extended 2026-11-03 by ADR-1274 §10.** `sq source pull` compiles to import events applied in one import transaction. It adds internal ops the JSONL reader refuses (`source`, `view-body`, `comment-edit`, the last addressed by a comment attribute), `attributes` on `comment`, per-key set and removal of `map` attributes on `update`, and the actor `source:<name>`, which only the pull's compiler produces.
 
 Every op carries the common `op`/`at`/`as` fields above; per-op fields:
 
@@ -220,4 +222,6 @@ the interactive behaviour.
   - 2026-10-29: ADR-1250 (related) narrows "The op set". `add-<kind>` and the `<kind>` comment selector exist for every declared kind in place of the three bundled fronts. The replacement text is in ADR-1250 §8 and is applied in place here with an "Amended in place" comment (board rule 6).
 - [2026-10-29T19:50:42Z] `architect` Robert Architect:
   - Amended in place 2026-10-29 per ADR-1250 §11 (accepted by op-pierre 184b880), board rule 6, linked related to ADR-1250. Status unchanged. Addressing: `add-<kind>`/`add-sub` replace the three bundled fronts. The op set: `create` takes `fields`; the `comment` selector is `<kind>` for any declared kind or `sub`; the add bullet becomes `add-<kind>` for every declared kind plus the generic `add-sub` with `fields` and `maps_to`; `update` takes `fields`/`unset_fields` (the trailing "badge set-unset" is dropped as now redundant); the closing paragraph reads "status, assignee, field values, mapping". See ADR-1250 §4.
+- [2026-11-03T22:50:36Z] `architect` Robert Architect:
+  - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at The op set (pull compiled to import events, internal ops, source actor). No other text changed. Status unchanged. ADR-1274 is not yet accepted.
 <!-- sq:discussion:end -->

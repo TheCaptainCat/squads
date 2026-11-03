@@ -2,14 +2,14 @@
 id: MILE-868
 sequence_id: 868
 type: milestone
-title: squads 0.21 - the web frontend
+title: squads 0.22 - the web frontend
 status: Draft
 author: product-owner
 refs:
 - EPIC-29
 - MILE-1241:depends-on
 created_at: '2026-09-02T08:03:39Z'
-updated_at: '2026-10-31T08:55:43Z'
+updated_at: '2026-11-03T15:57:39Z'
 ---
 <!-- sq:body -->
 A squad readable in a browser: the squad's state stops being visible only to whoever is sitting at the terminal. This milestone holds the work that brings the browser surface to a first usable state. The linked epic carries the outcome and the framing. The surface is built on the daemon milestone's API, which it depends on.
@@ -59,4 +59,6 @@ The front calls the daemon's resource routes under `/v1`, the same routes the CL
   - Multi-squad daemon (one process serving several registered squads) is deferred, to be reconsidered with the web front (2026-10-31). Today one daemon serves one squad per installation; the service layer already threads its context, the work would be in the daemon (per-squad state, squad selection per request, per-squad retirement, discovery).
 - [2026-10-31T08:55:43Z] `op-pierre` Pierre Chat:
   - The VS Code extension moves to the daemon's resource routes with the web front (2026-10-31): discovery through one sq daemon status --json (or a dedicated command that starts the daemon), HTTP over the Unix socket or the loopback port with the Squads-Client header, conditional GETs on ETag for refresh, If-Match on writes, a TS client generated from /v1/openapi.json shared with the web front, schema/vocabulary refusals and 503 handled by rediscovery, and the sq --json path kept as the fallback when the daemon is off. Done once the DTOs are frozen.
+- [2026-11-03T15:57:39Z] `product-owner` Nina Product:
+  - Shifted by one release on 2026-11-03: the operator made external sources (MILE-1269) the 0.20 milestone. Scope unchanged.
 <!-- sq:discussion:end -->

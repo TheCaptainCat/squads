@@ -37,11 +37,11 @@ def discussion_tag(base: str | None = None) -> str:
     return f"{base}:{DISCUSSION}" if base else DISCUSSION
 
 
-#: Namespace of the unpaired view-placement tag family: ``sq:view:<name>`` marks where a declared
-#: view renders on read. It deliberately has no ``close_marker`` and none may be added: a pair
-#: defines a span something is written into, while this tag names a view and has no span, so no code
-#: path can write rendered content into it. Giving it a body or paired form would rebuild a stored
-#: region this design refuses.
+#: Namespace of the view-placement tag family: ``sq:view:<name>`` marks where a declared view
+#: renders on read. A view whose content is derivable locally keeps an unpaired tag with no
+#: ``close_marker``: a pair defines a span something is written into, and no code path may write
+#: rendered content into one. Only a view declared ``stored`` has a pair, whose span holds the
+#: stored text of a source outside the squad, closed by :func:`view_close_marker`.
 VIEW = "view"
 
 #: The disabled-state suffix, colon-delimited so it stays inside
@@ -62,16 +62,34 @@ class ViewTagParts:
 
 
 def view_tag(name: str, *, disabled: bool = False) -> str:
-    """The bare tag (``sq:`` stripped, no wrapper) for *name*'s unpaired view marker, e.g.
+    """The bare tag (``sq:`` stripped, no wrapper) for *name*'s view marker, e.g.
     ``"view:milestone_rollup"`` or ``"view:milestone_rollup:disabled"``, composed like
-    :func:`subentity_tag` and fed to :func:`open_marker`. It has no ``close_marker`` (see
-    :data:`VIEW`), and the disabled suffix is spelled only here.
+    :func:`subentity_tag` and fed to :func:`open_marker`. The disabled suffix is spelled only
+    here; a stored view's end tag (:func:`view_close_marker`) never carries it.
     """
     return f"{VIEW}:{name}{_DISABLED_SUFFIX if disabled else ''}"
 
 
+def view_close_marker(name: str) -> str:
+    """The end tag line closing *name*'s paired view marker, wrapper included. It names the view
+    and never its state, so a disabled stored view keeps the same end tag."""
+    return close_marker(f"{VIEW}:{name}")
+
+
+def view_close_name(tag: str) -> str | None:
+    """The view name *tag* closes if it is a view end tag (bare or with ``sq:`` attached), else
+    ``None``."""
+    if tag.startswith(PREFIX):
+        tag = tag[len(PREFIX) :]
+    prefix, suffix = f"{VIEW}:", ":end"
+    if not (tag.startswith(prefix) and tag.endswith(suffix)):
+        return None
+    name = tag[len(prefix) : -len(suffix)]
+    return name or None
+
+
 def view_tag_parts(tag: str) -> ViewTagParts | None:
-    """*tag*'s name and state (:class:`ViewTagParts`) if it belongs to the unpaired view-tag family,
+    """*tag*'s name and state (:class:`ViewTagParts`) if it belongs to the view-tag family,
     else ``None``. It accepts the bare form (``"view:milestone_rollup"``) and the on-disk form with
     ``sq:`` attached (what :func:`~squads._sections.find_markers` emits), so callers pass a
     producer's raw tag straight through (a bare-only recogniser would return ``None``, read as "not

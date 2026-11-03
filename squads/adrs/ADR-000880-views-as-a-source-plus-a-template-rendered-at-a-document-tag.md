@@ -10,7 +10,7 @@ refs:
 description: Retire the projection layer; keep and widen sources; a content-free tag
   marks where a view renders on read
 created_at: '2026-09-02T12:23:01Z'
-updated_at: '2026-10-26T13:01:40Z'
+updated_at: '2026-11-03T23:10:51Z'
 ---
 <!-- sq:body -->
 ## The operator's model
@@ -68,6 +68,8 @@ Before this decision `_views.py` had three layers: source resolution and templat
   `selectattr` over that source's records is a **missing source kind**, to be proposed as one.
 
 ### 2. The source grammar
+
+> **Extended 2026-11-04 by ADR-1274 §14.** A seventh kind, `source` (no `name`, every item type), resolves the host's `source` record with the issue URL, the declared source's `trusted` flag and the view's stored body with tracker references translated. It exists because those need the sources document, the connector and the source lookup, which neither `self` nor a transform sees. The table below lists the six kinds that resolve from the squad alone.
 
 `kind` means "which resolver". The same two-key grammar (`kind`, `name`):
 
@@ -133,6 +135,8 @@ explicit `sq workflow view <name> <id>` always raises on an inapplicable pair: a
 gets an error, not a broken read.
 
 ### 4. The tag
+
+> **Narrowed 2026-11-03 by ADR-1274 §4.** A view declared `stored = true` in `[views.<name>]` has a **paired** tag: an opening tag, the view's escaped stored body, and an end tag `sq:view:<name>:end` that names the view, never its state. Only one service operation writes that body, and only for text the squad cannot compute (an issue description from a tracker). The §6 routine treats a pair as one tag, and the §10 findings and the repair sweep learn the paired form. Everything below, the closing sentence included, stands for every view whose content is derivable locally.
 
 **The binding invariant.** The view tag is declared **unpaired**: a marker with no `close_marker`
 counterpart, and therefore no span. A tag's bytes carry the view's name plus an optional state suffix
@@ -542,4 +546,6 @@ resolved `Item` and keep firing on a file too broken to parse. None is a selecta
   - Q4: no TODO in the generated view. When a role has no responsibilities, the section is not shown; the adopter can use the body prose for whatever they want.
 - [2026-10-26T13:01:40Z] `op-pierre` Pierre Chat:
   - Q1-Q3 validated as recommended: prose beside the view on every role; the prose sits after the definition; system skills unchanged.
+- [2026-11-03T22:50:33Z] `architect` Robert Architect:
+  - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at §4 (the view tag): stored views get a paired tag. No other text changed. Status unchanged. ADR-1274 is not yet accepted.
 <!-- sq:discussion:end -->

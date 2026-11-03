@@ -6,6 +6,7 @@ from pathlib import Path
 
 from squads._api._ops import ROUTED_OPERATIONS
 from squads._paths import SquadPaths
+from tests import _stored_view as stored
 from tests._daemon_harness import Served
 
 MANAGER = {"Squads-Actor": "manager"}
@@ -77,8 +78,17 @@ def fill(path: str, values: dict[str, str]) -> tuple[str, dict[str, str]]:
 def test_every_get_operation_leaves_every_file_of_the_squad_as_it_found_it(
     seeded_project: SquadPaths, serve
 ) -> None:
+    stored.declare_stored_view(seeded_project.squad_dir)
     daemon = serve(seeded_project)
     values = seed(daemon)
+    # no operation writes a stored body: put a pair in the task's file, as a pull would leave it
+    task_file = next(seeded_project.squad_dir.glob("tasks/TASK-*.md"))
+    task_file.write_text(
+        task_file.read_text(encoding="utf-8").replace(
+            "<!-- sq:body:end -->", f"{stored.pair()}\n<!-- sq:body:end -->"
+        ),
+        encoding="utf-8",
+    )
     before = snapshot(seeded_project.root)
     gets = [op for op in ROUTED_OPERATIONS if op.method == "GET"]
     assert len(gets) > 50

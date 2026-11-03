@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-10-30T23:09:45Z'
+updated_at: '2026-11-03T22:50:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -88,6 +88,8 @@ The shim, in order:
 `--help`, `docs`, `migrate help` and shell completion are served like any command: the daemon answers them from the Typer app and vocabulary it holds, which are the checkout's, and a completion that cannot reach a daemon before sending falls back locally. A Tab press therefore never rebuilds the spec-derived command tree in the client.
 
 ### 5. Prompts: two phases, nothing written before the answer
+
+> **Extended 2026-11-03 by ADR-1274 §7.** A `prompt` answer carries `hidden: true` for a prompt read with hidden input, and the shim then reads the line without echo; the answer is never written into `output` or the digest. Source commands are served like any other command, and read tracker credentials from the serving side's store, never from `SENT_ENVIRONMENT` or the daemon's process environment.
 
 - A served command that reaches a prompt with no matching answer stops there and answers `prompt`. It has written nothing, because every prompt precedes the writes of its command (fact 6). The daemon enforces it: a prompt reached after a non-`GET` operation has run in the same request is an internal error, so the post-commit prompt branch cannot occur silently.
 - The shim writes the output, shows the prompt text, reads one line from its stdin (or end of input) and sends the same request again with that answer appended to `answers`. The shim holds no prompt logic of Click's; the daemon parses the line as Click does, and an invalid line comes back as another `prompt` carrying Click's error text.
@@ -302,4 +304,6 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
   - Amended in place 2026-10-30 for REV-1223 F56. Point 2: "restored with the other replacements" now reads "installed once, never undone, passing through to the original outside a served command". Status unchanged.
 - [2026-10-30T23:09:45Z] `architect` Robert Architect:
   - Amended in place 2026-10-31 for the tech writer's TASK-1266 comparison; the code is the reference and no code change is needed. Status unchanged. Point 1: a listed variable has the client's value or none, and an unlisted one reads the daemon's environment. Point 4: --install-completion and --show-completion run locally (LOCAL_ROOT_OPTIONS); the shim's import set covers the live-daemon and cold-start paths only, while a local run imports what local mode imports (--version adds the rich console); the squads __init__ holds __version__ and version_line.
+- [2026-11-03T22:50:35Z] `architect` Robert Architect:
+  - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at §5 (hidden prompt; source credentials read from the serving side store). No other text changed. Status unchanged. ADR-1274 is not yet accepted.
 <!-- sq:discussion:end -->

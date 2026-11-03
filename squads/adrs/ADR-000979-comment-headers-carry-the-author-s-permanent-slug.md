@@ -13,7 +13,7 @@ refs:
 description: Header is - [ts] `slug` Name:; slugs never change; legacy headers migrated
   once; --json gains author_slug
 created_at: '2026-09-29T14:33:58Z'
-updated_at: '2026-10-25T21:42:26Z'
+updated_at: '2026-11-03T22:50:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -60,6 +60,8 @@ decision puts that identity in the comment header and makes permanence a rule.
   or the file name.
 
 **2. The header grammar.**
+
+> **Extended 2026-11-03 by ADR-1274 §6.** The header's author may also be namespaced, `word ":" slug` inside the same backticks; the first word is `source` (`source:<name>`, a source declared in `sources.toml`), and the header's name is the source name. The `<word>:` author namespace belongs to squads.
 
 ```
 - [2026-09-29T14:02:11Z] `architect` Robert Architect:
@@ -114,6 +116,8 @@ skill slug    = [a-z0-9] [a-z0-9-]*, not a group verb of `sq skill`
   starts with `op-`, and no `sq operator` verb does.
 
 **2b. One author namespace: roles and operators; skills are outside it.**
+
+> **Extended 2026-11-03 by ADR-1274 §6.** `source` is a third reserved participant slug, beside `operator` and `squads`, because the mention pattern stops at the colon. `--as source:<name>` is refused by every writer, the importer included; only the pull writes as a source, so ADR-1013 §9's author match keeps sourced comments immutable to every `--as`.
 
 - The author namespace is every role (developer roles included) and every operator, live and
   retired, plus the two reserved participant slugs. A slug in it names exactly one author, which
@@ -274,4 +278,6 @@ author's prose.
     - **§2, the header grammar.** The header gains one optional group inside the brackets, after the timestamp: ``- [<ts>, edited <ts>] `<slug>` <name>:``. It records the last edit only: a second edit replaces the mark, it never stacks. It is not a hash input and needs no migration; the 0.16 header migration writes no mark. `--json` carries it as `edited_ts` (null when never edited).
 - [2026-10-25T21:42:26Z] `architect` Robert Architect:
   - 2026-10-25 audit: body rewritten in present tense; decision unchanged. A1-A7 and the REV-1027/1055 notes folded into 2a-2c and 4 (operator op- grammar, author namespace, roster_slug_valid, group-verb slugs, migration as built), the ADR-1013 edit mark folded into the grammar, append-only context corrected.
+- [2026-11-03T22:50:35Z] `architect` Robert Architect:
+  - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at §2 (namespaced source:<name> author) and §2b (source is a reserved slug). No other text changed. Status unchanged. ADR-1274 is not yet accepted.
 <!-- sq:discussion:end -->

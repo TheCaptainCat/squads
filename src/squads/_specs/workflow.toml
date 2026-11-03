@@ -676,6 +676,11 @@ fields = [
 # under `StrictUndefined`; there is no declared field/group-by/order-by grammar. Every view is
 # computed fresh on every request; none is ever materialized into a body region.
 #
+# `stored = true` (default `false`) declares that a view's content cannot be derived from the
+# squad (text fetched from an outside source). Its tag is then a pair, `sq:view:<name>` and
+# `sq:view:<name>:end`, holding that text between them with every `<!--` opener escaped; the
+# transform and the template read it, unescaped, as `body`. No bundled view is stored.
+#
 # `milestone_rollup` is the one bundled, *relation*-sourced view, and the only reason it's
 # here rather than left for a project's own `.overrides/workflow.toml` is that something in
 # this document actually consumes it: `templates/items/milestone.md.j2` seeds its

@@ -2,13 +2,13 @@
 id: MILE-1061
 sequence_id: 1061
 type: milestone
-title: squads 0.20 - more backends
+title: squads 0.21 - more backends
 status: Draft
 author: product-owner
 description: Codex, Cursor and other agent backends, with a role's model held per
   backend
 created_at: '2026-10-16T13:39:05Z'
-updated_at: '2026-10-29T19:20:21Z'
+updated_at: '2026-11-03T15:57:39Z'
 ---
 <!-- sq:body -->
 The backends release: squads stops being a Claude Code tool with a second, generic option, and gains the agent hosts people actually use next (Codex and Cursor first, others as they are asked for). This milestone holds the work that makes adding a backend routine and gives each backend its own model vocabulary, since a model name belongs to one provider: "opus" and "sonnet" mean nothing at OpenAI.
@@ -60,4 +60,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
   - MILE-868 retitled to 0.19. No depends-on from MILE-868 to this milestone: the frontend consumes the daemon API and needs nothing from the backends work. The earlier note about a 0.18 slip is moot; the ordering is by release only.
 - [2026-10-16T13:42:10Z] `op-pierre` Pierre Chat:
   - 2026-10-16: GitHub Copilot is one of the target backends, alongside Codex and Cursor.
+- [2026-11-03T15:57:39Z] `product-owner` Nina Product:
+  - Shifted by one release on 2026-11-03: the operator made external sources (MILE-1269) the 0.20 milestone. Scope unchanged.
 <!-- sq:discussion:end -->

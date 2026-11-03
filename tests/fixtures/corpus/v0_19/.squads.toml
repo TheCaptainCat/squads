@@ -1,0 +1,5 @@
+# squads project configuration
+schema_version = "0.19"
+squad_dir = "."
+active_backends = []
+working_language = "en"
