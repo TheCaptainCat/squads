@@ -7,8 +7,8 @@ import ast
 from pathlib import Path
 from typing import Any, cast
 
-from squads._services._validators import CATALOG
-from squads._workflow._validator_names import VALIDATOR_LEVELS
+from squads._services import _validators as services_validators
+from squads._workflow import _validator_names as workflow_validatornames
 
 _SOURCE = ("src", "squads", "_services", "_validators.py")
 
@@ -22,7 +22,7 @@ def _member_function_names() -> dict[str, str]:
     """Catalog name -> the name of the function registered under it (mirrors the context-scan
     test's own helper — ``Validator`` is a call-only Protocol, so a function's own ``__name__``
     is not part of the declared interface)."""
-    return {name: cast(Any, fn).__name__ for name, fn in CATALOG.items()}
+    return {name: cast(Any, fn).__name__ for name, fn in services_validators.CATALOG.items()}
 
 
 def _level_literal(call: ast.Call) -> str | None:
@@ -58,7 +58,9 @@ def _hardcoded_levels_by_function(tree: ast.Module) -> dict[str, list[str]]:
 
 def test_no_catalog_member_passes_a_literal_level_string_to_checkissue() -> None:
     functions = _member_function_names()
-    assert len(functions) == len(CATALOG) > 1, "the catalog resolved to too few members to scan"
+    assert len(functions) == len(services_validators.CATALOG) > 1, (
+        "the catalog resolved to too few members to scan"
+    )
 
     hardcoded = _hardcoded_levels_by_function(_module_ast())
     offenders = {
@@ -72,12 +74,15 @@ def test_no_catalog_member_passes_a_literal_level_string_to_checkissue() -> None
 
 
 def test_default_validator_level_values_are_all_declared_levels() -> None:
-    from squads._workflow._validator_names import DEFAULT_VALIDATOR_LEVEL
+    from squads._workflow import DEFAULT_VALIDATOR_LEVEL
 
-    assert set(DEFAULT_VALIDATOR_LEVEL.values()) <= VALIDATOR_LEVELS
+    assert set(DEFAULT_VALIDATOR_LEVEL.values()) <= workflow_validatornames.VALIDATOR_LEVELS
 
 
 def test_validator_level_floor_values_are_all_declared_levels() -> None:
-    from squads._workflow._validator_names import VALIDATOR_LEVEL_FLOOR
+    from squads._workflow import _validator_names as workflow_validatornames
 
-    assert set(VALIDATOR_LEVEL_FLOOR.values()) <= VALIDATOR_LEVELS
+    assert (
+        set(workflow_validatornames.VALIDATOR_LEVEL_FLOOR.values())
+        <= workflow_validatornames.VALIDATOR_LEVELS
+    )

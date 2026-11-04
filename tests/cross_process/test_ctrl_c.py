@@ -15,7 +15,7 @@ from collections.abc import Iterator
 import pytest
 from filelock import FileLock
 
-from squads._cli._remote import endpoint_name
+from squads._cli import _remote as cli_remote
 from squads._endpoint import Endpoint, endpoint_for, runtime_dir_problem
 from squads._paths import SquadPaths
 from tests.cross_process._fake_daemon import SilentDaemon
@@ -44,7 +44,7 @@ def remote_env() -> dict[str, str]:
 def interrupted(endpoint: Endpoint) -> str:
     """What the client prints when Ctrl-C ends its wait."""
     return (
-        f"error: no answer from the squad served at {endpoint_name(endpoint)}; "
+        f"error: no answer from the squad served at {cli_remote.endpoint_name(endpoint)}; "
         "the operation may still complete. Check its result before running it again.\n"
     )
 

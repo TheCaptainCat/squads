@@ -8,20 +8,12 @@ from squads import _actor as actor
 from squads import _badges as badges
 from squads import _clock as clock
 from squads._errors import SquadsError
-from squads._index._resolver import require_item
-from squads._models._index import SquadsDB
-from squads._models._item import (
-    Item,
-    effective_prefix,
-    make_ref,
-    ref_id_matches,
-    split_ref,
-)
+from squads._index import require_item
+from squads._models import Item, SquadsDB, effective_prefix, make_ref, ref_id_matches, split_ref
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._services._results import GraphNode
-from squads._workflow import ROSTER_ROLE
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_ROLE, WorkflowSpec
 
 # ---------------------------------------------------------------------------
 # Graph traversal helpers

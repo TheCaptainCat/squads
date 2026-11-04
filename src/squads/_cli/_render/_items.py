@@ -5,8 +5,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from squads._api._dto._items import ItemList, ItemRow, ItemShow, Subentity
-from squads._api._dto._queues import MineRow
+from squads._api import ItemList, ItemRow, ItemShow, MineRow, Subentity
 from squads._cli._render._comments import (
     author_label,
     comment_title,
@@ -17,7 +16,7 @@ from squads._cli._render._comments import (
     print_comments_styled,
 )
 from squads._cli._render._style import cell_text, e, print_body, status_text
-from squads._models._item import split_ref
+from squads._models import split_ref
 
 #: What an item with no body shows in its place.
 _EMPTY_BODY = "(empty — set it with `body`)"

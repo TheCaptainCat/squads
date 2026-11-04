@@ -7,8 +7,10 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from squads import _pronouns
-from squads._api._dto._items import ItemAddress
-from squads._api._dto._operators import (
+from squads._api import (
+    DeveloperList,
+    DeveloperListRequest,
+    ItemAddress,
     OperatorAddRequest,
     OperatorList,
     OperatorListRequest,
@@ -18,10 +20,7 @@ from squads._api._dto._operators import (
     OperatorStatusMove,
     OperatorUpdateRequest,
     OperatorWrite,
-)
-from squads._api._dto._roles import (
-    DeveloperList,
-    DeveloperListRequest,
+    Response,
     RoleActivateRequest,
     RoleAddRequest,
     RoleCatalog,
@@ -36,19 +35,14 @@ from squads._api._dto._roles import (
     RoleUpdateRequest,
     RoleViewChange,
     RoleWrite,
-)
-from squads._api._dto._roster import (
     RosterAddress,
     RosterBodyRequest,
     RosterRemoveRequest,
     RosterStatusRequest,
     SeveredRef,
-    ViewRequest,
-)
-from squads._api._dto._skills import (
-    RefEntry,
     SkillAddRequest,
     SkillRefChange,
+    SkillRefEntry,
     SkillRefRemoveRequest,
     SkillRefRequest,
     SkillRefs,
@@ -61,24 +55,24 @@ from squads._api._dto._skills import (
     SkillUpdateRequest,
     SkillViewChange,
     SkillWrite,
+    ViewRequest,
 )
-from squads._api._response import Response
 from squads._errors import ItemNotFoundError, RoleNotFoundError
-from squads._interactions._role_guidance import allowed_create_types, developer_roles
-from squads._interactions._skills import role_origin
-from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
-from squads._models._item import (
+from squads._interactions import allowed_create_types, developer_roles, role_origin
+from squads._models import (
     DISPLAY_ID_PADDING,
+    AttributeKey,
     Item,
+    attrs,
     format_item_id,
     parse_item_token,
+    prefix_for,
     split_ref,
 )
-from squads._models._vocab import prefix_for
-from squads._roles._listing import catalog_listing, catalog_row
-from squads._roles._models import DEV_TEMPLATE_NAME
-from squads._roles._resolver import (
+from squads._roles import (
+    DEV_TEMPLATE_NAME,
+    catalog_listing,
+    catalog_row,
     materialised_base,
     read_role_toml,
     resolve_pronouns,
@@ -471,9 +465,9 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         item = await self.roster_entry(ROSTER_SKILL, req.addr)
         out = in_ = None
         if req.out or not req.incoming:
-            out = [RefEntry(id=i, kind=k) for i, k in await self.refs_out(item.id)]
+            out = [SkillRefEntry(id=i, kind=k) for i, k in await self.refs_out(item.id)]
         if req.incoming:
-            in_ = [RefEntry(id=i, kind=k) for i, k in await self.refs_in(item.id)]
+            in_ = [SkillRefEntry(id=i, kind=k) for i, k in await self.refs_in(item.id)]
         return Response(data=SkillRefs.model_validate({"out": out, "in": in_}))
 
     async def add_skill_ref(self, req: SkillRefRequest) -> Response[SkillRefChange]:
@@ -603,7 +597,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         """*given* with each identity handle replaced by the ID its source answers."""
         return {
             name: (
-                await resolve_identity_handles(self.sources, keys)
+                await resolve_identity_handles(self.credentials, self.sources, keys)
                 if name == AttributeKey.IDENTITIES
                 else dict(keys)
             )

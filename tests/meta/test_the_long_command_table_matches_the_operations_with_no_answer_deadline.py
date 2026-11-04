@@ -5,15 +5,15 @@ that operation, and reads those commands past a global option."""
 import inspect
 import re
 
-from squads._api import _ops as ops
-from squads._api._api import Operation, Timeout
+from squads._api import Operation, ops
+from squads._api import _api as api_api
 from squads._shim import LONG_COMMANDS, leading, long_command
 from tests.meta._command_tree import walk
 
 
 def _long_operations() -> set[str]:
     """The names of the operations the operation table classes `long`."""
-    return {op.name for op in ops.OPERATIONS if op.timeout is Timeout.LONG}
+    return {op.name for op in ops.OPERATIONS if op.timeout is api_api.Timeout.LONG}
 
 
 def _bound() -> dict[tuple[str, ...], set[str]]:

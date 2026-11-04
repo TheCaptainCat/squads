@@ -4,14 +4,14 @@ and every other one in the service table."""
 
 from collections import Counter
 
-from squads._api._ops import OPERATIONS
-from squads._services._bindings import BINDINGS, LOCAL_BINDINGS
+from squads._api import ops
+from squads._services import _bindings as services_bindings
 
 
 def test_every_operation_is_bound_exactly_once() -> None:
-    bindings = (*BINDINGS, *LOCAL_BINDINGS)
-    bound = Counter(binding.op.name for binding in bindings)
-    listed = Counter(op.name for op in OPERATIONS)
+    bound_by = (*services_bindings.BINDINGS, *services_bindings.LOCAL_BINDINGS)
+    bound = Counter(binding.op.name for binding in bound_by)
+    listed = Counter(op.name for op in ops.OPERATIONS)
     assert listed == Counter(set(listed)), (
         f"listed twice in OPERATIONS: {listed - Counter(set(listed))}"
     )
@@ -19,6 +19,6 @@ def test_every_operation_is_bound_exactly_once() -> None:
     strays = sorted(set(bound) - set(listed))
     assert not problems, f"operations not bound exactly once (name: bindings): {problems}"
     assert not strays, f"bound but not in OPERATIONS: {strays}"
-    assert all(b.op is next(op for op in OPERATIONS if op.name == b.op.name) for b in bindings)
-    assert all(b.op.local_only for b in LOCAL_BINDINGS)
-    assert not any(b.op.local_only for b in BINDINGS)
+    assert all(b.op is next(op for op in ops.OPERATIONS if op.name == b.op.name) for b in bound_by)
+    assert all(b.op.local_only for b in services_bindings.LOCAL_BINDINGS)
+    assert not any(b.op.local_only for b in services_bindings.BINDINGS)

@@ -7,10 +7,10 @@ a cycle.
 
 from dataclasses import dataclass
 
-from squads._interactions._models import PlaybookSpec
+from squads._interactions import PlaybookSpec
 from squads._paths import SquadPaths
-from squads._roles._models import CatalogSource
-from squads._workflow._models import WorkflowSpec
+from squads._roles import CatalogSource
+from squads._workflow import WorkflowSpec
 
 
 @dataclass(frozen=True)

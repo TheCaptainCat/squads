@@ -10,7 +10,7 @@ from squads import _docfiles
 from tests._readable import lines
 
 if TYPE_CHECKING:
-    from squads._tui._app import SquadsApp
+    from squads._tui import SquadsApp
 
 pytestmark = pytest.mark.anyio
 
@@ -82,7 +82,7 @@ async def test_rich_pretty_prints_the_document_instead_of_raw_markdown(invoke) -
 def squads_app() -> type[SquadsApp]:
     """The terminal app class, or a skip when the `tui` extra is not installed."""
     pytest.importorskip("textual")
-    from squads._tui._app import SquadsApp
+    from squads._tui import SquadsApp
 
     return SquadsApp
 

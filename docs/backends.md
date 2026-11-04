@@ -152,20 +152,25 @@ each item skill should say — reuse it.
 
 Backends are rows in a literal table. To add, say, a `cursor` backend:
 
-1. Create `squads/_backends/_cursor/__init__.py` and `_cursor/_backend.py`:
+1. Create `squads/_backends/_cursor/_backend.py`, and `_cursor/__init__.py` re-exporting the class:
    ```python
    # _backend.py
-   from squads._backends._base import AgentBackend, Artifact, BackendContext, RoleView
-   from squads._models._item import Item
-   from squads._roles._catalog import RoleDef
+   from squads._backends._base import AgentBackend, Artifact, BackendContext
+   from squads._models import Item
+   from squads._roles import RoleDef, RoleView
 
    class CursorBackend(AgentBackend):
        name = "cursor"
        async def ensure_scaffold(self, ctx): ...
        # … implement the rest …
    ```
-2. Add it to the table in `_registry.py`: import the class and add `CursorBackend.name:
-   CursorBackend` to `_BACKENDS`. `get_backend` looks a name up there and instantiates the class.
+   ```python
+   # __init__.py
+   from squads._backends._cursor._backend import CursorBackend as CursorBackend
+   ```
+2. Add it to the table in `_registry.py`: import the class (`from squads._backends._cursor import
+   CursorBackend`) and add `CursorBackend.name: CursorBackend` to `_BACKENDS`. `get_backend` looks a
+   name up there and instantiates the class.
 3. Select it: `sq init --backend cursor` (stored in `active_backends` in `.squads.toml`;
    `--backend` is repeatable to run several backends side by side).
 

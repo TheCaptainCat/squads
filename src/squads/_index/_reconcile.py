@@ -21,14 +21,14 @@ from pydantic import ValidationError
 from squads import _aio
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
-from squads._models._index import SquadsDB
-from squads._models._item import (
+from squads._models import (
     DEFAULT_ID_PADDING,
     INVENTED_WHEN_ABSENT,
     Item,
+    SourceRecord,
+    SquadsDB,
     prefix_from_id,
 )
-from squads._models._source import SourceRecord
 from squads._paths import number_for_id
 from squads._sections import split_frontmatter
 

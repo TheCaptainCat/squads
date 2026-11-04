@@ -1,7 +1,7 @@
 """`sq ui` — browse the squad in a full-screen terminal app (read-only)."""
 
-from squads._api._api import Api
-from squads._cli import app
+from squads._api import Api
+from squads._cli._app import app
 from squads._cli._common import handle_errors
 from squads._context import get_context
 from squads._errors import SquadsError
@@ -19,7 +19,7 @@ def ui() -> None:
             "install it with `pip install squads[tui]`"
         ) from exc
     from squads._cli._remote import SelectedApi
-    from squads._tui._app import SquadsApp, open_session
+    from squads._tui import SquadsApp, open_session
 
     session = SelectedApi(get_context().client_cwd)
 

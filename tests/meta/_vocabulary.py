@@ -11,8 +11,9 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._roles._models import REVIEW_CAPABILITY
-from squads._workflow._models import COLOR_INTENTS, WorkflowSpec
+from squads._roles import REVIEW_CAPABILITY
+from squads._workflow import WorkflowSpec
+from squads._workflow import _models as workflow_models
 
 #: The directories of the spec layer and of the released runners; the scan stops at them.
 SPEC_LAYER_DIRS: frozenset[str] = frozenset({"_specs", "_migrations"})
@@ -73,7 +74,7 @@ ENGINE_CONSTANTS: dict[str, str] = {"REVIEW_CAPABILITY": REVIEW_CAPABILITY}
 
 def engine_words() -> frozenset[str]:
     """Words the engine defines for itself wherever it spells them: the colour intents."""
-    return COLOR_INTENTS
+    return workflow_models.COLOR_INTENTS
 
 
 #: Module-level constants whose string elements are a tracker's own API names, which happen to
@@ -81,22 +82,22 @@ def engine_words() -> frozenset[str]:
 #: inside these constants only; every other literal of the module is still checked.
 EXEMPT_TRACKER_ENUMS: tuple[tuple[str, str, str], ...] = (
     (
-        "src/squads/_sources/_gitlab_probes.py",
+        "src/squads/_sources/_gitlab/_probes.py",
         "_ISSUE_TYPES",
         "the values of GitLab API v4's issue_type",
     ),
     (
-        "src/squads/_sources/_gitlab_probes.py",
+        "src/squads/_sources/_gitlab/_probes.py",
         "_LINK_TYPES",
         "the values of GitLab API v4's link_type",
     ),
     (
-        "src/squads/_sources/_jira.py",
+        "src/squads/_sources/_jira/_connector.py",
         "_ISSUE_FIELDS",
         "the field names of Jira's issue object, one of which spells like a squad badge field",
     ),
     (
-        "src/squads/_sources/_jira_probes.py",
+        "src/squads/_sources/_jira/_probes.py",
         "_LISTS",
         "the REST resources listing Jira's issue types and priorities",
     ),

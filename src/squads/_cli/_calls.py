@@ -7,8 +7,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from squads import _spans as spans
-from squads._api._api import Api, Operation
-from squads._api._response import Response
+from squads._api import Api, Operation, Response
 from squads._cli import _common as common
 from squads._context import get_context
 
@@ -16,7 +15,7 @@ from squads._context import get_context
 def local_api() -> Api:
     """The API that runs operations in this process; the one place the CLI reaches the service
     layer."""
-    from squads._services._local_api import LocalApi
+    from squads._services import LocalApi
 
     return LocalApi(sources=common.invocation_sources)
 

@@ -5,23 +5,21 @@ from typing import TYPE_CHECKING, cast
 
 from squads import __version__
 from squads._actor import current_actor
-from squads._api._dto._board import (
+from squads._api import (
     BoardClearRequest,
     BoardListRequest,
     BoardPostRequest,
-    Notice,
-    NoticeList,
-    NoticeRow,
-    NoticeWrite,
-)
-from squads._api._dto._check import (
+    CatalogRequest,
+    Cheatsheet,
+    CheatsheetRequest,
     CheckIssueRow,
     CheckReport,
     CheckRequest,
-    SyncReport,
-    SyncRequest,
-)
-from squads._api._dto._memory import (
+    CollectionCatalog,
+    LifecycleCatalog,
+    LintFinding,
+    LintReport,
+    LintRequest,
     Memory,
     MemoryAdded,
     MemoryAddRequest,
@@ -34,8 +32,10 @@ from squads._api._dto._memory import (
     MemorySearch,
     MemorySearchRequest,
     MemoryShowRequest,
-)
-from squads._api._dto._overrides import (
+    Notice,
+    NoticeList,
+    NoticeRow,
+    NoticeWrite,
     OverrideDiff,
     OverrideDiffRequest,
     OverrideDiffRow,
@@ -45,34 +45,28 @@ from squads._api._dto._overrides import (
     OverrideRow,
     OverrideScaffoldRequest,
     OverrideUpdateRequest,
+    RefKindCatalog,
+    Reflog,
+    ReflogEntryRow,
+    ReflogRequest,
+    Response,
     ScaffoldedOverride,
     StampedOverrides,
-)
-from squads._api._dto._reflog import Reflog, ReflogEntryRow, ReflogRequest
-from squads._api._dto._workflow import (
-    CatalogRequest,
-    Cheatsheet,
-    CheatsheetRequest,
-    CollectionCatalog,
-    LifecycleCatalog,
-    LintFinding,
-    LintReport,
-    LintRequest,
-    RefKindCatalog,
     StatusCatalog,
     StatusRoleCatalog,
     SubentityKindCatalog,
+    SyncReport,
+    SyncRequest,
     TypeCatalog,
     ViewCatalog,
     ViewResolveRequest,
     ViewResult,
 )
-from squads._api._response import Response
-from squads._board._model import BoardNotice
+from squads._board import BoardNotice
 from squads._errors import PlaybookConfigError, SquadsError
-from squads._interactions._playbook import get_playbook_spec
-from squads._memory._model import MemoryEntry
-from squads._overrides._service import (
+from squads._interactions import get_playbook_spec
+from squads._memory import MemoryEntry
+from squads._overrides import (
     STATE_BROKEN,
     STATE_DRIFTED,
     OverrideEntry,
@@ -86,8 +80,7 @@ from squads._overrides._service import (
     scan_overrides,
     update_stamp,
 )
-from squads._roles._catalog import PREDEFINED
-from squads._roles._resolver import role_base_from_item
+from squads._roles import PREDEFINED, role_base_from_item
 from squads._services._board import BoardMixin
 from squads._services._catalogs import (
     collection_catalog,
@@ -111,8 +104,12 @@ from squads._services._views import ViewsMixin
 from squads._spec_documents import resolve_workflow
 from squads._specload import override_present
 from squads._transform import check_view_transforms
-from squads._workflow import ROSTER_ROLE
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, lint_workflow_spec, refusal_cause
+from squads._workflow import (
+    ROSTER_ROLE,
+    WORKFLOW_OVERRIDE_FILENAME,
+    lint_workflow_spec,
+    refusal_cause,
+)
 
 if TYPE_CHECKING:
     from squads._services._service import Service
@@ -246,7 +243,7 @@ class SquadStateOpsMixin(
     async def render_cheatsheet(self, req: CheatsheetRequest) -> Response[Cheatsheet]:
         """The cheatsheet, its authoring lines naming this squad's roles; outside a squad, or
         when the squad's roster or playbook cannot be read, they name the catalog's."""
-        from squads._rendering._engine import render
+        from squads._rendering import render
 
         roles: list[dict[str, object]] | None = None
         playbook = get_playbook_spec()

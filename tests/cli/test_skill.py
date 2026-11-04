@@ -6,8 +6,7 @@ from typing import Any
 
 import pytest
 
-from squads._workflow import bundled_spec
-from squads._workflow._loader import load_workflow_spec
+from squads._workflow import bundled_spec, load_workflow_spec
 from tests._profile import selected
 from tests.cli._output import entry_text, json_text, printed, read_json
 from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error

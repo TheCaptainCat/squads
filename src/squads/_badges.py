@@ -8,8 +8,7 @@ import math
 import re
 from collections.abc import Callable
 
-from squads._workflow import WorkflowSpec
-from squads._workflow._models import Field
+from squads._workflow import Field, WorkflowSpec
 
 #: Neutral fallback badge for a status/collection that declares none — never crash.
 _DEFAULT_BADGE = "⚪"

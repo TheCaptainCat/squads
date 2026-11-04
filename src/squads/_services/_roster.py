@@ -7,28 +7,30 @@ from squads import _actor as actor
 from squads import _clock as clock
 from squads import _pronouns
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._index._resolver import item_file, require_item
+from squads._index import item_file, require_item
 from squads._itemfile import update_frontmatter
-from squads._models import _attributes as attrs
-from squads._models._attributes import ORIGIN_PROJECT, AttributeKey, parse_invocable_choice
-from squads._models._item import Item
+from squads._models import ORIGIN_PROJECT, AttributeKey, Item, attrs, parse_invocable_choice
 from squads._paths import path_from_process_dir
 from squads._pronouns import checked_pronouns
-from squads._roles._catalog import RoleDef, refuse_blank_name
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME
-from squads._roles._models import CAPABILITY_NAME_PATTERN, malformed_capability_names
-from squads._roles._resolver import (
+from squads._roles import (
+    CAPABILITY_NAME_PATTERN,
+    ROLES_OVERRIDE_FILENAME,
+    RoleDef,
     holds_default_designation,
+    malformed_capability_names,
     merge_definition_delta,
     model_problem,
     override_file_keys,
     override_full_name,
+    proposed_name,
+    proposed_slug,
+    refuse_blank_name,
     resolve_role,
     resolve_role_for_item,
     role_base_from_item,
     role_from_definition,
+    takes_parameter,
 )
-from squads._roles._templates import proposed_name, proposed_slug, takes_parameter
 from squads._services._base import ServiceCore
 from squads._services._results import (
     DefaultRoleMoveResult,

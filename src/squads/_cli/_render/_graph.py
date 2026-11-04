@@ -4,7 +4,7 @@ text."""
 from rich.console import Console
 from rich.tree import Tree
 
-from squads._api._dto._graph import GraphNode
+from squads._api import GraphNode
 from squads._cli._render._style import e, lead_badge
 
 

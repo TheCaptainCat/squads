@@ -7,14 +7,11 @@ from typing import Any
 
 from squads._discussion import Comment
 from squads._errors import InvalidIdError
-from squads._index._reconcile import ReconcileResult
-from squads._migrations._registry import Migration
-from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._omission import Omission
-from squads._models._subentity import SubEntity
+from squads._index import ReconcileResult
+from squads._migrations import Migration
+from squads._models import Item, Omission, SquadsDB, SubEntity
 from squads._paths import SquadPaths, number_for_id
-from squads._services._duplicate_ids import LeftReference, MovedFile
+from squads._services._duplicate_ids import FileMove, StaleReference
 from squads._services._retirement import Severance
 
 #: What a tree surface prints beside a root it invented for a parent cycle (see
@@ -228,8 +225,8 @@ class RepairResult:
     unreadable: list[str] = field(default_factory=list[str])
     canonicalized: list[str] = field(default_factory=list[str])
     stripped: list[str] = field(default_factory=list[str])
-    renumbered: list[MovedFile] = field(default_factory=list[MovedFile])
-    references: list[LeftReference] = field(default_factory=list[LeftReference])
+    renumbered: list[FileMove] = field(default_factory=list[FileMove])
+    references: list[StaleReference] = field(default_factory=list[StaleReference])
 
     @property
     def references_left(self) -> bool:

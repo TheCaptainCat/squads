@@ -7,14 +7,11 @@ from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
 from squads import _discussion as discussion
-from squads._api._dto._items import Comment
+from squads._api import Comment
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeKey, map_attribute
-from squads._models._item import Item
-from squads._models._participants import source_of
-from squads._models._source import SourceRecord
+from squads._models import AttributeKey, Item, SourceRecord, map_attribute, source_of
 from squads._services._fetch import connector_for
-from squads._sources._spec import SourceSpec, SourcesSpec
+from squads._sources import SourceSpec, SourcesSpec
 
 #: The comment attributes a pull stores for the tracker user who wrote the comment.
 AUTHOR_ID = "author_id"

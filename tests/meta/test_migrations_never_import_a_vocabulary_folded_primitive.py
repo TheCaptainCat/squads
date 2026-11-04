@@ -144,8 +144,8 @@ def test_the_scan_leaves_schema_definitions_importable(tmp_path: Path) -> None:
     planted.write_text(
         "from squads._models._item import Item\n"
         "from squads._models._subentity import SubEntity\n"
-        "from squads._models import _markers as markers\n\n"
-        "def use():\n    return Item, SubEntity, markers\n",
+        "from squads._models import _markers as models_markers\n\n"
+        "def use():\n    return Item, SubEntity, models_markers\n",
         encoding="utf-8",
     )
 

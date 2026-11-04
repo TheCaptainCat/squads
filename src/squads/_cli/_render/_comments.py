@@ -2,7 +2,7 @@
 
 from rich.console import Console
 
-from squads._api._dto._items import Comment
+from squads._api import Comment
 
 
 def is_styled(console: Console) -> bool:

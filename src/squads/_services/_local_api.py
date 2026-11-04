@@ -6,13 +6,12 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from squads import _spans as spans
-from squads._api._api import Grant, Mode, Operation
-from squads._api._response import Response
+from squads._api import Grant, Mode, Operation, Response
 from squads._context import NoticeLog, get_context, rebind
 from squads._errors import SchemaGateError, SquadsError
-from squads._index._store import read_scope
+from squads._index import read_scope
 from squads._language import resolve_working_language
-from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._models import SCHEMA_VERSION, schema_tuple
 from squads._paths import SquadPaths, resolve
 from squads._services._bindings import handler_for, local_handler_for
 from squads._services._service import Service, compose_service

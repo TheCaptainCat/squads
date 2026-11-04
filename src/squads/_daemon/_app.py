@@ -17,27 +17,32 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute, Route, compile_path
 
-from squads._api._api import Operation
-from squads._api._dto._daemon import (
+from squads._api import (
+    CONDITIONAL_WRITES,
     DaemonIdentity,
     DaemonStopping,
+    ErrorBody,
+    ErrorDetail,
     ListenerIdentity,
+    Operation,
+    RequestMetadata,
+    VocabularyHash,
     VocabularyIdentity,
+    error_body,
+    error_message,
+    http_status,
+    ops,
+    request_metadata,
 )
-from squads._api._errors import ErrorBody, ErrorDetail, error_body, error_message, http_status
-from squads._api._http import RequestMetadata, request_metadata
-from squads._api._ops import CONDITIONAL_WRITES, ROUTED_OPERATIONS
-from squads._api._response import Response as Envelope
-from squads._api._vocabulary import VocabularyHash
+from squads._api import Response as Envelope
 from squads._daemon._admission import COMMANDS_PATH
 from squads._daemon._commands import Commands, Session, parse_request
 from squads._daemon._openapi import build_document
 from squads._daemon._request import request_dto
 from squads._daemon._state import DaemonState, RetirementCheck, never_retiring
 from squads._errors import SchemaMismatchError, SquadsError, VocabularyMismatchError
-from squads._models._schema import SCHEMA_VERSION
-from squads._services._local_api import LocalApi
-from squads._services._service import RequestScope
+from squads._models import SCHEMA_VERSION
+from squads._services import LocalApi, RequestScope
 
 _log = logging.getLogger("squads.daemon")
 # A handler of its own keeps logging's last resort from writing a traceback to stderr.
@@ -226,7 +231,7 @@ def _daemon_routes(app: Application) -> list[BaseRoute]:
 
 def _served() -> list[tuple[str, str]]:
     """Every method and path template the daemon serves."""
-    served = [(op.route[0], op.route[1]) for op in ROUTED_OPERATIONS]
+    served = [(op.route[0], op.route[1]) for op in ops.ROUTED_OPERATIONS]
     return [
         *served,
         ("GET", "/v1/daemon"),
@@ -276,7 +281,7 @@ def build_app(
     app = Application(state, retirement_check, command, clock)
     routes: list[BaseRoute] = [
         Route(op.route[1], _operation_endpoint(app, op), methods=[op.route[0]], name=op.name)
-        for op in ROUTED_OPERATIONS
+        for op in ops.ROUTED_OPERATIONS
     ]
     routes += _daemon_routes(app)
     routes.append(_commands_route(app))

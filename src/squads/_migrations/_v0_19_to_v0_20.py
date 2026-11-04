@@ -12,12 +12,12 @@ import re
 from itertools import pairwise
 
 from squads import _aio
-from squads._index._store import IndexStore
+from squads._index import IndexStore
 from squads._itemfile import read_frontmatter
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import EntriesRefused, MigrationOutcome
 from squads._sections import split_lines
-from squads._workflow._models import ROSTER_ROLE
+from squads._workflow import ROSTER_ROLE
 
 SUMMARY = (
     "`source` becomes a core item key and a reserved role slug, and a line shaped like a comment "

@@ -5,12 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from squads._interactions import _role_guidance as role_guidance
-from squads._interactions._loader import load_playbook
+from squads._interactions import allowed_create_types, load_playbook
 from squads._language import WorkingLanguage
-from squads._overrides import _service as overrides
-from squads._workflow import bundled_spec
-from squads._workflow._loader import load_workflow_spec
+from squads._overrides import _service as overrides_service
+from squads._workflow import bundled_spec, load_workflow_spec
 from tests._helpers import role_of
 
 #: The line that opens each scaffold's worked example, and the ruled line that closes it. Both
@@ -52,7 +50,7 @@ def _write_override(squad_dir: Path, relative: str, text: str) -> None:
 
 
 def test_the_workflow_scaffolds_worked_example_builds_a_valid_spec(tmp_path) -> None:
-    activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
+    activated = _activate_example(overrides_service._WORKFLOW_SCAFFOLD_BODY)
     assert "[items.incident]" in activated, "the activator no longer finds the worked example"
     _write_override(tmp_path, "workflow.toml", activated)
 
@@ -64,7 +62,7 @@ def test_the_workflow_scaffolds_worked_example_builds_a_valid_spec(tmp_path) -> 
 
 def test_the_workflow_scaffolds_worked_example_declares_a_valid_view(tmp_path) -> None:
     """The scaffold's `[views]` example resolves against declared vocabulary."""
-    activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
+    activated = _activate_example(overrides_service._WORKFLOW_SCAFFOLD_BODY)
     assert "[views.related_incidents]" in activated, "the view example is missing"
     _write_override(tmp_path, "workflow.toml", activated)
 
@@ -81,16 +79,16 @@ def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_te
     tmp_path,
 ) -> None:
     """Structural validity."""
-    from squads import _clock as clock
-    from squads import _views as views
+    from squads import _clock as squads_clock
+    from squads import _views as squads_views
     from squads._errors import SquadsError
-    from squads._models._item import Item
+    from squads._models import Item
 
-    activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
+    activated = _activate_example(overrides_service._WORKFLOW_SCAFFOLD_BODY)
     _write_override(tmp_path, "workflow.toml", activated)
     spec = load_workflow_spec(squad_dir=tmp_path)  # the example must still load on its own
 
-    now = clock.now()
+    now = squads_clock.now()
     incident = Item(
         sequence_id=1,
         type="incident",
@@ -103,7 +101,7 @@ def test_the_workflow_scaffolds_worked_example_view_refuses_cleanly_without_a_te
         prefix="INC",
     )
     with pytest.raises(SquadsError, match=r"templates/views/related_incidents.md.j2"):
-        views.render_source_view(
+        squads_views.render_source_view(
             "related_incidents",
             [],
             incident,
@@ -118,7 +116,7 @@ def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_statu
     tmp_path,
 ) -> None:
     """Not a style point."""
-    activated = _activate_example(overrides._WORKFLOW_SCAFFOLD_BODY)
+    activated = _activate_example(overrides_service._WORKFLOW_SCAFFOLD_BODY)
     _write_override(tmp_path, "workflow.toml", activated)
 
     spec = load_workflow_spec(squad_dir=tmp_path)
@@ -129,7 +127,7 @@ def test_the_workflow_scaffolds_example_demonstrates_the_field_that_drives_statu
 
 
 def test_the_playbook_scaffolds_worked_example_loads(tmp_path) -> None:
-    activated = _activate_example(overrides._PLAYBOOK_SCAFFOLD_BODY)
+    activated = _activate_example(overrides_service._PLAYBOOK_SCAFFOLD_BODY)
     assert "[types.task]" in activated, "the activator no longer finds the worked example"
     _write_override(tmp_path, "playbook.toml", activated)
 
@@ -142,4 +140,4 @@ def test_the_playbook_scaffolds_worked_example_loads(tmp_path) -> None:
     # The second worked example puts a role in the type's create-lane; the lane it advertises
     # must actually be the one the engine derives, or the scaffold teaches a no-op.
     assert "[types.bug]" in activated, "the create-lane example is missing from the scaffold"
-    assert "bug" in role_guidance.allowed_create_types(role_of("devops"), bundled_spec(), playbook)
+    assert "bug" in allowed_create_types(role_of("devops"), bundled_spec(), playbook)

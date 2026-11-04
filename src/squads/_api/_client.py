@@ -31,7 +31,7 @@ from squads._api._http import (
 from squads._api._response import Response
 from squads._api._vocabulary import DOCUMENTS, VocabularyHash
 from squads._errors import ClientInterruptedError, SquadsError
-from squads._models._schema import SCHEMA_VERSION, schema_tuple
+from squads._models import SCHEMA_VERSION, schema_tuple
 
 #: Seconds a connection may take to open, for every operation.
 CONNECT_TIMEOUT = 5.0

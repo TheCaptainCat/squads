@@ -15,9 +15,7 @@ from textual.widgets import Tree
 from textual.widgets.tree import TreeNode as UiTreeNode
 
 from squads import _clock as clock
-from squads._api._dto._memory import MemoryRow
-from squads._api._dto._tree import TreeNode
-from squads._api._dto._workflow import TypeCatalog
+from squads._api import MemoryRow, TreeNode, TypeCatalog
 from squads._tui._session import categories
 
 #: Rich/Textual style per colour intent, this client's own mapping of a status role's colour

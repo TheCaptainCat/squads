@@ -10,8 +10,7 @@ from textual.containers import Vertical, VerticalScroll
 from textual.content import Content
 from textual.widgets import Markdown, Static
 
-from squads._api import _ops as ops
-from squads._api._dto._memory import Memory, MemoryShowRequest
+from squads._api import Memory, MemoryShowRequest, ops
 from squads._tui._session import Session
 
 

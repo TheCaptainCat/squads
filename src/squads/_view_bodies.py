@@ -9,7 +9,7 @@ open, close or be forged inside it.
 import re
 from dataclasses import dataclass
 
-from squads._models import _markers as markers
+from squads._models import markers
 from squads._sections import iter_marker_spans
 
 _OPENER_RUN_RE = re.compile(r"<(!+)--")

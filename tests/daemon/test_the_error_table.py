@@ -9,11 +9,11 @@ from pathlib import Path
 import pytest
 from filelock import FileLock
 
-from squads._board._store import board_folder
+from squads._board import BoardStore
 from squads._index import _store as index_store
 from squads._paths import SquadPaths
-from squads._services import _local_api as local_api
-from squads._services import _service as service
+from squads._services import _local_api as services_localapi
+from squads._services import _service as services_service
 from tests._daemon_harness import Reply, Served
 
 pytestmark = pytest.mark.anyio
@@ -116,8 +116,10 @@ def short_lock_wait(monkeypatch) -> Iterator[None]:
     """A store that waits 0.3 s before it says so and gives up after 1.5 s, so a held lock is
     reached within the test."""
     monkeypatch.setattr(index_store, "_LOCK_NOTICE_AFTER", 0.3)
-    real = service.IndexStore
-    monkeypatch.setattr(service, "IndexStore", lambda *a, **k: real(*a, lock_timeout=1.5, **k))
+    real = services_service.IndexStore
+    monkeypatch.setattr(
+        services_service, "IndexStore", lambda *a, **k: real(*a, lock_timeout=1.5, **k)
+    )
     yield
 
 
@@ -171,7 +173,7 @@ def test_a_failure_that_is_not_a_squads_error_answers_500_and_logs_the_traceback
     async def boom(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("the explosion")
 
-    monkeypatch.setattr(local_api, "handler_for", lambda _op: boom)
+    monkeypatch.setattr(services_localapi, "handler_for", lambda _op: boom)
     daemon = serve(project)
     with caplog.at_level(logging.ERROR, logger="squads.daemon"):
         reply = daemon.get("/v1/items")
@@ -190,7 +192,7 @@ def test_a_partial_read_answers_200_with_what_it_left_out(project: SquadPaths, s
     daemon = serve(project)
     posted = daemon.request("POST", "/v1/board", {"body": "A notice"}, {"Squads-Actor": "manager"})
     assert posted.status == 200, posted.body
-    broken = board_folder(project) / "BOARD-broken.md"
+    broken = BoardStore(project).folder / "BOARD-broken.md"
     broken.write_bytes(b"\xff\xfe not text")
     reply = daemon.get("/v1/board")
     notice = posted.json()["data"]["entry"]

@@ -15,7 +15,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select, Switch
 from textual.widgets.select import NoSelection
 
-from squads._api._dto._workflow import FieldEntry
+from squads._api import FieldEntry
 from squads._tui._session import Catalogs, categories, status_options, type_options
 
 if TYPE_CHECKING:

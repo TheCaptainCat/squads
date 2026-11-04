@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from squads import _daemon_link as link
+from squads import _daemon_link as squads_daemonlink
 from squads._endpoint import endpoint_for
 from squads._paths import SquadPaths
 
@@ -31,4 +31,4 @@ def test_a_lock_that_the_system_denies_is_held(
 
     monkeypatch.setattr(fcntl, "flock", refuse)
 
-    assert link.lock_is_free(endpoint) is not held
+    assert squads_daemonlink.lock_is_free(endpoint) is not held

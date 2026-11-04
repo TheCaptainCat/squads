@@ -14,7 +14,7 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._index._resolver import item_file
+from squads._index import item_file
 from squads._itemfile import (
     frontmatter_skew,
     read_item_text,
@@ -23,12 +23,7 @@ from squads._itemfile import (
     skew_message,
     write_text,
 )
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._metadata import value_problem
-from squads._models._participants import SYSTEM_SLUG
-from squads._models._subentity import SubEntity
+from squads._models import SYSTEM_SLUG, Item, SquadsDB, SubEntity, markers, value_problem
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore
 from squads._services._results import RenameFieldResult, RenameKindResult, RenameResult
@@ -36,7 +31,7 @@ from squads._services._retype import (
     apply_type_change,
     resync_edges,
 )
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec
 
 
 def _validate_rename_types(spec: WorkflowSpec, old_type: str, new_type: str) -> None:

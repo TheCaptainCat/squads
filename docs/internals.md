@@ -6,8 +6,10 @@ and [adoption.md](adoption.md) (importing history).
 
 > Module names below use the project's **private layout**: every implementation module and
 > subpackage is underscore-prefixed (`squads._services._service`, `squads._models._item`,
-> `squads._backends._claude_code._backend`, …) and package `__init__`s don't re-export. Read the
-> names as "the `service` module", etc.
+> `squads._backends._claude_code._backend`, …), and each package's `__init__` re-exports the names
+> other packages use, so code imports a name from its package (`squads._models`) rather than from
+> the module that defines it. None of these paths is public API. Read the names as "the `service`
+> module", etc.
 
 ---
 
@@ -450,7 +452,7 @@ invocation (parsed by `parse_iso`), which is how a migration preserves historica
 
 ## 11. The CLI (`_cli/`)
 
-Typer app, exposed twice as `squads`/`sq` (entry point `squads.__main__:main`, which answers a bare `--version` itself and otherwise runs `squads._cli:main`, which runs the `app`). The root callback takes
+Typer app, exposed twice as `squads`/`sq` (entry point `squads.__main__:main`, which runs `squads._shim:main`: it answers a bare `--version` itself, sends any other command line to the squad's daemon, and runs the command in its own process through `squads._cli:main`, which runs the `app`, when the command is local-only or no daemon can be reached). The root callback takes
 the effective directory computed from the global `-C` options as `RequestContext.client_cwd` (it
 never calls `os.chdir`), reads `--at`, resolves the active workflow spec, selects the `Api` and
 dispatches. The root builds a command group only when it is looked up (`LAZY_GROUPS`, and one app

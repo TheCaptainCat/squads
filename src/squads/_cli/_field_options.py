@@ -17,7 +17,7 @@ import typer.core
 import squads._cli._common as common
 from squads import _badges as badges
 from squads._errors import SquadsError
-from squads._workflow._models import Field, WorkflowSpec
+from squads._workflow import Field, WorkflowSpec
 
 #: Context-meta keys under which the options file what they receive.
 VALUES_KEY = "squads.field_values"

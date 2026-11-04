@@ -9,8 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from squads._workflow import bundled_spec
-from squads._workflow._loader import load_workflow_spec
+from squads._workflow import bundled_spec, load_workflow_spec
 from tests._profile import selected
 from tests.meta import _vocabulary as vocabulary
 

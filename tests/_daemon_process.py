@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 
-from squads._daemon._lifecycle import Daemon
+from squads._daemon import _lifecycle as daemon_lifecycle
 from squads._daemon_link import connection, daemon_identity
 from squads._endpoint import Endpoint, endpoint_for, read_record
 from squads._paths import SquadPaths
@@ -25,7 +25,7 @@ class Running:
     """A daemon being served on a thread: its endpoint, the daemon and the thread."""
 
     endpoint: Endpoint
-    daemon: Daemon
+    daemon: daemon_lifecycle.Daemon
     thread: threading.Thread
 
     def identity(self) -> dict[str, Any]:
@@ -103,7 +103,7 @@ def running_daemon(paths: SquadPaths) -> Generator[Running]:
         lines.append(line)
         started.set()
 
-    daemon = Daemon(endpoint, report)
+    daemon = daemon_lifecycle.Daemon(endpoint, report)
     thread = threading.Thread(target=daemon.run, daemon=True)
     thread.start()
     assert started.wait(30), "the daemon reported nothing"

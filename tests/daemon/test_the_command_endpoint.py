@@ -11,12 +11,12 @@ import typer.main
 from typer._click import Command
 from typer.testing import CliRunner
 
-from squads._api import _ops as ops
-from squads._api._dto._check import SyncRequest
-from squads._cli import _calls as calls
-from squads._cli import _common as common
-from squads._cli import app, main_callback
-from squads._daemon._commands import INTERNAL_ERROR
+from squads._api import SyncRequest, ops
+from squads._cli import _app as cli_app
+from squads._cli import _calls as cli_calls
+from squads._cli import _common as cli_common
+from squads._cli import app
+from squads._daemon import _commands as daemon_commands
 from squads._paths import SquadPaths
 from tests._endpoint_client import command_body, post_commands
 
@@ -94,7 +94,7 @@ def test_a_file_the_request_does_not_carry_is_an_internal_error(
 
     assert (reply.status, reply.json()) == (
         200,
-        {"kind": "done", "output": [["stderr", INTERNAL_ERROR]], "exit_code": 1},
+        {"kind": "done", "output": [["stderr", daemon_commands.INTERNAL_ERROR]], "exit_code": 1},
     )
     assert json.loads(_cli(runner, "task", "2", "comments", "--json")) == []
 
@@ -258,12 +258,12 @@ def _commands_no_cli_command_has() -> Command:
     """A command tree with the commands that reach what no command of the CLI does: one that
     writes, then asks."""
     host = typer.Typer(name="sq")
-    host.callback()(main_callback)
+    host.callback()(cli_app.main_callback)
 
     @host.command("write-then-ask")
     def write_then_ask() -> None:  # pyright: ignore[reportUnusedFunction]
-        calls.call(ops.SYNC, SyncRequest())
-        common.confirm("Go on?", json_out=False)
+        cli_calls.call(ops.SYNC, SyncRequest())
+        cli_common.confirm("Go on?", json_out=False)
 
     return typer.main.get_command(host)
 
@@ -275,7 +275,7 @@ def test_a_prompt_reached_after_a_write_is_an_internal_error(project: SquadPaths
 
     assert (reply.status, reply.json()) == (
         200,
-        {"kind": "done", "output": [["stderr", INTERNAL_ERROR]], "exit_code": 1},
+        {"kind": "done", "output": [["stderr", daemon_commands.INTERNAL_ERROR]], "exit_code": 1},
     )
 
 

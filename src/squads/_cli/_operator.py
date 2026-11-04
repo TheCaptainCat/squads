@@ -15,13 +15,13 @@ Address resolution order (exact match, no fuzzy):
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._dto._operators import (
+from squads._api import (
     OperatorAddRequest,
     OperatorListRequest,
     OperatorUpdateRequest,
+    RosterAddress,
+    ops,
 )
-from squads._api._dto._roster import RosterAddress
 from squads._cli import _calls as calls
 from squads._cli import _field_options as field_options
 from squads._cli._common import (
@@ -29,11 +29,11 @@ from squads._cli._common import (
     console,
     register_comment_verbs,
 )
-from squads._cli._render._roster import (
+from squads._cli._render import (
     render_named_entry,
     render_operator_list,
     render_operator_show,
-    render_updated,
+    render_roster_updated,
 )
 from squads._cli._roster import (
     address_of,
@@ -173,7 +173,7 @@ def operator_update(
         ops.OPERATOR_UPDATE,
         response,
         json_out,
-        lambda write: render_updated(write.entry.id, console),
+        lambda write: render_roster_updated(write.entry.id, console),
     )
 
 

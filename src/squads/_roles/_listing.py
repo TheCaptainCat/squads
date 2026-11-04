@@ -3,9 +3,8 @@ which answers outside a squad."""
 
 from collections.abc import Sequence
 
-from squads._api._dto._display import Column
-from squads._api._dto._roles import RoleCatalog, RoleCatalogRow
-from squads._models._attributes import ORIGIN_SYSTEM
+from squads._api import Column, RoleCatalog, RoleCatalogRow
+from squads._models import ORIGIN_SYSTEM
 from squads._roles._catalog import RoleDef, get_catalog
 from squads._roles._models import RoleSpec
 

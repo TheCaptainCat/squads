@@ -8,13 +8,10 @@ import posixpath
 import re
 from pathlib import Path
 
-from squads._index._reconcile import entry_name
-from squads._index._store import badge_code_problems
-from squads._migrations._legacy_extra import read_flat
-from squads._models._index import SquadsDB
-from squads._workflow import bundled_spec
-from squads._workflow._loader import validate_against_index
-from squads._workflow._models import WorkflowSpec
+from squads._index import badge_code_problems, entry_name
+from squads._migrations import read_flat
+from squads._models import SquadsDB
+from squads._workflow import WorkflowSpec, bundled_spec, validate_against_index
 
 _OVERRIDE_HINT = re.compile(r" \(add it to the override or fix the item frontmatter\)")
 

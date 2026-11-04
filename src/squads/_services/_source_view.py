@@ -4,10 +4,10 @@ connectors are reachable and handed to the view engine as a provider."""
 from collections.abc import Callable, Iterable
 
 from squads._errors import SquadsError
-from squads._models._item import Item
+from squads._models import Item
 from squads._services._comment_view import translate_references
 from squads._services._fetch import connector_for
-from squads._sources._spec import SourceSpec, SourcesSpec
+from squads._sources import SourceSpec, SourcesSpec
 from squads._views import SourceIssue, SourceProvider
 
 

@@ -12,7 +12,7 @@ from typing import Any, cast
 
 from squads._context import get_context
 from squads._errors import SquadsError
-from squads._models import _markers as markers
+from squads._models import markers
 
 _FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n)?", re.DOTALL)
 

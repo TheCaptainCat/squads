@@ -3,13 +3,12 @@ sub-entity write did."""
 
 from rich.console import Console
 
-from squads._api._dto._comment_writes import (
+from squads._api import (
+    Comment,
     CommentAdded,
     CommentEdited,
     CommentSelection,
     CommentShown,
-)
-from squads._api._dto._item_writes import (
     ItemCreated,
     ItemRefAdded,
     ItemRefRemoved,
@@ -19,7 +18,6 @@ from squads._api._dto._item_writes import (
     SubentityAdded,
     SubentityRemoved,
 )
-from squads._api._dto._items import Comment
 from squads._cli._render._comments import is_styled, print_comments_plain, print_comments_styled
 from squads._cli._render._style import e
 

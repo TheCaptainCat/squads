@@ -24,42 +24,44 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _view_remedies as view_remedies
 from squads import _view_tags as view_tags
-from squads._backends._base import AgentBackend, BackendContext
+from squads._backends import AgentBackend, BackendContext
+from squads._config import CONFIG_FILENAME
 from squads._endpoint import DAEMON_ENV, daemon_override
 from squads._errors import InvalidIdError, SquadsError
-from squads._interactions._loader import (
-    playbook_override_command_lines,
-    playbook_override_guide_pairs,
-)
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._playbook import (
+from squads._interactions import (
+    CAPABILITY_SUBJECT_PREFIX,
+    PlaybookSpec,
+    create_lanes,
+    in_lane_owner,
+    item_type_for_skill_slug,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
+    playbook_override_command_lines,
+    playbook_override_guide_pairs,
     unheld_capability_token_message,
     unheld_capability_tokens,
 )
-from squads._interactions._role_guidance import (
-    CAPABILITY_SUBJECT_PREFIX,
-    create_lanes,
-    in_lane_owner,
-)
-from squads._interactions._skills import item_type_for_skill_slug
 from squads._language import resolve_working_language
-from squads._models import _attributes as attrs
-from squads._models import _markers as markers
-from squads._models._attributes import ORIGIN_VALUES, AttributeKey
-from squads._models._config import CONFIG_FILENAME
-from squads._models._index import SquadsDB
-from squads._models._item import Item, split_ref
-from squads._models._metadata import value_problem
-from squads._models._participants import SlugBreach, is_sourced, roster_slug_breaches
+from squads._models import (
+    ORIGIN_VALUES,
+    AttributeKey,
+    Item,
+    SlugBreach,
+    SquadsDB,
+    attrs,
+    is_sourced,
+    markers,
+    roster_slug_breaches,
+    split_ref,
+    value_problem,
+)
 from squads._paths import SquadPaths, number_for_id
 from squads._pronouns import pronouns_problem
-from squads._rendering._engine import scaffold_body
-from squads._roles._catalog import get_catalog
-from squads._roles._models import CatalogSource
-from squads._roles._resolver import (
+from squads._rendering import scaffold_body
+from squads._roles import (
+    CatalogSource,
     base_problems,
+    get_catalog,
     holds_default_designation,
     model_problem,
     override_file_keys,
@@ -72,13 +74,16 @@ from squads._services._roster_projection import is_live_roster_entry
 from squads._specload import OverrideFiles
 from squads._transform import check_view_transforms
 from squads._views import ITEM_SKILL_VIEW_NAME
-from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
-from squads._workflow._validator_names import (
+from squads._workflow import (
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
+    ROSTER_OPERATOR,
+    ROSTER_ROLE,
+    ROSTER_SKILL,
     SELECTABLE_SQUAD_GLOBAL_NAMES,
     SQUAD_GLOBAL_VALIDATOR_NAMES,
     VALIDATOR_NAMES,
+    WorkflowSpec,
     effective_validator_names,
     parse_validator_entry,
 )

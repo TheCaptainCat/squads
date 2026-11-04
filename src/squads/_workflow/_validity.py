@@ -13,7 +13,7 @@ import warnings
 from collections.abc import Callable, Iterator
 from re import compile as re_compile
 
-from squads._models._attributes import ROW_ADDED_KEYS, SUBENTITY_ROW_ADDED_KEYS, AttributeKey
+from squads._models import ROW_ADDED_KEYS, SUBENTITY_ROW_ADDED_KEYS, AttributeKey
 from squads._workflow._models import (
     COLOR_INTENTS,
     FALLBACK_ROLE_NAME,
@@ -432,7 +432,7 @@ def check_parent_cycles(
 
 def _migration_hint(name: str) -> str:
     """The pointer to the manual steps when *name* is a command a release reserved."""
-    from squads._migrations._reserved import RESERVED_COMMAND_STEPS
+    from squads._migrations import RESERVED_COMMAND_STEPS
 
     steps = RESERVED_COMMAND_STEPS.get(name)
     if steps is None:
@@ -1087,7 +1087,7 @@ def reserved_item_keys() -> frozenset[str]:
     ``Item``, never hand-copied) and the names a ``--json`` row adds. ``path`` and ``prefix`` are
     model fields that are not frontmatter, and are refused for the same reason: a key of that name
     is never read back as the user's value."""
-    from squads._models._item import Item
+    from squads._models import Item
 
     keys = set(Item.model_fields) | set(Item.model_computed_fields)
     return frozenset(keys | set(ROW_ADDED_KEYS))
@@ -1101,7 +1101,7 @@ def _reserved_kind(name: str, row_added: tuple[str, ...], row: str) -> str:
 def reserved_subentity_keys() -> frozenset[str]:
     """Sub-entity keys a field code may not shadow: the entry's own fields (derived from
     ``SubEntity``) and the names a ``--json`` sub-entity object adds."""
-    from squads._models._subentity import SubEntity
+    from squads._models import SubEntity
 
     keys = set(SubEntity.model_fields) | set(SubEntity.model_computed_fields)
     return frozenset(keys | set(SUBENTITY_ROW_ADDED_KEYS))

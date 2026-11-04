@@ -12,27 +12,17 @@ from squads import _clock as clock
 from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
-from squads._backends._base import BackendContext
+from squads._backends import BackendContext
 from squads._errors import SquadsError
-from squads._index._resolver import item_file
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._skills import (
-    item_type_for_skill_slug,
-    orphaned_skill_item_type,
-)
+from squads._index import item_file
+from squads._interactions import PlaybookSpec, item_type_for_skill_slug, orphaned_skill_item_type
 from squads._itemfile import (
     SkewKey,
     frontmatter_skew,
     read_frontmatter,
     stale_encoding_clause,
 )
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import (
-    INVENTED_WHEN_ABSENT,
-    Item,
-    slug_from_stem,
-)
+from squads._models import INVENTED_WHEN_ABSENT, Item, SquadsDB, markers, slug_from_stem
 from squads._services._base import ServiceCore
 from squads._services._corpus_files import (
     LegacySkillBody,
@@ -75,8 +65,7 @@ from squads._services._validators import (
 )
 from squads._view_bodies import find_view_pairs
 from squads._view_remedies import clear_roster_body_cmd, view_placement_invocation
-from squads._workflow import ROSTER_ROLE, ROSTER_SKILL
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 
 def _missing_timestamp_issues(name: str, data: dict[str, Any]) -> list[CheckIssue]:
@@ -489,7 +478,7 @@ class CheckMixin(ServiceCore):
         a reported drift is durable and ``sq repair`` heals it. A clean result means no confirmed
         inconsistency was observed, not that the board is consistent now.
         """
-        from squads._overrides._service import check_override_issues
+        from squads._overrides import check_override_issues
 
         index = await self.store.load()
         ctx = ScanContext()

@@ -7,13 +7,9 @@ from datetime import UTC, datetime
 
 from squads import _clock as clock
 from squads import _discussion as discussion
-from squads._api._dto._sources import SourcePulled, SourcePullReport, SourcePullRequest
-from squads._api._response import Response
+from squads._api import Response, SourcePulled, SourcePullReport, SourcePullRequest
 from squads._errors import SquadsError
-from squads._models._index import SquadsDB
-from squads._models._item import Item, split_ref
-from squads._models._participants import SOURCE_AUTHOR_PREFIX
-from squads._models._source import GONE, OUT_OF_FILTER
+from squads._models import GONE, OUT_OF_FILTER, SOURCE_AUTHOR_PREFIX, Item, SquadsDB, split_ref
 from squads._services._fetch import connector_for, fetch_source, open_connector, require_enabled
 from squads._services._import import ImportMixin
 from squads._services._import_model import (
@@ -27,12 +23,18 @@ from squads._services._import_model import (
     UpdateEvent,
     ViewBodyEvent,
 )
-from squads._sources import _credentials as credentials
-from squads._sources._connector import Comment, Connector, FetchedIssue, Issue, SourceFetch
-from squads._sources._converters import load_converter
-from squads._sources._maps import mapped_types, mapped_values
-from squads._sources._probes import missing_credential
-from squads._sources._spec import SourceSpec
+from squads._sources import (
+    Comment,
+    Connector,
+    FetchedIssue,
+    Issue,
+    SourceFetch,
+    SourceSpec,
+    load_converter,
+    mapped_types,
+    mapped_values,
+    missing_credential,
+)
 
 #: Why a held issue reads out-of-filter, as the report says it.
 REJECTED_BY_FILTER = "rejected by the filter"
@@ -404,7 +406,7 @@ class PullMixin(ImportMixin):
         ready: list[tuple[SourceSpec, Connector]] = []
         failed: set[str] = set()
         for source in chosen:
-            credential = credentials.read_entry(source.base_url)
+            credential = self.credentials.read_entry(source.base_url)
             if credential is None:
                 absent = missing_credential(source.name)
                 if req.name is not None:

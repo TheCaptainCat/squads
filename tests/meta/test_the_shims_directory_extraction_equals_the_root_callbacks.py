@@ -3,8 +3,8 @@ word, are those the root command parses, over every spelling it accepts."""
 
 import pytest
 
-from squads._cli import _hoist_global_options
-from squads._cli._common import CHANGE_DIR_PARAM
+from squads._cli import _app as cli_app
+from squads._cli import _common as cli_common
 from squads._shim import leading
 from tests.meta._command_tree import root
 
@@ -40,10 +40,12 @@ def test_the_shim_reads_the_same_directories_and_command_word_as_the_root_comman
     argv: list[str],
 ) -> None:
     command = root()
-    context = command.make_context("sq", _hoist_global_options(list(argv)), resilient_parsing=True)
+    context = command.make_context(
+        "sq", cli_app._hoist_global_options(list(argv)), resilient_parsing=True
+    )
     remaining = [*context._protected_args, *context.args]
 
     shim = leading(argv)
 
-    assert shim.dirs == (context.params.get(CHANGE_DIR_PARAM) or [])
+    assert shim.dirs == (context.params.get(cli_common.CHANGE_DIR_PARAM) or [])
     assert shim.words[:1] == remaining[:1]

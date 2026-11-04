@@ -1,7 +1,7 @@
 """An operation's `json_field` names a field of its response type, and only the operations of
 the commands whose frozen `--json` document is an array (or `workflow view`) set one."""
 
-from squads._api._ops import OPERATIONS
+from squads._api import ops
 
 #: The operations allowed a `json_field`: those of the closed set of array commands.
 ALLOWED = frozenset(
@@ -49,14 +49,14 @@ ALLOWED = frozenset(
 def test_every_json_field_names_a_field_of_the_response() -> None:
     wrong = {
         op.name: op.json_field
-        for op in OPERATIONS
+        for op in ops.OPERATIONS
         if op.json_field is not None and op.json_field not in op.response.model_fields
     }
     assert not wrong, f"json_field names no field of the response type: {wrong}"
 
 
 def test_only_the_array_commands_set_a_json_field() -> None:
-    setting = {op.name for op in OPERATIONS if op.json_field is not None}
+    setting = {op.name for op in ops.OPERATIONS if op.json_field is not None}
     assert setting <= ALLOWED, (
         f"a shape without a frozen array document is an object: {sorted(setting - ALLOWED)}"
     )

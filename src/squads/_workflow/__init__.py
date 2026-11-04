@@ -1,65 +1,48 @@
-"""Per-type status workflows and transition validation.
+"""Per-type status workflows and transition validation."""
 
-Workflow capabilities live as methods on ``WorkflowSpec``. This module holds the bundled-spec
-accessor and the names the rest of the package imports from here.
-
-There is no process-global mutable state here: per-invocation spec context is
-owned by ``Service`` and threaded explicitly through call sites.
-"""
-
-from squads._workflow._lifecycle_order import linearize_lifecycle
-from squads._workflow._loader import load_workflow_spec
-from squads._workflow._models import (
-    CATEGORIES,
-    ROSTER_OPERATOR,
-    ROSTER_ROLE,
-    ROSTER_SKILL,
-    StatusSpec,
-    WorkflowSpec,
+from squads._workflow._bundled import bundled_spec as bundled_spec
+from squads._workflow._bundled import dropped_via_selected as dropped_via_selected
+from squads._workflow._lifecycle_order import lifecycle_edges_in_order as lifecycle_edges_in_order
+from squads._workflow._lifecycle_order import lifecycle_states_in_order as lifecycle_states_in_order
+from squads._workflow._lifecycle_order import linearize_lifecycle as linearize_lifecycle
+from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME as WORKFLOW_OVERRIDE_FILENAME
+from squads._workflow._loader import WORKFLOW_OVERRIDE_MESSAGES as WORKFLOW_OVERRIDE_MESSAGES
+from squads._workflow._loader import as_entry_list as as_entry_list
+from squads._workflow._loader import as_table as as_table
+from squads._workflow._loader import bundled_workflow_bytes as bundled_workflow_bytes
+from squads._workflow._loader import bundled_workflow_toml_text as bundled_workflow_toml_text
+from squads._workflow._loader import lint_workflow_spec as lint_workflow_spec
+from squads._workflow._loader import load_workflow_spec as load_workflow_spec
+from squads._workflow._loader import refusal_cause as refusal_cause
+from squads._workflow._loader import spec_refusal as spec_refusal
+from squads._workflow._loader import validate_against_index as validate_against_index
+from squads._workflow._loader import (
+    validate_against_index_fail_closed as validate_against_index_fail_closed,
 )
-
-# ---------------------------------------------------------------------------
-# Immutable bundled spec — loaded once at import; never rebindable.
-# ---------------------------------------------------------------------------
-
-_BUNDLED_SPEC: WorkflowSpec = load_workflow_spec()
-
-
-# ---------------------------------------------------------------------------
-# Bundled-spec accessor
-# ---------------------------------------------------------------------------
-
-
-def bundled_spec() -> WorkflowSpec:
-    """Return the bundled default ``WorkflowSpec``.
-
-    The bundled spec is loaded once at import and is immutable.  Use this to
-    obtain the default spec without side effects (e.g. for constructing an
-    ``IndexStore`` or ``Service`` with no override).
-    """
-    return _BUNDLED_SPEC
-
-
-def dropped_via_selected(item_type: str, spec: WorkflowSpec) -> bool:
-    """Whether *item_type* was a bundled built-in that *spec* (the active/merged spec) no longer
-    declares. ``[selected]`` is the merge engine's only way to remove a bundled key (deep-merge
-    never deletes), so a name that was a bundled type and is absent from *spec* was dropped via
-    ``[selected]``, not merely undeclared. An "unknown item type" refusal uses this to point a
-    dropped type at the adopter's own ``selected.items`` line instead of the "declare it or check
-    for a typo" message that fits a never-bundled name.
-    """
-    return item_type not in spec.items and item_type in bundled_spec().items
-
-
-__all__ = [
-    "CATEGORIES",
-    "ROSTER_OPERATOR",
-    "ROSTER_ROLE",
-    "ROSTER_SKILL",
-    "StatusSpec",
-    "WorkflowSpec",
-    "bundled_spec",
-    "dropped_via_selected",
-    "linearize_lifecycle",
-    "load_workflow_spec",
-]
+from squads._workflow._loader import workflow_stamp_finding as workflow_stamp_finding
+from squads._workflow._models import CATEGORIES as CATEGORIES
+from squads._workflow._models import FALLBACK_ROLE_NAME as FALLBACK_ROLE_NAME
+from squads._workflow._models import ROSTER_OPERATOR as ROSTER_OPERATOR
+from squads._workflow._models import ROSTER_ROLE as ROSTER_ROLE
+from squads._workflow._models import ROSTER_SKILL as ROSTER_SKILL
+from squads._workflow._models import ROSTER_TYPES as ROSTER_TYPES
+from squads._workflow._models import Field as Field
+from squads._workflow._models import ItemSpec as ItemSpec
+from squads._workflow._models import ViewSpec as ViewSpec
+from squads._workflow._models import ViewTransform as ViewTransform
+from squads._workflow._models import WorkflowSpec as WorkflowSpec
+from squads._workflow._models import parse_view_position as parse_view_position
+from squads._workflow._validator_names import (
+    DEFAULT_SQUAD_GLOBAL_LEVEL as DEFAULT_SQUAD_GLOBAL_LEVEL,
+)
+from squads._workflow._validator_names import DEFAULT_VALIDATOR_LEVEL as DEFAULT_VALIDATOR_LEVEL
+from squads._workflow._validator_names import (
+    SELECTABLE_SQUAD_GLOBAL_NAMES as SELECTABLE_SQUAD_GLOBAL_NAMES,
+)
+from squads._workflow._validator_names import (
+    SQUAD_GLOBAL_VALIDATOR_NAMES as SQUAD_GLOBAL_VALIDATOR_NAMES,
+)
+from squads._workflow._validator_names import VALIDATOR_NAMES as VALIDATOR_NAMES
+from squads._workflow._validator_names import effective_validator_names as effective_validator_names
+from squads._workflow._validator_names import parse_validator_entry as parse_validator_entry
+from squads._workflow._validity import subentity_source_reason as subentity_source_reason

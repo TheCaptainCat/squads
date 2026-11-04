@@ -11,8 +11,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, ListItem, ListView, Select, Static
 from textual.widgets.select import NoSelection
 
-from squads._api import _ops as ops
-from squads._api._dto._search import SearchHit, SearchRequest
+from squads._api import SearchHit, SearchRequest, ops
 from squads._tui._reader import ReaderScreen
 from squads._tui._session import Session, status_options, type_options
 

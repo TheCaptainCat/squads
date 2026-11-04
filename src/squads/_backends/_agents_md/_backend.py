@@ -16,13 +16,11 @@ survives, since the roster sweep never visits it; ``candidate_orphans`` reports 
 from squads import _aio
 from squads._backends._agents_md import _managed as managed
 from squads._backends._base import AgentBackend, Artifact, BackendContext
-from squads._interactions._role_guidance import developer_roles
-from squads._models._item import Item
-from squads._rendering._engine import render
-from squads._roles._catalog import RoleDef
-from squads._roles._projection import OperatorView, RoleView
-from squads._workflow import ROSTER_SKILL
-from squads._workflow._models import WorkflowSpec
+from squads._interactions import developer_roles
+from squads._models import Item
+from squads._rendering import render
+from squads._roles import OperatorView, RoleDef, RoleView
+from squads._workflow import ROSTER_SKILL, WorkflowSpec
 
 _AGENTS_MD = "AGENTS.md"
 _STAGING_DIR = ".agents_md"
@@ -97,9 +95,7 @@ class AgentsMdBackend(AgentBackend):
             }
             for r in roster
         ]
-        from squads._interactions._cheatsheet import (
-            cheatsheet_anchor_context,
-        )
+        from squads._interactions import cheatsheet_anchor_context
 
         spec = ctx.spec
         anchor_ctx = cheatsheet_anchor_context(spec)

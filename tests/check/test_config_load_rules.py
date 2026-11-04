@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
-from squads._overrides._manifest import WORKFLOW_KEY
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+from squads._interactions import PLAYBOOK_OVERRIDE_FILENAME
+from squads._overrides import WORKFLOW_KEY
+from squads._workflow import WORKFLOW_OVERRIDE_FILENAME
 from tests.check._arrange import (
     activate,
     active_spec,

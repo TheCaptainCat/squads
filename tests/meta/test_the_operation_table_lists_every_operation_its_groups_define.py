@@ -7,8 +7,7 @@ import subprocess
 import sys
 
 import squads._api as api_package
-from squads._api import _ops
-from squads._api._api import Operation
+from squads._api import Operation, _ops
 
 
 def _defined() -> dict[str, str]:

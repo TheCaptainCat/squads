@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from squads._endpoint import CONFIG_FILENAME as CONFIG_FILENAME  # the name others import from here
 from squads._endpoint import DaemonSettings, parse_daemon
-from squads._models._schema import SCHEMA_VERSION
+from squads._models import SCHEMA_VERSION
 from squads._util import NonEmpty
 
 

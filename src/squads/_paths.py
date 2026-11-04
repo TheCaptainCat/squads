@@ -12,12 +12,12 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from squads._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
 from squads._context import get_context
 from squads._endpoint import find_config
 from squads._errors import InvalidIdError, NotInitializedError, SquadsError
-from squads._models._config import CONFIG_FILENAME, INDEX_FILENAME, LOCK_FILENAME, SquadsConfig
-from squads._models._item import prefix_from_id
-from squads._workflow._models import WorkflowSpec
+from squads._models import prefix_from_id
+from squads._workflow import WorkflowSpec
 
 
 def process_dir() -> Path:

@@ -8,11 +8,9 @@ chains remain self-contained.
 import re
 from dataclasses import dataclass
 
-from squads._models import _markers as markers
-from squads._models._subentity import SubEntity
+from squads._models import SubEntity, markers
 from squads._sections import get_section, replace_section
-from squads._workflow import bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec, bundled_spec
 
 _LOCAL_ID_PREFIX = {"story": "US", "subtask": "ST", "finding": "F"}
 # the meta keys, in render order; assignee/severity/story are optional per kind

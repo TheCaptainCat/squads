@@ -8,24 +8,16 @@ from typing import Any, cast
 from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
-from squads._api._dto._comment_writes import (
+from squads._api import (
+    AddedDisplay,
     CommentAdded,
     CommentAddRequest,
     CommentEdited,
     CommentEditRequest,
     CommentRequest,
+    Comments,
     CommentSelection,
     CommentShown,
-    RosterCommentAddRequest,
-    RosterCommentEditRequest,
-    RosterCommentRequest,
-    SubentityCommentAddRequest,
-    SubentityCommentEditRequest,
-    SubentityCommentRequest,
-)
-from squads._api._dto._comments import Comments
-from squads._api._dto._item_writes import (
-    AddedDisplay,
     ItemBodyRequest,
     ItemCreated,
     ItemCreateRequest,
@@ -37,27 +29,33 @@ from squads._api._dto._item_writes import (
     ItemRemoveRequest,
     ItemRetyped,
     ItemRetypeRequest,
+    ItemRow,
     ItemUpdated,
     ItemUpdateRequest,
     ItemViewChanged,
     ItemViewRequest,
     ItemWritten,
+    Response,
+    RosterAddress,
+    RosterCommentAddRequest,
+    RosterCommentEditRequest,
+    RosterCommentRequest,
     SubentityAdded,
     SubentityAddRequest,
     SubentityBodyRequest,
+    SubentityCommentAddRequest,
+    SubentityCommentEditRequest,
+    SubentityCommentRequest,
     SubentityRemoved,
     SubentityRemoveRequest,
+    SubentityRequest,
+    SubentityShow,
     SubentityUpdated,
     SubentityUpdateRequest,
     SubentityWritten,
 )
-from squads._api._dto._items import ItemRow
-from squads._api._dto._roster import RosterAddress
-from squads._api._dto._subentities import SubentityRequest, SubentityShow
-from squads._api._response import Response
 from squads._errors import SquadsError
-from squads._models._item import Item, make_ref, split_ref
-from squads._models._metadata import coerce_attribute, require_settable
+from squads._models import Item, coerce_attribute, make_ref, require_settable, split_ref
 from squads._services._item_dto import item_display, item_row, row_fields
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin

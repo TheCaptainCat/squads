@@ -3,12 +3,12 @@ the columns its table shows."""
 
 import math
 
-from squads._api._dto._display import Column, titled_columns
-from squads._api._dto._workflow import (
+from squads._api import (
     AttributeEntry,
     CollectionBadge,
     CollectionCatalog,
     CollectionRow,
+    Column,
     FieldEntry,
     LifecycleCatalog,
     LifecycleRow,
@@ -25,10 +25,15 @@ from squads._api._dto._workflow import (
     TypeRow,
     ViewCatalog,
     ViewRow,
+    titled_columns,
 )
-from squads._models._vocab import labels_for
-from squads._workflow._lifecycle_order import lifecycle_edges_in_order, lifecycle_states_in_order
-from squads._workflow._models import FALLBACK_ROLE_NAME, WorkflowSpec
+from squads._models import labels_for
+from squads._workflow import (
+    FALLBACK_ROLE_NAME,
+    WorkflowSpec,
+    lifecycle_edges_in_order,
+    lifecycle_states_in_order,
+)
 
 
 def _columns(*pairs: tuple[str, str]) -> list[Column]:

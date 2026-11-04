@@ -3,7 +3,7 @@
 from rich.console import Console
 from rich.table import Table
 
-from squads._api._dto._subentities import SubentityList, SubentityShow
+from squads._api import SubentityList, SubentityShow
 from squads._cli._render._comments import is_styled, print_comments_plain, print_comments_styled
 from squads._cli._render._style import e
 

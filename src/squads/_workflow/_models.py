@@ -26,7 +26,7 @@ from typing import Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, StrictBool, model_validator
 
-from squads._models._attributes import AttributeSpec
+from squads._models import AttributeSpec
 from squads._workflow._lifecycle_order import lifecycle_spine, lifecycle_states_in_order
 from squads._workflow._validator_names import (
     effective_bare_validators,

@@ -17,11 +17,10 @@ from typing import Any
 import typer.main
 from typer._click.core import Context, iter_params_for_processing
 
+from squads._cli import _create as cli_create
 from squads._cli import app
-from squads._cli._create import CREATE_ATTRIBUTE_KINDS
 from squads._context import bind_context, get_context
-from squads._workflow import bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec, bundled_spec
 from tests._help_tree import Node, command_nodes
 
 type Pair = tuple[str, str | None]
@@ -79,7 +78,7 @@ def derived_names(spec: WorkflowSpec) -> dict[str, str]:
         for declared in item.fields:
             field_flags(declared.code)
         for key, attribute in item.attributes.items():
-            if attribute.settable and attribute.kind in CREATE_ATTRIBUTE_KINDS:
+            if attribute.settable and attribute.kind in cli_create.CREATE_ATTRIBUTE_KINDS:
                 names.setdefault(f"--{_dashed(key)}", f"--<attribute:{attribute.kind}>")
     for kind, kind_spec in spec.subentity_kinds.items():
         for declared in kind_spec.fields:

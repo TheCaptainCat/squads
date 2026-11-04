@@ -8,20 +8,26 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from squads._api._dto._display import Column
-from squads._api._dto._operators import OperatorList, OperatorRow, OperatorShow
-from squads._api._dto._roles import (
+from squads._api import (
+    Column,
     DeveloperList,
     DeveloperRow,
+    OperatorList,
+    OperatorRow,
+    OperatorShow,
     RoleCatalog,
     RoleCatalogRow,
     RoleDefaultMove,
     RoleList,
     RoleRow,
     RoleShow,
+    SeveredRef,
+    SkillRefChange,
+    SkillRefs,
+    SkillRoleLink,
+    SkillRow,
+    SkillShow,
 )
-from squads._api._dto._roster import SeveredRef
-from squads._api._dto._skills import SkillRefChange, SkillRefs, SkillRoleLink, SkillRow, SkillShow
 from squads._cli._render._comments import is_styled, print_comments
 from squads._cli._render._style import e, print_body
 from squads._pronouns import named
@@ -237,7 +243,7 @@ def render_skill_added(row: SkillRow, console: Console) -> None:
     console.print(f"created skill [bold]{row.id}[/bold] → {row.path}")
 
 
-def render_updated(entry_id: str, console: Console) -> None:
+def render_roster_updated(entry_id: str, console: Console) -> None:
     """An entry whose fields an update changed."""
     console.print(f"updated {entry_id}")
 

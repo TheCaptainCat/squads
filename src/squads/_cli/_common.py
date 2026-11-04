@@ -24,21 +24,28 @@ from rich.text import Text
 from squads import _actor as actor
 from squads import _badges as badges
 from squads import _discussion as discussion
-from squads._api import _ops as ops
-from squads._api._api import Operation
-from squads._api._dto._comment_writes import (
+from squads._api import (
     CommentAdded,
     CommentAddRequest,
     CommentEdited,
     CommentEditRequest,
     CommentRequest,
+    Comments,
     CommentSelection,
     CommentShown,
+    CommentsRequest,
+    Operation,
+    ops,
 )
-from squads._api._dto._comments import Comments, CommentsRequest
 from squads._cli._markup import escape_markup
-from squads._cli._render import _comments as comment_render
-from squads._cli._render import _writes as write_render
+from squads._cli._render import (
+    print_comments,
+    render_comment_added,
+    render_comment_edited,
+    render_comment_removal,
+    render_comment_removed,
+    render_comment_shown,
+)
 from squads._context import ServedCommand, get_context
 from squads._endpoint import ChangeDirError, change_directory
 from squads._errors import (
@@ -46,18 +53,17 @@ from squads._errors import (
     NotInitializedError,
     SquadsError,
 )
-from squads._models._item import (
+from squads._models import (
     DISPLAY_ID_PADDING,
+    Omission,
     format_item_id,
     parse_item_token,
+    refuse_system_actor,
 )
-from squads._models._omission import Omission
-from squads._models._participants import refuse_system_actor
 from squads._paths import process_dir, resolve
 from squads._spec_documents import SpecSources, spec_sources
 from squads._specload import override_present
-from squads._workflow import CATEGORIES, bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import CATEGORIES, WorkflowSpec, bundled_spec
 
 
 def _dimension(name: str, terminal: int | None, fallback: int) -> int:
@@ -321,7 +327,7 @@ def _read_spec_from_disk(ctx: Any) -> WorkflowSpec:
     or the override does not resolve."""
     try:
         from squads._paths import resolve
-        from squads._workflow._loader import (
+        from squads._workflow import (
             WORKFLOW_OVERRIDE_FILENAME,
             load_workflow_spec,
             validate_against_index_fail_closed,
@@ -462,8 +468,7 @@ def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str 
 
     ``client_cwd`` goes straight to ``resolve()``, so every resolution path shares one base.
     """
-    from squads._workflow import bundled_spec
-    from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, spec_refusal
+    from squads._workflow import WORKFLOW_OVERRIDE_FILENAME, bundled_spec, spec_refusal
 
     try:
         sp = resolve(client_cwd=client_cwd)
@@ -475,7 +480,7 @@ def bind_active_spec(client_cwd: Path | None) -> tuple[WorkflowSpec | None, str 
     if not has_override:
         return bundled_spec(), None
 
-    from squads._workflow._loader import validate_against_index_fail_closed
+    from squads._workflow import validate_against_index_fail_closed
 
     try:
         merged_spec = invocation_sources(sp.squad_dir).workflow()
@@ -702,7 +707,7 @@ def e(value: object) -> str:
 def status_style(status: str, spec: WorkflowSpec) -> str:
     """The concrete `rich` style for *status*: its role's colour intent, uncoloured when this
     build does not know the intent."""
-    from squads._cli._render._style import intent_style
+    from squads._cli._render import intent_style
 
     return intent_style(spec.role_for(status).color)
 
@@ -715,59 +720,6 @@ def status_text(status: str, spec: WorkflowSpec) -> Text:
     so colouring a status never opens a markup-injection path.
     """
     return Text(status, style=status_style(status, spec))
-
-
-def _is_styled() -> bool:
-    """True when Rich will actually render markup (TTY + color enabled)."""
-    # Console.is_terminal is False when stdout is piped; NO_COLOR collapses markup too.
-    return console.is_terminal and not console.no_color
-
-
-def _render_comments_plain(
-    comments: list[discussion.Comment], shorts: list[str] | None = None
-) -> None:
-    """Render comments as plain delimited text (piped / NO_COLOR / --raw degradation).
-
-    Uses raw (un-escaped) values because markup=False is in effect — e() escaping must not be
-    applied here or it will leak backslashes into the plain output. ``shorts`` are the displayed
-    hashes, one per comment (the scope's, when the list is a part of it).
-    """
-    for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
-        label = discussion.author_label(cmt)
-        header = f"--- {short} [{cmt.timestamp}] {label}{discussion.edited_suffix(cmt)} ---"
-        console.print(header, markup=False, highlight=False)
-        console.print(cmt.body, markup=False, highlight=False)
-        console.print()
-
-
-def _render_comments_styled(
-    comments: list[discussion.Comment], shorts: list[str] | None = None
-) -> None:
-    """Render each comment as a Rich Panel (TTY, color enabled, not --raw)."""
-    from rich.markdown import Markdown
-    from rich.panel import Panel
-
-    for cmt, short in zip(comments, shorts or discussion.short_hashes(comments), strict=True):
-        title = (
-            f"{e(short)}  {e(cmt.timestamp)}  {e(discussion.author_label(cmt))}"
-            f"{e(discussion.edited_suffix(cmt))}"
-        )
-        # Body is parsed markdown; pass through Markdown() so bullets/code are styled.
-        # We do NOT escape here — the body is trusted markdown content, not user-input markup.
-        console.print(Panel(Markdown(cmt.body), title=title, expand=False))
-
-
-def print_comments(comments: list[discussion.Comment]) -> None:
-    """Render a comment list the same way `show --comments` does (styled panes on a TTY, plain
-    delimited text when piped/NO_COLOR) — for the dedicated `comments` read-back verb, or an
-    empty-discussion "no comments" line rather than an error."""
-    if not comments:
-        console.print("[dim](no comments)[/dim]")
-        return
-    if _is_styled():
-        _render_comments_styled(comments)
-    else:
-        _render_comments_plain(comments)
 
 
 def client_path(file: str) -> Path:
@@ -953,7 +905,7 @@ def value_options() -> frozenset[str]:
     is computed once per process."""
     import typer.main
 
-    from squads._cli import app
+    from squads._cli._entry import app
 
     return _value_options_of(typer.main.get_command(app))
 
@@ -981,7 +933,7 @@ def help_requested(argv: list[str], root: _click.Command | None = None) -> bool:
 def item_prefix(item_type: str) -> str:
     """The id prefix of *item_type* in the active spec, refused for a type the spec does not
     declare."""
-    from squads._models._vocab import prefix_for
+    from squads._models import prefix_for
     from squads._workflow import dropped_via_selected
 
     spec = get_active_spec()
@@ -1282,7 +1234,7 @@ def _register_comment_append(comment_app: typer.Typer, host: CommentHost) -> Non
             calls.print_json(host.add, response)
         else:
             calls.print_warnings(response)
-            write_render.render_comment_added(response.data, console)
+            render_comment_added(response.data, console)
         calls.finish(response, json_out=json_out)
 
 
@@ -1303,7 +1255,7 @@ def _register_comment_show(addr_app: typer.Typer, host: CommentHost) -> None:
             calls.print_json(host.show, response)
         else:
             calls.print_warnings(response)
-            write_render.render_comment_shown(response.data, console, raw=raw)
+            render_comment_shown(response.data, console, raw=raw)
         calls.finish(response, json_out=json_out)
 
 
@@ -1334,7 +1286,7 @@ def _register_comment_edit(addr_app: typer.Typer, host: CommentHost) -> None:
             calls.print_json(host.edit, response)
         else:
             calls.print_warnings(response)
-            write_render.render_comment_edited(response.data, console)
+            render_comment_edited(response.data, console)
         calls.finish(response, json_out=json_out)
 
 
@@ -1359,7 +1311,7 @@ def _register_comment_remove(addr_app: typer.Typer, host: CommentHost) -> None:
             # a comment changed since no longer resolves, and nothing is removed.
             preview = calls.call(host.removal, host.hash_request(**host.address(ctx), hash=token))
             # Under --json, stdout carries only the document.
-            write_render.render_comment_removal(preview.data, err_console if json_out else console)
+            render_comment_removal(preview.data, err_console if json_out else console)
             n = len(preview.data.items)
             confirm(
                 f"Remove {'this comment' if n == 1 else f'these {n} comments'}?",
@@ -1371,7 +1323,7 @@ def _register_comment_remove(addr_app: typer.Typer, host: CommentHost) -> None:
             calls.print_json(host.remove, response)
         else:
             calls.print_warnings(response)
-            write_render.render_comment_removed(response.data, console)
+            render_comment_removed(response.data, console)
         calls.finish(response, json_out=json_out)
 
 
@@ -1427,7 +1379,7 @@ def register_comment_verbs(app: typer.Typer, host: CommentHost) -> None:
             calls.print_json(listing, response)
         else:
             calls.print_warnings(response)
-            comment_render.print_comments(console, response.data.items)
+            print_comments(console, response.data.items)
         calls.finish(response, json_out=json_out)
 
 
@@ -1459,12 +1411,12 @@ def roster_comments(
 ) -> CommentHost:
     """A roster entry's discussion, from its kind's operations (listing, add, show, edit, removal,
     remove) and the address its group parsed."""
-    from squads._api._dto._comment_writes import (
+    from squads._api import (
+        RosterAddress,
         RosterCommentAddRequest,
         RosterCommentEditRequest,
         RosterCommentRequest,
     )
-    from squads._api._dto._roster import RosterAddress
 
     listing, add, show, edit, removal, remove = kind_ops
     return CommentHost(

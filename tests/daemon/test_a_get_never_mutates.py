@@ -4,7 +4,7 @@ import hashlib
 import re
 from pathlib import Path
 
-from squads._api._ops import ROUTED_OPERATIONS
+from squads._api import ops
 from squads._paths import SquadPaths
 from tests import _stored_view as stored
 from tests._daemon_harness import Served
@@ -90,7 +90,7 @@ def test_every_get_operation_leaves_every_file_of_the_squad_as_it_found_it(
         encoding="utf-8",
     )
     before = snapshot(seeded_project.root)
-    gets = [op for op in ROUTED_OPERATIONS if op.method == "GET"]
+    gets = [op for op in ops.ROUTED_OPERATIONS if op.method == "GET"]
     assert len(gets) > 50
     refused: list[str] = []
     for op in gets:

@@ -26,7 +26,7 @@ from squads._sources._http import (
     UnexpectedAnswerError,
     member_items,
 )
-from squads._sources._jira_probes import JiraHooks, JiraProbes
+from squads._sources._jira._probes import JiraHooks, JiraProbes
 from squads._sources._probes import Expected, Family, ProbeResult
 from squads._sources._records import mapping, names, records, text
 from squads._sources._spec import SourceScope

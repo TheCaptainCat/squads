@@ -23,7 +23,7 @@ from tests.cross_process._sq import env, run, sq_command
 #: each call, the way the terminal UI does. The mode says what happens to the daemon meanwhile.
 SESSION = """\
 import asyncio, json, pathlib, subprocess, sys
-from squads._api import _ops as ops
+from squads._api import ops
 from squads._api._dto._workflow import CatalogRequest
 from squads._cli import _remote
 from squads._cli._remote import SelectedApi

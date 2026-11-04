@@ -3,7 +3,7 @@ it addressed, with any method; it answers none only when the item's file is gone
 
 from typing import Any
 
-from squads._api._ops import ROUTED_OPERATIONS, carries_etag
+from squads._api import carries_etag, ops
 from squads._paths import SquadPaths
 from tests._daemon_harness import Reply, Served
 from tests.daemon.test_etags import etag_of_file
@@ -24,7 +24,7 @@ class Scenario:
     def __init__(self, daemon: Served) -> None:
         self.daemon = daemon
         self.replies: dict[str, Reply] = {}
-        self.operations = {op.name: op for op in ROUTED_OPERATIONS}
+        self.operations = {op.name: op for op in ops.ROUTED_OPERATIONS}
 
     def call(
         self,
@@ -178,7 +178,7 @@ def operators(s: Scenario) -> None:
 
 def test_every_operation_under_an_item_answers_its_etag(seeded_project: SquadPaths, serve) -> None:
     scenario = run_scenario(serve(seeded_project))
-    selected = {op.name for op in ROUTED_OPERATIONS if carries_etag(op)}
+    selected = {op.name for op in ops.ROUTED_OPERATIONS if carries_etag(op)}
     assert set(scenario.replies) >= selected, sorted(selected - set(scenario.replies))
     wrong: list[str] = []
     for name in sorted(selected):

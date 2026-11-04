@@ -6,6 +6,10 @@ through `getattr` or `importlib`, or through a module outside the served path, i
 import ast
 from pathlib import Path
 
+import pytest
+
+from tests._import_scan import resolved
+
 #: The daemon's modules that own its process and sockets, and so are not the served path.
 PROCESS_MODULES = frozenset({"_lifecycle.py", "_listeners.py"})
 
@@ -66,7 +70,7 @@ def _bindings(tree: ast.AST) -> dict[str, str]:
 
 def _imported(tree: ast.AST) -> list[tuple[str, int]]:
     """Every module or name imported with its line; a name in `from x import y` counts as `x`
-    and as `x.y`."""
+    and as `x.y`, and as the modules that define it when `x` re-exports it."""
     found: list[tuple[str, int]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -74,6 +78,11 @@ def _imported(tree: ast.AST) -> list[tuple[str, int]]:
         elif isinstance(node, ast.ImportFrom) and node.module:
             found.append((node.module, node.lineno))
             found.extend((f"{node.module}.{alias.name}", node.lineno) for alias in node.names)
+            found.extend(
+                (module, node.lineno)
+                for alias in node.names
+                for module in resolved(node.module, alias.name)
+            )
     return found
 
 
@@ -173,3 +182,11 @@ def test_other_imports_and_calls_are_not_breaches() -> None:
     source = "import http.server\nimport os\nfrom squads._cli import _common\nos.getpid()\n"
 
     assert breaches(source) == []
+
+
+def test_a_name_re_exported_by_a_package_is_a_breach_when_its_defining_module_is_forbidden(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setitem(globals(), "FORBIDDEN_MODULES", ("squads._cli._app",))
+
+    assert breaches("from squads._cli import main\n") == [1]

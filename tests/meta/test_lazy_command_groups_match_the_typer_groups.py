@@ -9,7 +9,8 @@ import typer.main
 from typer._click import Context  # underscore is upstream's own private module path, not ours
 from typer.testing import CliRunner
 
-from squads._cli import LAZY_GROUPS, app
+from squads._cli import _app as cli_app
+from squads._cli import app
 
 
 def _is_typer_call(node: ast.expr) -> bool:
@@ -27,7 +28,7 @@ def _group_typers() -> frozenset[tuple[str, str]]:
     cli = Path(__file__).resolve().parents[2] / "src" / "squads" / "_cli"
     found: set[tuple[str, str]] = set()
     for path in sorted(cli.glob("_*.py")):
-        if path.name == "__init__.py":
+        if path.name in ("__init__.py", "_app.py"):
             continue
         for node in ast.parse(path.read_text(encoding="utf-8")).body:
             if isinstance(node, ast.Assign):
@@ -45,12 +46,12 @@ def _group_typers() -> frozenset[tuple[str, str]]:
 
 
 def test_the_lazy_table_names_every_group_typer_the_cli_modules_define() -> None:
-    assert {(g.module, g.attr) for g in LAZY_GROUPS} == _group_typers()
+    assert {(g.module, g.attr) for g in cli_app.LAZY_GROUPS} == _group_typers()
 
 
 def test_each_lazy_group_builds_under_its_name_with_its_summary() -> None:
     root = typer.main.get_command(app)
-    for group in LAZY_GROUPS:
+    for group in cli_app.LAZY_GROUPS:
         built = root.commands[group.name]  # type: ignore[attr-defined]
         assert built.name == group.name
         assert built.help == group.help
@@ -59,10 +60,10 @@ def test_each_lazy_group_builds_under_its_name_with_its_summary() -> None:
 def test_the_root_lists_the_lazy_groups_in_table_order() -> None:
     root = typer.main.get_command(app)
     names = root.list_commands(Context(root))  # type: ignore[attr-defined]
-    listed = [n for n in names if n in {g.name for g in LAZY_GROUPS}]
-    assert listed == [g.name for g in LAZY_GROUPS]
+    listed = [n for n in names if n in {g.name for g in cli_app.LAZY_GROUPS}]
+    assert listed == [g.name for g in cli_app.LAZY_GROUPS]
 
 
 def test_the_root_help_lists_every_lazy_group() -> None:
     help_text = CliRunner().invoke(app, ["--help"]).output
-    assert [g.name for g in LAZY_GROUPS if f"│ {g.name} " not in help_text] == []
+    assert [g.name for g in cli_app.LAZY_GROUPS if f"│ {g.name} " not in help_text] == []

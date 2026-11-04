@@ -18,10 +18,10 @@ import typer.main
 from typer._click import Command
 from typer.testing import CliRunner
 
-from squads import _shim as shim
+from squads import _shim as squads_shim
 from squads._cli import app
 from squads._context import get_context
-from squads._daemon._lifecycle import fingerprint
+from squads._daemon import _lifecycle as daemon_lifecycle
 from squads._endpoint import ChangeDirError, Endpoint, change_directory, endpoint_for
 from squads._paths import resolve
 from tests._daemon_harness import Reply, Served, serve_squad
@@ -67,7 +67,7 @@ def command_body(argv: list[str], **fields: Any) -> dict[str, Any]:
     """The request that sends *argv* from the current directory as a client with piped streams
     would, with each of *fields* in place of the default."""
     cwd = str(Path.cwd())
-    request = shim.build_request(
+    request = squads_shim.build_request(
         argv,
         cwd=cwd,
         client_dir=cwd,
@@ -99,7 +99,7 @@ class EndpointClient:
 
     def _application(self, endpoint: Endpoint) -> Served:
         """The application serving *endpoint*'s squad on its current configuration."""
-        current = fingerprint(endpoint.root, endpoint.squad_dir)
+        current = daemon_lifecycle.fingerprint(endpoint.root, endpoint.squad_dir)
         held = self._served.get(endpoint.root)
         if held is not None and held[0] == current:
             return held[1]
@@ -116,11 +116,11 @@ class EndpointClient:
 
     @staticmethod
     def _attachments(
-        argv: list[str], lead: shim.Leading, client_dir: Path, stdin: str
+        argv: list[str], lead: squads_shim.Leading, client_dir: Path, stdin: str
     ) -> dict[str, str] | None:
         """The client files the command line names, or ``None`` when one cannot be read."""
         attached: dict[str, str] = {}
-        for name in shim.file_arguments(argv, lead):
+        for name in squads_shim.file_arguments(argv, lead):
             try:
                 raw = stdin.encode() if name == "-" else (client_dir / name).read_bytes()
             except OSError:
@@ -130,8 +130,8 @@ class EndpointClient:
 
     def _plan(self, argv: list[str], stdin: str) -> dict[str, Any] | None:
         """The request that serves *argv*, or ``None`` when the shim would run it locally."""
-        lead = shim.leading(argv)
-        if argv == ["--version"] or shim.runs_here(lead):
+        lead = squads_shim.leading(argv)
+        if argv == ["--version"] or squads_shim.runs_here(lead):
             return None
         cwd = Path.cwd()
         try:
@@ -144,7 +144,7 @@ class EndpointClient:
         attachments = self._attachments(argv, lead, client_dir, stdin)
         if attachments is None:
             return None
-        request = shim.build_request(
+        request = squads_shim.build_request(
             argv,
             cwd=str(cwd),
             client_dir=str(client_dir),

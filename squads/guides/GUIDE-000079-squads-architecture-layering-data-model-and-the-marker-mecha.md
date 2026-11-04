@@ -15,12 +15,13 @@ refs:
 - ADR-77
 - ADR-78
 - ADR-49
+- ADR-1287
 description: 'A standalone-readable map of how squads is built: the cli to services
   to index/backends/rendering layering, the item/sub-entity/index data model, and
   the marker mechanism — pointing at sq docs internals for depth and citing the standing
   ADRs.'
 created_at: '2026-06-12T14:25:59Z'
-updated_at: '2026-10-15T20:49:19Z'
+updated_at: '2026-11-04T14:11:54Z'
 tech: python
 tags:
 - architecture
@@ -42,13 +43,13 @@ The code is a strict stack: each layer depends only on the ones below it, and `_
 
 **Rendering (`src/squads/_rendering`).** Jinja2 with `StrictUndefined`. Item files and sub-entity blocks render from templates shipped as package data. This layer turns model state into the markdown a human reads.
 
-**Models (`src/squads/_models`).** The shared, dependency-free base every layer above builds on: pydantic v2 types for the `Item`, its sub-entities, the index, the enums (item types and statuses), the config, and the marker tags. It imports nothing internal — that is what lets it be the foundation.
+**Models (`src/squads/_models`).** The shared, dependency-free base every layer above builds on: pydantic v2 types for the `Item`, its sub-entities, the index, the attribute keys, the per-type vocabulary resolver, and the marker tags. It imports no other package, only the top-level clock, error and utility modules — that is what lets it be the foundation. The project configuration (`.squads.toml`) is a top-level module of its own, outside `_models`.
 
 ## 2. The data model
 
 **Items.** Everything tracked — epic, feature, task, bug, ADR, review, guide, role, skill — is an `Item`: one markdown file with YAML frontmatter. IDs are JIRA-like (`TASK-000070`) and their number comes from one global monotonic counter, so every number is unique across all types (ADR-72). The formatted `id` is computed from the type and the stored `sequence_id`; both are persisted in frontmatter.
 
-**Sub-entities.** Stories, subtasks, and findings don't get their own files — they ride on a parent item as typed entries in its frontmatter (`Item.subentities`), each carrying its own status, assignee, severity, mapped story, and title. The parent's body holds only their prose; their machine state is single-sourced in the parent's frontmatter and re-rendered into the human-readable head badge and roll-up summary on every change.
+**Sub-entities.** Stories, subtasks, and findings don't get their own files — they ride on a parent item as typed entries in its frontmatter (`Item.subentities`), each carrying its own status, assignee, severity, mapped story, and title. The parent's body holds only their prose under a `### <local id> — <title>` heading; their machine state is single-sourced in the parent's frontmatter. Nothing derived is stored in the body: the status badges and the roll-up table are computed when the item is read, and a write re-renders only the heading line after a title change.
 
 **The index.** `.squads.json` caches all item state plus the counter for fast queries and atomic ID allocation — but it stores nothing that can't be reconstructed from the `.md` files. Frontmatter is the source of truth; the index is a rebuildable derivative, and `sq repair` proves it by rescanning the files and rebuilding the index from scratch (ADR-71). A merge conflict in the index is therefore a non-event.
 
@@ -64,7 +65,7 @@ All file content is mutated through the sections layer (`_sections.py`) and only
 
 **How versions move.** The on-disk schema is versioned with a dotted 0.x string naming the release that introduced it, compared as a tuple (never as a raw string), and a squad is moved forward through the ordered `sq migrate` runner — each step a recorded, testable transformation with a manual runbook for the parts a machine can't do (ADR-76).
 
-**Cross-cutting conventions.** Time is injectable: all timestamps route through a single clock module so tests can freeze it and adoption can forge history with `--at` (ADR-77). And every implementation module is private — leading-underscore names, with package inits that don't re-export — so a 1.0 release freezes no accidental public API (ADR-78).
+**Cross-cutting conventions.** Time is injectable: all timestamps route through a single clock module so tests can freeze it and adoption can forge history with `--at` (ADR-77). And every implementation module is private — leading-underscore names — so a 1.0 release freezes no accidental public API (ADR-78). Each private package's init re-exports exactly the names other packages import from it, so an importer writes one import statement per package and never names a module inside another package; only the top-level `squads/__init__` and public packages do not re-export (ADR-1287).
 
 ## Going deeper
 
@@ -78,4 +79,6 @@ This guide is the shape; the depth lives elsewhere.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-04T11:06:45Z] `architect` Robert Architect:
+  - @tech-writer Cross-cutting conventions still says every module is private 'with package inits that don't re-export' (ADR-78). Per ADR-1287 and ADR-78's 2026-11-04 amendment, only the top-level squads/__init__ and public packages don't re-export; private package inits re-export the names other packages import. Please reword and cite ADR-1287 alongside ADR-78.
 <!-- sq:discussion:end -->

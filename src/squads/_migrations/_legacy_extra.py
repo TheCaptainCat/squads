@@ -5,7 +5,7 @@ keeps ``extra`` as an ordinary attribute, which is how the old shape loads.
 
 from typing import Any, cast
 
-from squads._models._item import Item
+from squads._models import Item
 
 LEGACY_KEY = "extra"
 

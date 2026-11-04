@@ -80,10 +80,8 @@ from squads._errors import (
     SquadsError,
     UndecodableFileError,
 )
-from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._subentity import SubEntity
-from squads._workflow._models import Field, WorkflowSpec
+from squads._models import Item, SquadsDB, SubEntity
+from squads._workflow import Field, WorkflowSpec
 
 # Seconds a lock acquire waits before it tells the user it is waiting.
 _LOCK_NOTICE_AFTER = 1.0

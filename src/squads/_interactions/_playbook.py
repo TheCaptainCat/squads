@@ -30,10 +30,8 @@ from squads._interactions._role_guidance import (
     in_lane_owner,
     role_like,
 )
-from squads._roles._catalog import role_by_slug
-from squads._roles._projection import RoleView
-from squads._workflow import bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._roles import RoleView, role_by_slug
+from squads._workflow import WorkflowSpec, bundled_spec
 
 
 @functools.cache

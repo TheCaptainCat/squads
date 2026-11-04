@@ -15,7 +15,7 @@ TUI_DIR = SRC / "_tui"
 FORBIDDEN = (
     "squads._workflow",
     "squads._paths",
-    "squads._models._config",
+    "squads._config",
     "squads._services",
     "squads._cli._calls",
     "squads._cli._common",

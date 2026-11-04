@@ -58,7 +58,7 @@ def test_no_backend_reads_from_a_directory_it_generates_into() -> None:
 
 def test_the_roster_view_carries_every_role_field_the_compiled_section_renders() -> None:
     """The other half of the same property: the re-parse existed."""
-    from squads._roles._projection import RoleView
+    from squads._roles import RoleView
 
     section = (
         _repo_root()

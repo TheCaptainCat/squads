@@ -5,7 +5,7 @@ import ast
 from pathlib import Path
 from typing import TypeIs
 
-from squads import _clock as clock
+from squads import _clock as squads_clock
 
 #: The module that is allowed to read wall-clock time, relative to the repo root.
 _CLOCK_MODULE = "src/squads/_clock.py"
@@ -100,5 +100,5 @@ def test_the_sanctioned_seam_actually_honours_an_override() -> None:
     from datetime import UTC, datetime
 
     forged = datetime(2011, 11, 11, 11, 11, 11, tzinfo=UTC)
-    clock.set_now(forged)
-    assert clock.now() == forged
+    squads_clock.set_now(forged)
+    assert squads_clock.now() == forged

@@ -6,7 +6,7 @@ from collections.abc import Iterator, Mapping
 
 from squads._errors import SquadsError
 from squads._sources._connector import TYPE, Comment, Connector, Issue, Link, Reference
-from squads._sources._github_probes import BLOCKED_BY, BLOCKING, GitHubProbes
+from squads._sources._github._probes import BLOCKED_BY, BLOCKING, GitHubProbes
 from squads._sources._http import HttpClient, NotFoundError, UnexpectedAnswerError
 from squads._sources._probes import Expected, Family, ProbeResult
 from squads._sources._records import mapping, names, records, text

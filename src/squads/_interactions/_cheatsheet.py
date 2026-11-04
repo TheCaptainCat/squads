@@ -9,8 +9,8 @@ from squads import _badges as badges
 from squads._interactions._models import PlaybookSpec
 from squads._interactions._playbook import authoring_owners
 from squads._interactions._role_guidance import role_like
-from squads._roles._models import REVIEW_CAPABILITY
-from squads._workflow._models import Field, WorkflowSpec
+from squads._roles import REVIEW_CAPABILITY
+from squads._workflow import Field, WorkflowSpec
 
 
 def cheatsheet_anchor_type(spec: WorkflowSpec) -> str | None:

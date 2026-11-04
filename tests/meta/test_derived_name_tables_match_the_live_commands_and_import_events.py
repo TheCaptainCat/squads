@@ -2,9 +2,9 @@
 the options the live commands declare and the keys the live import events take, once the names the
 bundled spec derives are set aside."""
 
-from squads._services._import_model import AddSubEvent, CommentEvent
+from squads._services import _import_model as services_importmodel
+from squads._workflow import _derived_names as workflow_derivednames
 from squads._workflow import bundled_spec
-from squads._workflow._derived_names import FIXED_IMPORT_KEYS, FIXED_OPTIONS, flag_name
 from tests._cli_surface import ADDRESS_SEGMENT, fold_path, node_params
 from tests._help_tree import Node, command_nodes
 
@@ -35,28 +35,30 @@ def _derived(surface: str) -> set[str]:
     spec = bundled_spec()
     if surface in ("list", "tree"):
         fields = {f.code: f for t in spec.non_roster_types() for f in spec.fields_for(t)}
-        derived = {flag_name(code) for code in fields}
+        derived = {workflow_derivednames.flag_name(code) for code in fields}
         return derived | {
-            f"min-{flag_name(code)}"
+            f"min-{workflow_derivednames.flag_name(code)}"
             for code, f in fields.items()
             if spec.collections[f.collection].ordered
         }
     owner = "finding" if "kind" in surface else HOST
     fields = spec.fields_for(owner)
-    derived = {flag_name(f.code) for f in fields}
+    derived = {workflow_derivednames.flag_name(f.code) for f in fields}
     if surface == "update":
-        derived |= {f"no-{flag_name(f.code)}" for f in fields if not f.required}
+        derived |= {
+            f"no-{workflow_derivednames.flag_name(f.code)}" for f in fields if not f.required
+        }
     if surface == "create":
         derived |= {
-            flag_name(name)
+            workflow_derivednames.flag_name(name)
             for name, attribute in spec.item_attributes(HOST).items()
             if attribute.settable and attribute.kind in ("str", "list", "date")
         }
     target = spec.mapping_target_kind(owner) if owner != HOST else None
     if target is not None:
-        derived |= {flag_name(target)}
+        derived |= {workflow_derivednames.flag_name(target)}
         if surface == "<kind> update":
-            derived |= {f"no-{flag_name(target)}"}
+            derived |= {f"no-{workflow_derivednames.flag_name(target)}"}
     return derived
 
 
@@ -70,20 +72,30 @@ def test_the_fixed_options_are_the_options_the_commands_declare_besides_the_deri
             for opt in (*p.opts, *p.secondary_opts)
             if opt.startswith("--")
         }
-        assert declared - _derived(surface) == FIXED_OPTIONS[surface] - {"help"}, surface
+        assert declared - _derived(surface) == workflow_derivednames.FIXED_OPTIONS[surface] - {
+            "help"
+        }, surface
 
 
 def test_the_fixed_import_keys_are_the_keys_the_events_take() -> None:
-    def keys(model: type[AddSubEvent] | type[CommentEvent]) -> set[str]:
+    def keys(
+        model: type[services_importmodel.AddSubEvent] | type[services_importmodel.CommentEvent],
+    ) -> set[str]:
         return {f.alias or name for name, f in model.model_fields.items()}
 
-    assert keys(AddSubEvent) == FIXED_IMPORT_KEYS["add-<kind>"]
-    assert keys(CommentEvent) == FIXED_IMPORT_KEYS["comment"]
+    assert (
+        keys(services_importmodel.AddSubEvent)
+        == workflow_derivednames.FIXED_IMPORT_KEYS["add-<kind>"]
+    )
+    assert (
+        keys(services_importmodel.CommentEvent)
+        == workflow_derivednames.FIXED_IMPORT_KEYS["comment"]
+    )
 
 
 def test_a_mapping_kinds_target_flag_is_the_only_option_beyond_the_fixed_and_field_ones() -> None:
     spec = bundled_spec()
-    target = flag_name(spec.mapping_target_kind("subtask") or "")
+    target = workflow_derivednames.flag_name(spec.mapping_target_kind("subtask") or "")
     for surface, extra in (("add-<kind>", {target}), ("<kind> update", {target, f"no-{target}"})):
         path = (HOST, "add-subtask") if surface == "add-<kind>" else (HOST, "subtask", "update")
         declared = {
@@ -92,5 +104,8 @@ def test_a_mapping_kinds_target_flag_is_the_only_option_beyond_the_fixed_and_fie
             for opt in (*p.opts, *p.secondary_opts)
             if opt.startswith("--")
         }
-        fields = {flag_name(f.code) for f in spec.fields_for("subtask")}
-        assert declared - fields - extra == FIXED_OPTIONS[surface] - {"help", "deferred-to"}
+        fields = {workflow_derivednames.flag_name(f.code) for f in spec.fields_for("subtask")}
+        assert declared - fields - extra == workflow_derivednames.FIXED_OPTIONS[surface] - {
+            "help",
+            "deferred-to",
+        }

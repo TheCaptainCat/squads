@@ -6,8 +6,8 @@ import ast
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from squads._services._check_rules import BINDING_RULES, is_registered
-from squads._workflow._validator_names import SQUAD_GLOBAL_VALIDATOR_NAMES, VALIDATOR_NAMES
+from squads._services import _check_rules as services_checkrules
+from squads._workflow import SQUAD_GLOBAL_VALIDATOR_NAMES, VALIDATOR_NAMES
 
 _SRC = Path(__file__).resolve().parents[2] / "src"
 _CATALOG_NAMES = VALIDATOR_NAMES | SQUAD_GLOBAL_VALIDATOR_NAMES
@@ -139,7 +139,7 @@ class _Visitor(ast.NodeVisitor):
     def _rule_problem(self, rule: str) -> str | None:
         member = self._member()
         outer = self.functions[0] if self.functions else ""
-        if not is_registered(rule):
+        if not services_checkrules.is_registered(rule):
             return f"{rule!r} is not registered"
         if member in _CATALOG_NAMES and rule != member:
             return f"{rule!r} inside catalog member {member!r}"
@@ -310,4 +310,6 @@ def test_the_guard_accepts_the_legitimate_shapes() -> None:
 
 def test_every_binding_rule_is_filed_by_some_construction() -> None:
     """Counts only the rule argument of real construction sites, not the registry's own keys."""
-    assert set(BINDING_RULES) <= _scan_src().rules, set(BINDING_RULES) - _scan_src().rules
+    assert set(services_checkrules.BINDING_RULES) <= _scan_src().rules, (
+        set(services_checkrules.BINDING_RULES) - _scan_src().rules
+    )

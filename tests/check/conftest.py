@@ -14,12 +14,8 @@ from typing import Any, NamedTuple
 import pytest
 
 from squads import __version__
-from squads._workflow import bundled_spec
-from squads._workflow._validator_names import (
-    MULTI_SELECTION_VALIDATOR_NAMES,
-    parse_validator_entry,
-    validator_selection_key,
-)
+from squads._workflow import _validator_names as workflow_validatornames
+from squads._workflow import bundled_spec, parse_validator_entry
 from tests import _check_surface as check_surface
 
 type Issue = dict[str, str]
@@ -114,7 +110,7 @@ def _unhonoured(declared: list[check_surface.Declaration], seen: Observed) -> li
         if not runs:
             missing.append(f"{text} was not reported by a run after a run that did not report it")
         elif d.param:
-            needed = 2 if d.rule in MULTI_SELECTION_VALIDATOR_NAMES else 1
+            needed = 2 if d.rule in workflow_validatornames.MULTI_SELECTION_VALIDATOR_NAMES else 1
             if not any(len(seen.runs[i].params.get(d.rule, ())) >= needed for i in runs):
                 missing.append(
                     f"{text} needs {needed} param(s) selected before the run that reported it "
@@ -179,17 +175,24 @@ def _validators(on: str | None, entries: list[str], existing: list[str] | None) 
     the entry with the same selection key or are appended."""
     spec = bundled_spec()
     bundled = list(spec.squad.validators if on is None else spec.items[on].validators)
-    bundled_keys = {validator_selection_key(b) for b in bundled}
+    bundled_keys = {workflow_validatornames.validator_selection_key(b) for b in bundled}
     if existing is not None:
         listed = list(existing)
-    elif any(validator_selection_key(e) in bundled_keys for e in entries):
+    elif any(workflow_validatornames.validator_selection_key(e) in bundled_keys for e in entries):
         listed = bundled
     else:
         scope = "squad" if on is None else f"items.{on}"
         listed = [f"$(*{scope}.validators)"] if bundled else []
     for entry in entries:
-        key = validator_selection_key(entry)
-        at = next((i for i, e in enumerate(listed) if validator_selection_key(e) == key), None)
+        key = workflow_validatornames.validator_selection_key(entry)
+        at = next(
+            (
+                i
+                for i, e in enumerate(listed)
+                if workflow_validatornames.validator_selection_key(e) == key
+            ),
+            None,
+        )
         if at is None:
             listed.append(entry)
         else:
@@ -260,8 +263,10 @@ def select_validators(selections: Selections) -> Select:
         table = "squad" if on is None else f"items.{on}"
         for entry in entries:
             known = selections.entries.setdefault(table, [])
-            key = validator_selection_key(entry)
-            known[:] = [e for e in known if validator_selection_key(e) != key] + [entry]
+            key = workflow_validatornames.validator_selection_key(entry)
+            known[:] = [
+                e for e in known if workflow_validatornames.validator_selection_key(e) != key
+            ] + [entry]
         selections.extra.setdefault(table, {}).update(extra)
         doc = copy.deepcopy(selections.base)
         for name, listed in selections.entries.items():

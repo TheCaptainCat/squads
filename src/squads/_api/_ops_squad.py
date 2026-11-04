@@ -1,17 +1,19 @@
 """The squad operations of the table."""
 
 from squads._api._api import Grant, Ground, Mode, Operation, Timeout
-from squads._api._dto._check import CheckReport, CheckRequest, SyncReport, SyncRequest
-from squads._api._dto._reflog import Reflog, ReflogRequest
-from squads._api._dto._squad import (
+from squads._api._dto import (
     AdoptReport,
     AdoptRequest,
+    CheckReport,
+    CheckRequest,
     ImportReport,
     ImportRequest,
     InitReport,
     InitRequest,
     MigrateRequest,
     MigrationReport,
+    Reflog,
+    ReflogRequest,
     RenameFieldReport,
     RenameFieldRequest,
     RenameKindReport,
@@ -26,6 +28,8 @@ from squads._api._dto._squad import (
     RepadRequest,
     RepairReport,
     RepairRequest,
+    SyncReport,
+    SyncRequest,
 )
 
 #: What the migration may do on a squad whose schema is behind the package's.

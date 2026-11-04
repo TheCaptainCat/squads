@@ -1,35 +1,36 @@
 """The items operations of the table."""
 
 from squads._api._api import Operation
-from squads._api._dto._comments import Comments, CommentsRequest
-from squads._api._dto._graph import GraphNode, GraphRequest
-from squads._api._dto._item_writes import ItemWritten
-from squads._api._dto._items import (
+from squads._api._dto import (
+    Blocked,
+    BlockedRequest,
+    Comments,
+    CommentsRequest,
+    GraphNode,
+    GraphRequest,
+    Inbox,
+    InboxRequest,
     ItemList,
     ItemListRequest,
     ItemShow,
     ItemShowRequest,
     ItemStatusRequest,
-)
-from squads._api._dto._queues import (
-    Blocked,
-    BlockedRequest,
-    Inbox,
-    InboxRequest,
+    ItemWritten,
     Mine,
     MineRequest,
-    Workload,
-    WorkloadRequest,
-)
-from squads._api._dto._refs import Refs, RefsRequest
-from squads._api._dto._search import SearchRequest, SearchResults
-from squads._api._dto._subentities import (
+    Refs,
+    RefsRequest,
+    SearchRequest,
+    SearchResults,
     SubentitiesRequest,
     SubentityList,
     SubentityRequest,
     SubentityShow,
+    TreeRequest,
+    TreeView,
+    Workload,
+    WorkloadRequest,
 )
-from squads._api._dto._tree import TreeRequest, TreeView
 
 ITEMS_LIST = Operation(
     "items.list", "GET", "/v1/items", ItemListRequest, ItemList, json_field="items"

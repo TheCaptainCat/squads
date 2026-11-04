@@ -54,7 +54,7 @@ subentities:
   assignee: tech-writer
   maps_to: US4
 created_at: '2026-11-04T09:58:37Z'
-updated_at: '2026-11-04T10:35:47Z'
+updated_at: '2026-11-04T10:45:59Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -380,4 +380,15 @@ Adopter-facing text for scoped sources, per the list owed in ADR-1274 section 14
     - ST3 done: the filter is evaluated on each listing row, sides ANDed. Unheld rejected issues are counted (`filtered out <n>`, `filtered_out`) and never named or written. Held and rejected reads out-of-filter "(rejected by the filter)"; held and not listed but returned by ID reads out-of-filter "(outside the scope)"; not returned reads gone. Unchanged out-of-filter items are not read in detail again; one the filter accepts again reads open.
     - No-type issues are counted (`skipped <n> (no type)`, `skipped_no_type`) with no detail fetch and no per-issue line; an issue mapping to two types is named with its values on every pull, also without a detail fetch.
     - For the tech writer: new --json fields restricted, filtered_out, skipped_no_type on each source report.
+- [2026-11-04T10:38:09Z] `op-pierre` Pierre Chat:
+  - Request (2026-11-04): the gitlab, github and jira connector modules move into _sources/_gitlab, _sources/_github and _sources/_jira subpackages, each re-exporting its public names from its __init__.py (an exception to the no-re-export rule, recorded in CLAUDE.md and the INITS_WITH_CODE guard).
+- [2026-11-04T10:40:25Z] `python-dev` Elias Python:
+  - Moved the platform modules into subpackages with git mv (no behaviour change):
+    - _gitlab/: _connector.py, _probes.py; init re-exports GitLabConnector
+    - _github/: _connector.py, _probes.py; init re-exports GitHubConnector
+    - _jira/: _connector.py, _cloud.py, _dc.py, _probes.py, _adf.py, _wiki.py; init re-exports JiraCloudConnector, JiraDcConnector, adf, jira_wiki
+    - Shared modules stay in _sources/. The registry and converter tables now name the subpackages. INITS_WITH_CODE, the vocabulary tracker-enum paths and CLAUDE.md are updated.
+    - Gates: pyright, ruff check and format clean; source CLI tests, tests/check and tests/meta: 981 passed.
+- [2026-11-04T10:45:59Z] `manager` Catherine Manager:
+  - Paused after ST3 and the connector subpackage move (18251834): the codebase-wide re-export sweep op-pierre ruled on ADR-78 runs first, since ST4-ST7 touch the same imports.
 <!-- sq:discussion:end -->

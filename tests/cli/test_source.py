@@ -10,7 +10,7 @@ import pytest
 
 from squads import __version__
 from squads._paths import SquadPaths
-from squads._sources._credentials import store_path
+from squads._sources import CredentialStore
 from tests.cli._output import json_text, read_json
 
 pytestmark = pytest.mark.anyio
@@ -43,7 +43,7 @@ def _written(source: str = "platform") -> str:
             "source": source,
             "base_url": f"{TRACKER}/",
             "fields": ["token"],
-            "path": str(store_path()),
+            "path": str(CredentialStore().path()),
         }
     )
 
@@ -158,7 +158,7 @@ async def test_credential_set_reads_each_value_from_stdin_and_stores_it_privatel
         ["source", "credential", "set", "platform", "--json"], input=f"{SECRET}\n"
     )
 
-    stored = store_path()
+    stored = CredentialStore().path()
     assert (result.exit_code, result.stdout, result.stderr) == (
         0,
         _written(),
@@ -175,7 +175,7 @@ async def test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_dir
 ) -> None:
     _posix_modes_only()
     _declare(project)
-    store = store_path()
+    store = CredentialStore().path()
     store.parent.mkdir(parents=True)
     store.parent.chmod(0o755)
     victim = store.parent / "victim"
@@ -210,7 +210,7 @@ async def test_credential_remove_deletes_the_entry_and_a_second_removal_finds_no
         f"removed the credential of source platform for {TRACKER}/",
     )
     assert second == {"source": "platform", "base_url": f"{TRACKER}/", "removed": False}
-    assert SECRET not in store_path().read_text(encoding="utf-8")
+    assert SECRET not in CredentialStore().path().read_text(encoding="utf-8")
 
 
 @pytest.mark.covers("source credential remove", "source")
@@ -220,10 +220,10 @@ async def test_a_store_other_users_can_read_is_refused_naming_chmod(
     _posix_modes_only()
     _declare(project)
     await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
-    store_path().chmod(0o640)
+    CredentialStore().path().chmod(0o640)
 
     result = await invoke(["source", "credential", "remove", "platform"])
 
     assert result.exit_code == 1
-    assert f"run `chmod 600 {store_path()}`" in " ".join(result.output.split())
-    assert SECRET in store_path().read_text(encoding="utf-8")
+    assert f"run `chmod 600 {CredentialStore().path()}`" in " ".join(result.output.split())
+    assert SECRET in CredentialStore().path().read_text(encoding="utf-8")

@@ -24,7 +24,7 @@ from typing import Any
 
 from squads import _aio
 from squads._errors import SquadsError
-from squads._models._item import INVENTED_WHEN_ABSENT, Item
+from squads._models import INVENTED_WHEN_ABSENT, Item
 from squads._sections import (
     conform_line_endings,
     join_frontmatter,

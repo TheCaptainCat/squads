@@ -1091,7 +1091,7 @@ def _collect_ref_kind_alignment_errors(spec: WorkflowSpec, db: Any) -> list[str]
     default) like :func:`_collect_badge_alignment_errors`, since a real spec always has the
     ``default`` kind and an empty mapping means "nothing to check against".
     """
-    from squads._models._item import split_ref
+    from squads._models import split_ref
 
     declared_kinds: dict[str, Any] = getattr(spec, "ref_kinds", {})
     if not declared_kinds:
@@ -1392,7 +1392,7 @@ def workflow_stamp_finding(
             )
         return None
     from squads import __version__
-    from squads._overrides._manifest import WORKFLOW_KEY, artifact_changed_since
+    from squads._overrides import WORKFLOW_KEY, artifact_changed_since
 
     if stamp != __version__ and artifact_changed_since(WORKFLOW_KEY, stamp):
         return (
@@ -1544,7 +1544,7 @@ def lint_workflow_spec(  # noqa: PLR0911 — one return per gate below
     # remedies and a status transition is nonsense for a badge mismatch.
     db_raw = _load_index_sync(squad_dir)
     if db_raw is not None:
-        from squads._workflow import bundled_spec
+        from squads._workflow._bundled import bundled_spec
 
         bundled = bundled_spec()
         type_status_fix = (
@@ -1645,7 +1645,7 @@ def _read_index_text(squad_dir: Path) -> str | None:
 def _parse_index(squad_dir: Path, raw: str, cache: ParseCache | None) -> Any:
     """The index parsed from *raw*, through *cache* when there is one, or ``None`` when it does not
     parse (lint cannot cross-check a corrupt one)."""
-    from squads._models._index import SquadsDB
+    from squads._models import SquadsDB
 
     def parse() -> SquadsDB:
         return SquadsDB.model_validate_json(raw)

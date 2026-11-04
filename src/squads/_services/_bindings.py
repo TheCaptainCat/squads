@@ -10,9 +10,7 @@ from typing import cast
 
 from pydantic import BaseModel
 
-from squads._api import _ops as ops
-from squads._api._api import Operation
-from squads._api._response import Response
+from squads._api import Operation, Response, ops
 from squads._services._creation_ops import adopt_squad, init_squad
 from squads._services._service import Service
 from squads._spec_documents import SpecSources

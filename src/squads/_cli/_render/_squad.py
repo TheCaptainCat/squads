@@ -4,7 +4,7 @@ rename, import, init and adopt did."""
 from rich.console import Console
 from rich.panel import Panel
 
-from squads._api._dto._squad import (
+from squads._api import (
     AdoptReport,
     ImportFindingRow,
     ImportIssueRow,

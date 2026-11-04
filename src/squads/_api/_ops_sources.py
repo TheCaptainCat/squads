@@ -3,7 +3,7 @@ squad, reached through its command endpoint or in process, so no resource route 
 can read or write a credential."""
 
 from squads._api._api import Operation, Timeout
-from squads._api._dto._sources import (
+from squads._api._dto import (
     CredentialFields,
     CredentialFieldsRequest,
     CredentialRemoved,

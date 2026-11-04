@@ -127,7 +127,7 @@ def run(
     ),
 ) -> None:
     """Serve this squad in this process until it is stopped, retired or idle."""
-    from squads._daemon._lifecycle import run_daemon
+    from squads._daemon import run_daemon
 
     try:
         endpoint = _endpoint()

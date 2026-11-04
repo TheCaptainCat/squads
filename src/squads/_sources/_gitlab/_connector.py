@@ -15,7 +15,7 @@ from squads._sources._connector import (
     Reference,
     RestrictedIssueError,
 )
-from squads._sources._gitlab_probes import GitLabProbes
+from squads._sources._gitlab._probes import GitLabProbes
 from squads._sources._http import HttpClient, NotFoundError, UnexpectedAnswerError
 from squads._sources._probes import Expected, Family, ProbeResult
 from squads._sources._records import text

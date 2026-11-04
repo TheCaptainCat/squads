@@ -10,7 +10,7 @@ from typing import Any
 
 from squads._errors import SquadsError
 from squads._sources._http import Advance, NotFoundError, UnexpectedAnswerError, member_items
-from squads._sources._jira import JiraConnector, offset_advance
+from squads._sources._jira._connector import JiraConnector, offset_advance
 from squads._sources._records import mapping, names, records, text
 
 #: The most labels one page of the label list returns.

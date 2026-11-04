@@ -3,8 +3,7 @@
 from pathlib import Path
 
 from squads._errors import ItemNotFoundError
-from squads._models._index import SquadsDB
-from squads._models._item import Item
+from squads._models import Item, SquadsDB
 from squads._paths import SquadPaths
 
 

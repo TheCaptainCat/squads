@@ -19,13 +19,10 @@ from squads._errors import SquadsError
 from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
-from squads._models._attributes import AttributeKey
-from squads._models._item import slug_from_stem
-from squads._roles._catalog import RoleDef
-from squads._roles._models import DEV_TEMPLATE_NAME
-from squads._roles._resolver import resolve_role, role_defined_by_file
+from squads._models import AttributeKey, slug_from_stem
+from squads._roles import DEV_TEMPLATE_NAME, RoleDef, resolve_role, role_defined_by_file
 from squads._sections import replace_frontmatter
-from squads._workflow._models import ROSTER_ROLE
+from squads._workflow import ROSTER_ROLE
 
 MANUAL = (
     "Rename a `[dev]` table in `.overrides/roles.toml` to `[templates.dev]` before upgrading: "

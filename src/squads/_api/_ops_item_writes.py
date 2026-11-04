@@ -1,7 +1,7 @@
 """The item_writes operations of the table."""
 
 from squads._api._api import Operation
-from squads._api._dto._comment_writes import (
+from squads._api._dto import (
     CommentAdded,
     CommentAddRequest,
     CommentEdited,
@@ -9,14 +9,6 @@ from squads._api._dto._comment_writes import (
     CommentRequest,
     CommentSelection,
     CommentShown,
-    RosterCommentAddRequest,
-    RosterCommentEditRequest,
-    RosterCommentRequest,
-    SubentityCommentAddRequest,
-    SubentityCommentEditRequest,
-    SubentityCommentRequest,
-)
-from squads._api._dto._item_writes import (
     ItemBodyRequest,
     ItemCreated,
     ItemCreateRequest,
@@ -33,9 +25,15 @@ from squads._api._dto._item_writes import (
     ItemViewChanged,
     ItemViewRequest,
     ItemWritten,
+    RosterCommentAddRequest,
+    RosterCommentEditRequest,
+    RosterCommentRequest,
     SubentityAdded,
     SubentityAddRequest,
     SubentityBodyRequest,
+    SubentityCommentAddRequest,
+    SubentityCommentEditRequest,
+    SubentityCommentRequest,
     SubentityRemoved,
     SubentityRemoveRequest,
     SubentityUpdated,

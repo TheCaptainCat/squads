@@ -13,29 +13,30 @@
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._dto._squad import (
+from squads._api import (
     MigrateRequest,
     RenameFieldRequest,
     RenameKindRequest,
     RenameStatusRequest,
     RenameTypeRequest,
     RepadRequest,
+    ops,
 )
 from squads._cli import _calls as calls
 from squads._cli._common import console, handle_errors
-from squads._cli._render._package import render_migrations, render_steps
-from squads._cli._render._squad import (
+from squads._cli._render import (
     render_migration,
+    render_migrations,
     render_rename_field,
     render_rename_kind,
     render_rename_status,
     render_rename_type,
     render_repad,
+    render_steps,
 )
 from squads._errors import SquadsError
-from squads._migrations._registry import manual_steps, migration_index
-from squads._models._item import MAX_ID_PADDING
+from squads._migrations import manual_steps, migration_index
+from squads._models import MAX_ID_PADDING
 from squads._util import is_version, version_tuple
 
 migrate_app = typer.Typer(no_args_is_help=True, help="Run schema migrations and read their steps.")

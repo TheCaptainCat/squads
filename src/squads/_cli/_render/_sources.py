@@ -4,7 +4,7 @@ issue. A credential is only ever reported as stored or not, never shown."""
 from rich.console import Console
 from rich.table import Table
 
-from squads._api._dto._sources import (
+from squads._api import (
     CredentialRemoved,
     CredentialWritten,
     SourceChecked,

@@ -3,7 +3,7 @@
 
 import re
 
-from squads._api._ops import OPERATIONS, ROUTED_OPERATIONS
+from squads._api import ops
 from squads._paths import SquadPaths
 
 JSON = "application/json"
@@ -11,7 +11,7 @@ JSON = "application/json"
 
 def test_a_squad_creating_operation_has_no_route(project: SquadPaths, serve) -> None:
     daemon = serve(project)
-    assert [op.name for op in OPERATIONS if op.local_only] == ["squad.init", "squad.adopt"]
+    assert [op.name for op in ops.OPERATIONS if op.local_only] == ["squad.init", "squad.adopt"]
     for target in ("/v1/squad/init", "/v1/squad/adopt"):
         reply = daemon.request("POST", target, {})
         assert (reply.status, reply.headers["content-type"], reply.json()) == (
@@ -26,7 +26,7 @@ def test_a_method_a_path_lacks_answers_405_naming_every_method_it_serves(
 ) -> None:
     daemon = serve(project)
     served: dict[str, set[str]] = {}
-    for op in ROUTED_OPERATIONS:
+    for op in ops.ROUTED_OPERATIONS:
         method, path = op.route
         served.setdefault(path, set()).add(method)
         if method == "GET":

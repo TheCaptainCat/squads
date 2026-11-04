@@ -13,9 +13,8 @@ from dataclasses import replace
 from typing import Any, Protocol
 
 from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
-from squads._roles._models import CAPABILITY_NAME_PATTERN, RoleCatalogSpec
-from squads._roles._projection import RoleView
-from squads._workflow._models import WorkflowSpec
+from squads._roles import CAPABILITY_NAME_PATTERN, RoleCatalogSpec, RoleView
+from squads._workflow import WorkflowSpec
 
 #: Prefix of a guide subject that addresses a capability rather than one role.
 CAPABILITY_SUBJECT_PREFIX = "*"

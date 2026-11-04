@@ -2,7 +2,7 @@
 the command of every operation marked `local_only`, and add only the two that manage the daemon
 and the terminal."""
 
-from squads._api._ops import OPERATIONS
+from squads._api import ops
 from squads._shim import LOCAL_ONLY, LOCAL_ROOT_OPTIONS
 from tests.meta._command_tree import root
 
@@ -15,7 +15,7 @@ def test_every_local_only_command_is_a_registered_root_command() -> None:
 
 
 def test_the_local_only_commands_are_those_of_the_local_operations_and_the_machine_ones() -> None:
-    of_operations = {op.name.removeprefix("squad.") for op in OPERATIONS if op.local_only}
+    of_operations = {op.name.removeprefix("squad.") for op in ops.OPERATIONS if op.local_only}
     assert of_operations | _MACHINE_COMMANDS == LOCAL_ONLY
 
 

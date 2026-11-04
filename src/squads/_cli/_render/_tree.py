@@ -4,7 +4,7 @@ from rich.console import Console
 from rich.text import Text
 from rich.tree import Tree
 
-from squads._api._dto._tree import TreeNode, TreeView
+from squads._api import TreeNode, TreeView
 from squads._cli._render._style import e, lead_badge, status_text
 
 

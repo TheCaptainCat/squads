@@ -9,14 +9,14 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError, SubentityNotFoundError
-from squads._index._resolver import item_file
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._omission import Omission
-from squads._models._participants import (
+from squads._index import item_file
+from squads._models import (
     ANONYMOUS_SLUG,
+    Item,
+    Omission,
+    SquadsDB,
     is_sourced,
+    markers,
     refuse_system_actor,
     source_of,
 )
@@ -32,8 +32,7 @@ from squads._services._results import (
     SearchResult,
     UnreadableItems,
 )
-from squads._workflow import WorkflowSpec
-from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, WorkflowSpec
 
 _SNIPPET_WIDTH = 160
 _SNIPPET_LEAD = 40

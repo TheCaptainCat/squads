@@ -1436,8 +1436,9 @@ order of the listeners `GET /v1/daemon` reports.
 
 The underscore-prefixed module convention (`squads._models`, `squads._services._service`,
 `squads._backends._claude_code`, …)
-is the contract: **internal modules are not re-exported by package `__init__` files, and are not
-part of the public API.** This is not a breaking change to state — squads has never shipped a
+is the contract: **every module and package under `squads` is internal, including the names a
+package `__init__` re-exports for use elsewhere inside squads, and none of them is part of the
+public API.** This is not a breaking change to state — squads has never shipped a
 public library interface — but it is explicitly pinned to let integrators know where the boundaries
 are.
 

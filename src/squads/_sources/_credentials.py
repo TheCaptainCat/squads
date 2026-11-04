@@ -24,19 +24,6 @@ STORE_FILENAME = "credentials.toml"
 _BARE_KEY = re.compile(r"[A-Za-z0-9_-]+")
 
 
-def store_path() -> Path:
-    """The credential file of the user running this process."""
-    if sys.platform == "win32":
-        base = os.environ.get("APPDATA")
-        root = Path(base) if base else Path.home() / "AppData" / "Roaming"
-    elif sys.platform == "darwin":
-        root = Path.home() / "Library" / "Application Support"
-    else:
-        base = os.environ.get("XDG_CONFIG_HOME")
-        root = Path(base) if base else Path.home() / ".config"
-    return root / "squads" / STORE_FILENAME
-
-
 def normalise_base_url(url: str) -> str:
     """*url* as its entry key spells it: scheme and host in lower case, the port and path kept,
     no trailing slash, no query or fragment."""
@@ -131,33 +118,48 @@ def _locked(path: Path) -> Generator[None]:
         yield
 
 
-def read_entry(base_url: str) -> dict[str, str] | None:
-    """The fields stored for *base_url*, or ``None`` when there is no entry."""
-    return _read(store_path()).get(normalise_base_url(base_url))
+class CredentialStore:
+    """The per-user credential file: read, write, remove and test entries by tracker base URL.
 
+    It holds no state; the file is located and read at each call.
+    """
 
-def has_entry(base_url: str) -> bool:
-    """Whether an entry exists for *base_url*."""
-    return normalise_base_url(base_url) in _read(store_path())
+    def path(self) -> Path:
+        """The credential file of the user running this process."""
+        if sys.platform == "win32":
+            base = os.environ.get("APPDATA")
+            root = Path(base) if base else Path.home() / "AppData" / "Roaming"
+        elif sys.platform == "darwin":
+            root = Path.home() / "Library" / "Application Support"
+        else:
+            base = os.environ.get("XDG_CONFIG_HOME")
+            root = Path(base) if base else Path.home() / ".config"
+        return root / "squads" / STORE_FILENAME
 
+    def read_entry(self, base_url: str) -> dict[str, str] | None:
+        """The fields stored for *base_url*, or ``None`` when there is no entry."""
+        return _read(self.path()).get(normalise_base_url(base_url))
 
-def write_entry(base_url: str, values: dict[str, str]) -> Path:
-    """Store *values* as the entry for *base_url*, replacing the one there; returns the file."""
-    path = store_path()
-    with _locked(path):
-        store = _read(path)
-        store[normalise_base_url(base_url)] = dict(values)
-        _write(path, store)
-    return path
+    def has_entry(self, base_url: str) -> bool:
+        """Whether an entry exists for *base_url*."""
+        return normalise_base_url(base_url) in _read(self.path())
 
+    def write_entry(self, base_url: str, values: dict[str, str]) -> Path:
+        """Store *values* as the entry for *base_url*, replacing the one there; returns the file."""
+        path = self.path()
+        with _locked(path):
+            store = _read(path)
+            store[normalise_base_url(base_url)] = dict(values)
+            _write(path, store)
+        return path
 
-def remove_entry(base_url: str) -> bool:
-    """Delete the entry for *base_url*; ``False`` when there was none, and then nothing is
-    written."""
-    path = store_path()
-    with _locked(path):
-        store = _read(path)
-        if store.pop(normalise_base_url(base_url), None) is None:
-            return False
-        _write(path, store)
-    return True
+    def remove_entry(self, base_url: str) -> bool:
+        """Delete the entry for *base_url*; ``False`` when there was none, and then nothing is
+        written."""
+        path = self.path()
+        with _locked(path):
+            store = _read(path)
+            if store.pop(normalise_base_url(base_url), None) is None:
+                return False
+            _write(path, store)
+        return True

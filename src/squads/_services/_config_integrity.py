@@ -10,15 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._role_guidance import item_types_for_role, skills_for_role
-from squads._interactions._skills import item_skill_name
-from squads._models._index import SquadsDB
-from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
-from squads._roles._catalog import RoleDef
-from squads._roles._models import CatalogSource
-from squads._roles._resolver import resolve_role_tolerantly
-from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
+from squads._interactions import PlaybookSpec, item_skill_name, item_types_for_role, skills_for_role
+from squads._models import Item, SquadsDB, effective_prefix, ref_id_matches, split_ref
+from squads._roles import CatalogSource, RoleDef, resolve_role_tolerantly
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 # Clause identifiers, internal and never rendered; named for the condition each checks.
 type Clause = Literal["no_live_role", "preloaded_skill"]

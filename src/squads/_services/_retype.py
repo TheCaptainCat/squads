@@ -12,19 +12,24 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._index._resolver import item_file, require_item
+from squads._index import item_file, require_item
 from squads._itemfile import ensure_no_skew, remap_ids_text, rewrite_ids, write_text
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import Item, format_item_id, make_ref, split_ref
-from squads._models._participants import SYSTEM_SLUG
-from squads._models._vocab import prefix_for
+from squads._models import (
+    SYSTEM_SLUG,
+    Item,
+    SquadsDB,
+    format_item_id,
+    make_ref,
+    markers,
+    prefix_for,
+    split_ref,
+)
 from squads._paths import SquadPaths
 from squads._sections import replace_frontmatter
 from squads._services._base import ServiceCore, ensure_subentity_container_text
 from squads._services._results import RetypeResult
 from squads._services._validators import ValidatorEngine
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec
 
 
 def _validate_work_types(spec: WorkflowSpec, old_type: str, new_type: str, old_id: str) -> None:

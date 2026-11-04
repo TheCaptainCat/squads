@@ -5,26 +5,27 @@ from collections.abc import Sequence
 
 from squads import _pronouns
 from squads import _views as views
-from squads._api._dto._display import Column
-from squads._api._dto._operators import OperatorRow
-from squads._api._dto._roles import DeveloperRow, RoleDisplay, RoleRow
-from squads._api._dto._roster import NameDisplay, SeveredRef
-from squads._api._dto._skills import SkillRow
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._skills import (
+from squads._api import (
+    Column,
+    DeveloperRow,
+    NameDisplay,
+    OperatorRow,
+    RoleDisplay,
+    RoleRow,
+    SeveredRef,
+    SkillRow,
+)
+from squads._interactions import (
+    PlaybookSpec,
     is_system_skill,
     orphaned_skill_item_type,
     resolve_operator_invocable,
 )
-from squads._models import _attributes as attrs
-from squads._models._attributes import AttributeKey
-from squads._models._item import Item
-from squads._roles._catalog import RoleDef
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME
+from squads._models import AttributeKey, Item, attrs
+from squads._roles import ROLES_OVERRIDE_FILENAME, RoleDef
 from squads._services._retirement import Severance
 from squads._views import ITEM_SKILL_VIEW_NAME, ROLE_DEFINITION_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
-from squads._workflow import ROSTER_ROLE
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_ROLE, WorkflowSpec
 
 #: The columns of the ``role list`` table; a dotted key reads the row's ``display``.
 ROLE_LIST_COLUMNS: tuple[Column, ...] = (
@@ -88,7 +89,7 @@ def operator_row(item: Item, *, pronouns: bool) -> OperatorRow:
         pronouns=own,
         status=item.status,
         display=name_display(item.title, own, enabled=pronouns),
-        identities=attrs.map_attribute(item, attrs.AttributeKey.IDENTITIES) or {},
+        identities=attrs.map_attribute(item, AttributeKey.IDENTITIES) or {},
     )
 
 
