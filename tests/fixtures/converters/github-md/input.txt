@@ -1,0 +1,21 @@
+## Steps
+
+Ask @alice to read the [runbook](docs/runbook.md), it is **urgent**.
+
+- Restart the service
+  - check the logs
+- Report back
+
+```sh
+systemctl restart api
+```
+
+| Env | Status |
+| --- | --- |
+| prod | down |
+
+![shot](/user-attachments/assets/abc.png)
+
+<img src="/user-attachments/assets/def.png" alt="chart">
+
+[spec]: docs/spec.md

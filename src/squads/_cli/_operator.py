@@ -23,6 +23,7 @@ from squads._api._dto._operators import (
 )
 from squads._api._dto._roster import RosterAddress
 from squads._cli import _calls as calls
+from squads._cli import _field_options as field_options
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
@@ -149,7 +150,7 @@ def operator_show(
     render_operator_show(response.data, console, raw=raw, comments=comments)
 
 
-@_addr.command("update")
+@_addr.command("update", cls=field_options.update_command_cls("operator"))
 @common.handle_errors
 def operator_update(
     ctx: typer.Context,
@@ -161,9 +162,12 @@ def operator_update(
     json_out: bool = json_option("Print one JSON object: the operator after the update."),
 ) -> None:
     """Rename an operator or set their pronouns; the slug never changes."""
-    common.require_update_fields(title=title, pronouns=pronouns)
+    maps = field_options.given_maps(ctx)
+    common.require_update_fields(title=title, pronouns=pronouns, identities=maps or None)
     common.declare_actor(as_)
-    request = OperatorUpdateRequest(addr=address_of(ctx), title=title, pronouns=pronouns)
+    request = OperatorUpdateRequest(
+        addr=address_of(ctx), title=title, pronouns=pronouns, map_attributes=maps
+    )
     response = calls.call(ops.OPERATOR_UPDATE, request)
     finish_write(
         ops.OPERATOR_UPDATE,

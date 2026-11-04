@@ -1,0 +1,15 @@
+h2. Steps
+
+Ask [~accountid:5b10a] to read the [runbook|https://wiki.example.com/runbook], it is *urgent*.
+
+* Restart the service
+** check the logs
+* Report back
+
+{code:sh}
+systemctl restart api
+```
+{code}
+
+||Env||Status||
+|prod|down|

@@ -34,7 +34,7 @@ subentities:
   title: Agents on another machine load their persona from the squad
   status: Todo
 created_at: '2026-06-10T15:33:16Z'
-updated_at: '2026-10-28T22:06:04Z'
+updated_at: '2026-11-04T02:27:05Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -190,4 +190,6 @@ Done when: the agent files `sq sync` generates tell the agent to run `sq role <s
   - Re-read 2026-10-28 against ADR-1225 and op-pierre 1549816.
     - Body: builds on FEAT-1140's routes and HTTP client, with endpoint resolution as the seam; no fall back for a hosted squad (one retry on restart, clear error when unreachable, TUI included); a listener beyond loopback; auth built on MILE-868's mode; the checkout must match the squad's vocabulary, with spec sync planned here; the pointer gap resolved per op-pierre 2cd0509. Version skew and remote corpus-wide operations moved to "settled".
     - US1 and US3 retitled (hosted squad, client-side address); US1-US3 got Done-when bodies; new US4 restart/unreachable errors, US5 stale checkout refused, US6 agents load their persona. Summary updated; ADR-1225 linked.
+- [2026-11-04T02:27:05Z] `architect` Robert Architect:
+  - - Precondition from ADR-1274 §14 (2026-11-04, REV-1281 F8): before this feature admits the command endpoint on a listener that reaches beyond the machine, `SOURCE_CREDENTIAL_SET` and `SOURCE_CREDENTIAL_REMOVE` carry an operation-level mark (for example `owner_only = True`). That listener refuses a command line that runs a marked operation until MILE-868 can tell callers apart. The other source operations stay admitted. Add a test against the mark.
 <!-- sq:discussion:end -->

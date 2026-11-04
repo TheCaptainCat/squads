@@ -3,6 +3,7 @@
 Every addressed operation resolves its address within its own roster kind, and every write that
 changes what the managed files list regenerates them before it answers."""
 
+from collections.abc import Mapping
 from pathlib import Path
 
 from squads import _pronouns
@@ -87,7 +88,7 @@ from squads._roles._resolver import (
     role_base_from_item,
     stored_values,
 )
-from squads._services._item_dto import comment_dtos
+from squads._services._fetch import resolve_identity_handles
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._refs import RefsMixin
 from squads._services._roster import RosterMixin
@@ -287,7 +288,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             expanded = await self.read_body(it.id, keep_view=keep_view)
             body = expanded.text
             warnings += expanded.warnings
-            discussion = comment_dtos(await self.comments(it.id))
+            discussion = await self.discussion_dtos(it)
         shown = name_display(role.full_name, pronouns, enabled=self._shows_pronouns())
         data = RoleShow(
             slug=slug,
@@ -445,7 +446,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
                     empty_hint=skill_empty_body_hint(
                         it.slug, self.spec, self.playbook, view_disabled=disabled
                     ),
-                    discussion=comment_dtos(await self.comments(it.id)),
+                    discussion=await self.discussion_dtos(it),
                 ),
             }
         )
@@ -590,15 +591,32 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             display=OperatorShowDisplay(
                 **dict(shown),
                 body=expanded.text,
-                discussion=comment_dtos(await self.comments(it.id)),
+                discussion=await self.discussion_dtos(it),
             ),
+            identities=attrs.map_attribute(it, AttributeKey.IDENTITIES) or {},
         )
         return Response(data=data, warnings=warnings)
+
+    async def _resolved_maps(
+        self, given: Mapping[str, Mapping[str, str | None]]
+    ) -> dict[str, dict[str, str | None]]:
+        """*given* with each identity handle replaced by the ID its source answers."""
+        return {
+            name: (
+                await resolve_identity_handles(self.sources, keys)
+                if name == AttributeKey.IDENTITIES
+                else dict(keys)
+            )
+            for name, keys in given.items()
+        }
 
     async def update_operator_entry(self, req: OperatorUpdateRequest) -> Response[OperatorWrite]:
         """Rename an operator or set their pronouns, then regenerate the managed files."""
         item = await self._write_target(ROSTER_OPERATOR, req.addr)
-        updated = await self.update(item.id, title=req.title, pronouns=req.pronouns)
+        maps = await self._resolved_maps(req.map_attributes)
+        updated = await self.update(
+            item.id, title=req.title, pronouns=req.pronouns, map_attributes=maps or None
+        )
         await self.refresh_managed()
         return Response(data=OperatorWrite(entry=self._operator_row(updated)))
 

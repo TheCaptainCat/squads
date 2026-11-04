@@ -112,6 +112,24 @@ class SquadsDB(BaseModel):
         except ValueError:
             return None
 
+    def source_ids(self) -> dict[tuple[str, str], list[int]]:
+        """Computed, never stored: ``(source name, tracker issue ID)`` to the sequence ids of the
+        items that mirror that issue. Two items under one key are both listed."""
+        found: dict[tuple[str, str], list[int]] = {}
+        for sequence_id, item in sorted(self.items.items()):
+            if item.source is not None:
+                found.setdefault((item.source.name, item.source.id), []).append(sequence_id)
+        return found
+
+    def source_keys(self) -> dict[tuple[str, str], list[int]]:
+        """Computed, never stored: ``(source name, full issue key)`` to the sequence ids of the
+        items that hold that key, for translating a tracker reference to an item."""
+        found: dict[tuple[str, str], list[int]] = {}
+        for sequence_id, item in sorted(self.items.items()):
+            if item.source is not None:
+                found.setdefault((item.source.name, item.source.key), []).append(sequence_id)
+        return found
+
     def children(self, item_id: str) -> list[str]:
         """Return the IDs of items whose ``parent`` field equals *item_id* (direct children only).
 

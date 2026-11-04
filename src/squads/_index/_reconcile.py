@@ -16,6 +16,8 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from squads import _aio
 from squads._errors import SquadsError
 from squads._index._store import IndexStore
@@ -26,6 +28,7 @@ from squads._models._item import (
     Item,
     prefix_from_id,
 )
+from squads._models._source import SourceRecord
 from squads._paths import number_for_id
 from squads._sections import split_frontmatter
 
@@ -209,8 +212,22 @@ def _identity_problem(data: dict[str, Any]) -> str | None:
     return None
 
 
+def _without_unreadable_source(data: dict[str, Any]) -> dict[str, Any]:
+    """*data* without a ``source`` that is not a well-formed record. A squad older than the key may
+    hold any value under that name; the entry is built without it, and the migration that follows
+    lists the file."""
+    if "source" not in data:
+        return data
+    try:
+        SourceRecord.model_validate(data["source"])
+    except ValidationError:
+        return {key: value for key, value in data.items() if key != "source"}
+    return data
+
+
 def _build_item(data: dict[str, Any], rel: str) -> Item:
     """The index entry *data* describes, reading a missing ``sequence_id`` from the ``id``."""
+    data = _without_unreadable_source(data)
     fid = str(data["id"])
     number = int(fid.rpartition("-")[2])
     if data.get("sequence_id") is None:

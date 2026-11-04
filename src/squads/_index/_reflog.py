@@ -52,6 +52,7 @@ REFLOG_OPS: tuple[str, ...] = (
     "ref",
     "link",
     "retype",
+    "source",
     "default_role",
     "remove",
     "repair",

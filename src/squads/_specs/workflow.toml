@@ -625,6 +625,7 @@ ref_rules = []
 # parent_required absent → None
 
 [items.operator.attributes]
+identities = { kind = "map" }
 pronouns = { kind = "str", settable = false }
 
 # ---------------------------------------------------------------------------
@@ -679,7 +680,8 @@ fields = [
 # `stored = true` (default `false`) declares that a view's content cannot be derived from the
 # squad (text fetched from an outside source). Its tag is then a pair, `sq:view:<name>` and
 # `sq:view:<name>:end`, holding that text between them with every `<!--` opener escaped; the
-# transform and the template read it, unescaped, as `body`. No bundled view is stored.
+# transform and the template read it, unescaped, as `body`. `source_description` is the one
+# bundled stored view.
 #
 # `milestone_rollup` is the one bundled, *relation*-sourced view, and the only reason it's
 # here rather than left for a project's own `.overrides/workflow.toml` is that something in
@@ -768,6 +770,17 @@ source = { kind = "self" }
 # Seeded: same reasoning as `squads_skill` above, for every skill this view classifies as
 # per-item-type-owned (`squads._views.roster_body_view_name`) rather than custom-authored.
 source = { kind = "playbook" }
+
+[views.source_description]
+# Source: the host's tracker issue (`source` kind, no `name`, every type) — the host's `source`
+# record plus its web address, whether its source is trusted and the stored description with
+# tracker references translated; `null` on an item with no record, which renders the stored
+# body alone. Stored: the description is text from outside the squad, written only by a pull,
+# `show --refresh` and `source relink`, never seeded by a creation template.
+# Placed: the pair sits at the top of the body and the squad's prose follows it.
+source = { kind = "source" }
+position = "top"
+stored = true
 
 # ---------------------------------------------------------------------------
 # Squad — the squad-wide checks this squad selects. A squad selects them with the same

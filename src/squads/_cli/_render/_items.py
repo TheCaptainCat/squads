@@ -12,6 +12,7 @@ from squads._cli._render._comments import (
     comment_title,
     edited_suffix,
     is_styled,
+    notice_lines,
     print_comments_plain,
     print_comments_styled,
 )
@@ -160,7 +161,7 @@ def _render_raw(console: Console, show: ItemShow, *, comments: bool, full: bool)
         lines += ["", "## Discussion"]
         for cmt in show.discussion:
             head = f"### {cmt.short_hash} {author_label(cmt)} — {cmt.ts}{edited_suffix(cmt)}"
-            lines += ["", head, "", cmt.body]
+            lines += ["", head, "", *(f"_{n}_" for n in notice_lines(cmt)), cmt.body]
         if not show.discussion:
             lines += ["", "_(no discussion)_"]
     console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)

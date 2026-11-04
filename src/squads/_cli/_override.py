@@ -43,12 +43,10 @@ def _address(
     none; a document's name and its flag are the same address."""
     if role is not None:
         return "role", role
-    if workflow or name == "workflow":
-        return "workflow", "workflow"
-    if playbook or name == "playbook":
-        return "playbook", "playbook"
-    if roles_catalog or name == "roles":
-        return "roles", "roles"
+    flagged = {"workflow": workflow, "playbook": playbook, "roles": roles_catalog, "sources": False}
+    for document, chosen in flagged.items():
+        if chosen or name == document:
+            return document, document
     if name is not None:
         return "template", name
     return None
@@ -62,7 +60,10 @@ def _address(
 def scaffold(
     name: str | None = typer.Argument(
         None,
-        help="Template name, such as `items/<type>.md.j2`, or `workflow`, `playbook`, `roles`.",
+        help=(
+            "Template name, such as `items/<type>.md.j2`, or `workflow`, `playbook`, "
+            "`roles`, `sources`."
+        ),
     ),
     role: str | None = typer.Option(
         None, "--role", help="Bundled role to override in a file of its own, such as `architect`."
@@ -153,7 +154,10 @@ def list_overrides(
 def diff(
     name: str | None = typer.Argument(
         None,
-        help="Template name, role slug, `workflow`, `playbook` or `roles`; omit for all drifted.",
+        help=(
+            "Template name, role slug, `workflow`, `playbook`, `roles` or `sources`; "
+            "omit for all drifted."
+        ),
     ),
     role: str | None = typer.Option(None, "--role", help="Diff the override of this role."),
     workflow: bool = typer.Option(
@@ -202,7 +206,10 @@ def diff(
 def update(
     name: str | None = typer.Argument(
         None,
-        help="Template name, role slug, `workflow`, `playbook` or `roles`; omit for all valid.",
+        help=(
+            "Template name, role slug, `workflow`, `playbook`, `roles` or `sources`; "
+            "omit for all valid."
+        ),
     ),
     role: str | None = typer.Option(None, "--role", help="Re-stamp the override of this role."),
     workflow: bool = typer.Option(

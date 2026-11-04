@@ -17,6 +17,7 @@ from squads._overrides import _service as override_service
 from squads._overrides._manifest import (
     PLAYBOOK_KEY,
     ROLES_KEY,
+    SOURCES_KEY,
     WORKFLOW_KEY,
     artifact_floor,
     template_key,
@@ -24,6 +25,7 @@ from squads._overrides._manifest import (
 from squads._overrides._service import STATE_DRIFTED, OverrideEntry
 from squads._overrides._stamp import stamp_template_file, stamp_toml_file
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
+from squads._sources._loader import SOURCES_OVERRIDE_FILENAME
 from squads._workflow import bundled_spec
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 from tests._helpers import catalog_of
@@ -185,6 +187,22 @@ def _place_roles_catalog_add_only(squad_dir: Path) -> None:
     )
 
 
+# ─── sources document ───────────────────────────────────────────────────────────
+
+
+def _place_sources_shadowing(squad_dir: Path) -> None:
+    path = _shadowing_path(squad_dir, SOURCES_OVERRIDE_FILENAME)
+    path.write_text('[connectors.gitlab.v4]\nconverter = "gitlab-md"\n', encoding="utf-8")
+
+
+def _place_sources_add_only(squad_dir: Path) -> None:
+    path = _shadowing_path(squad_dir, SOURCES_OVERRIDE_FILENAME)
+    path.write_text(
+        '[sources.uniformity-probe]\nconnector = "gitlab"\nbase_url = "http://127.0.0.1:1"\n',
+        encoding="utf-8",
+    )
+
+
 #: One row per registered override kind -- but the set of keys this dict must cover is not
 #: chosen here, it is derived from ``scan_overrides`` at test time
 #: (``test_the_kind_set_is_derived_from_scan_overrides``). A sixth kind wired into the service
@@ -241,6 +259,16 @@ _KIND_FIXTURES: dict[str, _KindFixture] = {
         place_add_only=_place_roles_catalog_add_only,
         restamp=stamp_toml_file,
         cli_argv=["roles"],
+    ),
+    "sources": _KindFixture(
+        manifest_key=SOURCES_KEY,
+        diff_name="sources",
+        display=SOURCES_OVERRIDE_FILENAME,
+        add_only_display=SOURCES_OVERRIDE_FILENAME,
+        place_shadowing=_place_sources_shadowing,
+        place_add_only=_place_sources_add_only,
+        restamp=stamp_toml_file,
+        cli_argv=["sources"],
     ),
 }
 

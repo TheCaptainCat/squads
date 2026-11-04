@@ -63,6 +63,14 @@ class Comment(DTO):
     hash: str
     short_hash: str
     body: str
+    attributes: dict[str, str] = Field(default_factory=dict[str, str])
+    #: For a comment a tracker wrote: the source, the author's web address and the operator whose
+    #: identity matches the author; all ``None`` otherwise.
+    source: str | None = None
+    author_url: str | None = None
+    identity: str | None = None
+    #: ``False`` exactly when the untrusted notice shows.
+    trusted: bool = True
 
 
 class KindDisplay(DTO):

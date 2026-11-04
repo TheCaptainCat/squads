@@ -64,7 +64,7 @@ def _label(row: OverrideDiffRow) -> str:
             return row.name
         case "role":
             return f"--role {row.name}"
-        case "playbook" | "roles":
+        case "playbook" | "roles" | "sources":
             return row.kind
         case _:
             return "workflow"
@@ -132,6 +132,12 @@ def render_scaffolded(scaffolded: ScaffoldedOverride, console: Console) -> None:
                 f"[green]scaffolded[/green] role catalog override: [bold]{path}[/bold]\n"
                 f"Edit [cyan]{path}[/cyan] to override \\[\\[roles]], \\[bundles], or "
                 f"\\[templates.<name>], then inspect with [cyan]sq override diff roles[/cyan]."
+            )
+        case "sources":
+            text = (
+                f"[green]scaffolded[/green] sources override: [bold]{path}[/bold]\n"
+                f"Edit [cyan]{path}[/cyan] to declare a \\[sources.<name>] table for each tracker, "
+                f"then inspect with [cyan]sq override diff sources[/cyan]."
             )
         case _:
             text = (

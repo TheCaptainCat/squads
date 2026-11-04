@@ -27,6 +27,7 @@ from squads._view_bodies import ViewPair, collapse_pairs, encode_inner, find_vie
 from squads._view_remedies import view_placement_invocation
 from squads._views import (
     RosterProvider,
+    SourceProvider,
     render_resolved_source_or_raise,
     resolve_source,
     resolve_view_target,
@@ -537,6 +538,7 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
     roster: RosterProvider,
     squad_dir: Path | None,
     catalog: CatalogSource,
+    described: SourceProvider,
     squad_dir_display: str | None,
     working_language: WorkingLanguage,
     keep: str | None = None,
@@ -578,7 +580,9 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         body = pair.body if pair is not None and view.stored else ""
         if pair is not None:
             end = pair.end
-        result = resolve_source(view, name, item, db, spec, playbook, roster, squad_dir, catalog)
+        result = resolve_source(
+            view, name, item, db, spec, playbook, roster, squad_dir, catalog, described, body
+        )
         data = (
             loader.run(name, view.transform, result, item=item, spec=spec, body=body)
             if view.transform is not None

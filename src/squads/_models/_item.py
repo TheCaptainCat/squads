@@ -16,6 +16,7 @@ from pydantic_core import to_jsonable_python
 from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._models._attributes import CORE_KEYS, NON_FRONTMATTER_KEYS, ROW_ADDED_KEYS
+from squads._models._source import SourceRecord
 from squads._models._subentity import SubEntity, entry_payload
 from squads._util import NonEmpty
 
@@ -159,6 +160,9 @@ class Item(BaseModel):
     #: Body-local sub-entities (stories/subtasks/findings). A given item type hosts exactly one
     #: kind; their prose stays in the markdown markers, their state lives here.
     subentities: list[SubEntity] = []
+    #: The tracker issue the item mirrors; absent on an item no tracker feeds, and then left out of
+    #: the frontmatter, the index and the ``--json`` row.
+    source: SourceRecord | None = Field(default=None, exclude_if=lambda value: value is None)
     #: Squad-folder-relative path to the item's markdown file.
     path: NonEmpty
     created_at: datetime
@@ -389,6 +393,8 @@ def _frontmatter_payload(
         # Each entry is split into core keys and attributes; pydantic reports anything that is not
         # a list of mappings.
         "subentities": _entry_payloads(_empty_list_if_unset(data.get("subentities"))),
+        # Judged by SourceRecord: a value that is not a mapping of exactly its keys is refused.
+        "source": data.get("source"),
         "path": path,
         "created_at": _parse_dt(data.get("created_at")),
         "updated_at": _parse_dt(data.get("updated_at")),
@@ -467,6 +473,8 @@ def _add_optional_frontmatter_fields(data: dict[str, Any], item: Item) -> None:
         data["description"] = item.description
     if item.subentities:
         data["subentities"] = [s.to_frontmatter_dict() for s in item.subentities]
+    if item.source is not None:
+        data["source"] = item.source.model_dump()
     data["created_at"] = clock.iso(item.created_at)
     data["updated_at"] = clock.iso(item.updated_at)
     # Session fields are omitted when unset to keep legacy files unchanged.

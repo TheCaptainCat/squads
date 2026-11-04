@@ -23,13 +23,15 @@ class InboxRequest(DTO):
 
 class InboxEntry(DTO):
     """An item that mentions the slug: each mentioning line, the sub-entity region it is in
-    (``None`` at item level) and the full hash of the comment it is in, by position."""
+    (``None`` at item level), the full hash of the comment it is in and, for a line in a comment an
+    untrusted source wrote, that source's name, by position."""
 
     id: str
     title: str
     lines: list[str]
     regions: list[str | None]
     hashes: list[str | None]
+    untrusted: list[str | None]
     display: QueueDisplay
 
 

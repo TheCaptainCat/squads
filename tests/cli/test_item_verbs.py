@@ -1425,8 +1425,8 @@ async def test_body_refuses_a_pair_whose_text_differs_from_the_stored_one(
     assert out == (
         1,
         f"error: the body carries a stored body for view '{stored.VIEW}' that differs from the "
-        f"one stored on {P.ref_prefix}-3. A stored view body is written only by "
-        f"`sq {P.ref} 3 show --refresh`: leave the pair out of the body, or send it back "
+        f"one stored on {P.ref_prefix}-3. A stored view body is written by nothing in the squad "
+        "until the item is linked to an issue: leave the pair out of the body, or send it back "
         "unchanged\n",
     )
     assert (await _show(invoke))["body"] == printed

@@ -71,6 +71,8 @@ LONG_COMMANDS: tuple[tuple[tuple[str, ...], str], ...] = (
     (("repair",), "squad.repair"),
     (("renumber",), "squad.renumber"),
     (("import",), "squad.import"),
+    (("source", "pull"), "sources.pull"),
+    (("source", "check"), "sources.check"),
     (("migrate", "up"), "squad.migrate"),
     (("migrate", "repad"), "squad.repad"),
     (("migrate", "rename-type"), "squad.rename-type"),
@@ -681,7 +683,7 @@ class Session:
             self.answered = True
             self.out.write(answer["stream"], answer["text"])
             self.out.flush()
-            line = _read_line()
+            line = _read_hidden_line() if answer.get("hidden") else _read_line()
             self.request["answers"].append({"digest": answer["digest"], "line": line})
 
 
@@ -701,6 +703,19 @@ def _read_line() -> str | None:
     if not line:
         return None
     return line.removesuffix("\n").removesuffix("\r")
+
+
+def _read_hidden_line() -> str | None:
+    """One line of a secret, read without echo from the terminal, or as :func:`_read_line` reads
+    it when standard input is not one."""
+    if not sys.stdin.isatty():
+        return _read_line()
+    import getpass
+
+    try:
+        return getpass.getpass("")
+    except (KeyboardInterrupt, EOFError):  # fmt: skip
+        return None
 
 
 def _spans(t0: float, resolved: float, sent: float, done: float, handler: float | None) -> None:

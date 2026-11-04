@@ -89,6 +89,15 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             "_store_cache",  # lazily-loaded, immutable-once-populated package-data content store
         }
     ),
+    "src/squads/_sources/_registry.py": frozenset(
+        {"CONNECTORS"}  # the literal (connector, version) -> class table, never mutated
+    ),
+    "src/squads/_sources/_converters.py": frozenset(
+        {"CONVERTERS"}  # the literal name -> "module:function" table, never mutated
+    ),
+    "src/squads/_migrations/_reserved.py": frozenset(
+        {"RESERVED_COMMAND_STEPS"}  # the literal command -> changelog range table, never mutated
+    ),
     "src/squads/_migrations/_registry.py": frozenset(
         {"MIGRATIONS"}  # the ordered migration table — a point-in-time-frozen definition
     ),

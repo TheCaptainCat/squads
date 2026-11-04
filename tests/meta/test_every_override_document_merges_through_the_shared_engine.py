@@ -9,8 +9,9 @@ OVERRIDE_LOADERS: dict[str, str] = {
     "src/squads/_workflow/_loader.py": "the workflow spec (.overrides/workflow.toml)",
     "src/squads/_interactions/_loader.py": "the team playbook (.overrides/playbook.toml)",
     "src/squads/_roles/_loader.py": "the role catalog (.overrides/roles.toml)",
+    "src/squads/_sources/_loader.py": "the sources document (.overrides/sources.toml)",
     "src/squads/_roles/_resolver.py": "a role (.overrides/roles/<slug>.toml)",
-    "src/squads/_specload.py": "the load path the three whole-document loaders share",
+    "src/squads/_specload.py": "the load path the whole-document loaders share",
 }
 
 #: The calls through which a loader reaches the merge engine: directly, or through the shared

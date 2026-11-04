@@ -58,7 +58,7 @@ from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._models._item import Item, make_ref, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
-from squads._services._item_dto import comment_dtos, item_display, item_row, row_fields
+from squads._services._item_dto import item_display, item_row, row_fields
 from squads._services._item_ops import ItemOpsMixin
 from squads._services._item_read_ops import ItemReadOpsMixin
 from squads._services._results import FoundComment
@@ -201,6 +201,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
                 )
             clear_assignee = False
         assignee = await self.resolve_participant(req.assignee) if req.assignee else None
+        maps = await self._resolved_maps(req.map_attributes)
         author = await self.resolve_participant(req.author) if req.author else None
         parent = await self.resolve_any_id(req.parent) if req.parent is not None else None
         updated = await self.update(
@@ -218,6 +219,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             clear_parent=req.clear_parent,
             set_attributes=dict(req.set_attributes) or None,
             unset_attributes=req.unset_attributes or None,
+            map_attributes=maps or None,
         )
         return Response(data=ItemUpdated(entry=await self._row(updated), nothing_to_clear=False))
 
@@ -395,7 +397,7 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
 
     async def _roster_comments(self, kind: str, req: RosterAddress) -> Response[Comments]:
         item, _ = await self._roster_host(kind, req)
-        return Response(data=Comments(items=comment_dtos(await self.comments(item.id))))
+        return Response(data=Comments(items=await self.discussion_dtos(item)))
 
     async def role_comments(self, req: RosterAddress) -> Response[Comments]:
         """The role's discussion."""

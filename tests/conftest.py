@@ -184,6 +184,17 @@ def run_daemon(daemon_runtime):
 
 
 @pytest.fixture
+def credentials_home(tmp_path, monkeypatch) -> Path:
+    """A user directory of the test's own, where the credential store is looked for."""
+    user = tmp_path / "user"
+    for variable in ("XDG_CONFIG_HOME", "APPDATA"):
+        monkeypatch.setenv(variable, str(user / "config"))
+    for variable in ("HOME", "USERPROFILE"):
+        monkeypatch.setenv(variable, str(user))
+    return user
+
+
+@pytest.fixture
 def svc(project):
     """A `Service` over the `project` squad."""
     return make_service(project)

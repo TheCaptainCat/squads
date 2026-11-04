@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 
 from squads._paths import SquadPaths
+from tests import _stored_view as stored
 from tests._helpers import create_item, make_service
 from tests._readable import init_readable, lines
 from tests._squads import paths_of
@@ -246,13 +247,14 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
     assert await _run(invoke, "views") == (
         0,
         [
-            "View              Source kind  Source name",
-            "greeting_skill    self",
-            "item_skill        playbook",
-            "memory_skill      self",
-            "milestone_rollup  ref          targets",
-            "role_definition   role",
-            "squads_skill      playbook",
+            "View                Source kind  Source name",
+            "greeting_skill      self",
+            "item_skill          playbook",
+            "memory_skill        self",
+            "milestone_rollup    ref          targets",
+            "role_definition     role",
+            "source_description  source",
+            "squads_skill        playbook",
         ],
     )
 
@@ -262,6 +264,19 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
 async def test_views_json_prints_one_object_per_view(project, invoke) -> None:
     output = await printed(invoke, ["workflow", "views", "--json"])
     assert output == json_text(documents.VIEWS)
+
+
+@pytest.mark.covers("workflow views", "--json")
+@pytest.mark.bundled_only("declares a stored view beside the bundled ones")
+async def test_views_json_marks_a_view_that_keeps_a_stored_body(project, invoke) -> None:
+    stored.declare_stored_view(project.squad_dir)
+
+    rows = await read_json(invoke, ["workflow", "views", "--json"])
+
+    assert {row["view"]: row["stored"] for row in rows if row["stored"]} == {
+        stored.VIEW: True,
+        "source_description": True,
+    }
 
 
 # --- view -----------------------------------------------------------------------------------
@@ -465,6 +480,17 @@ async def test_lint_refuses_an_item_field_code_equal_to_a_core_key(project, invo
 
 @pytest.mark.covers("workflow lint", "--json")
 @pytest.mark.bundled_only("prints the bundled vocabulary")
+async def test_lint_refuses_a_stored_view_whose_source_kind_has_no_writer(project, invoke) -> None:
+    assert await _lint_messages(
+        project, invoke, '[views.notes]\nsource = { kind = "self" }\nstored = true\n'
+    ) == [
+        "view 'notes': `stored = true` needs a source kind whose writer fills the body; only "
+        "`source` has one"
+    ]
+
+
+@pytest.mark.covers("workflow lint", "--json")
+@pytest.mark.bundled_only("prints the bundled vocabulary")
 async def test_lint_refuses_a_kind_field_code_a_sub_entity_object_adds(project, invoke) -> None:
     assert await _lint_messages(
         project,
@@ -663,7 +689,7 @@ GREETING_SKILL_SOURCE = {
     "spec": {
         "schema_version": "0.20",
         "override": False,
-        "digest": "1c8f609219d2ea0ba84c97f7829636d30abbad970f8fcf0fffb62e09798facbe",
+        "digest": "677ea0ca249f8a8c6d395c41f7dd7eae7fc6baafb412d30542b294a063ac3b0f",
     },
     "display": {
         "type": "Skill",

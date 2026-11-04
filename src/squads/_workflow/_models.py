@@ -76,6 +76,7 @@ RESERVED_CLI_VERBS: frozenset[str] = frozenset(
         "repair",
         "search",
         "show",
+        "source",
         "sync",
         "tree",
         "ui",
@@ -441,14 +442,15 @@ CATEGORIES: tuple[str, ...] = get_args(ItemSpec.model_fields["category"].annotat
 
 
 class ViewSource(BaseModel):
-    """What a derived view resolves against, six shapes by *kind*; the first three are relations,
+    """What a derived view resolves against, seven shapes by *kind*; the first three are relations,
     the rest resolve without one. ``"ref"``: refs of the declared kind ``name`` (in ``[ref_kinds]``)
     pointing at the host, recovered by inverting stored forward edges. ``"subentity"``: the host's
     own sub-entity collection of kind ``name`` (in ``[subentity_kinds]``, which the host must host).
     ``"subtree"``: the host's descendants of type ``name`` (in ``[items]``). ``"role"``: the host's
     own merged role definition (catalog, overrides, item fields), no ``name``. ``"playbook"``: the
     playbook lane of type ``name`` (in ``[items]``) or of the host's type when absent. ``"self"``:
-    the host itself, no ``name``.
+    the host itself, no ``name``. ``"source"``: the host's tracker issue, or nothing when the host
+    carries no ``source`` record; no ``name``.
 
     ``name`` is checked against the merged spec by ``check_views`` and is never a Python literal at
     the resolving end (``squads._views``), which reads it off the declared source.
@@ -456,13 +458,13 @@ class ViewSource(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    kind: Literal["ref", "subentity", "subtree", "role", "playbook", "self"]
+    kind: Literal["ref", "subentity", "subtree", "role", "playbook", "self", "source"]
     name: str | None = None
     """Required for ``ref``/``subentity``/``subtree`` (refused at load if absent — see
-    ``_validity._check_view_source``); forbidden for ``role``/``self`` (refused at load if given);
-    optional for ``playbook``, where its absence means "the host's own type", resolved at read
-    time rather than at load — the one kind whose name is genuinely conditional rather than
-    strictly required or strictly forbidden."""
+    ``_validity._check_view_source``); forbidden for ``role``/``self``/``source`` (refused at
+    load if given); optional for ``playbook``, where its absence means "the host's own type",
+    resolved at read time rather than at load — the one kind whose name is genuinely conditional
+    rather than strictly required or strictly forbidden."""
 
 
 #: A view name is a bare TOML key and nothing else, reusing :data:`_BARE_TOML_KEY_RE`; enforced in

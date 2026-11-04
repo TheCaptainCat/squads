@@ -1,7 +1,7 @@
 """Item lifecycle: status transitions, edits, links, regen, removal."""
 
 import dataclasses
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from functools import cache
 from pathlib import Path
@@ -13,14 +13,16 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
+from squads._api._dto._items import Comment
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
 from squads._index._resolver import item_file, require_item
 from squads._itemfile import ensure_no_skew
 from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey, parse_invocable_choice
+from squads._models._attributes import AttributeKey, map_attribute, parse_invocable_choice
 from squads._models._index import SquadsDB
 from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
 from squads._models._metadata import coerce_attribute, require_settable
+from squads._models._participants import is_sourced
 from squads._paths import number_for_id
 from squads._pronouns import checked_pronouns
 from squads._roles._catalog import RoleDef
@@ -32,7 +34,10 @@ from squads._services._base import (
     reject_non_view_markers,
     require_title,
 )
+from squads._services._comment_view import CommentView, comment_dtos
 from squads._services._results import RemoveResult, RosterRemoval, RosterStatusResult
+from squads._services._source_view import described_by
+from squads._services._tracker_owned import refuse_owned_update, refuse_owned_write
 from squads._services._validators import ValidatorEngine
 from squads._transform import TransformData
 from squads._util import slugify
@@ -180,6 +185,7 @@ class ItemsMixin(ServiceCore):
         clear_parent: bool = False,
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
+        map_attributes: Mapping[str, Mapping[str, str | None]] | None = None,
         pronouns: str | None = None,
         operator_invocable: str | None = None,
     ) -> Item:
@@ -204,6 +210,7 @@ class ItemsMixin(ServiceCore):
                 clear_parent=clear_parent,
                 set_attributes=set_attributes,
                 unset_attributes=unset_attributes,
+                map_attributes=map_attributes,
                 pronouns=pronouns,
                 operator_invocable=operator_invocable,
             )
@@ -263,17 +270,29 @@ class ItemsMixin(ServiceCore):
         clear_parent: bool = False,
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
+        map_attributes: Mapping[str, Mapping[str, str | None]] | None = None,
         pronouns: str | None = None,
         operator_invocable: str | None = None,
         now: datetime | None = None,
+        by: str | None = None,
     ) -> tuple[Item, dict[str, object], tuple[Path, Path] | None, Item]:
         """The pure half of a metadata update (no file I/O). Returns ``(item, delta, rename,
         base)``: *rename* is ``(old_path, new_path)`` when a title change moves the file, else
         ``None``, left to :meth:`_update_core` so the bulk importer's pre-pass (against a throwaway
         ``db`` copy with ``now=ev.at``) never touches the filesystem; *base* is *item* as loaded
         before any field is touched, for the skew guard (:func:`~squads._itemfile.ensure_no_skew`).
+        *by* is the writing actor, the ambient one when ``None``; an item's tracker owns its title
+        and mapped fields against every writer but its own source.
         """
         item = require_item(db, item_id)
+        refuse_owned_update(
+            item,
+            self.sources,
+            self.spec,
+            by=by or actor.current_actor(),
+            new_title=title,
+            touched=[*(set_attributes or {}), *(unset_attributes or [])],
+        )
         # Only what the role document or playbook supplies is gated; tracking metadata
         # (labels, assignee, parent, author) and project-declared attributes stay
         # writable.
@@ -321,6 +340,7 @@ class ItemsMixin(ServiceCore):
             item.parent = parent
         self._apply_labels(item, add_labels, rm_labels)
         self._apply_attributes(item, set_attributes, unset_attributes, delta)
+        self._apply_map_attributes(item, map_attributes, delta)
         self._apply_own_choices(item, delta, pronouns, operator_invocable)
         item.updated_at = now if now is not None else clock.now()
         item.modified_session, _ = actor.current_session()
@@ -347,6 +367,7 @@ class ItemsMixin(ServiceCore):
         clear_parent: bool = False,
         set_attributes: dict[str, str] | None = None,
         unset_attributes: list[str] | None = None,
+        map_attributes: Mapping[str, Mapping[str, str | None]] | None = None,
         pronouns: str | None = None,
         operator_invocable: str | None = None,
     ) -> Item:
@@ -372,6 +393,7 @@ class ItemsMixin(ServiceCore):
             clear_parent=clear_parent,
             set_attributes=set_attributes,
             unset_attributes=unset_attributes,
+            map_attributes=map_attributes,
             pronouns=pronouns,
             operator_invocable=operator_invocable,
         )
@@ -443,6 +465,30 @@ class ItemsMixin(ServiceCore):
                 self._require_settable(item.type, key)
                 item.attributes.pop(key, None)
             delta[key] = None
+
+    def _apply_map_attributes(
+        self,
+        item: Item,
+        maps: Mapping[str, Mapping[str, str | None]] | None,
+        delta: dict[str, object],
+    ) -> None:
+        """Set and remove the named keys of each map attribute, leaving its other keys alone; a
+        map left empty is removed."""
+        for name, keys in (maps or {}).items():
+            declared = self.spec.item_attributes(item.type).get(name)
+            if declared is None or declared.kind != "map" or not declared.settable:
+                raise SquadsError(f"{name!r} is not a map attribute of {item.type} items")
+            current = map_attribute(item, name) or {}
+            for key, value in keys.items():
+                if value is None:
+                    current.pop(key, None)
+                else:
+                    current[key] = value
+            if current:
+                item.attributes[name] = current
+            else:
+                item.attributes.pop(name, None)
+            delta[name] = dict(keys)
 
     def _apply_own_choices(
         self, item: Item, delta: dict[str, object], pronouns: str | None, invocable: str | None
@@ -611,12 +657,19 @@ class ItemsMixin(ServiceCore):
                 )
             )
         if altered := view_tags.altered_view_pairs(region, body):
+            declared = self.spec.views.get(altered[0])
+            if declared is not None and declared.source.kind == "source":
+                refuse_owned_write(item, f"the stored body of view {altered[0]!r}")
             addr = item.slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+            writer = (
+                f"is written only by `sq {item.type} {addr} show --refresh`"
+                if item.source is not None
+                else "is written by nothing in the squad until the item is linked to an issue"
+            )
             raise SquadsError(
                 f"the body carries a stored body for view {altered[0]!r} that differs from the one "
-                f"stored on {item.id}. A stored view body is written only by "
-                f"`sq {item.type} {addr} show --refresh`: leave the pair out of the body, or send "
-                "it back unchanged"
+                f"stored on {item.id}. A stored view body {writer}: leave the pair out of the "
+                "body, or send it back unchanged"
             )
         if unplaced := view_tags.unplaced_view_tags(region, body):
             raise SquadsError(self._unplaced_view_tag_message(item, unplaced[0]))
@@ -742,6 +795,7 @@ class ItemsMixin(ServiceCore):
             roster,
             self.paths.squad_dir,
             self.catalog,
+            described_by(self.sources, db.items.values()),
             self.paths.config.squad_dir,
             self.working_language,
             keep=keep_view,
@@ -767,7 +821,15 @@ class ItemsMixin(ServiceCore):
         db = await self.store.load()
         roster = cache(lambda: self.roster_from_db(db))
         return views.view_data(
-            body, item, db, self.spec, self.playbook, roster, self.paths.squad_dir, self.catalog
+            body,
+            item,
+            db,
+            self.spec,
+            self.playbook,
+            roster,
+            self.paths.squad_dir,
+            self.catalog,
+            described_by(self.sources, db.items.values()),
         )
 
     async def read_discussion(self, item_id: str) -> str:
@@ -783,6 +845,14 @@ class ItemsMixin(ServiceCore):
         item = await self.get(item_id)
         region = await self.read_discussion(item_id)
         return discussion.split_discussion(region, sequence_id=item.sequence_id)
+
+    async def discussion_dtos(self, item: Item) -> list[Comment]:
+        """The item's top-level discussion as DTOs, a comment a tracker wrote with its derived
+        fields."""
+        comments = await self.comments(item.id)
+        if not any(is_sourced(c.author_slug) for c in comments):
+            return comment_dtos(comments)
+        return CommentView(self.sources, await self.list_items(), item).dtos(comments)
 
     def _enforce_retirement(
         self, db: SquadsDB, item: Item, target: str, *, purge: bool = False

@@ -2,16 +2,16 @@
 
 A view's declaration is a source and nothing else (:func:`resolve_source`): refs of a declared
 kind pointing at the item, a sub-entity collection, a subtree, the item's merged role
-definition, a type's playbook lane, or the item itself. Presentation is a Jinja2 template,
-``templates/views/<name>.md.j2``, rendered by :func:`render_source_view` and handed the
-resolved value in its native shape. Every view is computed on request; nothing here writes
-into an item body.
+definition, a type's playbook lane, the item itself or its tracker issue. Presentation is a
+Jinja2 template, ``templates/views/<name>.md.j2``, rendered by :func:`render_source_view` and
+handed the resolved value in its native shape. Every view is computed on request; nothing here
+writes into an item body.
 
-Six source kinds, in two families. ``ref``/``subtree``/``subentity`` are relations, returned
+Seven source kinds, in two families. ``ref``/``subtree``/``subentity`` are relations, returned
 as a flat ``list[Item]``/``list[SubEntity]`` that a template groups and sorts itself (Jinja's
-``groupby``/``sort``/``selectattr`` under ``StrictUndefined``). ``role``/``playbook``/``self``
-are not relations: each resolves to its own shape (a ``RoleDef``, a :class:`PlaybookSource`,
-the host item).
+``groupby``/``sort``/``selectattr`` under ``StrictUndefined``). ``role``/``playbook``/``self``/
+``source`` are not relations: each resolves to its own shape (a ``RoleDef``, a
+:class:`PlaybookSource`, the host item, a :class:`SourceIssue` or ``None``).
 
 ``sq workflow view --json`` serializes each resolved value in the shape its kind already has a
 serializer for (``squads._services._view_source.view_source``). Cost is one loaded index
@@ -76,6 +76,30 @@ from squads._workflow._validity import subentity_source_reason
 type RosterProvider = Callable[[], list[RoleView]]
 
 
+@dataclass(frozen=True)
+class SourceIssue:
+    """The resolved value of a ``source`` source: the host's ``source`` record, the issue's web
+    address, whether its source is trusted, and the stored description with the tracker
+    references it holds translated."""
+
+    name: str
+    id: str
+    key: str
+    state: str
+    updated_at: str
+    author_id: str
+    author_handle: str
+    url: str
+    trusted: bool
+    text: str
+
+
+#: Computes a host's :class:`SourceIssue` from the host and its unescaped stored body, or
+#: ``None`` when the host carries no record. The service layer holds the sources document and the
+#: connectors, so this module takes the answer as a callable and imports none of them.
+type SourceProvider = Callable[[Item, str], SourceIssue | None]
+
+
 # --------------------------------------------------------------------------- source resolution
 
 
@@ -106,9 +130,11 @@ class PlaybookSource:
 
 
 #: Every shape :func:`resolve_source` can return — a relation's flat ``Item``/``SubEntity``
-#: list for ``ref``/``subtree``/``subentity``, or one of the three other kinds' own native
+#: list for ``ref``/``subtree``/``subentity``, or one of the other kinds' own native
 #: value. No middle-layer record type sits between a source and the objects it actually holds.
-type SourceResult = list[Item] | list[SubEntity] | RoleDef | PlaybookSource | Item
+type SourceResult = (
+    list[Item] | list[SubEntity] | RoleDef | PlaybookSource | Item | SourceIssue | None
+)
 
 
 def _resolve_subentity_source(view: ViewSpec, item: Item) -> list[SubEntity]:
@@ -349,6 +375,16 @@ def _self_source_applies(
     return None
 
 
+def _source_source_applies(
+    view: ViewSpec, view_name: str, item_type: str, spec: WorkflowSpec, playbook: PlaybookSpec
+) -> str | None:
+    """A ``source`` source imposes no constraint on its host: a host with no record resolves to
+    ``None``. Declared explicitly true; see :func:`_ref_source_applies` for why every parameter
+    here is unused rather than dropped."""
+    del view, view_name, item_type, spec, playbook
+    return None
+
+
 _SOURCE_APPLICABILITY: dict[str, _SourceApplicability] = {
     "ref": _ref_source_applies,
     "subtree": _subtree_source_applies,
@@ -356,6 +392,7 @@ _SOURCE_APPLICABILITY: dict[str, _SourceApplicability] = {
     "role": _role_source_applies,
     "playbook": _playbook_source_applies,
     "self": _self_source_applies,
+    "source": _source_source_applies,
 }
 
 
@@ -368,7 +405,7 @@ def _source_incompatibility(
     return _SOURCE_APPLICABILITY[view.source.kind](view, view_name, item_type, spec, playbook)
 
 
-def resolve_source(  # noqa: PLR0913 — the squad context a non-relation kind reads
+def resolve_source(  # noqa: PLR0911, PLR0913 — one arm per kind, the squad context they read
     view: ViewSpec,
     view_name: str,
     item: Item,
@@ -378,6 +415,8 @@ def resolve_source(  # noqa: PLR0913 — the squad context a non-relation kind r
     roster: RosterProvider,
     squad_dir: Path | None,
     catalog: CatalogSource,
+    described: SourceProvider,
+    body: str = "",
 ) -> SourceResult:
     """Every value *view* resolves to when read against *item*, dispatched on ``source.kind``.
 
@@ -385,7 +424,8 @@ def resolve_source(  # noqa: PLR0913 — the squad context a non-relation kind r
     ``list[SubEntity]``; ``role``/``playbook``/``self`` return their own shape (see the module
     docstring). Only the three non-relation kinds need *playbook*/*roster*/*squad_dir*/*catalog*,
     but every caller supplies them all, since the service layer holds them and omitting them per
-    kind would have to change with the view's declared kind. *roster* alone is a
+    kind would have to change with the view's declared kind. A ``source`` kind asks *described* for
+    the host's issue, given the view's unescaped stored *body*. *roster* alone is a
     :data:`RosterProvider` because it costs a disk read per live role; it is called at most once,
     in :func:`_resolve_playbook_source`.
 
@@ -409,6 +449,8 @@ def resolve_source(  # noqa: PLR0913 — the squad context a non-relation kind r
         return _resolve_role_source(item, squad_dir, catalog)
     if kind == "playbook":
         return _resolve_playbook_source(view, item, playbook, roster, spec, catalog)
+    if kind == "source":
+        return described(item, body)
     return _resolve_self_source(item)  # "self"
 
 
@@ -500,7 +542,7 @@ def render_source_view(  # noqa: PLR0913 — the render context is the view's wh
 ) -> str:
     """Render *view_name*'s resolved *result* through ``templates/views/<view_name>.md.j2``.
 
-    The one render entry point for all six source kinds, through the one Jinja2 engine; an
+    The one render entry point for all seven source kinds, through the one Jinja2 engine; an
     adopter's ``.overrides/templates/views/<view_name>.md.j2`` shadows the bundled template. The
     template receives *result* as ``source`` in its native shape, plus ``item``, ``spec`` and
     ``squad_dir``, so grouping, ordering and badges for a relation are the template's job.
@@ -658,7 +700,7 @@ def seeded_view_names(
     )
 
 
-def view_data(
+def view_data(  # noqa: PLR0913 — the squad context a non-relation kind reads
     text: str,
     item: Item,
     db: SquadsDB,
@@ -667,6 +709,7 @@ def view_data(
     roster: RosterProvider,
     squad_dir: Path | None,
     catalog: CatalogSource,
+    described: SourceProvider,
 ) -> dict[str, TransformData]:
     """Each enabled, resolvable ``sq:view:<name>`` tag of *text* whose view declares a transform,
     mapped to that transform's output. A view declared stored maps to ``{"body", "data"}``
@@ -692,7 +735,7 @@ def view_data(
         pair = pair_at.get(start)
         body = pair.body if pair is not None and view.stored else ""
         result = resolve_source(
-            view, parts.name, item, db, spec, playbook, roster, squad_dir, catalog
+            view, parts.name, item, db, spec, playbook, roster, squad_dir, catalog, described, body
         )
         out = (
             loader.run(parts.name, view.transform, result, item=item, spec=spec, body=body)

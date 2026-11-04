@@ -1505,7 +1505,7 @@ def confirm(text: str, *, json_out: bool) -> None:
     and the answer is read from stdin directly, so stdout carries the document alone."""
     served = get_context().served
     if served is not None:
-        served.begin_prompt()
+        served.begin_prompt(False)
     if not json_out:
         typer.confirm(text, abort=True)
         return
@@ -1520,6 +1520,23 @@ def confirm(text: str, *, json_out: bool) -> None:
         if answer in ("", "n", "no"):
             raise typer.Abort()
         err_console.print("Error: invalid input", markup=False, highlight=False)
+
+
+def prompt_secret(text: str) -> str:
+    """Read one secret line without echoing it: on a terminal from a hidden prompt, otherwise from
+    the next line of standard input. A command served by the daemon asks its client for the line,
+    who reads it without echo."""
+    served = get_context().served
+    if served is None and sys.stdin.isatty():
+        return typer.prompt(text, hide_input=True, err=True)
+    if served is not None:
+        served.begin_prompt(True)
+    sys.stderr.write(f"{text}: ")
+    sys.stderr.flush()
+    line = sys.stdin.readline()
+    if not line:
+        raise SquadsError(f"no value was given for {text!r}")
+    return line.removesuffix("\n").removesuffix("\r")
 
 
 def require_as(as_: str | None) -> str:

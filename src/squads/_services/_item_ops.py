@@ -19,7 +19,6 @@ from squads._models._item import DISPLAY_ID_PADDING, Item, format_item_id, parse
 from squads._models._vocab import prefix_for
 from squads._services._collab import CollabMixin
 from squads._services._item_dto import (
-    comment_dtos,
     item_row,
     list_columns,
     participant_names,
@@ -106,7 +105,7 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
             ]
         stored_body = await self.read_stored_body(item.id)
         views = await self.view_data(item.id)
-        discussion = comment_dtos(await self.comments(item.id))
+        discussion = await self.discussion_dtos(item)
         with spans.span("dto"):
             shown = ItemShow.model_validate(
                 {

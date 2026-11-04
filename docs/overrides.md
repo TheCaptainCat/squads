@@ -86,6 +86,7 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
   workflow.toml
   playbook.toml
   roles.toml
+  sources.toml
   roles/
     architect.toml
     tech-lead.toml
@@ -117,6 +118,8 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
   item type, and the guidance each of them reads before touching one (see
   [Playbook overrides](#playbook-overrides-role-guidance-per-item-type)). It is what your generated
   `sq-<type>` skills are compiled from.
+- **`sources.toml`** declares the outside trackers your squad pulls issues from, and may shadow a
+  connector's defaults (see [sources.md](sources.md#declaring-a-source)). It holds no credential.
 - **Transform files** are Python files a view's `transform = { path = … }` names, relative to
   `.overrides/` (`transforms/` is a convention, not a requirement). They are code that sq runs:
   see [Giving a view a transform](#giving-a-view-a-transform).
@@ -497,8 +500,9 @@ as `Published`.
 
 An item file's frontmatter is one flat mapping. The **core keys** are the same on every item:
 `id`, `sequence_id`, `type`, `title`, `slug`, `status`, `description`, `parent`, `author`,
-`assignee`, `labels`, `refs`, `subentities`, `created_at`, `updated_at`, `created_session` and
-`modified_session`. Every other key is an **attribute**, badge values included, and a type
+`assignee`, `labels`, `refs`, `subentities`, `created_at`, `updated_at`, `created_session`,
+`modified_session` and `source` (the record a pulled item carries, see
+[sources.md](sources.md#pulling)). Every other key is an **attribute**, badge values included, and a type
 declares the attributes it carries in an `attributes` table:
 
 ```toml
@@ -509,7 +513,8 @@ paged = { kind = "bool" }
 review_due = { kind = "date", required = true }
 ```
 
-- `kind` is one of `str`, `list` (a list of strings), `bool` or `date` (`YYYY-MM-DD`).
+- `kind` is one of `str`, `list` (a list of strings), `bool`, `date` (`YYYY-MM-DD`) or `map` (a
+  mapping of string keys to string values, stored as a nested mapping under the attribute's key).
 - `required` (default `false`): `sq check` reports an item that does not store it, as
   `error INC-<n>: missing required attribute 'review_due'`. It never makes an item unreadable, so
   adding it to a type with existing items only produces reports.
@@ -530,8 +535,8 @@ review_due = { kind = "date", required = true }
 
 `sq workflow types --json` lists each type's attributes with their `kind`, `required`,
 `settable` and `label` (`null` when absent). The bundled spec declares `target_date` on `milestone`, `target_ref` on `review`,
-`tags` and `tech` on `guide`, `is_default`, `model` and `tech` on `role`, and
-`allowed_tools`, `model` and `when_to_use` on `skill`. Add attributes to a bundled type the same
+`tags` and `tech` on `guide`, `is_default`, `model` and `tech` on `role`,
+`allowed_tools`, `model` and `when_to_use` on `skill`, and `identities` on `operator`. Add attributes to a bundled type the same
 way, roster types included:
 
 ```toml
@@ -558,6 +563,27 @@ import` checks a value the same way. A value already in a file is never changed 
 validation: `sq check` reports one that does not fit its kind, such as
 `error INC-<n>: attribute 'systems': expected a list of strings, got str 'db'`, and it stays as
 written until a command that targets that key replaces it.
+
+**A `map` attribute is set one key at a time.** It gives the type's `update` verb an option named
+after the attribute, with dashes for underscores, that takes `key=value` and repeats; `key=`
+removes the key. `--set` refuses a map and names the option, and an `update` event of `sq import`
+sets keys through `attributes` (see [adoption.md § "Event reference"](adoption.md#event-reference)).
+The bundled spec declares `identities`, a map, on `operator` (see
+[sources.md § "Operators' identities"](sources.md#operators-identities)).
+
+```toml
+[items.task.attributes]
+links = { kind = "map" }
+```
+
+```
+sq task <n> update --links wiki=https://wiki.example.com/x --links ci=pipeline-7
+sq task <n> update --links ci=
+```
+
+```
+error: 'links' is a map; set a key with `--links key=value`, not --set
+```
 
 **What the loader refuses.** An attribute cannot take the name of a core key, of another attribute
 or badge field on the same type, of a key `--json` adds to an item row (`badges`, `body`,
@@ -1412,6 +1438,12 @@ selection can reach them, since the selections live in the document that failed:
 | `workflow_loads` | the workflow spec, with its override, will not load; the message names the cause | `error` |
 | `playbook_loads` | the playbook, with its override, will not load; the message names the cause | `error` |
 | `corpus_scans` | the item files could not be scanned | `error` |
+| `sources_loads` | `sources.toml`, with its override, will not load; the message names the cause | `error` |
+
+The checks of pulled items and operator identities (`source_id_unique`, `source_declared`,
+`source_issue_reachable`, `source_author_declared`, `identity_source_declared`,
+`identity_id_unique` and `comment_attributes_valid`) always run too, and are listed in
+[sources.md § "What `sq check` reports"](sources.md#what-sq-check-reports).
 
 A workflow or playbook override that will not load is reported by these two rules, not by
 `override_loads`. For an unknown validator name in `.overrides/workflow.toml`:
@@ -1983,13 +2015,17 @@ its own merged role definition, a type's playbook lane, or the item itself — r
 template. Views are declared in `[views]`, and nothing about them is a special case: they merge,
 shadow and drop exactly like item types and statuses do.
 
-A view declares its `source`, and optionally a `position` and a `transform`. `fields`, `group_by`,
+A view declares its `source`, and optionally a `position`, a `transform` and `stored`. `fields`, `group_by`,
 `order_by` and a type attachment (`items.<type>.views`) are refused by name, and
 [migration.md § "Upgrading to 0.15: view declarations"](migration.md#upgrading-to-015-view-declarations)
 shows the load error and a worked conversion.
 
-Every view is **computed on every request**. No view is ever written into an item's file, so
-declaring, changing or dropping one rewrites nothing on disk and leaves nothing behind.
+Every view is **computed on every request**. No rendering is ever written into an item's file, so
+declaring, changing or dropping a view rewrites nothing on disk. A view declared `stored = true`
+is the one that keeps something in the file: text the squad cannot compute, held between a pair of
+tags in the body and rendered on every read. Its pair stays in each file that holds it when the
+view is dropped, and `sq check` reports it; see
+[workflow.md § "Stored views"](workflow.md#stored-views).
 
 **Declaring one of your own:**
 
@@ -2002,7 +2038,8 @@ source = { kind = "ref", name = "escalates" }
 first three, `source.name` must be a declared ref kind, sub-entity kind or item type respectively
 — a name your merged spec does not declare is refused at load, with the rest of the spec's
 cross-references. There is no field list, no grouping, no ordering to declare — a view is a
-source, an optional `position`, an optional `transform`, and a template, nothing more. The
+source, an optional `position`, an optional `transform`, an optional `stored`, and a template,
+nothing more. The
 complete field reference is
 in [workflow.md § "Derived views"](workflow.md#derived-views-field-reference).
 
@@ -2057,7 +2094,8 @@ sq override list                                    # your override, with its ba
 
 The template receives `source` — the resolved value, unflattened: a plain list of real
 `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own native value for
-`role`/`playbook`/`self` — plus `item` and `spec`, and `data` when the view declares a transform.
+`role`/`playbook`/`self` — plus `item`, `spec`, `body` (a stored view's stored body, `""` for any
+other view), and `data` when the view declares a transform.
 Without a transform, grouping and ordering are the template's own job, with Jinja's
 `groupby`/`sort`/`selectattr`:
 
@@ -2957,6 +2995,9 @@ sq override scaffold playbook
 
 # Start the role catalog override (roles, templates and bundles in one document)
 sq override scaffold roles
+
+# Start the sources override (the trackers the squad pulls issues from)
+sq override scaffold sources
 
 # Overwrite an existing override
 sq override scaffold items/task.md.j2 --force

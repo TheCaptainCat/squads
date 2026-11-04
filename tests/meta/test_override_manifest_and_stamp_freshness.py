@@ -20,6 +20,7 @@ from squads import __version__
 from squads._overrides._manifest import (
     PLAYBOOK_KEY,
     ROLES_KEY,
+    SOURCES_KEY,
     WORKFLOW_KEY,
     _load_manifest,
     _load_store,
@@ -75,6 +76,7 @@ def test_the_index_has_a_current_version_hash_for_every_overridable_bundled_arti
         WORKFLOW_KEY,
         ROLES_KEY,
         PLAYBOOK_KEY,
+        SOURCES_KEY,
     }
 
     manifest_entry = _load_manifest().get(__version__)
@@ -148,7 +150,7 @@ def test_template_changed_since_is_false_for_the_current_and_for_an_unknown_vers
 def test_artifact_changed_since_is_content_gated_for_every_kind() -> None:
     """Unknown history is silent and the running version is never drifted from itself."""
     invalidate_cache()
-    for key in (WORKFLOW_KEY, ROLES_KEY, PLAYBOOK_KEY):
+    for key in (WORKFLOW_KEY, ROLES_KEY, PLAYBOOK_KEY, SOURCES_KEY):
         assert not artifact_changed_since(key, __version__)
         assert not artifact_changed_since(key, "0.0.0-nonexistent")
 
@@ -288,7 +290,7 @@ def rebuild_tree(
         squads_root / "_rendering" / "templates", dest_root / "_rendering" / "templates"
     )
     (dest_root / "_specs").mkdir(parents=True)
-    for name in ("workflow.toml", "roles.toml", "playbook.toml"):
+    for name in ("workflow.toml", "roles.toml", "playbook.toml", "sources.toml"):
         shutil.copy2(squads_root / "_specs" / name, dest_root / "_specs" / name)
     for name in ("templates_manifest.json", "content_store.json"):
         shutil.copy2(squads_root / "_rendering" / name, dest_root / "_rendering" / name)

@@ -271,8 +271,8 @@ def _retired_view_grammar_violations(raw_override: RawMapping, origin: str) -> l
                         "'extra_fields' is not a declared key — a type's keys are declared in "
                         "an `attributes` table",
                         f"replace it with `[items.{type_name}.attributes]` and one "
-                        '`<name> = { kind = "str" }` line per key (kind is str, list, bool '
-                        "or date).",
+                        '`<name> = { kind = "str" }` line per key (kind is str, list, bool, '
+                        "date or map).",
                     )
                 )
             if isinstance(table, dict) and _RETIRED_ITEM_VIEWS_KEY in cast(RawMapping, table):

@@ -181,7 +181,7 @@ class SelectedApi:
         return build_http_api(endpoint, local=local_api, restart=self._restart)
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
-        if op.local_only:
+        if op.local_only or op.private:
             return await local_api().call(op, req)
         if self._chosen is None:
             self._chosen = self._choose()
@@ -189,7 +189,7 @@ class SelectedApi:
 
     def call_sync[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
         """:meth:`call` without an event loop when the chosen API needs none."""
-        if not op.local_only:
+        if not (op.local_only or op.private):
             if self._chosen is None:
                 self._chosen = self._choose()
             sync = getattr(self._chosen, "call_sync", None)

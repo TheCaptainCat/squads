@@ -7,7 +7,7 @@ The fixed names are the options and keys the code declares; a guard under ``test
 table to the live command and the live event model.
 """
 
-from squads._workflow._models import WorkflowSpec
+from squads._workflow._models import ROSTER_OPERATOR, WorkflowSpec
 from squads._workflow._validity import (
     GENERIC_SUBENTITY_VERB,
     reserved_item_keys,
@@ -39,6 +39,7 @@ FIXED_OPTIONS: dict[str, frozenset[str]] = {
             "json",
         }
     ),
+    "operator update": frozenset({"help", "title", "pronouns", "as", "json"}),
     "list": frozenset(
         {
             "help",
@@ -109,7 +110,7 @@ FIXED_IMPORT_KEYS: dict[str, frozenset[str]] = {
             "handle",
         }
     ),
-    "comment": frozenset({"op", "at", "as", "target", "messages", "message", "sub"}),
+    "comment": frozenset({"op", "at", "as", "target", "messages", "message", "sub", "attributes"}),
 }
 
 
@@ -154,6 +155,15 @@ def _field_flags(spec: WorkflowSpec, owner: str, *, clearing: bool) -> list[tupl
     return flags
 
 
+def _map_flags(spec: WorkflowSpec, owner: str) -> list[tuple[str, str]]:
+    """The flags *owner*'s settable map attributes give."""
+    return [
+        (flag_name(name), f"attribute {name!r}")
+        for name, attr in spec.items[owner].attributes.items()
+        if attr.kind == "map" and attr.settable
+    ]
+
+
 def _filter_flags(spec: WorkflowSpec) -> list[tuple[str, str]]:
     """The flags `list` and `tree` derive: one per field code some non-roster type declares, and a
     threshold for one on an ordered collection."""
@@ -189,7 +199,19 @@ def check_derived_names(spec: WorkflowSpec, errors: list[str]) -> None:
             _collisions(
                 f"{item_type} update",
                 FIXED_OPTIONS["update"],
-                _field_flags(spec, item_type, clearing=True),
+                [
+                    *_field_flags(spec, item_type, clearing=True),
+                    *_map_flags(spec, item_type),
+                ],
+                "--",
+            )
+        )
+    if ROSTER_OPERATOR in spec.items:
+        errors.extend(
+            _collisions(
+                "operator update",
+                FIXED_OPTIONS["operator update"],
+                _map_flags(spec, ROSTER_OPERATOR),
                 "--",
             )
         )

@@ -21,7 +21,7 @@ def declare_stored_view(squad_dir: Path, name: str = VIEW) -> None:
     """Write the override that declares the stored view *name* and its presentation template."""
     overrides = squad_dir / ".overrides"
     (overrides / "templates" / "views").mkdir(parents=True, exist_ok=True)
-    workflow = f'[views.{name}]\nsource = {{ kind = "ref", name = "targets" }}\nstored = true\n'
+    workflow = f'[views.{name}]\nsource = {{ kind = "source" }}\nstored = true\n'
     (overrides / "workflow.toml").write_text(
         f"# squads:override-base:{__version__}\n\n{workflow}", encoding="utf-8"
     )

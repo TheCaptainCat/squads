@@ -50,7 +50,8 @@ class ItemCreated(ItemRow):
 class ItemUpdateRequest(ItemAddress):
     """Change the fields given; a ``clear_*`` flag empties its field, ``set_attributes`` holds
     ``key: value`` pairs (a badge field by its code among them), ``unset_attributes`` the keys to
-    remove and ``force`` makes a status transition the lifecycle does not allow."""
+    remove, ``map_attributes`` the keys of each map attribute to set (a value) or remove
+    (``None``) and ``force`` makes a status transition the lifecycle does not allow."""
 
     title: str | None = None
     description: str | None = None
@@ -65,6 +66,9 @@ class ItemUpdateRequest(ItemAddress):
     rm_labels: list[str] = Field(default_factory=list[str])
     set_attributes: dict[str, str] = Field(default_factory=dict[str, str])
     unset_attributes: list[str] = Field(default_factory=list[str])
+    map_attributes: dict[str, dict[str, str | None]] = Field(
+        default_factory=dict[str, dict[str, str | None]]
+    )
 
 
 class ItemWritten(DTO):

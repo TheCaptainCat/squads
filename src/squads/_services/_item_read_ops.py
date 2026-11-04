@@ -1,6 +1,8 @@
 """The item read operations: the tree, the ref graph, search, the work queues, an item's refs
 and discussion, and its sub-entities, each answering with its DTO."""
 
+from collections.abc import Callable
+
 from squads import _spans as spans
 from squads._api._dto._comments import Comments, CommentsRequest
 from squads._api._dto._graph import GraphNode, GraphRequest
@@ -31,7 +33,6 @@ from squads._errors import SquadsError
 from squads._models._item import Item
 from squads._services._base import ItemFilter
 from squads._services._item_dto import (
-    comment_dtos,
     kind_display,
     participant_names,
     subentity_dto,
@@ -127,6 +128,15 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         hits = [search_hit(r, self.spec, names) for r in found]
         return Response(data=SearchResults(items=hits), omitted=unreadable)
 
+    def _trusted_sources(self) -> Callable[[str], bool]:
+        """Whether a source is declared trusted; an undeclared one, or a sources document that
+        does not load, is not."""
+        try:
+            declared = self.sources().sources
+        except SquadsError:
+            declared = {}
+        return lambda name: name in declared and declared[name].trusted
+
     async def inbox_items(self, req: InboxRequest) -> Response[Inbox]:
         """The open items whose discussion mentions the slug; an unreadable item file is named
         in ``omitted``."""
@@ -134,7 +144,8 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
         slug = await self.resolve_participant(req.slug, live_only=False)
         hits, unreadable = await self.inbox(slug)
         names = await self.display_names()
-        entries = [inbox_entry(h, self.spec, names) for h in hits]
+        trusted = self._trusted_sources()
+        entries = [inbox_entry(h, self.spec, names, trusted) for h in hits]
         return Response(data=Inbox(slug=slug, items=entries), omitted=unreadable)
 
     async def mine_items(self, req: MineRequest) -> Response[Mine]:
@@ -170,7 +181,7 @@ class ItemReadOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin):
     async def item_comments(self, req: CommentsRequest) -> Response[Comments]:
         """The item's top-level discussion."""
         item = await self.addressed_item(req)
-        return Response(data=Comments(items=comment_dtos(await self.comments(item.id))))
+        return Response(data=Comments(items=await self.discussion_dtos(item)))
 
     def _hosted_kind(self, item: Item, kind: str | None) -> str:
         """The sub-entity kind a request names, or the one the item's type hosts."""

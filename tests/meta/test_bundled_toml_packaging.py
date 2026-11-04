@@ -14,6 +14,7 @@ import pytest
 _ASSETS: list[tuple[str, str, bytes]] = [
     ("squads._specs", "playbook.toml", b"[types.task]"),
     ("squads._specs", "roles.toml", b"manager"),
+    ("squads._specs", "sources.toml", b"[connectors.gitlab.v4]"),
     ("squads._specs", "workflow.toml", b"[lifecycles.work]"),
 ]
 

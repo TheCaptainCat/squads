@@ -51,6 +51,7 @@ async def test_add_registers_a_person_under_a_slug_made_from_the_first_name(
             "pronouns": None,
             "status": "Active",
             "display": {"name": "Alice Tester", "pronouns": None},
+            "identities": {},
         }
     ]
     assert _roster_lines(project) == ["- **Alice Tester** (`op-alice`)"]
@@ -137,6 +138,7 @@ async def test_list_json_describes_each_operator_with_its_status(project, invoke
             "pronouns": None,
             "status": "Active",
             "display": {"name": "Alice Tester", "pronouns": None},
+            "identities": {},
         },
         {
             "id": "OP-3",
@@ -145,6 +147,7 @@ async def test_list_json_describes_each_operator_with_its_status(project, invoke
             "pronouns": "he/him",
             "status": "Archived",
             "display": {"name": "Bob Builder (he/him)", "pronouns": "he/him"},
+            "identities": {},
         },
     ]
 
@@ -230,6 +233,7 @@ async def test_show_json_describes_the_operator(project, invoke) -> None:
             ),
             "discussion": [],
         },
+        "identities": {},
     }
 
 
@@ -300,7 +304,7 @@ async def test_update_needs_a_field_to_change(project, invoke) -> None:
     result = await invoke(["operator", "op-alice", "update"])
     assert (result.exit_code, result.output) == (
         1,
-        "error: nothing to update (pass at least one of --title, --pronouns)\n",
+        "error: nothing to update (pass at least one of --title, --pronouns, --identities)\n",
     )
 
 
@@ -392,6 +396,7 @@ async def test_add_json_prints_the_operator_it_registered(project, invoke) -> No
             "pronouns": "she/her",
             "status": "Active",
             "display": {"name": "Alice Tester (she/her)", "pronouns": "she/her"},
+            "identities": {},
         }
     )
 
@@ -410,5 +415,6 @@ async def test_update_json_prints_the_operator_after_the_update(project, invoke)
             "pronouns": None,
             "status": "Active",
             "display": {"name": "Alice T", "pronouns": None},
+            "identities": {},
         }
     )

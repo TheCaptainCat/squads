@@ -15,6 +15,13 @@ SLUG_RE = re.compile(SLUG_PATTERN)
 ANONYMOUS_SLUG = "operator"
 ANONYMOUS_NAME = "Operator"
 SYSTEM_SLUG = "squads"
+#: The words squads reserves as author namespaces: an author is a slug, or one of these words and a
+#: slug (``source:gitlab-prod``). Each is a reserved slug no role can take.
+AUTHOR_NAMESPACES: tuple[str, ...] = ("source",)
+#: The grammar of an author as a comment header and an item's ``author`` write it.
+AUTHOR_PATTERN = rf"(?:(?:{'|'.join(AUTHOR_NAMESPACES)}):)?[a-z0-9][a-z0-9-]*"
+#: What a source's author slug starts with: ``source:<name>``.
+SOURCE_AUTHOR_PREFIX = "source:"
 OPERATOR_SLUG_PREFIX = "op-"
 #: The group verbs of ``sq role`` and ``sq skill``: a slug equal to one cannot be addressed by slug.
 #: Hand-maintained because the models sit below the CLI; ``tests/meta`` pins both against the
@@ -22,6 +29,20 @@ OPERATOR_SLUG_PREFIX = "op-"
 ROLE_GROUP_VERBS: frozenset[str] = frozenset({"activate", "add", "catalog", "list"})
 SKILL_GROUP_VERBS: frozenset[str] = frozenset({"add"})
 OPERATOR_SLUG_RE = re.compile(re.escape(OPERATOR_SLUG_PREFIX) + SLUG_PATTERN)
+
+
+def source_of(author: str) -> str | None:
+    """The source name of a ``source:<name>`` author, ``None`` for any other author."""
+    return (
+        author.removeprefix(SOURCE_AUTHOR_PREFIX)
+        if author.startswith(SOURCE_AUTHOR_PREFIX)
+        else None
+    )
+
+
+def is_sourced(author: str) -> bool:
+    """Whether a tracker, not a participant, wrote what *author* wrote."""
+    return source_of(author) is not None
 
 
 def is_valid_slug(slug: str) -> bool:
@@ -34,6 +55,16 @@ def require_valid_slug(slug: str, *, action: str) -> None:
     if not is_valid_slug(slug):
         raise SquadsError(
             f"cannot {action} as {slug!r}: a slug is lowercase letters, digits and hyphens"
+        )
+
+
+def refuse_source_actor(slug: str) -> None:
+    """Raise when ``slug`` is a ``source:<name>`` author: only a pull writes as a source, so no
+    ``--as`` or import ``as`` may name one."""
+    if is_sourced(slug.lstrip("@").lower()):
+        raise SquadsError(
+            f"cannot act as {slug!r}: only `sq source pull` writes as a source, and no `--as` "
+            "can name one"
         )
 
 
@@ -52,6 +83,8 @@ def reserved_role_slug_problem(slug: str) -> str | None:
         return "is reserved for the anonymous author"
     if slug == SYSTEM_SLUG:
         return "is reserved for system entries"
+    if slug in AUTHOR_NAMESPACES:
+        return "is reserved as the namespace of authors that are not roles"
     if slug.startswith(OPERATOR_SLUG_PREFIX):
         return f"is reserved for operators (the {OPERATOR_SLUG_PREFIX!r} prefix)"
     return None

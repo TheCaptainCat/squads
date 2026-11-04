@@ -180,12 +180,14 @@ class RefKindCatalog(DTO):
 
 
 class ViewRow(DTO):
-    """A declared view: its source and its transform, when it declares one."""
+    """A declared view: its source, whether it has a stored body, and its transform, when it
+    declares one."""
 
     view: str
     source_kind: str
     source_name: str | None
     transform: dict[str, str] | None
+    stored: bool
 
 
 class ViewCatalog(DTO):
@@ -279,16 +281,48 @@ class PlaybookView(DTO):
     roster: list[PlaybookRosterEntry]
 
 
-type ViewSource = list[TreeNode] | list[SubentityEntry] | RoleShow | ItemShowWithSpec | PlaybookView
+class SourceIssueView(DTO):
+    """A source source: the host's tracker record, the issue's web address (empty when its source
+    is not declared), whether the source is trusted, and the stored description with the tracker
+    references it holds translated."""
+
+    name: str
+    id: str
+    key: str
+    state: str
+    updated_at: str
+    author_id: str
+    author_handle: str
+    url: str
+    trusted: bool
+    text: str
+
+
+type ViewSource = (
+    list[TreeNode]
+    | list[SubentityEntry]
+    | RoleShow
+    | ItemShowWithSpec
+    | PlaybookView
+    | SourceIssueView
+    | None
+)
 
 
 class ViewResult(DTO):
     """A view resolved against an item: its source in the shape of the command it comes from
     (``sq tree --json`` nodes, a sub-entity listing's rows, ``sq role show --json``, ``sq show
-    --json`` plus the spec, or a playbook lane), or the output its template renders."""
+    --json`` plus the spec, a playbook lane or a tracker issue), or the output its template
+    renders."""
 
     source: (
-        list[TreeNode] | list[SubentityEntry] | RoleShow | ItemShowWithSpec | PlaybookView | None
+        list[TreeNode]
+        | list[SubentityEntry]
+        | RoleShow
+        | ItemShowWithSpec
+        | PlaybookView
+        | SourceIssueView
+        | None
     )
     output: str | None
 

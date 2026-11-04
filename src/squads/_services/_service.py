@@ -37,12 +37,15 @@ from squads._services._item_write_ops import ItemWriteOpsMixin, RetypeOpsMixin
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin, ensure_root_tmp_ignored
 from squads._services._memory import MemoryMixin
+from squads._services._pull import PullMixin
 from squads._services._refs import RefsMixin
 from squads._services._rename import RenameMixin
 from squads._services._results import AdoptResult, InitResult
 from squads._services._retype import RetypeMixin
 from squads._services._roster import RosterMixin
 from squads._services._roster_ops import RosterOpsMixin
+from squads._services._source_links import SourceLinksMixin
+from squads._services._sources_ops import SourceOpsMixin
 from squads._services._squad_ops import SquadStateOpsMixin
 from squads._services._subentities import SubentitiesMixin
 from squads._services._views import ViewsMixin
@@ -58,13 +61,16 @@ from squads._workflow._models import WorkflowSpec
 
 
 class Service(
+    SourceLinksMixin,
     ItemWriteOpsMixin,
     ItemReadOpsMixin,
     RosterOpsMixin,
     RetypeOpsMixin,
     ItemOpsMixin,
     SquadStateOpsMixin,
+    SourceOpsMixin,
     CorpusOpsMixin,
+    PullMixin,
     ImportMixin,
     ItemsMixin,
     CollabMixin,
@@ -242,12 +248,9 @@ def build_service(
     *documents* it holds and the *refusal* that made its composition fall back to them."""
     return Service(
         paths,
-        spec=documents.workflow,
-        playbook=documents.playbook,
+        documents,
         store=IndexStore(paths.index_path, paths.lock_path, spec=documents.workflow),
         backends=backends if backends is not None else _backends_of(paths.config.active_backends),
-        catalog=documents.catalog,
-        files=documents.files,
         refusal=refusal,
     )
 

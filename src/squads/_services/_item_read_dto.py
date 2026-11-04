@@ -1,7 +1,7 @@
 """The item read results projected onto their DTOs: tree and graph nodes, search hits, queue
 rows, refs and sub-entity listings, with the display content the spec and the roster decide."""
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from squads import _badges as badges
 from squads import _discussion as discussion
@@ -168,14 +168,21 @@ def queue_display(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> Q
     return QueueDisplay(**dict(item_display(item, spec, names)), status_code=item.status)
 
 
-def inbox_entry(hit: results.InboxHit, spec: WorkflowSpec, names: Mapping[str, str]) -> InboxEntry:
-    """An item that mentions the slug, with its mentioning lines."""
+def inbox_entry(
+    hit: results.InboxHit,
+    spec: WorkflowSpec,
+    names: Mapping[str, str],
+    trusted: Callable[[str], bool],
+) -> InboxEntry:
+    """An item that mentions the slug, with its mentioning lines; *trusted* says whether a source
+    is declared trusted."""
     return InboxEntry(
         id=hit.item.id,
         title=hit.item.title,
         lines=[ln.text for ln in hit.lines],
         regions=[ln.region for ln in hit.lines],
         hashes=[ln.hash for ln in hit.lines],
+        untrusted=[ln.source if ln.source and not trusted(ln.source) else None for ln in hit.lines],
         display=queue_display(hit.item, spec, names),
     )
 

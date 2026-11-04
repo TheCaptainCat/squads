@@ -3,9 +3,10 @@ id: TASK-1276
 sequence_id: 1276
 type: task
 title: Sources spec, source record, credentials and sq source pull
-status: Draft
+status: InReview
 parent: FEAT-1271
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-1274:implements
 - MILE-1269:targets
@@ -16,46 +17,46 @@ description: sources.toml, GitLab connector and harness, source record, map kind
 subentities:
 - local_id: ST1
   title: sources.toml spec document and its validation
-  status: Todo
+  status: Done
   maps_to: US1
 - local_id: ST2
   title: Source record, derived lookups, namespaced author
-  status: Todo
+  status: Done
   maps_to: US2
 - local_id: ST3
   title: Map attribute kind and operator identities
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST4
   title: Comment attributes and sourced-comment display
-  status: Todo
+  status: Done
   maps_to: US8
 - local_id: ST5
   title: Credential store and the hidden prompt
-  status: Todo
+  status: Done
   maps_to: US9
 - local_id: ST6
   title: sq source pull compiled to import events
-  status: Todo
+  status: Done
   maps_to: US4
 - local_id: ST7
   title: The source_description view and show --refresh
-  status: Todo
+  status: Done
   maps_to: US5
 - local_id: ST8
   title: Ownership refusals and sq check reports
-  status: Todo
+  status: Done
   maps_to: US6
 - local_id: ST9
   title: Source list, unlink and relink
-  status: Todo
+  status: Done
   maps_to: US7
 - local_id: ST10
   title: HTTP helper, loopback harness, GitLab connector
   status: Todo
   maps_to: US4
 created_at: '2026-11-03T23:02:45Z'
-updated_at: '2026-11-03T23:19:00Z'
+updated_at: '2026-11-04T04:02:52Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -307,4 +308,222 @@ Tests (4): a pull from recorded responses creates items with comments (system no
       - ST1: `version` is optional only when the connector has exactly one registered version. With several, a source without `version` fails at load, naming the source and listing the known versions. No ordering and no "newest" exist. Replace "defaulting to the newest registered" in the ST1 text. The `gitlab` cases resolve to its only version. The several-version refusal case belongs to TASK-1278 ST1, which has the two Jira rows.
       - ST6, ST7, ST9, ST3: the pull, `show --refresh`, `relink` and handle resolution go through one shared fetch phase. TASK-1277 adds the access probes at its start, so build no second fetch path.
       - ST9 and ST5: `source unlink` and `sq source credential set` and `remove` work on a disabled source. Only fetching commands refuse it, and a pull with no name skips it.
+- [2026-11-04T00:08:22Z] `python-dev` Elias Python:
+  - - Partial handback, stopped at a clean boundary (all gates green on my files). Done: the connector layer of ST10 and the body_written decision. Not started: ST1 to ST9.
+    - ST10 landed (code and harness; no subtask marked Done because its four tests all go through the pull, which is ST6):
+      - `_sources/`: `_connector.py` (interface, every method but the probes, plus the fetch records), `_http.py` (urllib client: pagination by X-Next-Page, backoff on 429/502/503/504 with Retry-After or RateLimit-Reset, timeouts, loopback bypasses proxies), `_gitlab.py` (API v4, global issue ID, system notes excluded, links, handle to user ID, pure reference method, label filter), `_converters.py` (`gitlab-md` row), `_registry.py` (`gitlab`/`v4` row), `_spec.py` (the `SourceSpec` model only; ST1 adds the loader).
+      - `_services/_fetch.py`: the one shared fetch phase (`fetch_source`, `resolve_handle`, `connector_for`, `require_enabled` naming `enabled = false`).
+      - `tests/_tracker_harness.py` and `tests/fixtures/sources/gitlab/routes.json`: recorded responses on a loopback port. Verified by a scratch probe: pagination, system-note exclusion, a `blocks` link, a one-off fetch (found and gone), handle resolution, the disabled refusal, `gitlab-md`, reference qualification.
+      - `tests/meta/test_connector_modules_hold_no_squad_vocabulary.py` (2 tests; the second plants a type name and is the falsification). Import-edge rows `_services -> _sources`, `_sources -> _clock`, `_sources -> _errors`; allowlist rows for `CONNECTORS` and `CONVERTERS`.
+    - Risk 2 decided: a body holding only a stored view body stays unwritten, because ADR-1274 section 4 strips pairs from both sides and the rule shares its predicate with the overwrite guard. Test: `test_a_body_holding_only_a_stored_view_body_is_still_unwritten` (tests/check/test_prose_rules.py, `check`; falsified by making the predicate read the raw body: it fails).
+    - Risk 1 is real once ST2 lands: today `source: tracker` indexes as an attribute (the existing migrate test passes), but a core `source` record that rejects a plain string will make the reconcile call that file unindexable and stop before the runner lists it. ST2 must let the index rebuild read a non-record `source` leniently (or have the runner's refusal run first) and extend `test_up_lists_every_case_a_0_19_corpus_holds_and_stamps_nothing`.
+    - Open: two tests/meta failures come from the tech writer's in-flight docs/workflow.md (`show --refresh` does not resolve yet; TASK-2/TASK-0 references at lines 1373-1407), not from this change.
+- [2026-11-04T00:10:07Z] `python-dev` Elias Python:
+  - - @architect GitLab fetch by ID (ADR-1274 section 9, 14): `GET /api/v4/issues/:id` is admin-only, so the connector no longer uses it. I could not reach GitLab from here, so GraphQL `issue(id:)` for a non-admin token is unverified and not used.
+    - Chosen: the interface is now `issue(issue_id, key)`. GitLab fetches `GET /projects/:path/issues/:iid`, which any user with read access can call, from the last known `source.key`, and returns the issue only when its global ID equals the stored `source.id`; otherwise `None`, so the pull reports `gone`.
+    - Consequence for the ADR: a one-off fetch needs the item's current key, so the fetch phase takes a map of ID to key. A moved issue is found through the filter listing and the incremental query (which carry the new key), not through the one-off fetch; a moved issue outside the filter reads as gone.
+    - Status: ST1 to ST9 are still not started; I am out of context for this run and stop here, gates green. Next run starts at ST1.
+- [2026-11-04T00:11:26Z] `architect` Robert Architect:
+  - - @python-dev ADR-1274 §14 (2026-11-04) settles the remedy for a role named `source`. In `_v0_19_to_v0_20.py`, replace item (2) of `MANUAL` with exactly this text; items (1) and (3) are unchanged:
+    
+    ```
+    (2) A role whose slug is `source`: `source` is now reserved, and a roster slug never changes, so replace the role. Run these steps with the 0.19 release, before `sq migrate up`, because a newer build refuses them on a 0.19 squad. Create its successor under a new slug the way the role was made (`sq role add <new> --file <def>` with the definition `sq role source show` prints, or `sq role activate <new> --from <template>`). Reassign its work: `sq <type> <n> update --assignee <new>` for each item assigned to `source`, and `--author <new>` for each item it authored. Re-add each of its memories with `sq memory <new> add`, from `sq memory source show <slug>`, then `sq memory source forget <slug>`. Then delete the role with `sq role source remove --purge`; archiving is not enough, because an archived role still holds its slug. What is lost: the old role's own body and discussion (git history keeps them); its inbox, since an `@source` in an existing comment reaches no one; the authorship of its comments, which keep `source` as their author and can no longer be edited or removed; and any ref to the old role's ID, which you must re-point by hand.
+    ```
+    
+    - @tech-writer `docs/migration.md` should match this text.
+- [2026-11-04T00:46:11Z] `python-dev` Elias Python:
+  - - Handback for this run: ST1, ST5 and ST2 are Done. Not committed; the full suite is not run (main loop owns it).
+    
+    Subtasks
+    - ST1: `sources.toml` is the fourth spec document. The bundled `_specs/sources.toml` holds `[connectors."gitlab@v4"]` (converter `gitlab-md`, links `relates_to` to `related` and `blocks` to `blocks`) and no source. The override merges through `_specload`/`_specmerge`. `_sources/_loader.py` builds and validates it against the resolved workflow spec, collect-all, naming source, map and value, and the version rule holds: omitted only when the connector has one registered version, else the known versions are listed. `resolve_documents` resolves it lazily and memoised (`SpecDocuments.sources`), so a broken file fails only a source command. `sq override scaffold|list|diff|update sources` work, with the manifest key, the state classifier, and the stamp findings in `sq check`. ADR-1274 section 8 only.
+    - ST5: the credential store `_sources/_credentials.py` (per-user `credentials.toml`, keyed by normalised base URL, mode 0600 in a 0700 directory, a group- or other-readable file refused naming `chmod`, read on every use). `sq source credential set|remove`. The three operations are a new kind, `Operation.private` (no route, run through the command endpoint or in process, absent from `/v1` and OpenAPI); `read_only` marks the field-name lookup so a prompt may follow it. Hidden prompt: `begin_prompt(hidden)`, a `prompt` reply carries `hidden: true` only for a secret, the shim reads it with `getpass` on a terminal and the digest never covers an answer. The prompt text goes to stderr so `--json` keeps stdout to the document.
+    - ST2: `Item.source` (`_models/_source.py`, strict, exactly the seven string keys; a missing or extra key or non-string value refuses the item naming the file), `source` in `CORE_KEYS`, read from and written to frontmatter, left out of the index entry, the frontmatter and the `--json` row when absent. `SquadsDB.source_ids()`, `source_keys()` (both to lists of sequence ids) and `source_cursor(name)`, computed, never stored. Comment header grammar `slug | source:slug` (`AUTHOR_NAMESPACES`, `AUTHOR_PATTERN`); `source` is a reserved role slug. Risk 1: the migrate-time reconcile now drops a `source` that is not a record, so the 0.20 runner lists it (the existing `source: tracker` case in the migrate test passes again). The runner's MANUAL carries the architect's text for item (2) verbatim, and item (1) is made honest: `sq migrate rename-field source <new>` after declaring `<new>`, then `--unset <new>` to drop it (a plain `--unset source` is refused for an undeclared key, which I verified).
+    - Small fix: `sq workflow views --json` rows carry `stored`.
+    
+    Tests added (command, parameter)
+    - tests/cli/test_source.py: scaffold sources (`override scaffold`, `name`); a bad map target, an unknown gitlab version, a broken `sources.toml` leaving `sq list` working, and a group-readable store (all `source credential remove`, `source`); `credential set` from stdin with mode 0600 (`source credential set`, `source` and `--json`); `credential remove` twice (`source credential remove`, `source` and `--json`).
+    - tests/cli/test_source_record.py: malformed record (`check`); repair of sourced items equal to the index it replaces (`repair`); a role named `source` (`role add`, `slug`); a `source:platform` comment header (`<host> comments`, `--json`).
+    - tests/daemon/test_the_credential_verbs.py: the hidden answer is flagged, asked on stderr and absent from every reply; the browser listener refuses the command line and the OpenAPI document never names a credential.
+    - tests/cli/test_workflow.py: `workflow views --json`, a stored view.
+    - Edited, not added: the migrate manual golden in tests/cli/_bundled_documents.py (new manual, `stored` on view rows); tests/meta rows for the new document, loader, manifest key, override kind, import edges; `_SPEC_TOML_NAMES` in the two manifest scripts.
+    - Each new test was falsified once and failed (credential mode, remove not writing, the chmod refusal, the map and version validation, eager loading of the document, the `sources` address, the hidden flag, an echoed answer, the browser admission, the record read, the reserved slug, the author namespace, the `stored` flag). The repair case was falsified on the record read.
+    
+    Gates
+    - pyright: 0 errors. ruff check and ruff format --check: clean.
+    - tests/meta tests/cli tests/check tests/daemon tests/regressions: 2000 passed, 2 skipped (before the last marker fixes; the meta suite plus the new modules re-ran at 741 passed); tests/cross_process: 27 passed. The touched CLI modules also pass under SQUADS_TEST_MODE=remote and routes. `~/.local/bin/sq check`: no issues.
+    - Checked by hand: a pty run of `credential set` through the daemon and in process, the typed value is not echoed and is stored.
+    
+    Adopters
+    - New `sources.toml` document and `sq override ... sources`; `sq source credential set|remove`; credentials are kept per user where the squad is served, never in the squad; `source` is now a reserved CLI verb and role slug; items may carry a `source` record; a comment author may be `source:<name>`; `--json` view rows carry `stored`.
+    - `source` joined the reserved CLI verbs, so a squad whose workflow override declares a type or alias named `source` now fails to load. The 0.20 runner does not list that case; @architect please rule whether it should.
+    
+    Open
+    - `connectors."gitlab@v4"` is not a TOML bare key, so sources.toml is outside the bare-key guard for the splat-ref grammar; the ADR names that key form.
+    - ST8 still owns the `sq check` report for a `sources.toml` that does not load; only the stamp findings exist now.
+    - No default `maps.types`: a source with no type map needs a rule in ST6.
+    - @tech-writer docs/migration.md still carries the old text for items (1) and (2).
+- [2026-11-04T00:50:30Z] `architect` Robert Architect:
+  - - @python-dev ADR-1274 §14 (2026-11-04) settles the three points from your handback:
+      - **A type or alias named `source`:** the runner lists it as a fourth refusal. The pre-flight reads the type names and aliases from the text of `squads/.overrides/workflow.toml`, not the loaded spec, so it reports the case even though the spec does not load. Verify that `sq migrate up` reaches the pre-flight in that case; if it cannot, the reserved-command load refusal must name `sq migrate chlog`. In `SUMMARY`, change "any of the three" to "any of the four". Append this item (4) to `MANUAL`, verbatim:
+    
+    ```
+    (4) A workflow override that declares an item type or an alias named `source`: `source` is now a reserved command, so the override no longer loads. Run these steps with the 0.19 release, before `sq migrate up`, because a newer build refuses them on a 0.19 squad. For an alias, rename or drop it in `squads/.overrides/workflow.toml`; no item file changes. For a type, declare a successor type under another name in the same file, run `sq migrate rename-type source <new>`, which moves every item of the type to the new prefix and folder, then delete the `source` type from the override. What is lost: the items' old IDs, so a reference to one in prose or outside the squad no longer resolves.
+    ```
+    
+      - **No type map (ST1, ST6):** a source whose resolved `maps.types` is empty, after the connector defaults are overlaid, fails at load, naming the source and `maps.types`. There is no default type. In ST6, a new issue that maps to no type, or to two different types, is not created and is reported with the values found; entries mapping to the same type do not conflict.
+      - **Connector keys (ST1, a change to 5e5f8381):** use nested tables `[connectors.<name>.<version>]` (`[connectors.gitlab.v4]`) instead of the quoted `"<name>@<version>"`, so `sources.toml` stays inside the bare-key guard without an exemption. `<name>@<version>` stays the displayed spelling.
+    - @tech-writer `docs/migration.md` gains item (4).
+- [2026-11-04T01:25:45Z] `python-dev` Elias Python:
+  - - Handback: ST3, ST4 and ST6 are Done. Not committed; the full suite is not run.
+    
+    Subtasks
+    - ST3: the `map` attribute kind. `--<name> key=value` and `key=` (remove) are derived on the update verb, including `sq operator <slug> update --identities`; `--set` refuses a map and names the option; `sq import` update takes `attributes`. Collisions are refused at load. The bundled spec declares `identities` on `operator`, pinned by the loader. `@handle` resolves through `_services/_fetch.py` (`resolve_identity_handles`); a missing credential, a disabled source and an undeclared source are refused and nothing is stored. Operator rows and show carry `identities`. An import `update` with a `@` value is refused (resolving needs the tracker).
+    - ST4: one `sq:attrs` line under the comment header (sorted keys, `<` `>` as JSON escapes), outside the hash, body, mention scan and search; edit carries it. `reject_markers` also refuses `<!--` + whitespace + `sq:` + word char. Sourced comment text is escaped on write and restored on read. `--json` discussion entries gain `attributes`, `source`, `author_url`, `identity`, `trusted`; `author` is the composed display. The untrusted notice shows on `show --comments`, the TUI reader and the inbox line (`untrusted` per line in `inbox --json`). Tracker references in a sourced comment translate when the host holds a record.
+    - ST6: `sq source pull [<name>] [--dry-run] [--json]`, a private op (`sources.pull`, class long, no route). Fetch outside the lock through the shared phase; compile and apply in one transaction through the importer (`_plan_import(base)`, `_apply_events`). Internal ops `source`, `view-body`, `comment-edit` (refused by the JSONL reader), `attributes` on `comment`; `source:<name>` actor. A failing issue drops only its events, reported. Duplicate `(source, id)` items are both refreshed and reported. New `maps.types` rule from ADR section 14: an empty `maps.types` fails at load, naming source and map; an issue mapping to none or two types is not created and is reported.
+    
+    Files (main)
+    - New: `src/squads/_services/_pull.py`, `_services/_comment_view.py`; tests `tests/cli/test_source_pull.py`, `test_source_comments.py`, `test_source_identities.py`.
+    - Changed: `_models/_attributes.py`, `_metadata.py`, `_participants.py`, `_sections.py`; `_discussion.py`; `_services/_items.py`, `_base.py`, `_collab.py`, `_import.py`, `_import_model.py`, `_roster_ops.py`, `_item_read_ops.py`, `_views.py`, `_fetch.py`; `_sources/_loader.py`; `_cli/_field_options.py`, `_items.py`, `_operator.py`, `_source.py`, `_render/*`; `_api` DTOs and `_ops_sources.py`; `_shim.py` (LONG row); `_specs/workflow.toml` (manifest and store regenerated); `_tui/_reader.py`.
+    
+    Tests added (command, parameter)
+    - test_source_identities.py: `operator update --identities` (4 cases: set/remove, resolve a handle, no credential, disabled and undeclared), plus a missing `=`; `<type> update --set` (map refused, `--links` derived option).
+    - test_source_comments.py: `<host> comments --json`, `<host> comments`, `inbox role`, `<host> comment hash`, `<host> comment --message`.
+    - test_source_pull.py (12): `source pull source` (first pull incl. blocks ref, system notes absent, gitlab-md absolute links; second pull writes nothing; forged `sq:body` end tag plus CRLF to LF; edited comment in place; moved issue updates `source.key`; out-of-filter and gone; two items under one id; named credential-less errors; disabled named refused and unnamed skips; no-type issue not created), `source pull --dry-run`, `source pull --json`, `import file` (internal ops refused).
+    - test_source.py: empty `maps.types`. Existing fixtures that declared a source now carry a type map.
+    - Each new test falsified once; the failures are as expected (marker widening, hash input, trust flag, require_enabled, comment edit, source event, duplicate report).
+    
+    Gates
+    - pyright 0 errors; ruff check and format --check clean; `~/.local/bin/sq check` no issues.
+    - tests/meta tests/cli tests/check tests/daemon tests/regressions tests/cross_process: 2047 passed, 5 failed at the last full run; two of the five (reflog ops) are fixed since. Remaining three are docs-owned: `docs/adoption.md` import table needs rows for `source`, `view-body`, `comment-edit` and the `attributes` field of `update` and `comment`; the workflow guide reflog op table needs the `source` op. The touched CLI modules also pass under SQUADS_TEST_MODE=remote and routes.
+    
+    Adopters
+    - `--<map> key=value` option and `identities` on operators (`--json` operator rows carry `identities`); comment `--json` entries carry the five new fields and inbox entries `untrusted`; `sq source pull`; `source` in reflog ops; a source must map at least one type; import `update` and `comment` accept `attributes`.
+    
+    Open
+    - `source_description` is not bundled (ST7). The pull tests declare it as a stored view in a workflow override (`tests/_stored_view.py`); ST7 should bundle it and drop that.
+    - Import events with a `@handle` identity are refused rather than resolved.
+    - Link kinds that are not mapped are skipped silently; a pull does not report them.
+    - `--as source:<name>` refusal, ownership refusals and the `sq check` rules are ST8; lane advisory and `agent_registered` already exempt `source:` authors.
+    - Not done: probes slot in `fetch_source` (TASK-1277), the `[connectors.<name>.<version>]` key form and the fourth runner refusal (next run).
+- [2026-11-04T01:32:30Z] `python-dev` Elias Python:
+  - Rework landed: connector defaults are nested bare tables, [connectors.gitlab.v4]; <name>@<version> stays the message spelling. Loader, bundled file, override shadow check and tests updated.
+  - Fourth runner refusal landed (SUMMARY says four, MANUAL item (4) verbatim, pre-flight reads the override text). Verified: sq migrate up on a 0.19 squad whose override declares a type or alias named source never reaches the pre-flight, because the migrate document mode refuses to build the spec first. So the reserved-command load refusal now names sq migrate chlog v0.19.0..v0.20.0 (for source only). The pre-flight check is therefore unreachable from the CLI today; test covers the load refusal.
+- [2026-11-04T01:51:07Z] `python-dev` Elias Python:
+  - Handback for this run: the connector key rework, the fourth runner refusal, ST7 and ST9 are done. Not committed; the full suite is not run (main loop owns it). ST8 is untouched.
+    
+    Done
+    - Rework: connector defaults are nested bare tables, `[connectors.gitlab.v4]`; `<name>@<version>` stays the spelling in messages and `SourcesSpec.connectors` keys. Loader, bundled file, the override-shadows-bundled check and two meta tests updated.
+    - Fourth refusal: SUMMARY says "four", MANUAL item (4) is the architect's text verbatim, and the pre-flight reads `.overrides/workflow.toml` as text. Verified by running it: `sq migrate up` on a 0.19 squad whose override declares a type or alias named `source` never reaches the runner, because the migrate document mode refuses to build the spec first ("could not be loaded ... Correct the file"). So the reserved-command load refusal for `source` now also names `sq migrate chlog v0.19.0..v0.20.0` and says to run those steps with the 0.19 release. The pre-flight check itself is therefore unreachable from the CLI today and has no test of its own; the test covers the load refusal and that nothing is written.
+    - ST7: `[views.source_description]` bundled (`source = { kind = "source" }`, `position = "top"`, `stored = true`, no transform, not seeded). `ViewSource.kind` gains `source` (no name, every type). `_views` takes a `SourceProvider` (and the view's unescaped body) and imports nothing from `_sources`; `_services/_source_view.py` computes it (record keys plus `url`, `trusted`, translated `text`; `null` without a record). Template `source_description.md.j2`, new `age` template filter. `sq workflow view ... --json` returns the record (new `SourceIssueView` DTO, `null` without a record). `show --refresh` calls a private op `sources.refresh` first (a GET route never writes), through `fetch_issue` in the shared fetch phase, then shows; refused on an item with no record before anything is fetched; refused on a disabled source.
+    - ST9: `sq source list [--json]`, `sq <type> <n> source unlink`, `sq <type> <n> source relink <source> <issue>` (all private ops, run where the squad is served). Unlink removes the record and turns the pair into prose in place (escaped openers stay escaped), keeps the `source:<name>` author, works on a disabled source. Relink checks, in order: item still holds a record (names `source unlink`), item no source created, other source's item, source disabled, issue held by another item (names it); then runs the pull compiler's refresh for that one item in one transaction. New connector method `lookup(reference)` (key, or immutable ID through the filter listing for GitLab) and `fetch_referenced_issue` in the fetch phase.
+    - Test-only stored-view override dropped from `tests/cli/test_source_pull.py`; `tests/_stored_view.py` stays for the other modules, which need a stored view that is not the bundled one.
+    
+    Files (main)
+    - New: `src/squads/_services/_source_links.py`, `_services/_source_view.py`, `_rendering/templates/views/source_description.md.j2`, `tests/cli/test_source_links.py`.
+    - Changed: `_sources/_loader.py`, `_sources/_connector.py`, `_sources/_gitlab.py`, `_specs/sources.toml`, `_specs/workflow.toml`, `_overrides/_service.py`, `_migrations/_v0_19_to_v0_20.py`, `_workflow/_models.py`, `_workflow/_validity.py`, `_views.py`, `_view_tags.py`, `_rendering/_engine.py`, `_services/_fetch.py`, `_pull.py` (compile jobs; `Compiler`/`Compiled`/`Fetched` public), `_comment_view.py`, `_items.py`, `_views.py`, `_view_source.py`, `_service.py`, `_bindings.py`, `_api/_ops*.py`, `_api/_dto/_sources.py`, `_dto/_workflow.py`, `_cli/_source.py`, `_cli/_items.py`, `_cli/_render/_sources.py`; manifest and content store regenerated and rebuilt (two superseded blobs dropped); the gitlab fixture routes gain the two one-issue routes.
+    
+    Tests added (command, parameter)
+    - tests/cli/test_source_links.py (8): `<type> show` `--raw` (source, key, URL, age, notice, trusted drops it); `<type> show` `--json` (reference reads as its item in the view, raw in `body`); `<type> show` `--refresh` (changed description; unsourced item refused, no request, bytes unchanged); `source list` `--json`; `<type> source unlink` `--json`; `<type> source relink` `source`, `issue`, `--json`; `<type> source relink` `source`, `issue` (four refusals).
+    - tests/cli/test_migrate.py: a workflow override with a `source` alias is refused at load, names `sq migrate chlog`, writes nothing. Goldens updated: migrate manual, `workflow views` rows, spec digest.
+    - Each new test falsified once and failed (notice, translation, refresh apply, unsourced refusal, unlink record, unlink prose, relink refresh, held-by-other, list credential, the hint).
+    
+    Gates
+    - pyright 0 errors; ruff check and format --check clean; tests/meta tests/cli tests/check tests/daemon tests/regressions tests/cross_process: 2061 passed, 2 skipped. New and touched CLI modules also pass under SQUADS_TEST_MODE=remote and routes. `sq check` clean. No docs guard failed.
+    
+    Adopters
+    - `sq source list`, `sq <type> <n> source unlink|relink`, `show --refresh`; the `source_description` view shows provenance and the untrusted notice, with references to other pulled issues read as item IDs; `--json` views gain `source_description` as `{"body","data"}`; `sq workflow views` lists it; `workflow view` accepts `source` sources; sources.toml connector defaults are `[connectors.<name>.<version>]`; a workflow override with a type or alias `source` is refused at load and the message points at `sq migrate chlog`.
+    
+    Docs rows (tech writer)
+    - docs/migration.md item (4); the new commands and the `source` view kind in docs/workflow.md and docs/stability.md; sources.toml key form (`[connectors.gitlab.v4]`); CLAUDE.md's mixin count is now 22 (`SourceLinksMixin` first among the Service bases).
+    
+    Open
+    - The refresh listing: `show --refresh` and `relink` call `listed_ids()` (one listing of the filter) to tell open from out-of-filter, so they cost one full listing; the commands are not `long` because LONG_COMMANDS addresses fixed paths.
+    - Duplicate `(name, id)` holders are all refreshed by `show --refresh`, as in the pull.
+    - GitLab resolves an ID-only relink argument only for issues the filter lists.
+    - ST8 (ownership refusals, check rules) not started.
+- [2026-11-04T02:08:28Z] `python-dev` Elias Python:
+  - Handback: ST8 is Done; the task stays InProgress. Not committed; the full suite is not run.
+    
+    Refusals
+    - `--as source:<name>` is refused by `adopt_declared_actor` (every command that takes `--as`) and by `parse_events` for an import `as`, line or file default. The pull builds its events in process and is unaffected.
+    - A sourced item's title and a field its source maps are refused in `_update_model` unless the writer is that same source (the pull's pre-pass passes `by=ev.actor`). Retype is untouched and keeps the record.
+    - A body that sends back a changed `source_description` pair names the source, the issue key and `source unlink`.
+    - Editing or removing a `source:<name>` comment is refused naming the source and the key. Judgment call: the message says `source unlink` keeps the comment as written instead of offering it as the way to edit, because ADR-1274 section 14 says an unlinked item's sourced comments can never be edited. @architect please confirm, since section 11 says each refusal names `source unlink`.
+    
+    Check rules (all binding, `_services/_source_checks.py`, no network)
+    - error: `source_id_unique`, `identity_id_unique`, `comment_attributes_valid`, `sources_loads`.
+    - warn: `source_declared` (undeclared or disabled), `source_issue_reachable` (out-of-filter or gone), `source_author_declared` (item or comment author), `identity_source_declared`.
+    - When `sources.toml` does not load, the rules that judge a name against it are skipped and `sources_loads` is the one finding. Marker-balance findings for stored view pairs already existed.
+    
+    Tests (13)
+    - tests/check/test_source_rules.py: 8 `breaches` cases, one per rule.
+    - tests/cli/test_source_ownership.py: update (title, mapped field, unmapped field passes), body, comment edit and remove, no `--as` names a source (comment and import), retype keeps the record.
+    - Each was falsified once by mutating its rule or refusal: all failed. tests/meta rows updated (construction sites).
+    
+    Files
+    - New: `_services/_source_checks.py`, `_services/_tracker_owned.py`, the two test modules.
+    - Changed: `_discussion.py` (`comment_authors`, `malformed_attribute_comments`), `_models/_participants.py` (`refuse_source_actor`), `_models/_source.py` (state constants), `_services/_base.py`, `_check.py`, `_check_rules.py`, `_collab.py`, `_import.py`, `_import_model.py`, `_items.py`, `_pull.py`, `_source_links.py`, tests/meta/test_every_check_finding_names_a_registered_rule.py, CLAUDE.md (architecture map).
+    
+    Gates
+    - pyright 0 errors; ruff check and format clean; `sq check` clean.
+    - tests/meta 728 passed; tests/check tests/cli tests/regressions 1222 passed; tests/daemon tests/cross_process 124 passed, 2 skipped; the two new modules also pass under SQUADS_TEST_MODE=remote and routes.
+    
+    Adopters
+    - `--as source:x` is refused everywhere; a pulled item's title and mapped fields, its description view body and its source comments cannot be edited by the squad; eight new `sq check` rules.
+    
+    Docs rows (tech writer; no docs guard failed)
+    - The eight rule names and levels above in the check-rule reference; the refusal messages in docs/workflow.md; `--as` cannot name a source in docs/adoption.md.
+    
+    Open
+    - CLAUDE.md said 20 Service bases; the real count is 23 (not 22), now written as 23.
+    - `--author source:x` on create is not refused (only `--as`, per ADR).
+    - The pull's report of broken links is unchanged (it already reports duplicates, unmapped types and fields a type lacks); it does not mirror the new check rules.
+- [2026-11-04T02:24:19Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1281: changes requested, 11 findings (2 high, 3 medium); see that review's discussion for the split between the architect and python-dev.
+- [2026-11-04T02:27:04Z] `architect` Robert Architect:
+  - - @python-dev ADR-1274 §14 (2026-11-04) rules on REV-1281 F2 and F7. Exact changes for this task:
+      - **F2, no cursor:**
+        - Remove `source_cursor` (`_models/_index.py`) and every caller.
+        - In the interface, replace `issues_since(cursor)` and `listed_ids()` with one paged `listing()` that returns every issue in the filter, closed included, as full `Issue` records with `updated_at`. GitLab's `/api/v4/issues` pages already carry them.
+        - In `_fetch.py`, fetch comments and links only for a listed issue that no item holds, or whose listed `updated_at` differs from the stored `source.updated_at`, as a plain inequality. Fetch each linked item missing from the listing once, as now.
+        - `lookup` by ID scans `listing()`.
+        - In the compiler, the `source` event of an issue keeps the stored `updated_at` when the pre-pass dropped any other event of that issue. A standing skip under ruling fa6c47d counts as applied.
+        - Add recorded-HTTP cases for the reviewer's paths 1 (`show --refresh` on B, then a pull still brings A's change) and 2 (an unmapped issue is created by the pull after the map is fixed), plus one for path 3 (a dropped event is retried and reported on the next pull).
+      - **F7, comment refusal:** the refusal to edit or remove a sourced comment names the source and the key, with no `source unlink` hint. The title, mapped-field and description refusals keep the hint. The GitLab fetch by path and number is recorded as built, so no code change is needed there.
+      - **F4 waits** for op-pierre's ruling on ADR-1274; leave the display as it is until then.
+- [2026-11-04T02:46:40Z] `python-dev` Elias Python:
+  - Handback for REV-1281: F1, F2, F3, F5, F6, F9, F10, F11 Fixed and F7's code half done (each finding has its own comment). F4 untouched. Not committed; no full suite.
+    
+    - F1: redirects are followed only within the tracker's scheme, host and port; otherwise the command fails naming both addresses and nothing is sent.
+    - F2: no cursor; one listing() per pull, details only for unheld issues or a differing listed (updated_at, state); a dropped link keeps the host's stored updated_at; `sq source list` computes the newest updated_at inline.
+    - F3: a ref whose target fails is dropped alone and reported; created is empty unless applied or a dry run.
+    - F5, F6, F9, F10, F11 as in their comments. Connector table is data; the class loads in _services/_fetch only. `require_title` now rejects marker tags for every item and sub-entity title.
+    - F9 judgments: migration pre-flight deleted and its summary says three (the load refusal still names the manual, whose range now lives in _migrations/_reserved.py, read in a function: new import-edge row `_workflow -> _migrations local`). The holder check moved into the transaction by trace, no race test. `show --refresh` and relink still read one full listing; the ADR accepts that cost.
+    - Open for @architect: a NEW host item whose link target fails keeps its real updated_at (nothing stored to keep), so that link is not retried until the host changes; the line reports it.
+    - Gates: pyright 0, ruff clean, sq check clean; tests/meta tests/check tests/cli tests/regressions tests/daemon tests/cross_process pass (2081 + the two meta fixes re-run, 728 meta); the source modules also pass under remote and routes modes.
+    - Docs rows: pull fetches by listing diff (no cursor); redirects refused across origins; credential store modes and lock.
+- [2026-11-04T02:53:08Z] `architect` Robert Architect:
+  - - @python-dev REV-1281 F3, reopened. ADR-1274 §14 (2026-11-04) rules that when the pull that creates an item drops any of its issue's events (its links included), the item's `source` record is written with `updated_at = ""`. An existing item keeps its stored value, as now. The empty value differs from every listed `updated_at`, so the next pull re-reads the issue, retries the dropped event and reports it, and stores the real value once everything applies.
+      - Change: extend `_keeping_stored_time` (or its caller) so that an issue with a dropped event and no stored record gets `""`, not the tracker value. The record shape check must accept `""` for `updated_at`. Every reader that formats or compares it (the age in `source_description`, the newest `updated_at` in `sq source list`) must treat `""` as unknown, not fail.
+      - Test: extend `test_a_link_target_that_fails_costs_only_the_link_and_the_report_lists_what_exists` with the reviewer's second pull. Fix #13's title in the recorded responses, pull again, and assert that #13 is created, the host item's `refs` gain the link, and the host's `source.updated_at` is now the tracker value. A third pull must write nothing.
+- [2026-11-04T03:28:22Z] `architect` Robert Architect:
+  - - @python-dev concurrency check, ADR-1274 §14 (2026-11-04). The pull and `relink` compile inside the transaction against the fresh index, which is correct. `show --refresh` has a gap: `refresh_item` compiles through `_compile_source`, and if the item is unlinked (or unlinked and relinked) between the fetch and the transaction, `Compiler.issue` finds no holder and **creates a new item**.
+      - Fix: give `refresh_item` its own compile job, like `relink_item`. Inside the transaction, re-read the addressed item and refuse with "changed while the issue was fetched; run it again" unless it still carries the same `(name, id)`. Then refresh only that item and its duplicates under the same `(name, id)`, and never emit a `create`.
+      - Test: a refresh whose item is unlinked between fetch and apply. Drive it with a fixture that unlinks inside the recorded-HTTP handler; the refresh must be refused and the item count must not change.
+- [2026-11-04T03:29:34Z] `architect` Robert Architect:
+  - - @python-dev ADR-1274 §14 (2026-11-04), "Unlink, then a pull": `unlink_item` adds one warning to its `Response.warnings` when the removed record's `state` was `open` or `closed`. Exact text:
+    
+    ```
+    <key> still matches the filter of source '<name>': the next `sq source pull` imports it again as a new item; take it out of the filter on the tracker to prevent that
+    ```
+    
+      - There is no warning for `out-of-filter` or `gone`, and nothing else changes; unlink still keeps no state.
+      - Tests: unlink of an `open` item prints the warning on stderr and in `--json` `warnings`; unlink of an `out-of-filter` item prints none; a pull after the warned unlink creates a second item while the first keeps its prose.
+- [2026-11-04T03:33:15Z] `architect` Robert Architect:
+  - - @python-dev ADR-1274 §14 (2026-11-04) rules on REV-1282 F11:
+      - In `check_views`, refuse `stored = true` on any view whose `source.kind` is not `source`, naming the view: "`stored = true` needs a source kind whose writer fills the body; only `source` has one". Add a `workflow lint` / load case for `[views.notes] source = { kind = "self" }, stored = true`.
+      - In `_items.py`'s altered-pair refusal, name `sq <addr> show --refresh` only when the item holds a `source` record. Otherwise say that nothing in the squad writes this view until the item is linked to an issue.
+      - F12 needs no ruling: `stored` goes after `transform` in `ViewRow`, per the stability rule that a new key never sits between two existing ones.
+- [2026-11-04T04:02:52Z] `python-dev` Elias Python:
+  - Done, not committed, no full suite: show --refresh has its own compile job (refuses unless the item still holds the same (name, id) inside the transaction; delegates to the compiler only after that, so it never creates; race test unlinks from the recorded-HTTP handler). Unlink warns for open/closed records with the architect's text (stderr; stdout document unchanged), tests for open, out-of-filter and the re-import after the warned unlink. REV-1282 F11 and F12 Fixed. tests/_stored_view.py now declares its view with source kind `source` (the new load rule). Gates: pyright 0, ruff clean, sq check clean, meta/check/cli/regressions/daemon/cross_process 2102 passed; links tests also pass in remote and routes modes.
 <!-- sq:discussion:end -->

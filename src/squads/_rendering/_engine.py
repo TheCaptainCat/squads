@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from jinja2 import Environment, FileSystemLoader
 
 from squads import _badges as badges
+from squads import _clock as clock
 from squads._errors import SquadsError
 from squads._interactions._cheatsheet import (
     ReviewGate,
@@ -117,6 +118,7 @@ def _make_env(squad_dir: Path | None) -> Environment:
     env.filters["open_marker"] = markers.open_marker
     env.filters["close_marker"] = markers.close_marker
     env.filters["idnum"] = _idnum  # "PREFIX-000007" | idnum → "7", for `sq task 7 …` hints
+    env.filters["age"] = _age  # "2026-11-01T09:00:00Z" | age → "3 days ago"
     # "InProgress" | badge → "🟡 In Progress", reusing squads._badges.status_badge: a join or
     # lookup arrives as a registered filter or a new source kind, never as template logic. A
     # second arg ({{ status | badge(spec) }}) selects an overridden spec; without it the
@@ -189,6 +191,31 @@ def invalidate_squad_dir(squad_dir: Path | None) -> None:
 
 def _idnum(item_id: str) -> str:
     return str(number_for_id(item_id))
+
+
+#: Seconds in each unit an age is told in, largest first.
+_AGE_UNITS: tuple[tuple[str, int], ...] = (
+    ("day", 86400),
+    ("hour", 3600),
+    ("minute", 60),
+)
+
+
+def _age(timestamp: str) -> str:
+    """How long ago the ISO-8601 *timestamp* was, in whole days, hours or minutes ("3 days ago");
+    the text as given when it is not a timestamp, "at an unknown time" when it is empty."""
+    if not timestamp:
+        return "at an unknown time"
+    try:
+        then = clock.parse_iso(timestamp)
+    except ValueError:
+        return timestamp
+    seconds = max(0, int((clock.now() - then).total_seconds()))
+    for unit, size in _AGE_UNITS:
+        if seconds >= size:
+            count = seconds // size
+            return f"{count} {unit}{'' if count == 1 else 's'} ago"
+    return "just now"
 
 
 def _authoring_owners(

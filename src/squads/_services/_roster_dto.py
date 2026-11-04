@@ -88,6 +88,7 @@ def operator_row(item: Item, *, pronouns: bool) -> OperatorRow:
         pronouns=own,
         status=item.status,
         display=name_display(item.title, own, enabled=pronouns),
+        identities=attrs.map_attribute(item, attrs.AttributeKey.IDENTITIES) or {},
     )
 
 

@@ -33,6 +33,7 @@ from squads._models._item import Item
 from squads._overrides._manifest import (
     PLAYBOOK_KEY,
     ROLES_KEY,
+    SOURCES_KEY,
     WORKFLOW_KEY,
     artifact_changed_since,
     artifact_floor,
@@ -61,6 +62,12 @@ from squads._roles._loader import (
 from squads._roles._models import CatalogSource, RoleSpec
 from squads._roles._resolver import role_base_from_item
 from squads._sections import find_markers
+from squads._sources._loader import (
+    SOURCES_OVERRIDE_FILENAME,
+    SOURCES_OVERRIDE_MESSAGES,
+    bundled_sources_raw,
+    bundled_sources_toml_text,
+)
 from squads._specload import (
     ROLE_OVERRIDE_MESSAGES,
     TEMPLATE_OVERRIDE_MESSAGES,
@@ -93,10 +100,10 @@ STATE_BROKEN = "broken"  # missing a required sq:* marker region
 class OverrideEntry:
     """One project override's metadata for ``sq override list``."""
 
-    name: str  # template-relative path, role slug, "workflow", "playbook", or "roles"
+    name: str  # template-relative path, role slug, "workflow", "playbook", "roles" or "sources"
     #: "template" | "role" (a per-slug .overrides/roles/<slug>.toml) | "workflow" | "playbook"
-    #: | "roles" (the whole-document .overrides/roles.toml catalog override) — five kinds, not
-    #: the two this field was once documented as.
+    #: | "roles" (the whole-document .overrides/roles.toml catalog override) | "sources" (the
+    #: .overrides/sources.toml document).
     kind: str
     base_version: str | None  # from the stamp, or None if unstamped
     state: str  # STATE_CURRENT | STATE_DRIFTED | STATE_BROKEN
@@ -182,6 +189,10 @@ def _playbook_override_path(squad_dir: Path) -> Path:
 
 def _roles_catalog_override_path(squad_dir: Path) -> Path:
     return squad_dir / ROLES_OVERRIDE_FILENAME
+
+
+def _sources_override_path(squad_dir: Path) -> Path:
+    return squad_dir / SOURCES_OVERRIDE_FILENAME
 
 
 # ─── Determine override state ──────────────────────────────────────────────────
@@ -275,6 +286,19 @@ def _roles_catalog_state(text: str) -> str:
     return STATE_CURRENT
 
 
+def _sources_state(text: str) -> str:
+    """Classify the sources document override as current / drifted, as :func:`_workflow_state`
+    does, gated against ``SOURCES_KEY``. TOML has no sq markers, so it is never 'broken'."""
+    stamp = read_toml_stamp(text)
+    if stamp is None:
+        return STATE_DRIFTED
+    if stamp == __version__:
+        return STATE_CURRENT
+    if artifact_changed_since(SOURCES_KEY, stamp):
+        return STATE_DRIFTED
+    return STATE_CURRENT
+
+
 # ─── scan_overrides ────────────────────────────────────────────────────────────
 
 
@@ -287,6 +311,8 @@ def _messages_for(kind: str) -> OverrideMessages:
             return PLAYBOOK_OVERRIDE_MESSAGES
         case "roles":
             return ROLES_OVERRIDE_MESSAGES
+        case "sources":
+            return SOURCES_OVERRIDE_MESSAGES
         case "role":
             return ROLE_OVERRIDE_MESSAGES
         case _:
@@ -370,6 +396,18 @@ def scan_overrides(squad_dir: Path) -> list[OverrideEntry]:
         state = _roles_catalog_state(text) if text is not None else STATE_BROKEN
         entries.append(
             OverrideEntry(name="roles", kind="roles", base_version=stamp, state=state, cause=cause)
+        )
+
+    # Sources document override (single file, not a directory)
+    src_path = _sources_override_path(squad_dir)
+    if override_present(src_path):
+        text, cause = _scan_text(src_path, "sources")
+        stamp = read_toml_stamp(text) if text is not None else None
+        state = _sources_state(text) if text is not None else STATE_BROKEN
+        entries.append(
+            OverrideEntry(
+                name="sources", kind="sources", base_version=stamp, state=state, cause=cause
+            )
         )
 
     return entries
@@ -721,6 +759,57 @@ def scaffold_roles_catalog(squad_dir: Path, *, force: bool = False) -> Path:
     return dest
 
 
+# ─── scaffold_sources ────────────────────────────────────────────────────────────
+
+#: Starter content for a scaffolded sources override: a commented example source.
+_SOURCES_SCAFFOLD_BODY = """\
+# Sources override: the trackers this squad pulls issues from, one [sources.<name>] table each.
+# Declaring a source activates it; `enabled = false` pauses it. Credentials are not kept here:
+# `sq source credential set <name>` stores them outside the repository.
+#
+# Rules:
+#   - Top-level keys are limited to: connectors, sources (plus [selected] below).
+#   - `connector` names a registered connector. `version` may be left out only when the
+#     connector has exactly one registered version.
+#   - `filter` selects the issues to pull (a label for gitlab).
+#   - `trusted = true` removes the notice shown on text the tracker authored.
+#   - `maps.types`, `maps.fields.<field>` and `maps.links` send a tracker value to an item type,
+#     a badge value of a field, or a ref kind. A source's entries overlay the connector's
+#     defaults in the bundled document key by key; an entry set to "" unmaps the tracker value.
+#   - Every map target must exist in the squad's workflow spec.
+#
+# See state after editing: sq override diff sources
+# Re-stamp after merging:  sq override update sources
+#
+# --- Worked example (uncomment and edit to activate) -------------------------
+#
+# [sources.platform]
+# connector = "gitlab"
+# base_url = "https://gitlab.example.com"
+# filter = "squads"
+#
+# [sources.platform.maps.types]
+# bug = "bug"
+# -----------------------------------------------------------------------------
+"""
+
+
+def scaffold_sources(squad_dir: Path, *, force: bool = False) -> Path:
+    """Create ``.overrides/sources.toml`` with the stamp comment + a worked example.
+
+    Starts from scratch, as :func:`scaffold_roles_catalog` does. Raises :class:`SquadsError` if
+    the file already exists and ``--force`` is not set.
+    """
+    dest = _sources_override_path(squad_dir)
+    if dest.exists() and not force:
+        raise SquadsError(f"{SOURCES_OVERRIDE_FILENAME} already exists; use --force to overwrite")
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    stamp_line = f"# squads:override-base:{__version__}\n"
+    dest.write_text(stamp_line + _SOURCES_SCAFFOLD_BODY, encoding="utf-8", newline="")
+    return dest
+
+
 # ─── diff_override ─────────────────────────────────────────────────────────────
 
 
@@ -816,9 +905,9 @@ def _uncarried_base_pane(key: str, base_version: str, label: str) -> str:
 def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
     """Compute both diffs for one override.
 
-    *kind* is ``"template"``, ``"role"``, ``"workflow"``, ``"playbook"``, or ``"roles"`` (the
-    whole-document role catalog override). Raises :class:`SquadsError` when the override file
-    is not found.
+    *kind* is ``"template"``, ``"role"``, ``"workflow"``, ``"playbook"``, ``"roles"`` (the
+    whole-document role catalog override) or ``"sources"``. Raises :class:`SquadsError` when the
+    override file is not found.
     """
     if kind == "template":
         return _diff_template(squad_dir, name)
@@ -830,9 +919,11 @@ def diff_override(squad_dir: Path, name: str, kind: str) -> DiffResult:
         return _diff_playbook(squad_dir)
     if kind == "roles":
         return _diff_roles_catalog(squad_dir)
+    if kind == "sources":
+        return _diff_sources(squad_dir)
     raise SquadsError(
         f"unknown override kind {kind!r}; expected 'template', 'role', 'workflow', "
-        "'playbook', or 'roles'"
+        "'playbook', 'roles', or 'sources'"
     )
 
 
@@ -1027,6 +1118,37 @@ def _diff_playbook(squad_dir: Path) -> DiffResult:
     )
 
 
+def _diff_sources(squad_dir: Path) -> DiffResult:
+    """Mirrors :func:`_diff_playbook`: Δ-mine against the bundled document, Δ-upgrade by stamp
+    comparison gated against ``SOURCES_KEY``."""
+    path = _sources_override_path(squad_dir)
+    if not override_present(path):
+        raise SquadsError("no sources override found (run `sq override scaffold sources` first)")
+
+    override_text = _read(path, "sources")
+    base_version = read_toml_stamp(override_text)
+
+    delta_mine = _unified_diff(
+        bundled_sources_toml_text(),
+        override_text,
+        fromfile="bundled/sources.toml",
+        tofile=SOURCES_OVERRIDE_FILENAME,
+    )
+
+    delta_upgrade, base_available = _upgrade_delta(
+        SOURCES_KEY, base_version, label="sources.toml", fromfile_prefix="bundled/sources.toml"
+    )
+
+    return DiffResult(
+        name="sources",
+        kind="sources",
+        delta_mine=delta_mine,
+        delta_upgrade=delta_upgrade,
+        base_version=base_version,
+        base_available=base_available,
+    )
+
+
 def _diff_roles_catalog(squad_dir: Path) -> DiffResult:
     """Mirrors :func:`_diff_workflow`/:func:`_diff_playbook` exactly — same
     Δ-mine-against-bundled, Δ-upgrade-by-stamp-comparison shape, gated against ``ROLES_KEY``
@@ -1077,26 +1199,39 @@ def update_stamp(squad_dir: Path, name: str | None, kind: str | None) -> list[st
     return _update_all(squad_dir)
 
 
+def _document_override(squad_dir: Path, kind: str | None) -> tuple[Path, str] | None:
+    """The file of the whole-document override *kind* names, with the refusal for its absence;
+    ``None`` for a template or a role."""
+    match kind:
+        case "workflow":
+            return _workflow_override_path(squad_dir), (
+                "no workflow override found. Run `sq override scaffold workflow` first."
+            )
+        case "playbook":
+            return _playbook_override_path(squad_dir), (
+                "no playbook override found. Run `sq override scaffold playbook` first."
+            )
+        case "roles":
+            return _roles_catalog_override_path(squad_dir), (
+                "no role catalog override found. Run `sq override scaffold roles` first."
+            )
+        case "sources":
+            return _sources_override_path(squad_dir), (
+                "no sources override found. Run `sq override scaffold sources` first."
+            )
+        case _:
+            return None
+
+
 def _update_one(squad_dir: Path, name: str, kind: str | None) -> list[str]:
     """Re-stamp a single named override; raise SquadsError if it's broken or absent."""
-    if kind == "workflow":
-        path = _workflow_override_path(squad_dir)
+    document = _document_override(squad_dir, kind)
+    if document is not None:
+        path, absent = document
         if override_present(path):
-            stamp_toml_file(path, __version__, _messages_for("workflow"))
-            return ["workflow"]
-        raise SquadsError("no workflow override found. Run `sq override scaffold workflow` first.")
-    if kind == "playbook":
-        path = _playbook_override_path(squad_dir)
-        if override_present(path):
-            stamp_toml_file(path, __version__, _messages_for("playbook"))
-            return ["playbook"]
-        raise SquadsError("no playbook override found. Run `sq override scaffold playbook` first.")
-    if kind == "roles":
-        path = _roles_catalog_override_path(squad_dir)
-        if override_present(path):
-            stamp_toml_file(path, __version__, _messages_for("roles"))
-            return ["roles"]
-        raise SquadsError("no role catalog override found. Run `sq override scaffold roles` first.")
+            stamp_toml_file(path, __version__, _messages_for(cast("str", kind)))
+            return [cast("str", kind)]
+        raise SquadsError(absent)
     if kind == "template" or kind is None:
         path = _template_overrides_dir(squad_dir) / name
         if override_present(path):
@@ -1146,6 +1281,7 @@ def _update_all(squad_dir: Path) -> list[str]:
         (_workflow_override_path(squad_dir), "workflow", "workflow"),
         (_playbook_override_path(squad_dir), "playbook", "playbook"),
         (_roles_catalog_override_path(squad_dir), "roles", "roles"),
+        (_sources_override_path(squad_dir), "sources", "sources"),
     ]
     for path, name, kind in candidates:
         if not override_present(path):
@@ -1306,6 +1442,68 @@ def _check_roles_catalog_override_issues(
     return issues
 
 
+def _connector_versions(connectors: Any) -> set[tuple[str, str]]:
+    """The ``(name, version)`` pairs a raw ``connectors`` table declares."""
+    if not isinstance(connectors, dict):
+        return set()
+    return {
+        (name, version)
+        for name, versions in cast("dict[str, Any]", connectors).items()
+        if isinstance(versions, dict)
+        for version in cast("dict[str, Any]", versions)
+    }
+
+
+def _sources_override_shadows_bundled(squad_dir: Path, files: OverrideFiles | None = None) -> bool:
+    """Whether ``<squad_dir>/.overrides/sources.toml`` redeclares a connector version the bundled
+    document declares; ``False`` when the override is absent or cannot be parsed."""
+    path = _sources_override_path(squad_dir)
+    if not override_present(path):
+        return False
+    try:
+        override_raw: dict[str, Any] = override_mapping(path, files)
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):  # fmt: skip
+        return False
+    return bool(
+        _connector_versions(bundled_sources_raw().get("connectors"))
+        & _connector_versions(override_raw.get("connectors"))
+    )
+
+
+def _check_sources_override_issues(squad_dir: Path, files: OverrideFiles) -> list[OverrideIssue]:
+    """Return the stamp findings for the sources document override (if present), as the role
+    catalog document's are: an error for a shadowing override with no stamp, a warning when the
+    bundled document changed since the stamp."""
+    path = _sources_override_path(squad_dir)
+    if not override_present(path):
+        return []
+    text = _text_or_none(path, files)
+    stamp = read_toml_stamp(text) if text is not None else None
+    display = SOURCES_OVERRIDE_FILENAME
+    if stamp is None:
+        if _sources_override_shadows_bundled(squad_dir, files):
+            return [
+                _stamp_issue(
+                    "error",
+                    display,
+                    "shadowing sources override has no squads:override-base stamp; run "
+                    "`sq override update sources` to re-stamp",
+                )
+            ]
+        return []
+    if stamp != __version__ and artifact_changed_since(SOURCES_KEY, stamp):
+        return [
+            _stamp_issue(
+                "warn",
+                display,
+                f"sources override may be stale: bundled sources.toml changed since v{stamp}; "
+                "run `sq override diff sources` to review, then `sq override update sources` to "
+                "re-stamp",
+            )
+        ]
+    return []
+
+
 # ─── check helpers (used by _services/_check.py) ────────────────────────
 
 #: One override finding for ``sq check``: ``(level, display path, message, rule)``.
@@ -1350,6 +1548,7 @@ def check_override_issues(
         *_check_workflow_override_issues(squad_dir, files),
         *_check_playbook_override_issues(squad_dir, files),
         *_check_roles_catalog_override_issues(squad_dir, catalog_invalid, files),
+        *_check_sources_override_issues(squad_dir, files),
     ]
 
 

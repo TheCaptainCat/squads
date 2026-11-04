@@ -1,6 +1,8 @@
 """The operator DTOs: an operator's row, show and listing, and the requests and reports of the
 operator verbs."""
 
+from pydantic import Field
+
 from squads._api._dto._base import DTO
 from squads._api._dto._display import Column
 from squads._api._dto._items import Comment
@@ -8,7 +10,7 @@ from squads._api._dto._roster import NameDisplay, RosterAddress, SeveredRef
 
 
 class OperatorRow(DTO):
-    """A registered person: their fields, status and display."""
+    """A registered person: their fields, status, display and tracker user IDs by source name."""
 
     id: str
     slug: str
@@ -16,6 +18,7 @@ class OperatorRow(DTO):
     pronouns: str | None
     status: str
     display: NameDisplay
+    identities: dict[str, str]
 
 
 class OperatorWrite(DTO):
@@ -54,6 +57,7 @@ class OperatorShow(DTO):
     status: str
     path: str
     display: OperatorShowDisplay
+    identities: dict[str, str]
 
 
 class OperatorAddRequest(DTO):
@@ -65,10 +69,14 @@ class OperatorAddRequest(DTO):
 
 
 class OperatorUpdateRequest(RosterAddress):
-    """Rename an operator or set their pronouns; a blank *pronouns* clears them."""
+    """Rename an operator, set their pronouns (a blank value clears them) or set and remove the
+    keys of their map attributes (a value sets, ``None`` removes)."""
 
     title: str | None = None
     pronouns: str | None = None
+    map_attributes: dict[str, dict[str, str | None]] = Field(
+        default_factory=dict[str, dict[str, str | None]]
+    )
 
 
 class OperatorStatusMove(DTO):

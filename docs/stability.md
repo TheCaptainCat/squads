@@ -103,7 +103,7 @@ An item's frontmatter is one flat mapping, with no nested container:
 
 - **Core keys**, the same on every item: `id`, `sequence_id`, `type`, `title`, `slug`, `status`,
   `description`, `parent`, `author`, `assignee`, `labels`, `refs`, `subentities`, `created_at`,
-  `updated_at`, `created_session`, `modified_session`. A core key
+  `updated_at`, `created_session`, `modified_session`, `source`. A core key
   holding a value of the wrong type makes the item unreadable, and the error names the file.
   `slug` is written on every role, skill and operator, and on any other item whose file carries it.
 - **Attributes**, every other key. A type declares the ones it carries in the workflow spec
@@ -112,6 +112,13 @@ An item's frontmatter is one flat mapping, with no nested container:
   level under its code, and written after the timestamps with the other attributes. A declared attribute holding a value of the
   wrong kind, or a missing required one, is reported by `sq check` and never makes an item
   unreadable.
+- **Nested records.** Beside the `subentities` list, two kinds of value nest. `source` is a record of exactly seven
+  string keys, present only on an item a source feeds: `name` (the source's name in
+  `sources.toml`), `id` (the tracker's immutable issue ID), `key` (the issue's readable key,
+  `group/project#12`), `state` (`open`, `closed`, `out-of-filter` or `gone`), `updated_at` (the
+  issue's last update on the tracker, or `""` when the item must be read again), `author_id` and
+  `author_handle`. A missing or extra key, or a value that is not a string, makes the item
+  unreadable. An attribute of the `map` kind is a mapping of string keys to string values.
 - **Unknown keys are kept.** A key no declaration names is carried through every write, `sq
   repair` and every migration, with its value, on an item and on a sub-entity entry alike. A
   write removes or changes only the keys its command targets, so a key whose declaration is
@@ -220,6 +227,34 @@ name      = one or more characters, on the same line
   entry is replaced; see
   [migration.md](migration.md#a-role-or-operator-whose-slug-breaks-the-rules).
 
+- **A source is an author outside the roster.** A comment or an item that `sq source pull`
+  writes is authored by `source:<name>`, the source's name in `sources.toml`, and its header
+  carries that slug: ``- [2026-11-02T09:14:00Z] `source:platform` platform:``. The slug grammar
+  allows one namespace before the colon:
+
+  ```
+  author = [namespace ":"] slug
+  namespace = "source"
+  ```
+
+  `source` is therefore reserved: no role may take it as its slug, and `--as` can name no
+  `source:<name>` author, on any command or in an `sq import` file. squads may reserve more
+  namespace words in a later release; each is refused as a role slug from the release that
+  reserves it.
+- **The attribute line.** A comment may carry one attribute line, directly under its header and
+  indented like its bullets: an HTML comment holding `sq:attrs` and a one-line JSON object of
+  string keys and string values, keys sorted, `<` and `>` written as JSON escapes:
+
+  ```
+  - [2026-11-02T09:14:00Z] `source:platform` platform:
+    <!-- sq:attrs {"author_handle":"asmith","author_id":"4568","author_name":"Alice Smith","source_id":"302","source_updated_at":"2026-11-02T09:20:31Z"} -->
+    - The endpoint returns 500 when the body is empty.
+  ```
+
+  The line is not part of the comment's text: it is outside its hash, its body, the `@mention`
+  scan and search. `sq check` reports one that does not parse (`comment_attributes_valid`). No
+  marker can be written into a comment, so authored text cannot forge one.
+
 A squad written by a release before 0.16 holds headers without the slug (`- [<timestamp>]
 <name>:`). `sq migrate up` rewrites them once; see
 [migration.md](migration.md#upgrading-to-016-the-schema-step).
@@ -248,6 +283,37 @@ Every comment has a hash: the SHA-256, in lowercase hex, of these fields joined 
 - **Duplicates.** Two comments with the same hash (same author, timestamp and text in one
   discussion) are refused on write and on import. If a file already holds them, they are read
   as they are, and an edit or a removal acts on all of them together.
+
+### View tags and stored view bodies
+
+A view tag sits inside an item's `sq:body` region and names where a declared view renders. The tag
+of a view that is not declared `stored` is a single line, `<!-- sq:view:<name> -->`, or
+`<!-- sq:view:<name>:disabled -->`, with no end tag and nothing written under it.
+
+The tag of a view declared `stored = true` is a pair, each tag on its own line, with the view's
+stored body between them:
+
+```
+<!-- sq:view:<name> -->
+<escaped stored body>
+<!-- sq:view:<name>:end -->
+```
+
+- **The end tag names the view, never its state.** Disabling the view rewrites only the opening
+  tag, to `sq:view:<name>:disabled`; the end tag and the stored body stay.
+- **The frame.** Exactly one LF follows the opening tag and one precedes the end tag, and neither
+  is part of the body. An empty pair is the two tags on consecutive lines.
+- **The escape.** On disk, every run of one or more `!` between `<` and `--` carries one `!` more
+  than in the body (`<!--` is stored as `<!!--`), and a read removes one from every such run of
+  two or more. The stored text holds no `<!--`, so no marker can open, close or be forged inside
+  it; every other byte is stored as given, and the round trip is exact.
+- **Line endings.** squads writes a stored body with LF line endings, every CRLF and lone CR
+  turned into LF.
+- **Source of truth.** The pair is the only copy of a stored body. The index does not hold it, and
+  `sq repair` neither reads nor rewrites it.
+
+`sq check` reports, under `markers_balanced`, an opening tag of a stored view with no end tag, an
+end tag with no opening tag, a pair for a view not declared stored, and a pair outside `sq:body`.
 
 ### A roster slug never changes
 
@@ -283,8 +349,9 @@ them.
 A squad may customize bundled templates, roles, and item-type vocabulary under `.overrides/`, a
 folder in the squad directory. The frozen surfaces are:
 
-- **Layout:** `<squad-dir>/.overrides/{templates,roles}/`, three spec documents,
-  `.overrides/workflow.toml`, `.overrides/roles.toml` and `.overrides/playbook.toml`, and any view
+- **Layout:** `<squad-dir>/.overrides/{templates,roles}/`, four spec documents,
+  `.overrides/workflow.toml`, `.overrides/roles.toml`, `.overrides/playbook.toml` and
+  `.overrides/sources.toml`, and any view
   transform files the workflow override names by a `path` relative to `.overrides/`. Templates
   mirror bundled template names 1:1; per-role files are TOML keyed by slug (e.g., `architect.toml`);
   `workflow.toml` is the squad's vocabulary delta — item types, statuses, lifecycles, badge
@@ -294,6 +361,15 @@ folder in the squad directory. The frozen surfaces are:
   permissions, like a `conftest.py`: every read that renders its view calls it, and `sq check` and
   `sq workflow lint` import it, which runs its top-level code. There is no approval step; see
   [overrides.md § "Giving a view a transform"](overrides.md#giving-a-view-a-transform).
+- **`sources.toml`:** its top-level keys are `connectors` and `sources`. A
+  `[sources.<name>]` table, `<name>` a slug, takes `connector` and `base_url` (required),
+  `version`, `filter`, `trusted` (default `false`), `enabled` (default `true`), `converter` and
+  `maps`, whose `types`, `fields.<field>` and `links` tables map tracker values to item types,
+  badge values and ref kinds. `version` may be omitted only when its connector has exactly one
+  registered version. A `[connectors.<name>.<version>]` table gives a connector version's
+  `converter` and `maps`, which a source's maps overlay key by key; an entry set to `""` unmaps a
+  value. Every map target must exist in the workflow spec, and `maps.types` must not be empty
+  once overlaid. See [sources.md § "Declaring a source"](sources.md#declaring-a-source).
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
   override whole-file; a role resolves its base (a catalog entry or a role template, bundled then
   `roles.toml`, or its own item), then its per-slug file, merging field-wise, then the values its
@@ -439,7 +515,7 @@ The line schema (frozen field set):
   | `status` | an item's status changes |
   | `update` | item metadata changes (assignee, badge fields, labels, …) |
   | `body` | an item's body is set |
-  | `view` | `view add` or `view disable` changes a view tag (`delta`: `view`, the view's name, and `state`, `enabled` or `disabled`) |
+  | `view` | `view add` or `view disable` changes a view tag (`delta`: `view`, the view's name, and `state`, `enabled` or `disabled`), or squads writes a stored view's body (`delta`: `view` and `body`, `true`) |
   | `comment` | a comment is appended |
   | `comment_edit` | a comment's author edits it (`delta.comments`: `author`, `hash`, `region`, `ts`, `before`, `after_hash`) |
   | `comment_remove` | a comment's author removes it (`delta.comments`: `author`, `hash`, `region`, `ts`, `before`) |
@@ -447,6 +523,7 @@ The line schema (frozen field set):
   | `ref` | a ref is added, removed, or severed |
   | `link` | an item's parent is set or cleared |
   | `retype` | an item is retyped |
+  | `source` | `sq source pull` sets or changes an item's `source` record (`delta.source`: the record as written) |
   | `default_role` | the default-role designation moves |
   | `remove` | an item is hard-removed (carries the gone-item snapshot) |
   | `repair` | `sq repair` rebuilds the index (including `--renumber`) |
@@ -556,6 +633,18 @@ configured: they reply in the language that human writes in.
 left by an earlier release is not read by any command and can be deleted.
 
 ---
+
+### The credential store
+
+A source's credential is never in the squad. It is kept per user, in `squads/credentials.toml`
+under `$XDG_CONFIG_HOME` (`~/.config` when unset) on Linux and WSL2, under
+`~/Library/Application Support` on macOS and under `%APPDATA%` on Windows. Its top-level tables
+are keyed by a tracker's base URL, scheme and host in lower case, the port and path kept, no
+trailing slash; each holds the string fields its connector names (`token` for `gitlab`). On
+Linux, macOS and WSL2 the file is written with mode `0600` in a `0700` directory, and a file that
+other users can read is refused, naming the `chmod` that fixes it. Only `sq source credential set`
+and `remove` write it, each under the store's lock; every other command reads it at the moment it
+needs it, as the user who serves the squad, and no command prints a value.
 
 ## Tier 2: CLI grammar (SemVer-stable from 1.0)
 
@@ -745,6 +834,18 @@ command, its options and the report it writes when a daemon starts are private t
 change in any release.
 
 `daemon` is a command name of `sq`, so no item type or alias can be named `daemon`.
+
+### The source commands
+
+`sq source pull [<source>] [--dry-run] [--json]`, `sq source check [<source>] [--json]`,
+`sq source list [--json]`, `sq source credential set <source> [--json]` and
+`sq source credential remove <source> [--json]` are the `sq source` group, and every item type
+gains `source unlink [--json]`, `source relink <source> <issue> [--json]` and
+`show --refresh` (see [sources.md](sources.md)). `sq source check` exits `1` when a probe fails and
+`0` when only warnings remain. These commands run where the squad is served and are not
+operations of the HTTP API. Their human output is display text.
+
+`source` is a command name of `sq`, so no item type or alias can be named `source`.
 
 ### Bulk import
 
@@ -1111,13 +1212,16 @@ The frozen surface includes:
   to `{kind, required, settable, label}`, `label` `null` when the declaration has none), not from
   the rows. A key stored under the name of an added key stays in the file and out of the row, and
   an override that declares an attribute or badge field under such a name is refused at load.
+  `source`, the record of an item a source feeds (see
+  [Frontmatter is flat](#frontmatter-is-flat)), is in the row only when the item holds one, after
+  `modified_session` and `id`, and a `map` attribute is an object of strings.
 
   On an item's `show --json` (`sq show <id>`, `sq <type> <n> show`, `sq skill <addr> show`):
 
   | Key | Value |
   |---|---|
-  | `body` | the stored text of the item's `sq:body` region, each `sq:view:<name>` tag left as a tag, never rendered. The rendered text is on `sq show` and `--raw` |
-  | `views` | always present: an object of view name (vocabulary) to the output of that view's transform, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform; `{}` when none does. Each value is the JSON the transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}` |
+  | `body` | the stored text of the item's `sq:body` region, each `sq:view:<name>` tag left as a tag, never rendered, and a stored view's pair with its stored body escaped as on disk. The rendered text is on `sq show` and `--raw` |
+  | `views` | always present: an object of view name (vocabulary) to that view's entry, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform or is declared `stored`; `{}` when none does. The entry of a view that is not stored is the JSON its transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}`. The entry of a stored view is always `{body, data}`: `body` the stored body unescaped (`""` for an empty pair), `data` the transform's output, or `null` when the view declares no transform |
   | `display.body` | display: the body as `sq show` prints it, each view tag expanded. A view whose template fails to render keeps its tag as written, and the command warns on stderr |
   | `display.attributes` | display: one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order |
   | `etag` | the last key: a strong entity tag of the item's file as the command read it, a quoted string such as `"\"94dbfed2…\""`; opaque, compared for equality only; provisional |
@@ -1145,7 +1249,7 @@ The frozen surface includes:
   | `sq workflow statuses --json` | status | `status`, `role`, `badge`, `display` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked`, `deferred` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
-  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `transform` |
+  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `stored`, `transform` |
   | `sq workflow ref-kinds --json` | ref kind | `kind` (vocabulary), `label` (display), `hint` (display), `role` (open set), `direction` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
@@ -1182,7 +1286,8 @@ The frozen surface includes:
   shape carries a `fields`/`group_by`/`groups` key. Because `self`
   is the host's `show --json`, it carries that payload's stored `body` and its `views` key. The
   payload is the source whether or not the view declares a transform: it is the transform's input,
-  and the transform's output is on the host's `show --json` under `views.<name>`.
+  and the transform's output is on the host's `show --json` under `views.<name>` (under
+  `views.<name>.data` for a stored view).
 
   In the `self` `spec` key, `digest` identifies the merged workflow spec that resolved the
   payload: the bundled spec with any project override applied. Compare it for **equality only**.
@@ -1239,7 +1344,8 @@ The frozen surface includes:
 - **Discussion entries:** every entry of a `discussion` array in `show --json` (an item's own, and
   each sub-entity's, whether nested under `subentities` or from the sub-entity's own `show --json`)
   and every entry of `comments --json` is
-  `{author, author_slug, ts, edited_ts, hash, short_hash, body}`. `author` is the display name the
+  `{author, author_slug, ts, edited_ts, hash, short_hash, body, attributes, source, author_url,
+  identity, trusted}`. `author` is the display name the
   header recorded and `author_slug` is the author's slug (see
   [Comment headers](#comment-headers)); match an author on `author_slug`, never on `author`.
   `edited_ts` is the edit mark's timestamp or `null`; `hash` is the full hash and `short_hash` the
@@ -1248,7 +1354,22 @@ The frozen surface includes:
   duplicates share the hash). `search --json` and `inbox --json` carry no `author_slug`: a search
   hit names the author by display name in its `location` and `snippet`, and carries the hit
   comment's `hash` (`null` outside a discussion); an inbox row names no author, and carries
-  `hashes`, one per entry of `lines` and `regions`
+  `hashes` and `untrusted`, one per entry of `lines` and `regions`: `untrusted` is the source's
+  name for a line from a comment an untrusted source wrote, `null` otherwise. In a discussion
+  entry, `attributes` is the comment's attribute line as an object (`{}` without one). For a
+  comment a source wrote, `source` is the source's name, `author_url` the author's address on the
+  tracker and `identity` the slug of the operator whose `identities` hold the author, or `null`;
+  on any other comment all three are `null`. `trusted` is `false` exactly when the untrusted
+  notice shows: on a comment from a source that is not `trusted = true`, or is not declared
+- **Operators:** `operator list --json` rows and `operator <addr> show --json` carry
+  `identities`, an object of source name to tracker user ID (`{}` when none is set)
+- **Sources:** `sq source list --json` is `{sources}`, each
+  `{name, connector, version, enabled, credential, items, newest_updated_at}`; `sq source pull
+  --json` is `{dry_run, sources}`, each `{name, created, refreshed, unchanged, left_out, lines}`;
+  `sq source check --json` is `{ok, sources}`, each `{name, connector, version, enabled, ok,
+  lines}` with lines `{family, verdict, text, fix}`; `credential set --json` is
+  `{source, base_url, fields, path}`; `source unlink --json` is `{id, source, key}` and
+  `source relink --json` adds `lines`
 - **Bulk import:** `sq import --json` (with or without `--dry-run`)
 
 Between major versions, new fields may be added to any shape, each after the last field its object

@@ -80,19 +80,25 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   runner: what it indexed, dropped or could not index, with no writes to item files.
 - `_sections.py` / `_itemfile.py` — marker-safe edits and frontmatter↔Item mapping.
 - `_specs/` — the bundled vocabulary as package-data TOML: `workflow.toml` (types/statuses/
-  lifecycles/collections), `roles.toml` (the role catalog), `playbook.toml` (the team playbook).
-  Each has its own loader + spec models (`_workflow/`, `_roles/`, `_interactions/`) and its own
+  lifecycles/collections), `roles.toml` (the role catalog), `playbook.toml` (the team playbook),
+  `sources.toml` (connector defaults and the declared sources).
+  Each has its own loader + spec models (`_workflow/`, `_roles/`, `_interactions/`, `_sources/`) and its own
   `.overrides/` counterpart; `_specload.py` is the one bundled-read/override-read/merge path the
   three loaders share (a `SpecDocument` descriptor each; the packaged file is parsed once per
   process and handed out as copies), `_specmerge.py` the shared deep-merge/splat-ref engine and
   `_overrides/` the scaffold/diff/stamp surface behind `sq override`. `_spec_documents.py` is the
-  one resolver of a squad's three documents (`resolve_documents`): the workflow spec, the playbook
-  and the role catalog as a lazy, memoised `CatalogSource`, so a roles override that does not load
-  fails only where the catalog is first used. Each document, and each override file, is read once per
+  one resolver of a squad's four documents (`resolve_documents`): the workflow spec, the playbook,
+  and the role catalog and sources as lazy, memoised `CatalogSource`/`SourcesSource`, so a roles or
+  sources override that does not load fails only where it is first used. Each document, and each override file, is read once per
   invocation: the entry points that start one (the CLI root callback, `--help` resolution,
   `init`/`adopt`) load, and code below them takes `Service.spec`/`.playbook`/`.catalog` and
   `Service.files` (`OverrideFiles`, the text of each override read once) instead of reading a
   file or calling a loader with a squad directory.
+- `_sources/` — external trackers, no `_services` import: `_spec.py` (`SourcesSpec`/`SourceSpec`),
+  `_loader.py` (the `sources.toml` document, validated against the workflow spec), `_connector.py`
+  (the connector interface and the records it returns), `_registry.py` (the literal
+  `(name, version)` → connector table), `_gitlab.py`, `_converters.py` (tracker text to markdown),
+  `_http.py` (stdlib JSON client) and `_credentials.py` (the per-user credential store, never in the squad).
 - `_workflow/` — `_loader.py` + `_models.py`: `WorkflowSpec` and friends. The workflow capabilities
   are **methods on the spec**; `__init__` exposes `bundled_spec()`, which is **not** override-aware.
   Spec and playbook parameters are required: thread the active spec (`Service.spec`,
@@ -147,11 +153,12 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
   (create/get/list + backend + role/skill lookups) holding the `_roster_projection.RosterProjection`
   collaborator (roles, operators and skills projected onto the backends), plus the concern
-  **mixins** that are the 20 `Service` bases, in MRO order: the operation mixins, whose handlers
+  **mixins** that are the 23 `Service` bases, in MRO order: the operation mixins, whose handlers
   each answer with a DTO (`ItemWriteOpsMixin` in `_item_write_ops`, `ItemReadOpsMixin` in
   `_item_read_ops`, `RosterOpsMixin` in `_roster_ops`, `RetypeOpsMixin` in `_item_write_ops`,
   `ItemOpsMixin` in `_item_ops`, `SquadStateOpsMixin` in `_squad_ops`, `CorpusOpsMixin` in
-  `_corpus_ops`), then the domain mixins they call, one per file (`_import`, `_items`, `_collab`,
+  `_corpus_ops`, `SourceLinksMixin` in `_source_links`, `SourceOpsMixin` in `_sources_ops`), then the
+  domain mixins they call, one per file (`_pull`, `_import`, `_items`, `_collab`,
   `_subentities`, `_refs`, `_roster`, `_check`, `_maintenance`, `_retype`, `_rename`, `_memory`,
   `_board`, `_views`); the
   corpus-reading helpers both `_check` and `_maintenance` use live on `ServiceCore`, and
@@ -164,7 +171,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   (the one `Service(...)` construction: it makes the `IndexStore` and the backends and hands them
   in) sit beside `init`/`adopt`;
   `_results.py` has the result dataclasses. Non-mixin helpers live alongside: `_validators.py`
-  (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`.
+  (the `sq check` rules), `_retirement.py`, `_config_integrity.py`, `_import_model.py`; for sources,
+  `_fetch.py` (the one fetch phase: credential, enabled check, connector calls off the event loop),
+  `_pull.py` (compiles fetched issues to import events), `_source_links.py` (`show --refresh`,
+  `source list|unlink|relink`), `_source_view.py` (the `source_description` view's record),
+  `_source_checks.py` (their `sq check` rules) and `_tracker_owned.py` (the writes a tracker owns).
   `_bindings.py` is the literal table binding each operation to its `Service` handler
   (`bind(OP, Service.method)`, pair-checked by pyright; a `tests/meta` guard holds every operation
   bound exactly once). `_local_api.py` is `LocalApi`: it checks the operation's `Grant` against the

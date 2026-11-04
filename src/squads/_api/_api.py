@@ -76,6 +76,11 @@ class Operation[Req: BaseModel, Res]:
     mode: Mode = Mode.NORMAL
     grant: Grant | None = None
     local_only: bool = False
+    #: The operation has no route: it runs in the process that serves the squad, reached through
+    #: its command endpoint or in process, and no resource route or OpenAPI entry names it.
+    private: bool = False
+    #: A private operation that writes nothing, as a ``GET`` does for a routed one.
+    read_only: bool = False
     timeout: Timeout = Timeout.STANDARD
     #: The field of ``data`` that ``--json`` prints, where the frozen document is not an object;
     #: ``None`` prints ``data`` whole.
@@ -83,14 +88,19 @@ class Operation[Req: BaseModel, Res]:
 
     def __post_init__(self) -> None:
         routed = self.method is not None and self.path is not None
-        if routed == self.local_only or (self.method is None) != (self.path is None):
-            raise ValueError(f"{self.name}: a route is declared exactly when it is not local-only")
+        unrouted = self.local_only or self.private
+        if self.local_only and self.private:
+            raise ValueError(f"{self.name}: an operation is local-only or private, not both")
+        if routed == unrouted or (self.method is None) != (self.path is None):
+            raise ValueError(
+                f"{self.name}: a route is declared exactly when it is not local-only or private"
+            )
 
     @property
     def route(self) -> tuple[Method, str]:
         """The method and path of a routed operation."""
         if self.method is None or self.path is None:
-            raise ValueError(f"{self.name} is local-only and has no route")
+            raise ValueError(f"{self.name} has no route")
         return self.method, self.path
 
 

@@ -95,7 +95,12 @@ _STORE_PATH = _SQUADS_ROOT / "_rendering" / "content_store.json"
 _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 
 _TEMPLATES_PREFIX = "_rendering/templates/"
-_SPEC_KEYS = ("_specs/workflow.toml", "_specs/roles.toml", "_specs/playbook.toml")
+_SPEC_KEYS = (
+    "_specs/workflow.toml",
+    "_specs/roles.toml",
+    "_specs/playbook.toml",
+    "_specs/sources.toml",
+)
 
 
 def _tag_exists(tag: str) -> bool:

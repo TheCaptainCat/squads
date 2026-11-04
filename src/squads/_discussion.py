@@ -11,18 +11,24 @@ the legacy body-stored ``:meta`` regions (via ``_migrations._meta_compat``).
 """
 
 import hashlib
+import json
 import re
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple, cast
 
 from squads import _badges as badges
 from squads._errors import CommentNotFoundError, SquadsError
 from squads._models import _markers as markers
 from squads._models._item import Item
-from squads._models._participants import SLUG_PATTERN, require_valid_slug
+from squads._models._participants import (
+    AUTHOR_PATTERN,
+    is_sourced,
+    require_valid_slug,
+    source_of,
+)
 from squads._models._subentity import SubEntity
 from squads._sections import (
     append_to_section,
@@ -32,6 +38,7 @@ from squads._sections import (
     replace_section,
     split_lines,
 )
+from squads._view_bodies import escape_body, unescape_body
 from squads._workflow import WorkflowSpec
 
 _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
@@ -39,10 +46,16 @@ _MENTION_RE = re.compile(r"(?<![A-Za-z0-9_])@([a-z0-9][a-z0-9-]*)")
 _TS = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"
 
 # The one comment-header pattern, anchored at column 0 and never applied to a stripped line.
-# The optional ``, edited <ts>`` is not part of the comment's hash:
+# The author is a slug, or a reserved word, a colon and a slug (``source:gitlab-prod``). The
+# optional ``, edited <ts>`` is not part of the comment's hash:
 #   - [2026-06-07T10:00:00Z] `architect` Robert Architect:
 #   - [2026-06-07T10:00:00Z, edited 2026-06-08T09:00:00Z] `architect` Robert Architect:
-_COMMENT_HEADER_RE = re.compile(rf"^- \[({_TS})(?:, edited ({_TS}))?\] `({SLUG_PATTERN})` (.+):$")
+_COMMENT_HEADER_RE = re.compile(rf"^- \[({_TS})(?:, edited ({_TS}))?\] `({AUTHOR_PATTERN})` (.+):$")
+
+#: The tag of a comment's attribute line, and the line itself: an indented HTML comment holding the
+#: tag, one space and a one-line payload.
+ATTRS_TAG = "sq:attrs"
+_ATTRS_LINE_RE = re.compile(rf"^  <!-- {ATTRS_TAG} (\{{.*\}}) -->$")
 
 _HASH_DOMAIN = "sq-comment-1"
 SHORT_HASH_LENGTH = 7
@@ -56,6 +69,62 @@ _HEX_RE = re.compile(r"[0-9a-fA-F]+")
 # --------------------------------------------------------------------------- comments
 
 
+def attributes_line(attributes: Mapping[str, str]) -> str:
+    """The comment attribute line for *attributes*: one indented HTML comment holding ``sq:attrs``
+    and a one-line JSON object with sorted keys, ``<`` and ``>`` written as JSON escapes."""
+    payload = json.dumps(dict(sorted(attributes.items())), separators=(",", ":"))
+    payload = payload.replace("<", "\\u003c").replace(">", "\\u003e")
+    return f"  <!-- {ATTRS_TAG} {payload} -->"
+
+
+def parse_attributes_line(line: str) -> dict[str, str] | None:
+    """The attributes an attribute line holds, or ``None`` for any other line, including one whose
+    payload is not a JSON object of strings."""
+    m = _ATTRS_LINE_RE.match(line)
+    if m is None:
+        return None
+    try:
+        loaded: object = json.loads(m.group(1))
+    except ValueError:
+        return None
+    if not isinstance(loaded, dict):
+        return None
+    found = cast("dict[object, object]", loaded)
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in found.items()):
+        return None
+    return cast("dict[str, str]", found)
+
+
+def is_attributes_line(line: str) -> bool:
+    """Whether *line* has the shape of a comment attribute line, valid payload or not."""
+    return _ATTRS_LINE_RE.match(_content(line)) is not None
+
+
+def _headed_lines(text: str) -> list[tuple[re.Match[str], str | None]]:
+    """Each comment header in *text* with the line that follows it, ``None`` at the end."""
+    lines = [_content(ln) for ln in _region_lines(text)]
+    return [
+        (m, lines[i + 1] if i + 1 < len(lines) else None)
+        for i, ln in enumerate(lines)
+        if (m := _COMMENT_HEADER_RE.match(ln))
+    ]
+
+
+def comment_authors(text: str) -> list[str]:
+    """The author slug of every comment header in *text*, in file order."""
+    return [m.group(3) for m, _ in _headed_lines(text)]
+
+
+def malformed_attribute_comments(text: str) -> list[tuple[str, str]]:
+    """The ``(timestamp, author slug)`` of each comment whose line after the header names the
+    attribute tag without being a valid attribute line; such a line reads as comment text."""
+    return [
+        (m.group(1), m.group(3))
+        for m, after in _headed_lines(text)
+        if after is not None and ATTRS_TAG in after and parse_attributes_line(after) is None
+    ]
+
+
 def format_comment(
     timestamp_iso: str,
     slug: str,
@@ -63,6 +132,7 @@ def format_comment(
     messages: list[str],
     *,
     edited_ts: str | None = None,
+    attributes: Mapping[str, str] | None = None,
 ) -> str:
     """One discussion entry: a header naming the author's slug and display name, then one bullet
     per message.
@@ -71,11 +141,16 @@ def format_comment(
     the slug. A multi-line message keeps its first line on the bullet and indents continuation
     lines so they stay nested under it. ``edited_ts`` adds the edit mark to the header.
     """
-    require_valid_slug(slug, action="write a comment")
+    require_valid_slug(source_of(slug) or slug, action="write a comment")
     shown = " ".join(part.strip() for part in name.splitlines() if part.strip()) or slug
     mark = f", edited {edited_ts}" if edited_ts else ""
     lines = [f"- [{timestamp_iso}{mark}] `{slug}` {shown}:"]
+    if attributes:
+        lines.append(attributes_line(attributes))
+    sourced = is_sourced(slug)
     for msg in messages:
+        if sourced:
+            msg = escape_body(msg)
         # split on every break str.splitlines knows, so no author line can land at column 0
         first, *rest = msg.splitlines() or [""]
         lines.append(f"  - {first}")
@@ -93,6 +168,7 @@ class Comment:
     author: str  # the display name written in the header
     author_slug: str
     body: str  # the raw bullet lines for this comment, stripped of their outer indentation
+    attributes: dict[str, str] = field(default_factory=dict[str, str])
     hash: str = ""  # derived on load, never written
     edited_ts: str | None = None
     span: tuple[int, int] = (0, 0)  # the region's lines [start, end): header to the next header
@@ -119,6 +195,15 @@ def canonical_text(lines: Sequence[str]) -> str:
     if not filled:
         return ""
     return "\n".join(stripped[filled[0] : filled[-1] + 1])
+
+
+def entry_text(entry: str) -> str:
+    """The canonical text of a formatted *entry*, as its hash reads it: the lines under the header
+    and the attribute line."""
+    lines = entry.split("\n")[1:]
+    if lines and parse_attributes_line(lines[0]) is not None:
+        lines = lines[1:]
+    return canonical_text(lines)
 
 
 def comment_hash(sequence_id: int, scope: str, slug: str, timestamp: str, text: str) -> str:
@@ -151,19 +236,20 @@ def split_discussion(region: str, *, sequence_id: int, scope: str = "") -> list[
         # Strip the 2-space indent that format_comment adds at the message level. Continuation
         # lines have 4 spaces; after stripping 2 they become "  text", which renders correctly
         # under the bullet. Blank lines are not collapsed: fenced code blocks depend on them.
+        attributes = parse_attributes_line(_content(lines[start + 1])) if start + 1 < end else None
+        first = start + 1 if attributes is None else start + 2
         body = [
-            _content(ln)[2:] if ln.startswith("  ") else _content(ln)
-            for ln in lines[start + 1 : end]
+            _content(ln)[2:] if ln.startswith("  ") else _content(ln) for ln in lines[first:end]
         ]
+        text = "\n".join(body).strip()
         comments.append(
             Comment(
                 timestamp=ts,
                 author=name,
                 author_slug=slug,
-                body="\n".join(body).strip(),
-                hash=comment_hash(
-                    sequence_id, scope, slug, ts, canonical_text(lines[start + 1 : end])
-                ),
+                body=unescape_body(text) if is_sourced(slug) else text,
+                attributes=attributes or {},
+                hash=comment_hash(sequence_id, scope, slug, ts, canonical_text(lines[first:end])),
                 edited_ts=edited,
                 span=(start, end),
             )
@@ -240,9 +326,9 @@ def author_label(cmt: Comment) -> str:
     return cmt.author if cmt.author == cmt.author_slug else f"{cmt.author} ({cmt.author_slug})"
 
 
-def comment_json(cmt: Comment, short_hash: str) -> dict[str, str | None]:
+def comment_json(cmt: Comment, short_hash: str) -> dict[str, Any]:
     """One discussion entry for ``--json``: the display name, the permanent slug, time, edit
-    time, full and displayed hash, and body."""
+    time, full and displayed hash, body and attributes."""
     return {
         "author": cmt.author,
         "author_slug": cmt.author_slug,
@@ -251,10 +337,11 @@ def comment_json(cmt: Comment, short_hash: str) -> dict[str, str | None]:
         "hash": cmt.hash,
         "short_hash": short_hash,
         "body": cmt.body,
+        "attributes": dict(cmt.attributes),
     }
 
 
-def comments_json(comments: Sequence[Comment]) -> list[dict[str, str | None]]:
+def comments_json(comments: Sequence[Comment]) -> list[dict[str, Any]]:
     """:func:`comment_json` for a whole discussion, with hashes shown at the scope's length."""
     return [
         comment_json(c, short) for c, short in zip(comments, short_hashes(comments), strict=True)
