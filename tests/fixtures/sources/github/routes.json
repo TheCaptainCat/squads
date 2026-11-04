@@ -1,0 +1,219 @@
+{
+  "routes": [
+    {
+      "path": "/api/v3/meta",
+      "body": {
+        "verifiable_password_authentication": false,
+        "installed_version": "3.14.2"
+      }
+    },
+    {
+      "path": "/api/v3/user",
+      "body": {
+        "login": "squads-bot",
+        "id": 1001,
+        "node_id": "U_kgDOBot"
+      }
+    },
+    {
+      "path": "/api/v3/repos/acme/api/labels",
+      "body": [
+        {
+          "id": 1,
+          "name": "squads"
+        },
+        {
+          "id": 2,
+          "name": "priority: high"
+        },
+        {
+          "id": 3,
+          "name": "priority: low"
+        },
+        {
+          "id": 4,
+          "name": "bug"
+        }
+      ]
+    },
+    {
+      "path": "/api/v3/users/pchat",
+      "body": {
+        "login": "pchat",
+        "id": 4567,
+        "node_id": "U_kgDOPchat"
+      }
+    },
+    {
+      "path": "/api/v3/users/nobody",
+      "status": 404,
+      "body": {
+        "message": "Not Found"
+      }
+    },
+    {
+      "path": "/api/v3/user/4567",
+      "body": {
+        "login": "pchat",
+        "id": 4567
+      }
+    },
+    {
+      "path": "/api/v3/user/4568",
+      "body": {
+        "login": "asmith",
+        "id": 4568
+      }
+    },
+    {
+      "path": "/api/v3/issues",
+      "query": {
+        "page": "2"
+      },
+      "body": [
+        {
+          "id": 5002,
+          "node_id": "I_kwDOAcmeApi13",
+          "number": 13,
+          "title": "Token refresh loops",
+          "body": "",
+          "state": "closed",
+          "updated_at": "2026-11-03T10:30:00Z",
+          "labels": [
+            {
+              "id": 1,
+              "name": "squads"
+            }
+          ],
+          "user": {
+            "login": "asmith",
+            "id": 4568
+          },
+          "repository_url": "https://ghe.example.com/api/v3/repos/acme/api"
+        }
+      ]
+    },
+    {
+      "path": "/api/v3/issues",
+      "query": {
+        "labels": "squads"
+      },
+      "headers": {
+        "Link": "<https://ghe.example.com/api/v3/issues?filter=all&state=all&labels=squads&per_page=100&page=2>; rel=\"next\", <https://ghe.example.com/api/v3/issues?filter=all&state=all&labels=squads&per_page=100&page=2>; rel=\"last\""
+      },
+      "body": [
+        {
+          "id": 5001,
+          "node_id": "I_kwDOAcmeApi12",
+          "number": 12,
+          "title": "Login fails on empty password",
+          "body": "Steps in [the runbook](docs/runbook.md), see #13 and acme/other#4.\r\n\r\n<img src=\"/user-attachments/assets/abc\">",
+          "state": "open",
+          "updated_at": "2026-11-02T09:00:00Z",
+          "labels": [
+            {
+              "id": 1,
+              "name": "squads"
+            },
+            {
+              "id": 2,
+              "name": "priority: high"
+            },
+            {
+              "id": 4,
+              "name": "bug"
+            }
+          ],
+          "user": {
+            "login": "pchat",
+            "id": 4567
+          },
+          "repository_url": "https://ghe.example.com/api/v3/repos/acme/api"
+        },
+        {
+          "id": 6001,
+          "node_id": "PR_kwDOAcmeApi14",
+          "number": 14,
+          "title": "Fix the login",
+          "body": "Closes #12",
+          "state": "open",
+          "updated_at": "2026-11-02T11:00:00Z",
+          "labels": [
+            {
+              "id": 1,
+              "name": "squads"
+            }
+          ],
+          "user": {
+            "login": "asmith",
+            "id": 4568
+          },
+          "repository_url": "https://ghe.example.com/api/v3/repos/acme/api",
+          "pull_request": {
+            "url": "https://ghe.example.com/api/v3/repos/acme/api/pulls/14"
+          }
+        }
+      ]
+    },
+    {
+      "path": "/api/v3/repos/acme/api/issues/12/comments",
+      "body": [
+        {
+          "id": 301,
+          "body": "The endpoint returns 500 when the body is empty.",
+          "created_at": "2026-11-02T09:14:00Z",
+          "updated_at": "2026-11-02T09:20:31Z",
+          "user": {
+            "login": "asmith",
+            "id": 4568
+          }
+        }
+      ]
+    },
+    {
+      "path": "/api/v3/repos/acme/api/issues/13/comments",
+      "body": []
+    },
+    {
+      "path": "/api/v3/repos/acme/api/issues/12/dependencies/blocking",
+      "body": [
+        {
+          "id": 5002,
+          "node_id": "I_kwDOAcmeApi13",
+          "number": 13,
+          "title": "Token refresh loops",
+          "state": "closed",
+          "repository_url": "https://ghe.example.com/api/v3/repos/acme/api"
+        }
+      ]
+    },
+    {
+      "path": "/api/v3/repos/acme/api/issues/12/dependencies/blocked_by",
+      "body": []
+    },
+    {
+      "path": "/api/v3/repos/acme/api/issues/13/dependencies/blocked_by",
+      "body": [
+        {
+          "id": 5001,
+          "node_id": "I_kwDOAcmeApi12",
+          "number": 12,
+          "title": "Login fails on empty password",
+          "state": "open",
+          "repository_url": "https://ghe.example.com/api/v3/repos/acme/api"
+        }
+      ]
+    },
+    {
+      "path": "/api/v3/repos/acme/api/issues/13/dependencies/blocking",
+      "body": []
+    },
+    {
+      "path": "/api/v3/issues",
+      "query": {
+        "labels": "other"
+      },
+      "body": []
+    }
+  ]
+}

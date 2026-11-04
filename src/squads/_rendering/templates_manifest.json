@@ -490,7 +490,7 @@
     "_rendering/templates/working_language.md.j2": "cf5ce9439d3f9d569882868708e110990349dcd304ef33e6f9191bad0a643316",
     "_specs/playbook.toml": "e54f70fb33d1c503535f90aabc6f29a8c6b59fe4c1a1056baed153dd2e783480",
     "_specs/roles.toml": "4915028527ed18455e35866cae12e27165825c13aa1a00e570e10c0cecce1011",
-    "_specs/sources.toml": "31dac8664de60577285707aa8d3b66f7e8390b13e6f479f9d277813dd4014acf",
+    "_specs/sources.toml": "d13ce10509b62e32b0d3d6145aeaf514a6ab10460753a4d0951526e2d396412b",
     "_specs/workflow.toml": "c212647bc042f54d01d6320b0acda23a05232939f913b79c2a0894c8648fb652"
   },
   "0.4.0": {

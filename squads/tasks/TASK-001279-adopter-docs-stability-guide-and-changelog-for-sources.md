@@ -3,7 +3,7 @@ id: TASK-1279
 sequence_id: 1279
 type: task
 title: Adopter docs, stability guide and changelog for sources
-status: InProgress
+status: Done
 parent: FEAT-1273
 author: tech-lead
 assignee: tech-writer
@@ -19,16 +19,16 @@ subentities:
   status: Done
 - local_id: ST2
   title: Adopter page for external sources
-  status: Todo
+  status: Done
 - local_id: ST3
   title: CHANGELOG 0.20 section
-  status: Todo
+  status: Done
 - local_id: ST4
   title: Connector documentation
-  status: Todo
+  status: Done
   maps_to: US1
 created_at: '2026-11-03T23:02:46Z'
-updated_at: '2026-11-04T03:26:48Z'
+updated_at: '2026-11-04T08:29:05Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -152,4 +152,21 @@ Document the four connector versions (`gitlab`, `github`, `jira@cloud-v3`, `jira
     - ST1 is Done. ST2 stays open: I could not verify that a pull holds the daemon's serial lock for its whole run, so the page does not state it. ST3 and ST4 wait on the Jira and GitHub connectors.
     - Held back as asked: the sourced-comment author display and the `kind = "source"` view grammar.
     - For @manager: (1) the altered-pair refusal for a stored view that no source feeds still names `sq <type> <n> show --refresh`, which refuses an item with no source record; (2) `sq workflow views --json` adds `stored` before `transform`, not after the last field as the additive rule in stability.md says.
+- [2026-11-04T05:41:06Z] `tech-writer` Theo Writer:
+  - Progress from @tech-writer: the connectors part and the side-keyed map grammar are written (uncommitted; CHANGELOG.md and docs/ only).
+    
+    - docs/sources.md: side-keyed `maps.types.<side>` and `maps.fields.<field>.<side>`, sides per connector version, disagreeing sides, `filter` required, the shape and undeclared-side refusals as the code prints them; a Connectors section (table of the four versions, then GitLab, GitHub and Jira: base_url forms, credential fields, filters, sides, links, open or closed, creator as author, pull requests and restricted comments skipped, the Cloud accountId handle, what the probes can confirm); the not-MCP statement; converters with the issue address; rate limits; unnamed pull access failures and `failed`; running beside other commands; the unlink warning and re-import.
+    - docs/stability.md: the sources.toml grammar with sides and required filter; the stored-writer rule; pull `failed`; the `source` reflog op written by refresh, relink and unlink too.
+    - docs/workflow.md: stored views rewritten around the bundled `source_description` (an override's `stored = true` on another source kind fails at load); the reflog `source` row.
+    - docs/overrides.md: the stored-writer rule.
+    - CHANGELOG 0.20.0: Added restructured so the sources entries come first and carry the side grammar, the required filter, the four connectors, the probes' side checks, the pull's access-failure exit and lock, the unlink warning, the converters' issue address and the rate-limit wait; the stored-view entries use the bundled view and the new refusal; the reflog op note widened.
+    - ST2 and ST4 are Done. ST3 stays open until TASK-1276 leaves review; its section covers every developer task.
+    - Held back as asked: the sourced-comment author display and the `kind = "source"` view grammar.
+- [2026-11-04T08:28:16Z] `tech-writer` Theo Writer:
+  - ST3 done; CHANGELOG.md and docs/ only, uncommitted.
+  - CHANGELOG 0.20.0: the sourced comment author form (slug and roster name when matched, the quoted escaped tracker name otherwise, left out when empty; same string in --json `author`); a new entry for the `source` view source kind; the stored = true refusal quoted as the code prints it; corrected `sq workflow views --json`: `stored` comes after `transform`, not before it. Side-keyed maps, required filter and the listing diff were already in.
+  - docs/workflow.md: `source` kind in the Derived views list, the --json shapes, the field reference (keys, null on an unsourced item, text empty on any view but source_description), the template and transform inputs; Stored views names the writer, quotes the refusal and shows the bundled declaration. docs/sources.md: the view kind and template override; the author form rewritten with the escape rule and the spoof example. docs/overrides.md: kind list and template inputs. docs/stability.md: the `source` shape for `sq workflow view --json`, the stored rule names the kind, and the views row order fixed to transform, stored.
+  - Driven on a scratch squad: lint refusals for stored on a self view and a named source kind, and `sq workflow view source_description <id> --json` = null on an unsourced item. Read, not driven: a pulled record shape. tests/meta: 729 passed. @manager ready for the commit and the closing sweep.
+- [2026-11-04T08:29:05Z] `manager` Catherine Manager:
+  - Done: all four subtasks delivered; tests/meta green.
 <!-- sq:discussion:end -->

@@ -1,0 +1,569 @@
+{
+  "routes": [
+    {
+      "path": "/rest/api/3/serverInfo",
+      "body": {
+        "baseUrl": "https://acme.atlassian.net",
+        "version": "1001.0.0-SNAPSHOT",
+        "deploymentType": "Cloud"
+      }
+    },
+    {
+      "path": "/rest/api/3/myself",
+      "body": {
+        "accountId": "712020:0a1b2c3d-3333-4444-8888-cccccccccccc",
+        "displayName": "Squads Bot",
+        "active": true,
+        "accountType": "atlassian",
+        "emailAddress": "svc-squads@acme.example"
+      }
+    },
+    {
+      "path": "/rest/api/3/priority",
+      "body": [
+        {
+          "id": "2",
+          "name": "High"
+        },
+        {
+          "id": "3",
+          "name": "Low"
+        }
+      ]
+    },
+    {
+      "path": "/rest/api/3/issuetype",
+      "body": [
+        {
+          "id": "1",
+          "name": "Bug"
+        },
+        {
+          "id": "2",
+          "name": "Task"
+        },
+        {
+          "id": "3",
+          "name": "Story"
+        }
+      ]
+    },
+    {
+      "path": "/rest/api/3/issueLinkType",
+      "body": {
+        "issueLinkTypes": [
+          {
+            "id": "10000",
+            "name": "Blocks",
+            "inward": "is blocked by",
+            "outward": "blocks"
+          },
+          {
+            "id": "10001",
+            "name": "Relates",
+            "inward": "relates to",
+            "outward": "relates to"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/rest/api/3/label",
+      "body": {
+        "maxResults": 1000,
+        "startAt": 0,
+        "total": 2,
+        "isLast": true,
+        "values": [
+          "squads",
+          "backend"
+        ]
+      }
+    },
+    {
+      "path": "/rest/api/3/user",
+      "query": {
+        "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb"
+      },
+      "body": {
+        "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb",
+        "displayName": "Pierre Chat",
+        "active": true,
+        "accountType": "atlassian"
+      }
+    },
+    {
+      "path": "/rest/api/3/user",
+      "query": {
+        "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa"
+      },
+      "body": {
+        "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+        "displayName": "Alice Smith",
+        "active": true,
+        "accountType": "atlassian"
+      }
+    },
+    {
+      "path": "/rest/api/3/user/search",
+      "query": {
+        "query": "Pierre Chat"
+      },
+      "body": [
+        {
+          "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb",
+          "displayName": "Pierre Chat",
+          "active": true,
+          "accountType": "atlassian"
+        }
+      ]
+    },
+    {
+      "path": "/rest/api/3/user/search",
+      "query": {
+        "query": "nobody"
+      },
+      "body": []
+    },
+    {
+      "path": "/rest/api/3/search/jql",
+      "query": {
+        "nextPageToken": "page-2-token"
+      },
+      "body": {
+        "issues": [
+          {
+            "id": "10043",
+            "key": "PROJ-46",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10043",
+            "fields": {
+              "summary": "Token refresh loops",
+              "description": null,
+              "status": {
+                "name": "Done",
+                "statusCategory": {
+                  "key": "done"
+                }
+              },
+              "issuetype": {
+                "name": "Task"
+              },
+              "priority": {
+                "name": "Low"
+              },
+              "labels": [
+                "squads",
+                "High"
+              ],
+              "reporter": {
+                "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+                "displayName": "Alice Smith",
+                "active": true,
+                "accountType": "atlassian"
+              },
+              "creator": {
+                "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+                "displayName": "Alice Smith",
+                "active": true,
+                "accountType": "atlassian"
+              },
+              "updated": "2026-11-03T10:30:00.000+0000",
+              "issuelinks": [
+                {
+                  "id": "30001",
+                  "type": {
+                    "id": "10000",
+                    "name": "Blocks",
+                    "inward": "is blocked by",
+                    "outward": "blocks"
+                  },
+                  "inwardIssue": {
+                    "id": "10042",
+                    "key": "PROJ-45"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "isLast": true
+      }
+    },
+    {
+      "path": "/rest/api/3/search/jql",
+      "body": {
+        "issues": [
+          {
+            "id": "10042",
+            "key": "PROJ-45",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10042",
+            "fields": {
+              "summary": "Login fails on empty password",
+              "description": {
+                "type": "doc",
+                "version": 1,
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Steps: see "
+                      },
+                      {
+                        "type": "text",
+                        "text": "PROJ-46",
+                        "marks": [
+                          {
+                            "type": "strong"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "text": " and the runbook."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "status": {
+                "name": "In Progress",
+                "statusCategory": {
+                  "key": "indeterminate"
+                }
+              },
+              "issuetype": {
+                "name": "Bug"
+              },
+              "priority": {
+                "name": "High"
+              },
+              "labels": [
+                "squads"
+              ],
+              "reporter": {
+                "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+                "displayName": "Alice Smith",
+                "active": true,
+                "accountType": "atlassian"
+              },
+              "creator": {
+                "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb",
+                "displayName": "Pierre Chat",
+                "active": true,
+                "accountType": "atlassian"
+              },
+              "updated": "2026-11-02T09:00:00.000+0000",
+              "issuelinks": [
+                {
+                  "id": "30001",
+                  "type": {
+                    "id": "10000",
+                    "name": "Blocks",
+                    "inward": "is blocked by",
+                    "outward": "blocks"
+                  },
+                  "outwardIssue": {
+                    "id": "10043",
+                    "key": "PROJ-46"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "nextPageToken": "page-2-token",
+        "isLast": false
+      }
+    },
+    {
+      "path": "/rest/api/3/issue/10042",
+      "body": {
+        "id": "10042",
+        "key": "PROJ-45",
+        "self": "https://acme.atlassian.net/rest/api/3/issue/10042",
+        "fields": {
+          "summary": "Login fails on empty password",
+          "description": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Steps: see "
+                  },
+                  {
+                    "type": "text",
+                    "text": "PROJ-46",
+                    "marks": [
+                      {
+                        "type": "strong"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "text": " and the runbook."
+                  }
+                ]
+              }
+            ]
+          },
+          "status": {
+            "name": "In Progress",
+            "statusCategory": {
+              "key": "indeterminate"
+            }
+          },
+          "issuetype": {
+            "name": "Bug"
+          },
+          "priority": {
+            "name": "High"
+          },
+          "labels": [
+            "squads"
+          ],
+          "reporter": {
+            "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+            "displayName": "Alice Smith",
+            "active": true,
+            "accountType": "atlassian"
+          },
+          "creator": {
+            "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb",
+            "displayName": "Pierre Chat",
+            "active": true,
+            "accountType": "atlassian"
+          },
+          "updated": "2026-11-02T09:00:00.000+0000",
+          "issuelinks": [
+            {
+              "id": "30001",
+              "type": {
+                "id": "10000",
+                "name": "Blocks",
+                "inward": "is blocked by",
+                "outward": "blocks"
+              },
+              "outwardIssue": {
+                "id": "10043",
+                "key": "PROJ-46"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": "/rest/api/3/issue/10043",
+      "body": {
+        "id": "10043",
+        "key": "PROJ-46",
+        "self": "https://acme.atlassian.net/rest/api/3/issue/10043",
+        "fields": {
+          "summary": "Token refresh loops",
+          "description": null,
+          "status": {
+            "name": "Done",
+            "statusCategory": {
+              "key": "done"
+            }
+          },
+          "issuetype": {
+            "name": "Task"
+          },
+          "priority": {
+            "name": "Low"
+          },
+          "labels": [
+            "squads",
+            "High"
+          ],
+          "reporter": {
+            "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+            "displayName": "Alice Smith",
+            "active": true,
+            "accountType": "atlassian"
+          },
+          "creator": {
+            "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+            "displayName": "Alice Smith",
+            "active": true,
+            "accountType": "atlassian"
+          },
+          "updated": "2026-11-03T10:30:00.000+0000",
+          "issuelinks": [
+            {
+              "id": "30001",
+              "type": {
+                "id": "10000",
+                "name": "Blocks",
+                "inward": "is blocked by",
+                "outward": "blocks"
+              },
+              "inwardIssue": {
+                "id": "10042",
+                "key": "PROJ-45"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "path": "/rest/api/3/issue/10042/comment",
+      "body": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 4,
+        "comments": [
+          {
+            "id": "20001",
+            "author": {
+              "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+              "displayName": "Alice Smith",
+              "active": true,
+              "accountType": "atlassian"
+            },
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The endpoint returns 500 when the body is empty."
+                    }
+                  ]
+                }
+              ]
+            },
+            "created": "2026-11-02T09:14:00.000+0000",
+            "updated": "2026-11-02T09:20:31.000+0000"
+          },
+          {
+            "id": "20002",
+            "author": {
+              "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+              "displayName": "Alice Smith",
+              "active": true,
+              "accountType": "atlassian"
+            },
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Internal: the customer is the bank."
+                    }
+                  ]
+                }
+              ]
+            },
+            "visibility": {
+              "type": "role",
+              "value": "Administrators"
+            },
+            "created": "2026-11-02T09:30:00.000+0000",
+            "updated": "2026-11-02T09:30:00.000+0000"
+          },
+          {
+            "id": "20003",
+            "author": {
+              "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb",
+              "displayName": "Pierre Chat",
+              "active": true,
+              "accountType": "atlassian"
+            },
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Fixed in "
+                    },
+                    {
+                      "type": "text",
+                      "text": "main",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "created": "2026-11-02T10:00:00.000+0000",
+            "updated": "2026-11-02T10:00:00.000+0000"
+          },
+          {
+            "id": "20004",
+            "author": {
+              "accountId": "712020:0a1b2c3d-1111-4444-8888-aaaaaaaaaaaa",
+              "displayName": "Alice Smith",
+              "active": true,
+              "accountType": "atlassian"
+            },
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Agents only: the customer is waiting."
+                    }
+                  ]
+                }
+              ]
+            },
+            "jsdPublic": false,
+            "created": "2026-11-02T10:30:00.000+0000",
+            "updated": "2026-11-02T10:30:00.000+0000"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/rest/api/3/issue/10043/comment",
+      "body": {
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 0,
+        "comments": []
+      }
+    },
+    {
+      "path": "/rest/api/3/user/search",
+      "query": {
+        "query": "Pierre"
+      },
+      "body": [
+        {
+          "accountId": "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb",
+          "displayName": "Pierre Martin",
+          "active": true
+        }
+      ]
+    }
+  ]
+}

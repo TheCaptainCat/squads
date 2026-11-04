@@ -1310,7 +1310,7 @@ async def test_comments_json_prints_one_object_per_comment(populated_project, in
 
 async def _task_with_stored_body(project, invoke) -> None:
     """Task 3 once its stored view holds `STORED`: `view add` places the empty pair and no verb
-    writes a stored body yet, so the text goes between the tags in the file."""
+    writes this view's stored body, so the text goes between the tags in the file."""
     stored.declare_stored_view(project.squad_dir)
     await _ok(invoke, [P.ref, str(TASK), "view", "add", stored.VIEW])
     path = project.squad_dir / TASK_PATH

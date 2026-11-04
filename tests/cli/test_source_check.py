@@ -10,8 +10,8 @@ from tests import _tracker_harness as harness
 pytestmark = pytest.mark.anyio
 
 SECRET = "glpat-not-a-real-token"
-MAPS = '\n[sources.platform.maps.types]\nissue = "task"\n'
-PRIORITY = '\n[sources.platform.maps.fields.priority]\n"priority::high" = "high"\n'
+MAPS = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
+PRIORITY = '\n[sources.platform.maps.fields.priority.labels]\n"priority::high" = "high"\n'
 HEAD = '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
 ACCESS = [
     "  pass  http://tracker answers",
@@ -119,15 +119,16 @@ async def test_a_mapped_label_the_tracker_lacks_is_a_blocking_vocabulary_failure
         (
             "vocabulary",
             "fail",
-            "maps.fields.priority: label 'priority::urgent' does not exist on the tracker",
-            "create the label, or remove it from [sources.platform.maps.fields.priority] "
-            "in sources.toml",
+            "maps.types.type: 'ghost' is not among the tracker's issue types",
+            "correct it in [sources.platform.maps.types.type] in sources.toml, "
+            "or create it on the tracker",
         ),
         (
             "vocabulary",
             "fail",
-            "maps.types: 'ghost' is neither a GitLab issue type nor a label on the tracker",
-            "correct it in [sources.platform.maps.types] in sources.toml, or create the label",
+            "maps.fields.priority.labels: 'priority::urgent' is not among the tracker's labels",
+            "correct it in [sources.platform.maps.fields.priority.labels] in sources.toml, "
+            "or create it on the tracker",
         ),
         (
             "vocabulary",
@@ -159,8 +160,9 @@ async def test_an_unmapped_label_and_an_unknown_author_are_warnings_and_exit_0(
                 *ACCESS,
                 "  pass  every value the maps name exists on the tracker",
                 "  warn  label 'priority::low' on platform/api#12 has no entry in "
-                "maps.fields.priority",
-                "        fix: add it to [sources.platform.maps.fields.priority] in sources.toml",
+                "maps.fields.priority.labels",
+                "        fix: add it to [sources.platform.maps.fields.priority.labels] in "
+                "sources.toml",
                 "  warn  author asmith (id 4568) of platform/api#13, a comment on TASK-4 is in "
                 "no operator's identities",
                 "        fix: run `sq operator <slug> update --identities platform=4568`",
@@ -338,7 +340,10 @@ async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
                 "  warn  the filter 'squads' selects no issue",
                 "        fix: label an issue on the tracker, or correct `filter` of source "
                 "'platform' in sources.toml",
-                "  warn  the mapped labels cannot be confirmed while the filter selects no issue",
+                "  warn  maps.fields.priority.labels: 'priority::high' is carried by no in-filter "
+                "issue, so it cannot be confirmed among the tracker's labels",
+                "        fix: correct it in [sources.platform.maps.fields.priority.labels] in "
+                "sources.toml",
                 "  pass  every in-filter value, author and identity is accounted for",
                 "",
             ]

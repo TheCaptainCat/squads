@@ -12,8 +12,8 @@ pytestmark = pytest.mark.anyio
 
 SECRET = "glpat-not-a-real-token"
 MAPS = (
-    '\n[sources.platform.maps.types]\nissue = "task"\n'
-    '\n[sources.platform.maps.fields.priority]\n"priority::high" = "high"\n'
+    '\n[sources.platform.maps.types.type]\nissue = "task"\n'
+    '\n[sources.platform.maps.fields.priority.labels]\n"priority::high" = "high"\n'
 )
 HEAD = 'connector = "gitlab"\nfilter = "squads"\n'
 

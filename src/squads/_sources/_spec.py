@@ -9,12 +9,15 @@ from squads._errors import SquadsError
 
 
 class SourceMaps(BaseModel):
-    """How a tracker's types, field values and link types map onto the squad's vocabulary."""
+    """How a tracker's types, field values and link types map onto the squad's vocabulary; types and
+    field values are read from one named side of the issue at a time."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    types: dict[str, str] = Field(default_factory=dict)
-    fields: dict[str, dict[str, str]] = Field(default_factory=dict)
+    #: Tracker side to tracker value to item type.
+    types: dict[str, dict[str, str]] = Field(default_factory=dict)
+    #: Badge field to tracker side to tracker value to badge value.
+    fields: dict[str, dict[str, dict[str, str]]] = Field(default_factory=dict)
     links: dict[str, str] = Field(default_factory=dict)
 
 

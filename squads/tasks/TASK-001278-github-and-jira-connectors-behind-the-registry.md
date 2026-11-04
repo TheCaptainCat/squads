@@ -3,9 +3,10 @@ id: TASK-1278
 sequence_id: 1278
 type: task
 title: GitHub and Jira connectors behind the registry
-status: Draft
+status: Done
 parent: FEAT-1273
 author: tech-lead
+assignee: python-dev
 refs:
 - ADR-1274:implements
 - MILE-1269:targets
@@ -16,7 +17,7 @@ description: GitHub, Jira cloud-v3 and dc-v2 connectors with their probes on rec
 subentities:
 - local_id: ST1
   title: A multi-version connector requires version
-  status: Todo
+  status: Done
   maps_to: US1
 - local_id: ST2
   title: GitLab connector
@@ -24,18 +25,18 @@ subentities:
   maps_to: US2
 - local_id: ST3
   title: GitHub connector
-  status: Todo
+  status: Done
   maps_to: US3
 - local_id: ST4
   title: Jira Cloud connector, cloud-v3
-  status: Todo
+  status: Done
   maps_to: US4
 - local_id: ST5
   title: Jira Data Center connector, dc-v2
-  status: Todo
+  status: Done
   maps_to: US5
 created_at: '2026-11-03T23:02:46Z'
-updated_at: '2026-11-03T23:19:02Z'
+updated_at: '2026-11-04T05:38:55Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -198,4 +199,50 @@ Tests (2): pull from recorded responses creates an item with a wiki-markup descr
   - Scope updated to ADR-1274 §14 per @architect's comment: body and subtasks revised; see the subtask table for what moved.
 - [2026-11-03T23:17:26Z] `architect` Robert Architect:
   - - @tech-lead ADR-1274 §14 (2026-11-04) replaces ST1's "newest-version default": versions are not ordered and squads never picks one. ST1 becomes "a source must name its version when its connector has several". Its one test: a `jira` source without `version` fails at load, naming the source and listing `cloud-v3` and `dc-v2`. Keep it after ST4 and ST5. No version ordering is implemented.
+- [2026-11-04T04:33:57Z] `python-dev` Elias Python:
+  - - ST1, ST3, ST4, ST5 done (not committed). Gates: pyright 0 errors, ruff check and format clean, `tests/meta` 729 passed, `tests/cli tests/check tests/daemon` 1328 passed / 2 skipped, `sq check` clean. CLI start still imports no connector, urllib, http.client or ssl (`-X importtime`).
+    - Rows: `github@v3`, `jira@cloud-v3`, `jira@dc-v2` in `_registry.py`; defaults in `_specs/sources.toml`; manifest regenerated, content store rebuilt.
+    - New: `_github.py`, `_github_probes.py`, `_jira.py` (shared), `_jira_cloud.py`, `_jira_dc.py`, `_jira_probes.py`, `_tracker_probes.py` (the probe framework GitLab, GitHub and Jira share; GitLab's probes now sit on it, output unchanged), `_records.py` (tolerant JSON readers).
+    - Changed: `_http.py` (generic `paged`, Link-header paging, 403 with Retry-After or exhausted limit is a rate limit and retried, 410 as not found, non-JSON and wrong-shape answers raise a named error, HTTP error reason from the body), `_gitlab.py` (uses `_records`), `tests/meta/_vocabulary.py` (one exemption: `_ISSUE_FIELDS` in `_jira.py`, Jira field names, one of which spells like a badge field).
+    - Tests: `tests/cli/test_source_connectors.py`, 9 cases, fixtures under `tests/fixtures/sources/{github,jira-cloud,jira-dc}`. Each killed by a mutation (12 mutations run).
+    - Decisions to confirm: Jira link types are keyed by the directional phrase ("blocks", "is blocked by"), so an inward link never makes a reverse ref; Jira field maps key on a label or the priority name; Jira Cloud handle is the accountId; comments with `visibility` or `jsdPublic: false` are not pulled; GitHub link types are `blocked_by` and `blocking`; a Jira source needs a `filter`.
+    - Open: a listed issue whose comments 404 between listing and detail aborts the source's pull with a bare not-found message (shared fetch phase, GitLab too).
+    @tech-writer: docs rows are in the handback report.
+- [2026-11-04T04:34:07Z] `python-dev` Elias Python:
+  - - Docs rows for @tech-writer:
+      - Connectors: `github@v3`, `jira@cloud-v3`, `jira@dc-v2` (a source connector is not the MCP connector). A `jira` source must name `version`; without it the load fails listing `cloud-v3, dc-v2`.
+      - Credentials: `github` token; `jira@cloud-v3` `user` (email) and `token` (basic auth); `jira@dc-v2` `token` (personal access token, bearer).
+      - `base_url`: github.com, or an Enterprise `https://host` or `https://host/api/v3`; Jira site or Data Center URL (context path allowed).
+      - Filters: GitHub a label (all issues the token sees); Jira a JQL query, required.
+      - Open or closed: GitHub `state`; Jira `statusCategory` done is closed, so custom workflows need no map.
+      - Maps: GitHub types and fields read labels (and the issue type name when present), links `blocked_by` and `blocking` (default `blocking = blocks`); Jira types read the issue type name or a label, fields read labels and the priority name, links read the directional phrase (default `blocks = blocks`).
+      - Pull requests are skipped; Jira comments restricted by visibility or hidden from customers are not pulled; Jira Cloud shows the accountId as the handle, DC the username.
+      - Default converters: `github-md`, `adf`, `jira-wiki`.
+    - API shapes not confirmed against a live tracker (recorded from documentation only):
+      - GitHub: `GET /issues?filter=all` as the cross-repository listing; Link-header paging; the issue `type` object; `/dependencies/blocked_by|blocking` and their absence (404) on older Enterprise; a transferred issue keeping its node ID and the old URL redirecting; `/meta`, `/user/{id}`; `github.com` base mapping to api.github.com (no test); installation tokens cannot call `/user`.
+      - Jira Cloud: `/search/jql` with `nextPageToken` and `isLast`; `fields` selecting what comes back; `/label` paging; `/user/search` and `/user?accountId`; comment `visibility` and `jsdPublic`.
+      - Jira DC: `/search` capping `maxResults`; `/user?key=` and `?username=`; `key` present on current DC; no label listing endpoint is used, so a mapped label no in-filter issue carries is reported missing.
+- [2026-11-04T05:00:41Z] `architect` Robert Architect:
+  - - @python-dev ADR-1274 §14 (2026-11-04) rules on REV-1283 F7. Exact changes; (b) also touches GitLab and the loader from earlier tasks, and this task owns it:
+      - **(b) Maps keyed by tracker side** (fixes F6):
+        - `maps.types.<side>` and `maps.fields.<badge field>.<side>` replace the flat tables. Each connector version declares its sides as a class constant: every connector has `labels`, GitLab and GitHub add `type`, and Jira adds `type` and `priority`. Add each to the vocabulary guard's exemption table if its names collide.
+        - At load (`_sources/_spec.py`), refuse a side the version does not declare, listing the known ones. Overlay connector defaults per side, per key.
+        - `Issue` carries each non-label side as its own value (for example `sides = {"type": "Bug", "priority": "High"}`), and Jira no longer appends the priority to `labels`.
+        - `mapped_type` and `mapped_fields` collect the values from every side. If they disagree, nothing is set and the pull reports the values (the type case already does this).
+        - Probes check each key against its side only (`/priority` for `priority`, labels for `labels`, the issue-type list for `type`).
+        - Migrate the bundled `sources.toml` defaults and every fixture.
+        - Test: the reviewer's F6 case. The label `High` with priority `Low` and `maps.fields.priority.priority = { Low = "low" }` sets `low`, and the label does not count.
+      - **(c)** `@<accountId>` resolves by exact lookup (F4's fix), with no search.
+      - **(d)** F3's DC fix as the reviewer wrote it: `expand=properties`, skip `sd.public.comment.internal == true`, behind a per-version method, plus fixture comments for both versions.
+      - **(e)** Jira's `author_id` and `author_handle` come from `creator`, not `reporter`, with no fallback. Test: an issue whose reporter differs from its creator is attributed to the creator.
+      - **(f)** `filter` is required and non-empty for every source, refused at load naming the source. Drop the run-time Jira-only refusal. Test: a GitHub source without `filter` fails `sq source list`.
+- [2026-11-04T05:16:30Z] `python-dev` Elias Python:
+  - - REV-1283 F1 to F6, F8, F9 and the architect's rulings (b) to (f) are done, not committed. Gates: pyright 0, ruff check and format clean, `tests/cli tests/check tests/daemon tests/meta` 2063 passed / 2 skipped, `sq check` clean, CLI start still imports no connector or urllib. Each new behaviour killed by a mutation.
+    - Maps are now keyed by side. The sides each version declares are in the connector registry (`ConnectorEntry.sides`), not a class constant, because the loader must not import connector classes. Bundled `sources.toml` needed no change (links only); the override scaffold and every test fixture were migrated.
+    - `filter` is required at load for every connector (the Jira run-time refusal is gone). Tests that declared a source without one were given a filter.
+    - Link keys are checked against `/issueLinkType` (already in place).
+    - Untested: GitHub's 403 secondary-limit message path (the backoff would sleep), `*.ghe.com` mapping and `github.com` mapping (no loopback host). A DC label no in-filter issue carries is a warning; GitHub types likewise.
+    - Unconfirmed API: `expand=properties` on the DC comment listing returning `sd.public.comment`.
+- [2026-11-04T05:38:55Z] `manager` Catherine Manager:
+  - Accepted: REV-1283 approved with all findings verified; full suite 2117 passed; gates and sq check clean. Moved to Done under the operator's delegation of the loop.
 <!-- sq:discussion:end -->

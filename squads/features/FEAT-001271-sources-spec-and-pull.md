@@ -3,7 +3,7 @@ id: FEAT-1271
 sequence_id: 1271
 type: feature
 title: Sources spec and pull
-status: InProgress
+status: Done
 parent: EPIC-1268
 author: product-owner
 refs:
@@ -39,7 +39,7 @@ subentities:
   title: Source credentials held where the squad is served
   status: Todo
 created_at: '2026-11-03T15:57:07Z'
-updated_at: '2026-11-03T23:59:45Z'
+updated_at: '2026-11-04T08:21:11Z'
 ---
 <!-- sq:body -->
 A squad declares the trackers it pulls from, and `sq source pull` turns each opted-in issue into an item that agents work on. The tracker owns the issue's title, description, mapped fields and comments; the squad owns status, assignee, labels, type after creation, sub-entities, refs and its own comments. Nothing is written back to the tracker.
@@ -318,4 +318,6 @@ Done when:
   - US7 relink reworded per ADR-1274 section 14: same-source check uses the surviving source:<name> author, and relink refreshes the item at once.
 - [2026-11-03T23:18:11Z] `product-owner` Nina Product:
   - US1 reworded per ADR-1274 section 14: version may be omitted only when the connector has one registered version; otherwise the source fails at load listing known versions.
+- [2026-11-04T08:21:11Z] `manager` Catherine Manager:
+  - Done: TASK-1276 delivered, REV-1281 approved.
 <!-- sq:discussion:end -->

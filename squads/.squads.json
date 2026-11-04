@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1282,
+  "counter": 1283,
   "padding": 6,
   "items": {
     "12": {
@@ -66269,7 +66269,7 @@
       "type": "epic",
       "title": "External sources: work tracked elsewhere",
       "slug": "external-sources-work-tracked-elsewhere",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
       "parent": null,
       "author": "product-owner",
@@ -66279,7 +66279,7 @@
       "subentities": [],
       "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
       "created_at": "2026-11-03T15:57:06Z",
-      "updated_at": "2026-11-03T23:11:30Z",
+      "updated_at": "2026-11-04T08:29:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66365,7 +66365,7 @@
       ],
       "path": "features/FEAT-001270-stored-view-bodies.md",
       "created_at": "2026-11-03T15:57:07Z",
-      "updated_at": "2026-11-03T23:59:26Z",
+      "updated_at": "2026-11-04T05:45:49Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66377,7 +66377,7 @@
       "type": "feature",
       "title": "Sources spec and pull",
       "slug": "sources-spec-and-pull",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Declare sources in sources.toml and pull opted-in issues into items",
       "parent": "EPIC-1268",
       "author": "product-owner",
@@ -66472,7 +66472,7 @@
       ],
       "path": "features/FEAT-001271-sources-spec-and-pull.md",
       "created_at": "2026-11-03T15:57:07Z",
-      "updated_at": "2026-11-03T23:59:45Z",
+      "updated_at": "2026-11-04T08:21:11Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66528,7 +66528,7 @@
       "type": "feature",
       "title": "Connectors: GitLab, GitHub and Jira",
       "slug": "connectors-gitlab-github-and-jira",
-      "status": "InProgress",
+      "status": "Done",
       "description": "The first connectors, registered by name and version",
       "parent": "EPIC-1268",
       "author": "product-owner",
@@ -66588,7 +66588,7 @@
       ],
       "path": "features/FEAT-001273-connectors-gitlab-github-and-jira.md",
       "created_at": "2026-11-03T15:57:08Z",
-      "updated_at": "2026-11-03T23:59:46Z",
+      "updated_at": "2026-11-04T08:29:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66624,7 +66624,7 @@
       "subentities": [],
       "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
       "created_at": "2026-11-03T22:41:36Z",
-      "updated_at": "2026-11-04T03:33:17Z",
+      "updated_at": "2026-11-04T08:14:43Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66709,7 +66709,7 @@
       "type": "task",
       "title": "Sources spec, source record, credentials and sq source pull",
       "slug": "sources-spec-source-record-credentials-and-sq-source-pull",
-      "status": "InReview",
+      "status": "Done",
       "description": "sources.toml, GitLab connector and harness, source record, map kind and identities, comment attributes, credentials, pull as import events, refusals, check rules",
       "parent": "FEAT-1271",
       "author": "tech-lead",
@@ -66814,7 +66814,7 @@
       ],
       "path": "tasks/TASK-001276-sources-spec-source-record-credentials-and-sq-source-pull.md",
       "created_at": "2026-11-03T23:02:45Z",
-      "updated_at": "2026-11-04T04:02:52Z",
+      "updated_at": "2026-11-04T08:21:10Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -66875,11 +66875,11 @@
       "type": "task",
       "title": "GitHub and Jira connectors behind the registry",
       "slug": "github-and-jira-connectors-behind-the-registry",
-      "status": "Draft",
+      "status": "Done",
       "description": "GitHub, Jira cloud-v3 and dc-v2 connectors with their probes on recorded responses; a multi-version connector requires version",
       "parent": "FEAT-1273",
       "author": "tech-lead",
-      "assignee": null,
+      "assignee": "python-dev",
       "labels": [],
       "refs": [
         "ADR-1274:implements",
@@ -66891,7 +66891,7 @@
         {
           "local_id": "ST1",
           "title": "A multi-version connector requires version",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US1",
           "deferred_to": null,
@@ -66909,7 +66909,7 @@
         {
           "local_id": "ST3",
           "title": "GitHub connector",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US3",
           "deferred_to": null,
@@ -66918,7 +66918,7 @@
         {
           "local_id": "ST4",
           "title": "Jira Cloud connector, cloud-v3",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US4",
           "deferred_to": null,
@@ -66927,7 +66927,7 @@
         {
           "local_id": "ST5",
           "title": "Jira Data Center connector, dc-v2",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US5",
           "deferred_to": null,
@@ -66936,7 +66936,7 @@
       ],
       "path": "tasks/TASK-001278-github-and-jira-connectors-behind-the-registry.md",
       "created_at": "2026-11-03T23:02:46Z",
-      "updated_at": "2026-11-03T23:19:02Z",
+      "updated_at": "2026-11-04T05:38:55Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -66950,7 +66950,7 @@
       "type": "task",
       "title": "Adopter docs, stability guide and changelog for sources",
       "slug": "adopter-docs-stability-guide-and-changelog-for-sources",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Stability contracts, the external sources adopter page, connector docs and the 0.20 changelog section",
       "parent": "FEAT-1273",
       "author": "tech-lead",
@@ -66974,7 +66974,7 @@
         {
           "local_id": "ST2",
           "title": "Adopter page for external sources",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -66983,7 +66983,7 @@
         {
           "local_id": "ST3",
           "title": "CHANGELOG 0.20 section",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -66992,7 +66992,7 @@
         {
           "local_id": "ST4",
           "title": "Connector documentation",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": "US1",
           "deferred_to": null,
@@ -67001,7 +67001,7 @@
       ],
       "path": "tasks/TASK-001279-adopter-docs-stability-guide-and-changelog-for-sources.md",
       "created_at": "2026-11-03T23:02:46Z",
-      "updated_at": "2026-11-04T03:26:48Z",
+      "updated_at": "2026-11-04T08:29:05Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67118,7 +67118,7 @@
       "type": "review",
       "title": "Sources spec and pull (FEAT-1271, TASK-1276)",
       "slug": "sources-spec-and-pull-feat-1271-task-1276",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -67166,7 +67166,7 @@
         {
           "local_id": "F4",
           "title": "A tracker display name can impersonate an operator in the comment header",
-          "status": "Open",
+          "status": "Verified",
           "assignee": "architect",
           "maps_to": null,
           "deferred_to": null,
@@ -67254,7 +67254,7 @@
       ],
       "path": "reviews/REV-001281-sources-spec-and-pull-feat-1271-task-1276.md",
       "created_at": "2026-11-04T02:22:04Z",
-      "updated_at": "2026-11-04T02:58:25Z",
+      "updated_at": "2026-11-04T08:21:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -67419,6 +67419,165 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1282"
+    },
+    "1283": {
+      "sequence_id": 1283,
+      "type": "review",
+      "title": "GitHub and Jira connectors (FEAT-1273, TASK-1278)",
+      "slug": "github-and-jira-connectors-feat-1273-task-1278",
+      "status": "Approved",
+      "description": "Batch review of the GitHub, Jira Cloud and Jira Data Center connectors",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1273",
+        "TASK-1278",
+        "ADR-1274"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "One issue's 404 between listing and detail stops the pull of every source",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "A malformed tracker answer is read as closed, gone or out-of-filter",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "Jira Data Center pulls agent-only service desk comments",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F4",
+          "title": "Jira Cloud handle resolution binds an identity to a fuzzy search hit",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "Probe lines blame the filter or the token for a rate limit or an unlistable value",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F6",
+          "title": "A Jira label spelled like a priority overrides the priority field",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F7",
+          "title": "ADR-1274 owes lines for seven connector decisions",
+          "status": "Verified",
+          "assignee": "architect",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F8",
+          "title": "Four decided behaviours have no test, and three asserts are substrings",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F9",
+          "title": "Cleanup: Jira updated_at offset, a repos owner, ghe.com hosts",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F10",
+          "title": "A map with no side fails with a raw pydantic dump",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F11",
+          "title": "New cases bring substring asserts, and two side rules have no test",
+          "status": "Verified",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F12",
+          "title": "ADR-1274 calls an unconfirmable map key blocking; the probe warns",
+          "status": "Verified",
+          "assignee": "architect",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        }
+      ],
+      "path": "reviews/REV-001283-github-and-jira-connectors-feat-1273-task-1278.md",
+      "created_at": "2026-11-04T04:55:55Z",
+      "updated_at": "2026-11-04T05:38:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1283"
     }
   }
 }

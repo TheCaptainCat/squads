@@ -23,10 +23,10 @@ subentities:
   title: Projections read the stored body at render time
   status: Done
 created_at: '2026-11-03T15:57:07Z'
-updated_at: '2026-11-03T23:59:26Z'
+updated_at: '2026-11-04T05:45:49Z'
 ---
 <!-- sq:body -->
-A view tag can carry a stored body: text kept in the item file between the view's open and end tags, handed to the view's projection when the item is read. A view whose source cannot be derived locally, such as an issue description fetched from a tracker, uses it as a cache; a view whose source is local keeps an empty tag and renders on read, as every bundled view does today.
+A view tag can carry a stored body: text kept in the item file between the view's open and end tags, handed to the view's projection when the item is read. A view whose source cannot be derived locally, such as an issue description fetched from a tracker, uses it as a cache; a view whose source is local keeps an empty tag and renders on read.
 
 The engine treats the body as opaque text. It never interprets it, keeps it intact through body writes, and lets only a dedicated operation write it. Reads never write it.
 
@@ -43,7 +43,7 @@ _Add with `sq feature 1270 add-story "As a <role>, I want … so that …"`; tra
 ### US1 — Paired view tags carry a stored body
 
 <!-- sq:story:US1:body -->
-As a view author, I can place a paired view tag whose stored body lives between its open and end tags, next to the empty tags that exist today.
+As a view author, I can place a paired view tag whose stored body lives between its open and end tags, next to the empty tags of views that are not stored.
 
 Done when:
 - `<!-- sq:view:<name> -->` … `<!-- sq:view:<name>:end -->` inside `sq:body` is recognised as one view with a stored body; the empty form keeps working unchanged.
@@ -66,7 +66,7 @@ As an agent setting an item's body, I cannot lose or alter a stored view body.
 
 Done when:
 - `sq <type> <n> body -m/--file` keeps every stored view body byte for byte, whatever the new text contains.
-- A new body that omits a paired tag gets it re-placed with its stored body, the way a seeded empty tag is re-placed today.
+- A new body that omits a paired tag gets it re-placed with its stored body, the way a seeded empty tag is re-placed.
 - A new body that changes the text inside a paired tag is refused, naming the view and the operation that writes it.
 <!-- sq:story:US2:body:end -->
 

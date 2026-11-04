@@ -113,42 +113,71 @@ def _overlay(base: dict[str, str], own: dict[str, str]) -> dict[str, str]:
     return {key: value for key, value in {**base, **own}.items() if value != ""}
 
 
+def _overlay_sides(
+    base: dict[str, dict[str, str]], own: dict[str, dict[str, str]]
+) -> dict[str, dict[str, str]]:
+    """*base* with *own* laid over it side by side and key by key."""
+    merged = {side: _overlay(base.get(side, {}), own.get(side, {})) for side in {*base, *own}}
+    return {side: table for side, table in merged.items() if table}
+
+
+def _side_problems(where: str, maps: SourceMaps, known: tuple[str, ...]) -> list[str]:
+    """The sides *maps* reads that the connector version does not expose."""
+    used = {*maps.types, *(side for sides in maps.fields.values() for side in sides)}
+    return [
+        f"{where}: maps name the side {side!r}, which the connector does not have "
+        f"(known: {', '.join(known)})"
+        for side in sorted(used - set(known))
+    ]
+
+
 def _inherited(declared: dict[str, str], key: str) -> str:
     """The note on a map entry that the source did not write itself."""
     return "" if key in declared else " (inherited from the connector's defaults)"
 
 
-def _map_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSpec) -> list[str]:
-    """What is wrong with the targets of *maps*, the overlay of *own* on the connector's defaults,
-    in *spec*."""
+def _type_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSpec) -> list[str]:
     problems: list[str] = []
-
     types = set(spec.non_roster_types())
-    for key, value in maps.types.items():
-        if value not in types:
-            problems.append(
-                f"source {name!r}: maps.types: {key!r} -> {value!r} is not an item type"
-                f"{_inherited(own.types, key)}"
-            )
+    for side, table in maps.types.items():
+        for key, value in table.items():
+            if value not in types:
+                problems.append(
+                    f"source {name!r}: maps.types.{side}: {key!r} -> {value!r} is not an item type"
+                    f"{_inherited(own.types.get(side, {}), key)}"
+                )
+    return problems
+
+
+def _field_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSpec) -> list[str]:
+    problems: list[str] = []
     declared: dict[str, set[str]] = {}
     for item_type in spec.items.values():
         for field in item_type.fields:
             declared.setdefault(field.code, set()).update(
                 spec.collection(field.collection).badge_codes
             )
-    for field_code, table in maps.fields.items():
+    for field_code, sides in maps.fields.items():
         if field_code not in declared:
             problems.append(
                 f"source {name!r}: maps.fields.{field_code}: no item type has this field"
             )
             continue
-        for key, value in table.items():
-            if value not in declared[field_code]:
-                problems.append(
-                    f"source {name!r}: maps.fields.{field_code}: {key!r} -> {value!r} is not a "
-                    f"{field_code} value"
-                    f"{_inherited(own.fields.get(field_code, {}), key)}"
-                )
+        for side, table in sides.items():
+            for key, value in table.items():
+                if value not in declared[field_code]:
+                    problems.append(
+                        f"source {name!r}: maps.fields.{field_code}.{side}: {key!r} -> {value!r} "
+                        f"is not a {field_code} value"
+                        f"{_inherited(own.fields.get(field_code, {}).get(side, {}), key)}"
+                    )
+    return problems
+
+
+def _map_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSpec) -> list[str]:
+    """What is wrong with the targets of *maps*, the overlay of *own* on the connector's defaults,
+    in *spec*."""
+    problems = [*_type_problems(name, maps, own, spec), *_field_problems(name, maps, own, spec)]
     for key, value in maps.links.items():
         if value not in spec.ref_kinds:
             problems.append(
@@ -182,10 +211,17 @@ def _resolve(
     if converter not in CONVERTERS:
         known = ", ".join(sorted(CONVERTERS))
         problems.append(f"source {name!r}: converter {converter!r} is unknown (known: {known})")
+    if not decl.filter.strip():
+        problems.append(f"source {name!r}: filter is required and must not be empty")
+    problems.extend(
+        _side_problems(f"source {name!r}", decl.maps, CONNECTORS[(decl.connector, version)].sides)
+    )
     maps = SourceMaps(
-        types=_overlay(defaults.maps.types, decl.maps.types),
+        types=_overlay_sides(defaults.maps.types, decl.maps.types),
         fields={
-            field: _overlay(defaults.maps.fields.get(field, {}), decl.maps.fields.get(field, {}))
+            field: _overlay_sides(
+                defaults.maps.fields.get(field, {}), decl.maps.fields.get(field, {})
+            )
             for field in {*defaults.maps.fields, *decl.maps.fields}
         },
         links=_overlay(defaults.maps.links, decl.maps.links),
@@ -239,16 +275,71 @@ def _connector_defaults(
             defaults, errors = _parse(ConnectorDefaults, table, where)
             problems.extend(errors)
             if defaults is not None:
+                problems.extend(
+                    _side_problems(where, defaults.maps, CONNECTORS[(name, version)].sides)
+                )
                 if defaults.converter and defaults.converter not in CONVERTERS:
                     problems.append(f"{where}: converter {defaults.converter!r} is unknown")
                 found[f"{name}@{version}"] = defaults
     return found, problems
 
 
+def _side_shape_problems(name: str, table: Any) -> list[str]:
+    """The map entries of a ``[sources.<name>]`` table written as a value where a side is due."""
+    if not isinstance(table, dict):
+        return []
+    maps = cast("dict[str, Any]", table).get("maps")
+    if not isinstance(maps, dict):
+        return []
+    found = cast("dict[str, Any]", maps)
+    known = _known_sides(cast("dict[str, Any]", table))
+    sides = f"one of: {', '.join(known)}" if known else "a side of the connector"
+    entries: list[str] = []
+    types = found.get("types")
+    if isinstance(types, dict):
+        entries += [
+            f"maps.types.{key}"
+            for key, v in cast("dict[str, Any]", types).items()
+            if not isinstance(v, dict)
+        ]
+    fields = found.get("fields")
+    if isinstance(fields, dict):
+        for code, by_side in cast("dict[str, Any]", fields).items():
+            if not isinstance(by_side, dict):
+                continue
+            entries += [
+                f"maps.fields.{code}.{key}"
+                for key, v in cast("dict[str, Any]", by_side).items()
+                if not isinstance(v, dict)
+            ]
+    return [
+        f"source {name!r}: {entry} is a value, not a side: write it under {entry.rsplit('.', 1)[0]}"
+        f".<side>, {sides}"
+        for entry in entries
+    ]
+
+
+def _known_sides(table: dict[str, Any]) -> tuple[str, ...]:
+    """The sides of the connector version *table* names, when it names one that is known."""
+    connector, version = table.get("connector"), table.get("version")
+    if not isinstance(connector, str):
+        return ()
+    versions = _versions_of(connector)
+    if isinstance(version, str) and (connector, version) in CONNECTORS:
+        return CONNECTORS[(connector, version)].sides
+    if version is None and len(versions) == 1:
+        return CONNECTORS[(connector, versions[0])].sides
+    return ()
+
+
 def _build(raw: RawMapping, spec: WorkflowSpec, prefix: str) -> SourcesSpec:
     connectors, problems = _connector_defaults(raw)
     sources: dict[str, SourceSpec] = {}
     for name, table in cast("dict[str, Any]", raw.get("sources", {})).items():
+        shape = _side_shape_problems(name, table)
+        if shape:
+            problems.extend(shape)
+            continue
         decl, errors = _parse(_Declaration, table, f"source {name!r}")
         problems.extend(errors)
         if decl is None:

@@ -17,8 +17,8 @@ pytestmark = pytest.mark.anyio
 
 TRACKER = "http://127.0.0.1:9"
 SECRET = "glpat-not-a-real-token"
-HEAD = f'[sources.platform]\nconnector = "gitlab"\nbase_url = "{TRACKER}/"\n'
-TYPES = '\n[sources.platform.maps.types]\nbug = "task"\n'
+HEAD = f'[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\nbase_url = "{TRACKER}/"\n'
+TYPES = '\n[sources.platform.maps.types.labels]\nbug = "task"\n'
 SOURCE = HEAD + TYPES
 
 
@@ -74,14 +74,14 @@ async def test_override_scaffold_sources_writes_a_stamped_starter(project, invok
 async def test_a_map_target_the_squad_does_not_declare_fails_naming_source_map_and_value(
     project, invoke, credentials_home
 ) -> None:
-    _declare(project, HEAD + '\n[sources.platform.maps.types]\nbug = "defect"\n')
+    _declare(project, HEAD + '\n[sources.platform.maps.types.labels]\nbug = "defect"\n')
 
     result = await invoke(["source", "credential", "remove", "platform"])
 
     origin = project.squad_dir / ".overrides" / "sources.toml"
     assert (result.exit_code, " ".join(result.output.split())) == (
         1,
-        f"error: {origin}: invalid sources after merge: source 'platform': maps.types: "
+        f"error: {origin}: invalid sources after merge: source 'platform': maps.types.labels: "
         "'bug' -> 'defect' is not an item type",
     )
 

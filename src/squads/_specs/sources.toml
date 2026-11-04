@@ -13,4 +13,22 @@ converter = "gitlab-md"
 relates_to = "related"
 blocks = "blocks"
 
+[connectors.github.v3]
+converter = "github-md"
+
+[connectors.github.v3.maps.links]
+blocking = "blocks"
+
+[connectors.jira.cloud-v3]
+converter = "adf"
+
+[connectors.jira.cloud-v3.maps.links]
+blocks = "blocks"
+
+[connectors.jira.dc-v2]
+converter = "jira-wiki"
+
+[connectors.jira.dc-v2.maps.links]
+blocks = "blocks"
+
 [sources]

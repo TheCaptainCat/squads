@@ -5,7 +5,7 @@ sources loader does to validate names, loads no HTTP code."""
 from dataclasses import dataclass
 from importlib import import_module
 
-from squads._sources._connector import Connector
+from squads._sources._connector import LABELS, TYPE, Connector
 
 
 @dataclass(frozen=True)
@@ -15,10 +15,27 @@ class ConnectorEntry:
     module: str
     cls: str
     default_converter: str
+    #: The sides of an issue a map reads a value from, besides its labels.
+    sides: tuple[str, ...]
 
+
+#: The issue sides each tracker API exposes: tracker API names.
+_TYPE_SIDES = (LABELS, TYPE)
+_JIRA_SIDES = ("labels", "type", "priority")
 
 CONNECTORS: dict[tuple[str, str], ConnectorEntry] = {
-    ("gitlab", "v4"): ConnectorEntry("squads._sources._gitlab", "GitLabConnector", "gitlab-md")
+    ("gitlab", "v4"): ConnectorEntry(
+        "squads._sources._gitlab", "GitLabConnector", "gitlab-md", _TYPE_SIDES
+    ),
+    ("github", "v3"): ConnectorEntry(
+        "squads._sources._github", "GitHubConnector", "github-md", _TYPE_SIDES
+    ),
+    ("jira", "cloud-v3"): ConnectorEntry(
+        "squads._sources._jira_cloud", "JiraCloudConnector", "adf", _JIRA_SIDES
+    ),
+    ("jira", "dc-v2"): ConnectorEntry(
+        "squads._sources._jira_dc", "JiraDcConnector", "jira-wiki", _JIRA_SIDES
+    ),
 }
 
 
