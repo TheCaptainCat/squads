@@ -73,6 +73,7 @@ async def test_inbox_json_prints_one_object_per_item_with_the_mentioning_lines(
             "lines": ["- @op-pierre what is your view?"],
             "regions": [None],
             "hashes": ["297f6f158ac5d9ac7bd3dd38efc678ac6c5635d20298f4b553df17fef5dd8c4a"],
+            "untrusted": [None],
             "display": {
                 "type": "Review",
                 "status": {"badge": "⚪ Requested", "intent": "neutral"},

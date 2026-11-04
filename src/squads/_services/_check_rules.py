@@ -31,6 +31,14 @@ BINDING_RULES: dict[str, str] = {
     "playbook_loads": "config load",
     "workflow_loads": "config load",
     "corpus_scans": "config load",
+    "sources_loads": "source checks",
+    "source_id_unique": "source checks",
+    "source_declared": "source checks",
+    "source_issue_reachable": "source checks",
+    "source_author_declared": "source checks",
+    "identity_source_declared": "source checks",
+    "identity_id_unique": "source checks",
+    "comment_attributes_valid": "source checks",
 }
 
 

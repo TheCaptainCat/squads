@@ -170,7 +170,7 @@ def test_a_served_console_takes_its_colour_system_from_the_clients_console(
     monkeypatch.delenv("COLORTERM", raising=False)
 
     def system(truecolor: bool) -> str | None:
-        served = ServedCommand({}, "utf-8", None, None, True, truecolor, 0.0, lambda: None)
+        served = ServedCommand({}, "utf-8", None, None, True, truecolor, 0.0, lambda hidden: None)
         bind_context(replace(get_context(), served=served))
         return common.build_console(stderr=False).color_system
 

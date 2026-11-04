@@ -287,6 +287,7 @@ _discussion -> _errors top
 _discussion -> _models top
 _discussion -> _rendering local
 _discussion -> _sections top
+_discussion -> _view_bodies top
 _discussion -> _workflow top
 _docfiles -> _api top
 _docfiles -> _errors top
@@ -356,6 +357,7 @@ _overrides -> _rendering top
 _overrides -> _roles local
 _overrides -> _roles top
 _overrides -> _sections top
+_overrides -> _sources top
 _overrides -> _specload top
 _overrides -> _util top
 _overrides -> _view_tags local
@@ -370,6 +372,7 @@ _pronouns -> _errors top
 _pronouns -> _models top
 _pronouns -> _sections top
 _rendering -> _badges top
+_rendering -> _clock top
 _rendering -> _errors top
 _rendering -> _interactions top
 _rendering -> _models top
@@ -417,6 +420,7 @@ _services -> _rendering local
 _services -> _rendering top
 _services -> _roles top
 _services -> _sections top
+_services -> _sources top
 _services -> _spans top
 _services -> _spec_documents top
 _services -> _specload top
@@ -434,11 +438,18 @@ _shim -> _cli local
 _shim -> _daemon_start local
 _shim -> _endpoint top
 _shim -> squads local
+_sources -> _clock top
+_sources -> _errors top
+_sources -> _models top
+_sources -> _specload top
+_sources -> _specmerge top
+_sources -> _workflow top
 _spans -> _context top
 _spec_documents -> _api top
 _spec_documents -> _errors top
 _spec_documents -> _interactions top
 _spec_documents -> _roles top
+_spec_documents -> _sources top
 _spec_documents -> _specload top
 _spec_documents -> _workflow top
 _specload -> _errors top
@@ -482,6 +493,7 @@ _views -> _workflow top
 _workflow -> _context local
 _workflow -> _errors local
 _workflow -> _errors top
+_workflow -> _migrations local
 _workflow -> _models local
 _workflow -> _models top
 _workflow -> _overrides local

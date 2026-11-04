@@ -306,6 +306,7 @@ def build_item_app(
     common.register_comment_verbs(item, common.ITEM_COMMENTS)
     _cmd_refs(item)
     _cmd_view(item)
+    _cmd_source(item)
 
     # Sub-entity surface: entirely spec-driven — a type hosts a kind (built-in or a
     # project-declared custom one) or it doesn't; item_subentity_kind() already degrades to
@@ -324,7 +325,9 @@ def build_item_app(
 
 def _cmd_show(item: typer.Typer) -> None:
     from squads._api._dto._items import ItemShowRequest
+    from squads._api._dto._sources import SourceRefreshRequest
     from squads._cli._render._items import render_show
+    from squads._cli._render._sources import render_refreshed
 
     @item.command("show")
     @handle_errors
@@ -338,8 +341,18 @@ def _cmd_show(item: typer.Typer) -> None:
         full: bool = typer.Option(
             False, "--full", help="Add one pane per sub-entity (body + badges)."
         ),
+        refresh: bool = typer.Option(
+            False,
+            "--refresh",
+            help="Fetch the item's source issue again and write what changed, then show it.",
+        ),
     ):
         """Show the item's metadata, body, sub-entity summary, and optional panes."""
+        if refresh:
+            refreshed = calls.call(ops.SOURCE_REFRESH, SourceRefreshRequest(**_address(ctx)))
+            calls.print_warnings(refreshed)
+            if not json_out:
+                render_refreshed(refreshed.data, console)
         response = calls.call(ops.ITEM_SHOW, ItemShowRequest(**_address(ctx)))
         if json_out:
             calls.print_json(ops.ITEM_SHOW, response)
@@ -399,9 +412,10 @@ def _cmd_update(item: typer.Typer, item_type: str) -> None:
             if not sep:
                 raise SquadsError(f"--set expects key=value, got {pair!r}")
             set_attributes[key.strip()] = value
+        maps = field_options.given_maps(ctx)
         others = (
             title, desc, author, status, parent, no_parent, field_values, cleared,
-            add_label, rm_label, set_, unset,
+            add_label, rm_label, set_, unset, maps,
         )  # fmt: skip
         _guard_update(
             has_any=_anything_asked(*others, assignee, clear_assignee),
@@ -426,6 +440,7 @@ def _cmd_update(item: typer.Typer, item_type: str) -> None:
             # from this item's own declared field.
             set_attributes={**set_attributes, **field_values},
             unset_attributes=[*(unset or []), *cleared],
+            map_attributes=maps,
         )
         _finish(ops.ITEM_UPDATE, request, json_out, render_updated)
 
@@ -681,6 +696,58 @@ def _cmd_view(item: typer.Typer) -> None:
         _view_change(ctx, ops.ITEM_VIEW_DISABLE, name, as_, json_out=json_out, enable=False)
 
     item.add_typer(view_app, name="view")
+
+
+def _cmd_source(item: typer.Typer) -> None:
+    """The ``sq <type> <n> source unlink|relink`` group that cuts an item from its tracker issue
+    and attaches an item a source created to one."""
+    from squads._api._dto._sources import SourceRelinkRequest, SourceUnlinkRequest
+    from squads._cli._render._sources import render_relinked, render_unlinked
+
+    source_app = typer.Typer(
+        no_args_is_help=True, help="Tie the item to its tracker issue, or cut it free."
+    )
+
+    @source_app.command("unlink")
+    @handle_errors
+    def source_unlink(
+        ctx: typer.Context,
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item and the issue it left."
+        ),
+    ):
+        """Cut the item from its tracker issue.
+
+        The source record goes and the description becomes body prose. The
+        item and its imported comments stay authored by the source, so
+        nobody can edit them.
+        """
+        _finish(ops.SOURCE_UNLINK, SourceUnlinkRequest(**_address(ctx)), json_out, render_unlinked)
+
+    @source_app.command("relink")
+    @handle_errors
+    def source_relink(
+        ctx: typer.Context,
+        source: str = typer.Argument(..., help="Name of the source that created the item."),
+        issue: str = typer.Argument(..., help="The issue's key or immutable ID."),
+        json_out: bool = typer.Option(
+            False, "--json", help="Print one JSON object: the item and the issue it follows."
+        ),
+    ):
+        """Follow an issue of the source that made the item again.
+
+        The item must have no source record and have been created by the
+        source. The record, title, mapped fields, description and comments
+        are refreshed at once.
+        """
+        _finish(
+            ops.SOURCE_RELINK,
+            SourceRelinkRequest(**_address(ctx), source=source, issue=issue),
+            json_out,
+            render_relinked,
+        )
+
+    item.add_typer(source_app, name="source")
 
 
 # --------------------------------------------------------------------------- sub-entities

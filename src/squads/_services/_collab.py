@@ -1,6 +1,7 @@
 """Discussion: comments, author resolution, and the @mention inbox."""
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 from squads import _aio
@@ -13,7 +14,12 @@ from squads._models import _markers as markers
 from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._omission import Omission
-from squads._models._participants import ANONYMOUS_SLUG, refuse_system_actor
+from squads._models._participants import (
+    ANONYMOUS_SLUG,
+    is_sourced,
+    refuse_system_actor,
+    source_of,
+)
 from squads._paths import SquadPaths
 from squads._services._base import ServiceCore, reject_markers
 from squads._services._results import (
@@ -79,21 +85,21 @@ class _Region:
     start: int
     end: int
     region: str
-    comment_headers: list[tuple[int, str, str, str]] = field(
-        default_factory=lambda: list[tuple[int, str, str, str]]()
+    comment_headers: list[tuple[int, str, str, str, str]] = field(
+        default_factory=lambda: list[tuple[int, str, str, str, str]]()
     )
     is_subentity: bool = False
 
 
 def _scan_comment_headers(
     lines: list[str], bounds: tuple[int, int], sequence_id: int, scope: str
-) -> list[tuple[int, str, str, str]]:
+) -> list[tuple[int, str, str, str, str]]:
     """Comment headers strictly inside a region's ``(open_line, close_line)`` marker bounds, as
-    ``(line_no, timestamp, name, hash)``."""
+    ``(line_no, timestamp, name, hash, slug)``."""
     start, end = bounds
     region = "\n".join(lines[start : end - 1])
     found = discussion.split_discussion(region, sequence_id=sequence_id, scope=scope)
-    return [(start + 1 + c.span[0], c.timestamp, c.author, c.hash) for c in found]
+    return [(start + 1 + c.span[0], c.timestamp, c.author, c.hash, c.author_slug) for c in found]
 
 
 def _build_regions(text: str, item: Item, spec: WorkflowSpec) -> list[_Region]:
@@ -186,14 +192,14 @@ def _windowed_snippet(lines: list[str], line_no: int, needle: str) -> str:
 
 
 def _comment_at_or_before(
-    headers: list[tuple[int, str, str, str]], line_no: int
-) -> tuple[int, str, str, str] | None:
-    """The last ``(ordinal, timestamp, author, hash)`` header at or before ``line_no``, if any."""
-    found: tuple[int, str, str, str] | None = None
-    for ordinal, (header_line, ts, author, digest) in enumerate(headers, start=1):
+    headers: list[tuple[int, str, str, str, str]], line_no: int
+) -> tuple[int, str, str, str, str] | None:
+    """The last ``(ordinal, timestamp, author, hash, slug)`` header at or before ``line_no``."""
+    found: tuple[int, str, str, str, str] | None = None
+    for ordinal, (header_line, ts, author, digest, slug) in enumerate(headers, start=1):
         if header_line > line_no:
             break
-        found = (ordinal, ts, author, digest)
+        found = (ordinal, ts, author, digest, slug)
     return found
 
 
@@ -207,7 +213,7 @@ def _hit_for_line(regions: list[_Region], lines: list[str], line_no: int, needle
     if region.comment_headers:
         hit_comment = _comment_at_or_before(region.comment_headers, line_no)
         if hit_comment is not None:
-            ordinal, ts, author, digest = hit_comment
+            ordinal, ts, author, digest, _slug = hit_comment
             token = f"{region.region}#{ordinal}"
             location = f"{region.region} — comment {ordinal} ({author}, {ts})"
             snippet = f"[{ts}] {author}: {lines[line_no - 1].strip()}"
@@ -260,12 +266,22 @@ def _scope_of(sub: tuple[str, str] | None) -> str:
     return "" if sub is None else f"{sub[0]}:{sub[1]}"
 
 
-def _require_comment_author(group: list[discussion.Comment], as_slug: str, *, where: str) -> None:
+def _require_comment_author(
+    group: list[discussion.Comment], as_slug: str, *, where: str, item: Item
+) -> None:
     """Refuse unless the group's author slug is ``as_slug``: a guard against a slip, not a
-    permission (``--as`` is not authenticated)."""
+    permission (``--as`` is not authenticated). A comment a source wrote is the pull's alone."""
     slug = group[0].author_slug
-    if slug != as_slug:
+    if slug == as_slug:
+        return
+    name = source_of(slug)
+    if name is None:
         raise SquadsError(f"{where} was written by {slug}; --as {as_slug} cannot change it")
+    held = item.source
+    issue = f" (issue {held.key})" if held is not None and held.name == name else ""
+    raise SquadsError(
+        f"{where} was written by source {name!r}{issue}; only `sq source pull` changes it"
+    )
 
 
 class CollabMixin(ServiceCore):
@@ -298,6 +314,7 @@ class CollabMixin(ServiceCore):
         *,
         as_slug: str = ANONYMOUS_SLUG,
         sub: tuple[str, str] | None = None,
+        attributes: Mapping[str, str] | None = None,
     ) -> tuple[Item, str]:
         """The comment mutation core, answering the item and the new comment's hash: takes an
         already-open transaction's ``db`` (so the author display name resolves against in-memory
@@ -306,13 +323,18 @@ class CollabMixin(ServiceCore):
         refuse_system_actor(as_slug)
         if not messages:
             raise SquadsError("a comment needs at least one -m message")
-        for msg in messages:
-            reject_markers(msg, "comment message")
+        if not is_sourced(as_slug):
+            for msg in messages:
+                reject_markers(msg, "comment message")
         tag = self._discussion_tag(sub)
         scope = "" if tag == markers.DISCUSSION else tag.removesuffix(f":{markers.DISCUSSION}")
         now_iso = clock.iso(clock.now())
         entry = discussion.format_comment(
-            now_iso, as_slug, self.roster_projection.author_of(db, as_slug), messages
+            now_iso,
+            as_slug,
+            source_of(as_slug) or self.roster_projection.author_of(db, as_slug),
+            messages,
+            attributes=attributes,
         )
 
         written: list[str] = []
@@ -333,7 +355,7 @@ class CollabMixin(ServiceCore):
                     scope,
                     as_slug,
                     now_iso,
-                    discussion.canonical_text(entry.split("\n")[1:]),
+                    discussion.entry_text(entry),
                 )
             )
             self.store.log(
@@ -448,7 +470,9 @@ class CollabMixin(ServiceCore):
         shorts = _shown_by_hash(located.comments)
         shown = shorts[located.group[0].hash]
         if as_slug is not None:
-            _require_comment_author(located.group, as_slug, where=f"{shown} on {item.id}")
+            _require_comment_author(
+                located.group, as_slug, where=f"{shown} on {item.id}", item=item
+            )
         return FoundComment(item, located.scope, located.group, shown)
 
     async def edit_comment(
@@ -479,20 +503,23 @@ class CollabMixin(ServiceCore):
             loc = self._locate_comment(item, text, token, sub)
             first = loc.group[0]
             shorts = _shown_by_hash(loc.comments)
-            _require_comment_author(loc.group, as_slug, where=f"{shorts[first.hash]} on {item.id}")
+            _require_comment_author(
+                loc.group, as_slug, where=f"{shorts[first.hash]} on {item.id}", item=item
+            )
             entry = discussion.format_comment(
                 first.timestamp,
                 first.author_slug,
                 first.author,
                 messages,
                 edited_ts=clock.iso(clock.now()),
+                attributes=first.attributes,
             )
             new_hash = discussion.comment_hash(
                 item.sequence_id,
                 loc.scope,
                 first.author_slug,
                 first.timestamp,
-                discussion.canonical_text(entry.split("\n")[1:]),
+                discussion.entry_text(entry),
             )
             if new_hash == first.hash:
                 done.append(
@@ -549,7 +576,7 @@ class CollabMixin(ServiceCore):
             loc = self._locate_comment(item, text, token, sub)
             shorts = _shown_by_hash(loc.comments)
             shown = shorts[loc.group[0].hash]
-            _require_comment_author(loc.group, as_slug, where=f"{shown} on {item.id}")
+            _require_comment_author(loc.group, as_slug, where=f"{shown} on {item.id}", item=item)
             region = discussion.replace_comments(
                 loc.region,
                 [(c, None) for c in loc.group],
@@ -569,7 +596,7 @@ class CollabMixin(ServiceCore):
     ) -> None:
         """Refuse a comment equal to one already in its discussion: same author, second and text."""
         new_hash = discussion.comment_hash(
-            item.sequence_id, scope, slug, ts, discussion.canonical_text(entry.split("\n")[1:])
+            item.sequence_id, scope, slug, ts, discussion.entry_text(entry)
         )
         existing = discussion.split_discussion(region, sequence_id=item.sequence_id, scope=scope)
         if any(c.hash == new_hash for c in existing):
@@ -609,7 +636,7 @@ class CollabMixin(ServiceCore):
             matched: list[InboxLine] = _authored_field_lines(item, needle)
             for line_no in range(_frontmatter_end_line(text) + 1, len(lines) + 1):
                 raw = lines[line_no - 1]
-                if needle not in raw.lower():
+                if needle not in raw.lower() or discussion.is_attributes_line(raw):
                     continue
                 region_obj = _classify_line(regions, line_no)
                 hit = _hit_for_line(regions, lines, line_no, needle)
@@ -620,7 +647,12 @@ class CollabMixin(ServiceCore):
                     else None
                 )
                 matched.append(
-                    InboxLine(text=raw.strip(), region=region, hash=found[3] if found else None)
+                    InboxLine(
+                        text=raw.strip(),
+                        region=region,
+                        hash=found[3] if found else None,
+                        source=source_of(found[4]) if found else None,
+                    )
                 )
             if not matched:
                 continue
@@ -659,7 +691,11 @@ class CollabMixin(ServiceCore):
                 regions = _build_regions(full_text, item, self.spec)
                 for line_no in range(_frontmatter_end_line(full_text) + 1, len(lines) + 1):
                     raw = lines[line_no - 1]
-                    if raw.strip() and needle in raw.lower():
+                    if (
+                        raw.strip()
+                        and needle in raw.lower()
+                        and not discussion.is_attributes_line(raw)
+                    ):
                         hits.append(_hit_for_line(regions, lines, line_no, needle))
             if hits:
                 out.append(SearchResult(item=item, hits=hits))

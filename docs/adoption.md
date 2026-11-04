@@ -227,7 +227,8 @@ issue rather than a value silently dropped.
 on a `create`, authors the item. `at` is an ISO 8601 timestamp. An event that gives neither keeps
 the previous event's value; the first event falls back to `sq import --as` and to the global
 `sq --at` (or the current time). An event with no actor from any of these is refused
-(`no actor: missing 'as'`).
+(`no actor: missing 'as'`). No `as` can name a source's author, `source:<name>`: only the source
+commands write as one.
 
 **Naming what the file creates.** The ids a `create` will get are unknown when you write the file,
 so a `create` or an `add-*` event can declare a `handle`, a name of your own. A later event names
@@ -250,14 +251,17 @@ on a sub-entity.
 | `create` | `type`, `title` | `description`, `parent`, `labels`, `refs`, `assignee`, `fields`, `status`, `slug`, `body`, `handle`, `at`, `as` | Creates an item. `refs` entries are `"ID"` or `"ID:kind"`; `slug` sets the file name's slug. |
 | `status` | `target`, `status` | `force`, `at`, `as` | Moves an item to a status. |
 | `body` | `target`, `body` | `append`, `force`, `at`, `as` | Writes the item's body. Replacing a written body needs `force`; `append` adds to it. |
-| `comment` | `target`, and `message` or `messages` | `<kind>`, `sub`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `"<kind>": "<local>"` for any kind the workflow declares (`story`, `subtask` or `finding` in the bundled one), or `sub` as `[kind, local]`. Give at most one. |
+| `comment` | `target`, and `message` or `messages` | `<kind>`, `sub`, `attributes`, `at`, `as` | Adds one discussion entry, one bullet per message. A selector puts it on a sub-entity's discussion: `"<kind>": "<local>"` for any kind the workflow declares (`story`, `subtask` or `finding` in the bundled one), or `sub` as `[kind, local]`. Give at most one. `attributes`, a map of string keys to string values, is stored as the comment's attribute line under its header. |
 | `ref` | `target`, `to` | `kind`, `at`, `as` | Adds a ref from `target` to `to`. Without `kind`, the workflow's default kind. |
 | `add-sub` | `target`, `kind`, `title` | `maps_to`, `fields`, `assignee`, `status`, `deferred_to`, `body`, `handle`, `at`, `as` | Adds a sub-entity of any kind. `maps_to` is the local id of the sub-entity of the host item's parent that this one maps to; `fields` maps the kind's field codes to badge codes. |
 | `add-<kind>` | `target`, `title` | `add-sub`'s optional keys; each field the kind declares, under its code; the target kind's name when the kind maps; `at`, `as` | `add-sub` with `kind` set, for every kind the workflow declares. In the bundled one: `add-story`; `add-subtask`, which takes `story` (the mapped story); `add-finding`, which takes `severity`. A value given twice, as a top-level key and in `fields` or `maps_to`, is refused, and so is a `kind` key. |
 | `sub-status` | `target`, `kind`, `local`, `status` | `deferred_to`, `force`, `at`, `as` | Moves a sub-entity to a status. |
 | `sub-body` | `target`, `kind`, `local`, `body` | `append`, `force`, `at`, `as` | Writes a sub-entity's body, with the same `append` and `force` rules as `body`. |
 | `assign` | `target` | `assignee`, `kind`, `local`, `at`, `as` | Sets the item's assignee, or a sub-entity's with `kind` and `local`. Without `assignee`, removes it. |
-| `update` | `target`, and at least one change | `title`, `description`, `assignee`, `clear_assignee`, `add_labels`, `rm_labels`, `parent`, `clear_parent`, `status`, `force`, `fields`, `unset_fields`, `at`, `as` | Changes an item's metadata, like `sq <type> <n> update`. `fields` sets field values and `unset_fields` removes them by code. |
+| `update` | `target`, and at least one change | `title`, `description`, `assignee`, `clear_assignee`, `add_labels`, `rm_labels`, `parent`, `clear_parent`, `status`, `force`, `fields`, `unset_fields`, `attributes`, `at`, `as` | Changes an item's metadata, like `sq <type> <n> update`. `fields` sets field values and `unset_fields` removes them by code. `attributes` sets keys of `map` attributes: `{"<attribute>": {"<key>": "<value>"}}`, with `null` removing a key. A value starting with `@` is a handle and is refused, since resolving one needs the tracker; give the ID. |
+| `source` | `target` | `record`, `at`, `as` | Internal: sets or removes an item's `source` record. Only the source commands (see [sources.md](sources.md)) write it; a file that names it is refused as an unknown op. |
+| `view-body` | `target`, `view`, `text` | `at`, `as` | Internal: sets the stored body of a view declared `stored`. Only the source commands (see [sources.md](sources.md)) write it; a file that names it is refused as an unknown op. |
+| `comment-edit` | `target`, `key`, `value`, `messages` | `attributes`, `at`, `as` | Internal: replaces the text and attributes of the comment whose attribute `key` holds `value`. Only the source commands (see [sources.md](sources.md)) write it; a file that names it is refused as an unknown op. |
 
 A status whose role declares `deferred = true` (the bundled finding's `Deferred`) needs
 `deferred_to`, the item that carries the work: an `add-sub`, `add-<kind>` or `sub-status` event

@@ -50,7 +50,7 @@ class ParityApi:
         ctx = get_context()
         endpoint = endpoint_for(ctx.client_cwd or Path.cwd(), environ={}, version="test")
         local = calls.local_api()
-        if endpoint is None or op.local_only:
+        if endpoint is None or op.local_only or op.private:
             return await local.call(op, req)
         served = self._application(endpoint)
 

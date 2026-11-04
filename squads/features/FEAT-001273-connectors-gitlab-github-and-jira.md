@@ -3,7 +3,7 @@ id: FEAT-1273
 sequence_id: 1273
 type: feature
 title: 'Connectors: GitLab, GitHub and Jira'
-status: Ready
+status: InProgress
 parent: EPIC-1268
 author: product-owner
 refs:
@@ -28,7 +28,7 @@ subentities:
   title: Jira Data Center connector (dc-v2)
   status: Todo
 created_at: '2026-11-03T15:57:08Z'
-updated_at: '2026-11-03T23:18:12Z'
+updated_at: '2026-11-03T23:59:46Z'
 ---
 <!-- sq:body -->
 The trackers the first release supports, each behind the source seam: GitLab on any instance, GitHub including Enterprise, and Jira Cloud and Data Center. Connectors are registered by name and version in a literal table; a version is a separate connector behind a shared name, picked by the source's `version` (default: newest), and carries its own default converter and probes.

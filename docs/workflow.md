@@ -123,6 +123,23 @@ address that holds it. `-m`, `--file` and `--as` go after the verb, and a hash w
 
 ---
 
+### Items from an outside tracker
+
+A squad can follow the issues of a tracker it declares as a source in `.overrides/sources.toml`:
+`sq source pull` creates and refreshes one item per issue, authored by `source:<name>` (see
+[sources.md](sources.md)). On such an item the tracker owns the title, the badge fields its source
+maps, the description at the top of the body and the comments it wrote, and a write to any of them
+is refused, naming `sq <type> <n> source unlink`. The rest of the workflow applies as on any item:
+its status, assignee, parent, refs, the rest of its body and the team's own comments are the
+squad's. `sq <type> <n> show --refresh` reads the issue again at once.
+
+An operator's `identities` attribute maps a source's name to that operator's user ID on the
+tracker, so the comments that user wrote name the operator:
+
+```bash
+sq operator op-alice update --identities platform=@alice
+```
+
 ## Type-command aliases
 
 Short and single-letter aliases for the item-type commands provide shorter spellings for faster typing. They are hidden from the root `--help` listing but fully equivalent: every alias accepts everything the canonical type command does, including sub-entity chains (e.g., `sq f 26 story 4 show` ≡ `sq feature 26 story 4 show`). Output and errors always use the canonical type names and full IDs, regardless of the alias used.
@@ -448,11 +465,14 @@ sq workflow view <name> <id>            # resolve one view against one item, ren
 sq workflow view <name> <id> --json     # the resolved source instead, no presentation
 ```
 
-**Every view is computed, every time.** Nothing is ever written into an item's file. There is no
-sink to declare, no region to regenerate, no output to commit, and nothing to reconcile when two
+**Every view is computed, every time.** No rendering is ever written into an item's file. There is
+no sink to declare, no region to regenerate, no output to commit, and nothing to reconcile when two
 branches touch the same item — the underlying frontmatter merges as ordinary data, and the next
 read renders the merged result. A stored rendering would be a second answer to a question the
-frontmatter already answers, and the two go out of step silently.
+frontmatter already answers, and the two go out of step silently. A view declared `stored` keeps
+text the squad cannot compute, such as a description fetched from outside it, between its tags in
+the body, and still renders it on every read; see
+[§ "Stored views"](#stored-views).
 
 **`--json` gives the data, not the display.** It emits the resolved source in the shape that
 source's kind already has a shape for — a `ref`/`subtree` source matches `sq tree --json`'s
@@ -461,14 +481,17 @@ per-node rows, a `subentity` source matches the per-kind list `--json`, `role` m
 (`schema_version`, `override`, and a `digest` to compare for equality only — see
 [stability.md](stability.md)), and `playbook` carries its lane plus the live roster — and skips
 the view's template entirely. Each row carries the `display` object its command's `--json` carries
-(labels and rendered badges as text), never the view's rendered output. A view that declares a transform has a second machine-readable form: the
-item's `show --json` carries the transform's output under `views.<name>`. Those two are the
+(labels and rendered badges as text), never the view's rendered output. A view that declares a transform, and every stored view, has a second
+machine-readable form: the item's `show --json` carries the transform's output under
+`views.<name>`, and for a stored view an object of its stored body and that output (see
+[§ "Stored views"](#stored-views)). Those two are the
 supported ways to build on a view; the CLI's own rendering is one presentation over the same data,
 never a second source of truth for it.
 
 **`show --json` returns the body as stored.** Its `body` key is the text of the item's body region
 with each view tag left as a tag (`<!-- sq:view:milestone_rollup -->`), not the rendered view: what
-it reports is what the item file stores. The rendered text is on `sq show`, `sq show --raw`, and
+it reports is what the item file stores, a stored view's pair included with its escaped text. The
+rendered text is on `sq show`, `sq show --raw`, and
 `display.body` of `show --json`. A view whose template fails to render keeps its tag as written
 there, and the command prints a warning on stderr naming the view and the error.
 That body can be written back as it came: `body --force`, `body --append` and an import `body`
@@ -477,7 +500,9 @@ declared position, so a milestone keeps one roll-up. Any other view tag line is 
 message that names the line and says to leave it out.
 
 The bundled spec declares one *relation*-sourced view, `milestone_rollup` — see below — plus five
-non-relation ones behind the role/skill surfaces. Declaring your own is a section of the workflow
+non-relation ones behind the role/skill surfaces, and `source_description`, the stored view that
+holds a pulled item's description (see [sources.md](sources.md#reading-a-pulled-item)). Declaring
+your own is a section of the workflow
 override: [§ "Derived views"](#derived-views-field-reference) has the field reference.
 
 A view declares no field list, grouping or ordering. An override that gives a view `fields`,
@@ -709,7 +734,7 @@ so a forged or copied id is indistinguishable from a real one — never make a t
 them. Only the immediate parent is stored; walk `parent_session_id` edges to reconstruct a chain
 (`sq reflog --tree` does exactly that). Lines written without them read back with both absent.
 
-**Op names.** The vocabulary is closed — these nineteen and no others, and the same nineteen
+**Op names.** The vocabulary is closed — these twenty-two and no others, and the same twenty-two
 `sq reflog --op` accepts. An `op` you meet that isn't here came from a squads version other than the
 one this guide ships with; your reflog is not corrupt.
 
@@ -719,7 +744,7 @@ one this guide ships with; your reflog is not corrupt.
 | `status` | `sq <type> <n> status …` |
 | `update` | `sq <type> <n> update …` — including a re-parent via `--parent` |
 | `body` | `sq <type> <n> body …` |
-| `view` | `sq <type> <n> view add` / `view disable`, when the tag changes. `delta` carries the `view` name and its `state`, `enabled` or `disabled` |
+| `view` | `sq <type> <n> view add` / `view disable`, when the tag changes. `delta` carries the `view` name and its `state`, `enabled` or `disabled`. A stored view's body written by squads logs `view` too, with `delta` `{view, body: true}` |
 | `comment` | `sq <type> <n> comment …`, on an item, a sub-entity, a role, a skill or an operator |
 | `comment_edit` | `comment <hash> edit` — one line per edit; `delta.comments` lists each comment it changed, with its `author`, `hash`, `region`, `ts`, the `before` text and the `after_hash` |
 | `comment_remove` | `comment <hash> remove` — one line per removal; `delta.comments` lists each removed comment with its `author`, `hash`, `region`, `ts` and `before` text |
@@ -727,6 +752,7 @@ one this guide ships with; your reflog is not corrupt.
 | `ref` | `sq <type> <n> ref add` / `ref rm`, and refs severed by a forced `remove` |
 | `link` | An item's parent set or cleared through the service's own link path. **No CLI verb writes it** — from the CLI, a parent change arrives as `update` |
 | `retype` | `sq <type> <n> retype …` |
+| `source` | `sq source pull`, when it sets or changes an item's `source` record. `delta.source` is the record as written |
 | `default_role` | `sq role <addr> set-default` |
 | `remove` | `sq <type> <n> remove …` (the `delta` carries the gone-item snapshot) |
 | `repair` | `sq repair`, with or without `--renumber` — and the rebuild inside `sq adopt`, `sq migrate up` and `sq migrate repad`. `delta.stripped` names every item whose file the rebuild rewrote, `delta.canonicalized` every item whose refs it re-encoded |
@@ -1092,8 +1118,9 @@ through `[selected]`.
 source = { kind = "ref", name = "escalates" }
 ```
 
-A view declares `source`, which every view carries, an optional `position`, and an optional
-`transform` ([§ "View transforms"](#view-transforms) below). `source` is an inline table of `kind`
+A view declares `source`, which every view carries, an optional `position`, an optional
+`transform` ([§ "View transforms"](#view-transforms) below) and an optional `stored`, `false` by
+default ([§ "Stored views"](#stored-views) below). `source` is an inline table of `kind`
 and `name`:
 
 - `kind = "ref"` — every item carrying a forward ref of kind `name` to the item the view is
@@ -1156,8 +1183,9 @@ sq override update views/milestone_rollup.md.j2     # re-stamp once you have rec
 
 The template receives `source` — the resolved value in its own native shape, unflattened: a plain
 list of real `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own value
-for `role`/`playbook`/`self` — plus `item` (the host the view resolved against) and `spec` (the
-active workflow spec), and `data` when the view declares a transform. There is no separate
+for `role`/`playbook`/`self` — plus `item` (the host the view resolved against), `spec` (the
+active workflow spec), `body` (a stored view's stored body, `""` for any other view), and `data`
+when the view declares a transform. There is no separate
 field/grouping grammar to declare: a template groups and orders the list itself with Jinja's
 `groupby`/`sort`/`selectattr` under `StrictUndefined` (or a transform does it in Python), and
 resolves a status badge with the registered `badge` filter (`{{ r.status | badge(spec) }}`) rather
@@ -1312,6 +1340,97 @@ sq workflow views          # name, source kind, source name
 sq workflow views --json   # machine-readable, with each view's transform
 ```
 
+#### Stored views
+
+A view declared `stored = true` keeps text that the squad cannot compute, such as a description
+fetched from outside it, in the item file, and renders it through its template on every read
+like any other view. The one bundled stored view is `source_description`, which holds the
+description of an item `sq source pull` feeds (see [sources.md](sources.md)). You declare your own
+in `.overrides/workflow.toml`:
+
+```toml
+[views.imported_description]
+source = { kind = "self" }
+position = "top"
+stored = true
+```
+
+**The pair.** A stored view's tag is a pair inside `sq:body`: the opening tag, the stored body,
+and an end tag that names the view, each tag on its own line. An empty pair is a stored view with
+no body yet:
+
+```
+<!-- sq:view:imported_description -->
+…stored body…
+<!-- sq:view:imported_description:end -->
+```
+
+A view that is not stored keeps its single tag and never has an end tag. `view add <name>` on a
+stored view places an empty pair at the view's `position`, and on an opening tag that has lost its
+end tag it writes the end tag directly after it. `view disable <name>` rewrites only the opening
+tag, to `sq:view:<name>:disabled`: the end tag never carries the state, and the stored body stays
+in the file. A disabled stored view renders nothing, and `view add` enables it again with its body.
+
+**The escape.** A stored body may hold any text, an HTML comment or a forged marker included, so
+it is stored escaped: every run of `!` between `<` and `--` carries one `!` more on disk than in
+the text (`<!--` is stored as `<!!--`, `<!!--` as `<!!!--`), and a read takes that one off again.
+The stored text therefore holds no `<!--` at all, so no marker can open, close or be forged inside
+it, and every other byte is stored as given. Between the tags, the body sits on lines of its own:
+one newline after the opening tag and one before the end tag frame it and are not part of it.
+
+**Who writes it.** Only squads writes a stored body's text: `sq source pull`,
+`sq <type> <n> show --refresh` and `sq <type> <n> source relink` write a pulled item's
+description. It is written with LF line endings: every CRLF and every lone CR becomes LF, so the
+text reads back equal to what was written up to its line endings. Writing the text a body already
+holds changes nothing, the file and the reflog included. A body write, a file passed to
+`sq import` and the view verbs never change a stored body:
+
+- `sq <type> <n> body`, replace and `--append`, and an import `body` event treat a pair as one
+  tag. A new body that leaves the pair out gets it back at its view's position with its stored
+  body byte for byte.
+- A new body that carries the pair exactly as stored is accepted, so the `body` of `show --json`
+  can be written back with `body --force --file`.
+- A new body that carries the pair with any other text is refused with exit `1`, and nothing is
+  written. The message names the view and says to leave the pair out of the body or send it back
+  unchanged; on a pulled item it names the source, the issue and `source unlink` (see
+  [sources.md](sources.md#what-the-squad-cannot-change-on-a-pulled-item)).
+- A file that holds two pairs of one view with different bodies is refused by a body write and by
+  `view add`, rather than one body being dropped; delete the pair you do not want from the file.
+  Two identical pairs collapse into one.
+
+**Reading it.** The view's template receives the stored body, unescaped, as `body`, and its
+transform receives it when it declares a `body` parameter
+([§ "View transforms"](#view-transforms)). `body` is `""` for an empty pair. `sq show`, `--raw`,
+`display.body` and `sq workflow view <name> <id>` render the view with it, and no read writes it.
+`show --json` returns the region as stored in `body`, the pair with its escaped text, and the
+unescaped body inside the view's entry under `views`:
+
+```json
+{
+  "views": {
+    "imported_description": {"body": "See <!-- the note --> for more.", "data": null}
+  },
+  "body": "<!-- sq:view:imported_description -->\nSee <!!-- the note --> for more.\n<!-- sq:view:imported_description:end -->\n\nThe squad's own prose."
+}
+```
+
+A stored view's entry is always `{"body", "data"}`: `data` is the transform's output, or `null`
+when the view declares none. It is present whether or not the view has a transform, while its tag
+is placed, enabled and resolves; a disabled stored view has no entry.
+
+**What `sq check` holds.** Its always-on `markers_balanced` check reports, at `error`, an opening
+tag of a stored view with no end tag, an end tag with no opening tag, a pair for a view that is
+not declared stored, and a pair outside `sq:body`:
+
+```
+error TASK-NNNNNN-probe.md: stored view 'imported_description' has a tag <!-- sq:view:imported_description --> with no end tag <!-- sq:view:imported_description:end -->; complete it with `sq task <n> view add imported_description`
+error TASK-NNNNNN-probe.md: close without open <!-- sq:view:ghost:end --> for view 'ghost'
+error TASK-NNNNNN-probe.md: view 'other' has a tag pair <!-- sq:view:other -->, but is not declared stored; declare `stored = true` on the view or remove the pair
+```
+
+A stored body is not part of the index, and `sq repair` leaves every view tag as it is, paired or
+not.
+
 #### View transforms
 
 A view can declare a **transform**: a Python function that turns the view's resolved source into
@@ -1369,7 +1488,7 @@ Both commands **import the file, so its top-level code runs**; neither calls the
 cannot report an exception that depends on the data an item hands the function: that shows on the
 first read that renders the view. Bundled transforms are not checked here.
 
-**The call.** sq calls the function synchronously as `fn(source, *, item, spec)`:
+**The call.** sq calls the function synchronously as `fn(source, *, item, spec, body)`:
 
 - `source` — the view's resolved source, the same value the template receives as `source`: a list
   of items for `ref` and `subtree`, a list of sub-entities for `subentity`, the merged role
@@ -1378,10 +1497,12 @@ first read that renders the view. Bundled transforms are not checked here.
 - `item` — the item whose body places the view.
 - `spec` — the active workflow spec, with the same methods a template uses, such as
   `spec.role_for(status).settled` and `spec.is_delivered(type, status)`.
+- `body` — the view's stored body, unescaped, for a view declared `stored`
+  ([§ "Stored views"](#stored-views)); `""` for an empty pair and for any other view.
 
 sq reads the function's signature and passes only the keywords it names: `def f(source)`,
-`def f(source, *, spec)` and `def f(source, *, item, spec)` all work, and a `**kwargs` parameter
-receives both. A keyword sq passes in a later release therefore never reaches a function that
+`def f(source, *, spec)`, `def f(source, *, item, spec)` and `def f(source, *, body)` all work,
+and a `**kwargs` parameter receives all three. A keyword sq passes in a later release therefore never reaches a function that
 does not ask for it. The first parameter must take the source positionally. Any other parameter
 must have a default, and sq never fills it; a required one is refused by name (`it requires an
 unsupported parameter 'extra'`). An `async def` function, a name that is not callable, and a
@@ -1403,7 +1524,7 @@ error: view 'story_progress' on FEAT-<n> (transform transforms/progress.py:story
 ```
 
 **In the template.** A view with a transform renders its template with `data`, the returned value,
-beside `source`, `item`, `spec` and `squad_dir`. `source` keeps its meaning, so a template override
+beside `source`, `item`, `spec`, `body` and `squad_dir`. `source` keeps its meaning, so a template override
 written against `source` keeps working when its view gains a transform. A view without a transform
 gets no `data`, and a template that reads it fails under `StrictUndefined`.
 
@@ -1412,15 +1533,17 @@ gets no `data`, and a template that reads it fails under `StrictUndefined`.
 | Surface | What it gives |
 |---|---|
 | `sq show <id>`, `sq <type> <n> show` (styled, `--full`, `--raw`) | the template rendered with `data` |
-| `sq show <id> --json`, `sq <type> <n> show --json`, `sq skill <addr> show --json` | `views.<name>`: the returned value |
+| `sq show <id> --json`, `sq <type> <n> show --json`, `sq skill <addr> show --json` | `views.<name>`: the returned value; for a stored view, `{"body", "data"}` with the returned value as `data` |
 | `sq workflow view <name> <id>` | the template rendered with `data` |
 | `sq workflow view <name> <id> --json` | the source, the transform's input; never its output |
 | `sq workflow views --json` | each row's `transform`: `null`, or the merged declaration |
 
 A view appears under `views` when its tag is placed in the body, enabled, resolvable (the view is
 declared, its template exists and its source applies to the item), and the view declares a
-transform. A disabled tag, a view with no transform and a tag that does not resolve are left out,
-and `views` is `{}` when nothing qualifies. Sub-entities carry no `views` key.
+transform or is stored. A disabled tag, a view that is neither stored nor has a transform, and a
+tag that does not resolve are left out, and `views` is `{}` when nothing qualifies. A stored
+view's entry is `{"body", "data"}`, with `data` `null` when it has no transform; any other view's
+entry is the returned value itself. Sub-entities carry no `views` key.
 
 **When it fails.** Every failure is one error naming the view, the item, the declaration and the
 cause, with exit `1` and no traceback: a missing file, a path that leaves `.overrides/`, a failed

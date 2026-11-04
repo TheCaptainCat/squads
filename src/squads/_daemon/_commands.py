@@ -103,7 +103,7 @@ class ServedApi:
         self.written = False
 
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
-        if op.method != "GET":
+        if op.method != "GET" and not op.read_only:
             self.written = True
         return await self._inner.call(op, req)
 
@@ -144,10 +144,10 @@ class Session:
             begin_prompt=self._begin_prompt,
         )
 
-    def _begin_prompt(self) -> None:
+    def _begin_prompt(self, hidden: bool) -> None:
         if self.api.written:
             raise RuntimeError("a prompt was reached after an operation had written")
-        self.capture.begin_prompt()
+        self.capture.begin_prompt(hidden)
 
 
 class Commands:
@@ -184,13 +184,16 @@ class Commands:
                 session.request.argv, prog_name=session.request.prog_name, command=self._command
             )
         except proxies.PromptRequired as stop:
-            return {
+            asked: dict[str, Any] = {
                 "kind": "prompt",
                 "output": stop.before,
                 "text": stop.text,
                 "stream": stop.stream,
                 "digest": stop.digest,
             }
+            if stop.hidden:
+                asked["hidden"] = True
+            return asked
         except Exception:  # the daemon survives anything a command does
             _log.exception("a served command failed")
             session.capture.write(proxies.STDERR, INTERNAL_ERROR)

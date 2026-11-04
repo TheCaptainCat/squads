@@ -23,7 +23,7 @@ description: Source record and derived lookup, nested records, stored view bodie
   comment attributes, namespaced authors, server-side credentials, sources.toml, pull
   as import events, schema 0.20
 created_at: '2026-11-03T22:41:36Z'
-updated_at: '2026-11-03T23:51:29Z'
+updated_at: '2026-11-04T03:33:17Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -53,7 +53,7 @@ Board notice 22 applies throughout: a hosted squad (FEAT-33) has no local squad 
 | `id` | the tracker's immutable issue ID (GitLab global ID, GitHub node ID, Jira issue ID) |
 | `key` | the full readable key: `owner/repo#12`, `group/project#12`, `PROJ-45`; never a bare `#12` |
 | `state` | `open`, `closed`, `out-of-filter` or `gone` |
-| `updated_at` | the issue's last update on the tracker, ISO UTC |
+| `updated_at` | the issue's last update on the tracker, ISO UTC; empty on an item created by a pull that dropped one of its issue's events (§14) |
 | `author_id` | the issue author's immutable user ID |
 | `author_handle` | the issue author's handle |
 
@@ -74,7 +74,7 @@ source:
 
 **The lookup is derived, never persisted.** `SquadsDB` builds, on load, two in-memory maps from the items it holds: `(name, id) → sequence ids` for matching an issue to its item, and `(name, key) → sequence ids` for translating tracker references (§9). They are inversions like `backrefs`, so `.squads.json` gains no structure and `sq repair` rebuilds them by rebuilding the items. Two items under one `(name, id)` are both kept, both listed and both refreshed by the pull; `sq check` reports them (§12, §14).
 
-**The cursor is derived.** A source's incremental cursor is the newest `source.updated_at` among its items (ruling on US4). The connector's query is inclusive at the cursor, so an update in the same second is fetched again and the pull's idempotence (§10) absorbs it.
+**No cursor.** A pull keeps no cursor, stored or derived. It compares each issue the filter lists with the `source.updated_at` of the items that hold it, and fetches details only where they differ or no item holds the issue (§14). A cursor derived from the newest `updated_at` loses data: a refresh of one issue moves it past another's change, and an issue held back once is never asked for again.
 
 ### 2. Nested records in frontmatter (amends ADR-1007 §1 and §4)
 
@@ -99,7 +99,7 @@ source:
 
 **ADR-776 §1 is narrowed, not reversed.** The rule becomes: **no file squads stores holds derived content the CLI can compute from the squad alone.** Text whose only source is outside the squad (an issue description) cannot be recomputed on read, so storing it is not duplication. Everything ADR-776 retired stays retired.
 
-**The declaration.** `[views.<name>]` takes `stored = true` (default `false`). Only a stored view has a stored body. Declaring it is the claim that the view's content cannot be derived locally; the bundled `source_description` view is the one bundled stored view, declared in §14.
+**The declaration.** `[views.<name>]` takes `stored = true` (default `false`). Only a stored view has a stored body. Declaring it is the claim that the view's content cannot be derived locally; the bundled `source_description` view is the one bundled stored view, declared in §14. `stored = true` is accepted only on a view whose source kind has a writer, which today is `source` alone (§14).
 
 **ADR-880 §4 is narrowed.** The tag of a non-stored view stays unpaired, byte for byte as today. The tag of a stored view is **paired**: an opening tag and an end tag, each on its own line in the usual HTML-comment wrapper (shown here without it), with the escaped body between them:
 
@@ -199,7 +199,7 @@ token = "…"
 - A `SpecDocument` beside the workflow, roles and playbook documents: bundled `_specs/sources.toml`, project override `squads/.overrides/sources.toml`, read and merged once per invocation through `_specload.py` and `_specmerge.py`, scaffolded and diffed by `sq override`. `.squads.toml` is unchanged (ruling cd28e40).
 - `resolve_documents` resolves it lazily and memoised, like the role catalog (ruling a7b791e, point 7): a broken `sources.toml` fails every command that reads a source, and `sq check` reports it, while the rest of the squad keeps working.
 - **Top-level keys:** `connectors`, `sources`, `selected`.
-- **`[connectors."<name>@<version>"]`** (bundled): per connector version, its default `converter` and default `maps`. A default map may name bundled vocabulary; it is validated only through a source that inherits it.
+- **`[connectors.<name>.<version>]`** (bundled; the key form is in §14): per connector version, its default `converter` and default `maps`. A default map may name bundled vocabulary; it is validated only through a source that inherits it.
 - **`[sources.<name>]`** (override only; the bundled file declares none): `connector` (`gitlab`, `jira`, …), `version` (optional only when the connector has one registered version, §14), `base_url`, `filter` (a label, or JQL for Jira), `trusted` (default `false`), `enabled` (default `true`), optional `converter`, and `maps`. Declaring a source activates it; `enabled = false` pauses it.
 - **Maps.** `maps.types` (tracker type or label to item type), `maps.fields.<badge field>` (tracker value to badge value), `maps.links` (tracker link type to ref kind). A source's map overlays its connector default key by key; an entry set to `""` unmaps the tracker value.
 - **Load-time validation**, collect-all, against the resolved workflow spec: every map target is a declared type, badge field and value, or ref kind; a source name follows the slug grammar; `connector`, `version` and `converter` exist in their registries. A failure names the source, the map and the value.
@@ -207,9 +207,9 @@ token = "…"
 
 ### 9. Connectors and converters
 
-- **Connector registry:** a literal `(name, version) → class` table with no registration side effect (ruling 4f4a607). The interface: issues changed since a cursor; the IDs matching the filter, closed included; one issue by ID; its comments and links; the URL of an issue from base URL and key, and of a user from a handle; handle to immutable user ID; the tracker references in a text, each qualified to a full key against the host issue's key (§14); its probes for `sq source check`; its default converter.
-- **Converter registry:** a literal name → function table (`adf`, `jira-wiki`, `gitlab-md`, `github-md`), pure functions of text and base URL, with no network access.
-- **Vocabulary stays out of code.** A `tests/meta` guard keeps squad vocabulary literals (item types, badge fields and values, ref kinds, statuses) out of connector modules; tracker API names are allowed.
+- **Connector registry:** a literal `(name, version) → class` table with no registration side effect (ruling 4f4a607). The interface: the listing of every issue matching the filter, closed included, paged, each with the fields the pull compiles and its `updated_at` (§14); one issue by its immutable ID and last known key (§14); its comments and links; the URL of an issue from base URL and key, and of a user from a handle; handle to immutable user ID; the tracker references in a text, each qualified to a full key against the host issue's key (§14); its probes for `sq source check`; its default converter.
+- **Converter registry:** a literal name → function table (`adf`, `jira-wiki`, `gitlab-md`, `github-md`), pure functions of the text, the base URL and the host issue's web URL (§14), with no network access.
+- **Vocabulary stays out of code.** A `tests/meta` guard keeps squad vocabulary literals (item types, badge fields and values, ref kinds, statuses) out of connector modules; tracker API names are allowed, and a tracker API enum that spells like squad vocabulary is exempted per constant (§14).
 - **Reference translation is read-time.** The `source_description` projection and the comment render translate a tracker reference to an item ID when the `(name, key)` lookup of §1 finds exactly one item (§14); the stored text keeps the raw reference.
 - Connectors are reached only from `_services`; the shim imports none of them, and HTTP uses the standard library client.
 
@@ -217,7 +217,7 @@ token = "…"
 
 **One write path.** `sq source pull [<name>]` has three phases:
 
-1. **Fetch**, outside the index lock: the access probes, then for each source the incremental query since the cursor, the listing of IDs in the filter, a fetch of each linked item missing from it, and the comments and links of what changed (rulings 8c0a817, 2980084). It paginates and backs off on rate limits.
+1. **Fetch**, outside the index lock: the access probes, then for each source the full listing of the filter, a fetch of each linked item missing from it, and the comments and links of each listed issue that no item holds or whose listed `updated_at` differs from the stored one (rulings 8c0a817, 2980084; §14). It paginates and backs off on rate limits.
 2. **Compile**, inside one `IndexStore.transaction()`: diff the fetched data against the items as they stand under the lock and emit only the events that change something.
 3. **Apply** through the importer's validate-first pre-pass and apply pass, in the same transaction, as one import.
 
@@ -239,11 +239,11 @@ A second pull with nothing new compiles to no events and writes nothing. `--dry-
 
 **Reporting.** Closed issues become `closed`; a linked issue outside the filter becomes `out-of-filter`; one not found becomes `gone`, reported as "deleted or no longer readable" (ruling 8c0a817). A comment deleted on the tracker is reported, not removed. The item always stays.
 
-**Credentials.** With no name, a source with no stored credential is skipped with a warning; a named one is an error naming `sq source credential set <name>`.
+**Credentials and access.** With no name, a source with no stored credential is skipped with a warning; a named one is an error naming `sq source credential set <name>`. A source failing its access probes is handled as §14 says.
 
 ### 11. Ownership and refusals
 
-- While an item carries a `source` record, the squad cannot write what the tracker owns (FEAT-1271 US6): its `title`, a badge field its source maps, the stored body of `source_description`, and a comment authored by `source:<name>`. Each refusal names the source, the issue key and `source unlink`.
+- While an item carries a `source` record, the squad cannot write what the tracker owns (FEAT-1271 US6): its `title`, a badge field its source maps, the stored body of `source_description`, and a comment authored by `source:<name>`. Each refusal names the source and the issue key. The refusals of the title, a mapped field and the description also name `source unlink`; the refusal of a sourced comment does not, because unlink leaves those comments uneditable (§14).
 - **Retype** works on a sourced item and keeps its record (ruling fa6c47d); a mapped field the new type lacks is skipped by later pulls and reported.
 - **`source unlink`** removes the record and turns the stored description into plain body prose at the pair's position, with any escaped HTML-comment opener left escaped, so no marker enters the prose. The imported comments stay, authored by `source:<name>`.
 - **`source relink <source> <issue>`** reattaches an item that `source:<source>` created to an issue of that source, resolving a key to its immutable ID through the connector, and refreshes the item at once, leaving the squad's own body text (§14).
@@ -261,9 +261,10 @@ The `0.19 → 0.20` runner writes nothing to item files. Its pre-flight, run ove
 
 - an item frontmatter carrying a top-level `source` key, which is now core;
 - a role whose slug is `source`, now reserved;
+- a workflow override declaring an item type or an alias named `source`, now a reserved command (§14);
 - a discussion line, directly after a header, that matches the comment-attribute grammar.
 
-Remedies go in the migration's `manual` text. A squad clear of all three is stamped and carried unchanged.
+Remedies go in the migration's `manual` text (§14 gives the ones for a role, a type and an alias named `source`). A squad clear of all four is stamped and carried unchanged.
 
 ### 14. Implementation details (amendment, 2026-11-04)
 
@@ -284,6 +285,98 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 - Apart from that normalisation, the §4 escape is the only transformation, so the round trip is exact for LF text.
 - On disk, the text between the opening tag and the end tag is the escaped body, framed by exactly one `\n` after the opening tag and one `\n` before the end tag. The two frame newlines are not part of the body: a read strips exactly those two, then unescapes.
 - A write whose normalised, escaped body equals the stored one writes nothing, so refreshing an unchanged description leaves the file and the reflog untouched.
+
+**A role named `source` before 0.20** (amendment, 2026-11-04; completes §13).
+
+- A roster slug never changes, so the role cannot be renamed. The remedy replaces it: create a successor under a new slug, move what commands can move, then delete the old role for good.
+- Archiving is not enough: an archived role still holds its slug, and `agent_registered` still counts it as registered.
+- A 0.20 build refuses every non-migration command on a 0.19 squad, so the steps run with the 0.19 release, before `sq migrate up`.
+- What moves: the role's definition (re-created on the successor), items assigned to it (`update --assignee`), items it authored (`update --author`) and its memories (re-added under the successor, then forgotten).
+- What is lost, stated in the manual text:
+  - the old role item's own body and discussion, which only git history keeps;
+  - its inbox: an `@source` in an existing comment reaches no one from 0.20 on;
+  - the authorship of its comments, which keep `source` as their author, an author no role holds, so no one can edit or remove them;
+  - any ref to the old role's ID, which must be re-pointed by hand.
+
+**A type or alias named `source` before 0.20** (amendment, 2026-11-04; completes §13).
+
+- `source` is a top-level command from 0.20 on, so an item type or an alias named `source` collides with it, and the workflow override no longer loads. It is the same reservation as the role slug, on another surface, and the runner lists it as a fourth refusal.
+- The pre-flight reads the declared type names and aliases from the override file's text, not from the loaded spec, so it reports the case even though the spec cannot load. If `sq migrate up` cannot reach the pre-flight, the load refusal for a reserved command names `sq migrate chlog` for the manual step.
+- Remedy, run with the 0.19 release:
+  - An alias: rename or drop it in the override. No item file changes.
+  - A type: declare a successor type, run `sq migrate rename-type source <new>`, which moves every item with its new prefix and folder, then delete the `source` type from the override.
+  - What is lost: the old item IDs, which `rename-type` replaces, so a reference to an old ID in prose or outside the squad no longer resolves.
+
+**A source with no type map** (amendment, 2026-11-04; completes §8 and §10).
+
+- A source whose `maps.types`, after its connector's defaults are overlaid, holds no entry fails at load, naming the source and `maps.types`. No default type exists: a default would be a vocabulary name chosen in code, or one the adopter never declared.
+- At pull time, a new in-filter issue whose tracker type or labels map to no type, or to two different types, is not created. The pull reports it with the values it found, and `sq source check` lists it as an unmapped value. Entries that map to the same type do not conflict.
+- An item that already exists is never affected: the type is applied at creation only (ruling fa6c47d).
+
+**Connector keys are bare** (amendment, 2026-11-04; replaces §8's quoted key).
+
+- Connector defaults are declared as nested tables, `[connectors.<name>.<version>]` (`[connectors.gitlab.v4]`, `[connectors.jira.cloud-v3]`), never as a quoted key `"<name>@<version>"`.
+- Every key in a bundled document stays a TOML bare key, so a splat-ref can address it, and the `tests/meta` guard holds for `sources.toml` without an exemption.
+- `<name>@<version>` stays the spelling of a connector everywhere a person reads one: messages, `sq source list` and the docs (ruling 4f4a607). The table is the `(name, version)` pair it already is.
+
+**The pull diffs the listing; no cursor** (amendment, 2026-11-04; replaces §1's derived cursor and §10's incremental query).
+
+- The connector's listing returns every issue the filter matches, closed included (ruling 8c0a817), each with the fields the pull compiles (title, description, state, type and labels, author, key) and its tracker `updated_at`. It is paged, and it is complete on every pull: without stored state there is no incremental listing.
+- An issue the listing returns is fetched in detail (its comments and links) when no item holds its `(name, id)`, or when its listed `updated_at` differs from the `source.updated_at` of an item that holds it. "Differs" is not "newer", so a tracker clock moving backwards still refreshes. Any other listed issue costs nothing beyond its listing row.
+- A linked item missing from the listing is fetched once by ID, as before: `out-of-filter` or `gone`.
+- The record's `updated_at` advances only when every other event of that issue applied, links included. When a pull drops one (§10), the issue's `source` event keeps the stored `updated_at` on an existing item, and writes it empty on an item the same pull creates. An empty value differs from every listed one, so the next pull fetches, retries and reports the issue again, and stores the real value once everything applies. No new state is stored. A standing skip under ruling fa6c47d (a mapped field the item's new type lacks, or a tracker type that no longer matches the map) counts as applied, so it is reported without refetching forever.
+- An issue held back for want of a type map (§14) has no item, so every pull fetches and reports it until the map covers it, and then creates it.
+- Cost: one listing pass per pull, about the size of the filter divided by the tracker's page size, plus details for what changed. The listing of IDs already cost that pass, and the incremental query is gone. It grows with the closed issues the filter keeps; while pulls are manual this is accepted, and a narrower filter is the adopter's lever.
+- Limit: a comment edited or deleted on a tracker whose issue `updated_at` does not move with it is picked up at the issue's next change, or by `show --refresh`.
+
+**GitLab fetches one issue by project path and number** (amendment, 2026-11-04; completes §9).
+
+- GitLab's `GET /issues/:id` is for administrators only, so the interface's single-issue fetch takes the immutable ID and the last known key. GitLab fetches `/projects/<path>/issues/<iid>` from that key and accepts the answer only when its global ID equals the stored one.
+- A linked issue outside the filter whose project was renamed or transferred is therefore reported `gone`, since its last known key no longer leads to it. While the filter lists it, the listing still finds it under its new key.
+- `relink` by immutable ID resolves on GitLab only an issue the filter lists, found by scanning the listing. `relink` by key resolves any issue the credential can read.
+
+**Credential verbs carry an operation-level mark** (amendment, 2026-11-04; completes §7).
+
+- Today the command endpoint is admitted only on the owner-only CLI listener, so `sq source credential set` and `remove` are reachable from nowhere else. Nothing on the two operations themselves says they must stay there.
+- Before FEAT-33 admits the command endpoint on a listener that reaches beyond the machine, the two credential operations carry their own mark (for example `owner_only = True` on the operation). That listener refuses a command line that runs a marked operation until MILE-868 can tell callers apart, while `pull`, `relink` and the other source operations stay admitted. The mark lands no later than FEAT-33, and FEAT-33 tests against it.
+
+**Concurrency** (amendment, 2026-11-04; corrects the Consequences).
+
+- The daemon has no serial command lock: it serves commands concurrently, and the only lock is the index file lock that `IndexStore.transaction()` takes. Ruling a7b791e point 4 answered a question that assumed such a lock; the behaviour below is what holds.
+- A pull, `show --refresh` and `relink` fetch outside every lock, then compile and apply in one transaction. The compile reads the index loaded under the lock, never the snapshot taken before the fetch, so what it diffs against is current.
+- Two concurrent pulls of one source therefore cannot both create an issue: the second compiles after the first commits, finds the item, and refreshes it instead. A fetch decision made on the earlier snapshot can only cost an extra detail fetch, never a duplicate.
+- A command that fetched for one particular item checks under the lock that the item still is what it fetched for, and refuses otherwise ("changed while the issue was fetched; run it again"). `relink` checks that the item still has no record and that no other item holds the issue. `show --refresh` checks that the item still carries the same `(name, id)`, and it never creates an item.
+- A long pull holds the index lock only for its compile and apply, so other commands wait for that part alone.
+
+**Unlink, then a pull** (amendment, 2026-11-04; completes §11).
+
+- `source unlink` removes the record and keeps nothing (§11). An issue the filter still lists is then held by no item, so the next pull imports it again as a new item, with the tracker's comments copied afresh. The unlinked item stays as it is: plain prose, the squad's own.
+- This is the rule, and squads does not try to prevent it. Recognising the unlinked item later would need its `(name, id)`, which is exactly what unlink drops. Matching on title or prose would be a guess.
+- `source unlink` says so when it runs. When the record's `state` was `open` or `closed` (the filter listed it), its output carries a warning: the issue still matches the filter of `<name>`, the next pull imports it as a new item, and removing it from the filter on the tracker (the label, or the JQL) prevents that. With `out-of-filter` or `gone`, no warning is shown.
+- To stop following an issue's text while keeping one item, the adopter takes the issue out of the filter on the tracker. To undo an unlink, the adopter runs `relink` (§14).
+
+**A source failing access on an unnamed pull** (amendment, 2026-11-04; completes §10).
+
+- A named pull stops at its source's first blocking access failure, prints that line and writes nothing.
+- An unnamed pull reports a source that fails its access probes with the probe's own line, fetches nothing from it, and goes on with the others: their events compile and apply as usual. The command then exits `1`, so a script sees the failure, and `--json` lists the failed source with its line.
+- A missing credential is still a skip with a warning and exit `0` (§10), since that host simply does not pull that source. An expired token, an unreachable host or a refused permission is a failure of a source meant to work.
+
+**Tracker API enums in connector modules** (amendment, 2026-11-04; narrows §9's guard).
+
+- Some tracker API values are spelled like squad vocabulary, such as GitLab's issue type `task` and link type `blocks`. They are fixed per connector version, so a connector may hold them, and its probes check map keys against them.
+- The `tests/meta` guard keeps one reviewed table of `(module, constant name)` pairs, each with a one-line reason. A listed constant must be a module-level tuple or frozenset of string literals naming one tracker API enum. The guard skips the string literals inside a listed constant and nowhere else: the same word anywhere else in the module still fails.
+- The probes check `maps.links` keys against the connector's link-type enum, and a key outside it is a blocking vocabulary failure. They check `maps.types` keys against the issue-type enum and the tracker's labels together, and a key in neither is blocking.
+
+**Converters receive the host issue's web URL** (amendment, 2026-11-04; completes §9).
+
+- A converter is called as `(text, base_url, issue_url)`, where `issue_url` is the connector's web URL of the issue the text belongs to: its description, or the issue that holds the comment. It is still a pure function, with no network access.
+- `gitlab-md` resolves an `/uploads/...` link against the issue's project (the part of `issue_url` before `/-/issues/`), which is how GitLab resolves it. `github-md` resolves a relative link against `issue_url`, as a browser on the issue page would. A root-relative link resolves against the host of `base_url`, and an absolute link is kept.
+
+**`stored = true` needs a writer** (amendment, 2026-11-04; completes §4).
+
+- `check_views` refuses `stored = true` on a view whose source kind has no writer. Only `source` has one today (the pull, `show --refresh`, `relink` and `unlink`), so an adopter's `stored = true` on a `self`, `role` or any other kind fails at load, naming the view. Otherwise the pair could only ever be empty, and no refusal could name a command that fills it.
+- The refusal of a body write that alters a stored pair names `show --refresh` when the item holds a `source` record. On an item without one, it says that nothing in the squad writes this view until the item is linked to an issue.
+- The stored-body mechanism stays generic (ruling ec05545). A future writer widens the rule by adding its kind.
 
 **Seams and the first connector.**
 
@@ -323,8 +416,8 @@ stored = true
 
 - `source unlink` removes the record and nothing else of the authorship: the item's `author` stays `source:<name>`, and its imported comments stay authored by `source:<name>`. They are the item's history. No `--as` matches them (§6), so they can no longer be edited or removed. Unlink on an item with no record is refused.
 - `source relink <source> <issue>` is accepted only on an item that carries no `source` record and whose `author` is `source:<source>`: that author is what "the same source" is checked against. It is refused, each time naming why, on an item that still holds a record (naming `source unlink`), on an item no source created, on an item another source created (naming it), and for an issue whose `(name, id)` another item already holds (naming that item).
-- Relink resolves `<issue>`, a key or an immutable ID, through the connector, then runs the three phases of §10 for that one issue, with the record as one more event: the record, the title, the mapped fields, the description view and the comments, matched by `source_id`, land in one transaction. The prose unlink left in the body stays the squad's. The type is not changed.
-- Relink does not leave the description to the next pull: the incremental query returns only issues updated since the cursor, and an issue unchanged since the relink is not one, so a pull would never restore the view.
+- Relink resolves `<issue>`, a key or an immutable ID (for GitLab, an ID only when the filter lists the issue; §14), through the connector, then runs the three phases of §10 for that one issue, with the record as one more event: the record, the title, the mapped fields, the description view and the comments, matched by `source_id`, land in one transaction. The prose unlink left in the body stays the squad's. The type is not changed.
+- Relink does not leave the description to the next pull: relink stores the issue's current `updated_at`, and a pull fetches details only for an issue whose listed `updated_at` differs from the stored one, so a pull would never restore the view.
 
 **Connector versions** (amendment, 2026-11-04; replaces §8's "default the newest registered").
 
@@ -351,7 +444,7 @@ stored = true
 - **Escaping only well-formed `sq:` markers in a stored body.** Whitespace and case variants, and the attribute form, would each need their own case; escaping every HTML-comment opener has one rule and an exact inverse.
 - **Comment attributes in frontmatter.** A comment has no stable key a frontmatter record could use: its hash changes on every edit.
 - **A persisted source index.** It would store what the items already hold.
-- **A stored cursor.** It is the newest `updated_at` of the source's items.
+- **A cursor, stored or derived** (§14). A stored one is derivable, and a derived one loses issues and changes.
 - **Tokens from the client's environment, a client-sent token per pull, or `sq source` as a local-only command** (ruling e7b6635, board notice 22).
 - **The OS keyring.** It is absent on a headless server and under WSL, and adds a dependency the store does not need.
 - **A test-only connector row** (§14). The pull would be tested against a connector whose behaviour its test author invented.
@@ -366,7 +459,7 @@ stored = true
 - A new `_sources` package holds the spec loader for `sources.toml`, both registries, the connectors and the pull's compiler; `tests/meta`'s import-edge table gains its rows.
 - `docs/stability.md` needs the nested-record rule, the `map` kind, the `source` record, the namespaced author grammar and the reserved `source` slug, the paired view tag and its escape, the `source` view source kind, the attribute line, the `sources.toml` grammar and the credential store's location; the adopter docs say that more author words may be reserved, and keep a source connector apart from the MCP connector of FEAT-319.
 - ADR-880 §2 and §4, ADR-776 §1, ADR-1007 §1 and §4, ADR-979 §2 and §2b, ADR-1261 §5 and ADR-622 are narrowed in place, each with a dated note pointing here.
-- A pull holds the daemon's serial lock for its whole run, network fetch included (ADR-1261 §2), so other served commands wait for it. This holds while pulls are manual (ruling a7b791e, point 4); a timer or webhook pull reopens it.
+- A pull does not block other served commands: the daemon serves commands concurrently, and a pull holds only the index lock, for its compile and apply (§14). Its network fetch runs outside every lock.
 <!-- sq:body:end -->
 
 ## Discussion
@@ -420,4 +513,24 @@ stored = true
   - Amended (2026-11-04): section 14 records the stored-body byte rule for REV-1280 F1, namely an exact round trip with line endings included, the escape as the only transformation, one frame newline on each side outside the body, and no write when the escaped body is unchanged.
 - [2026-11-03T23:51:29Z] `architect` Robert Architect:
   - Corrected (2026-11-04): the section 14 stored-body rule now normalises line endings to LF on write instead of promising a byte-exact round trip (item files are LF, git autocrlf would break that promise, tracker text is display text); the escape stays the only other transformation, the round trip is exact for LF text, and a write whose normalised, escaped body is unchanged writes nothing.
+- [2026-11-04T00:11:26Z] `architect` Robert Architect:
+  - Amended (2026-11-04): section 14 replaces the section 13 remedy for a role named source (no command changes a slug) with a replace-and-purge procedure run on 0.19, and states what is lost; the runner text is on TASK-1276 for python-dev.
+- [2026-11-04T00:50:31Z] `architect` Robert Architect:
+  - Amended (2026-11-04): section 14 adds the 0.20 refusal and remedy for a type or alias named source (section 13 now lists four cases), refuses a source with no type map at load and skips an issue that maps to no type or to two types, and makes connector keys nested bare tables, connectors.<name>.<version>; runner text is on TASK-1276.
+- [2026-11-04T02:27:04Z] `architect` Robert Architect:
+  - - @op-pierre two points from REV-1281 touch your ruling 2980084 and ruling 8c0a817. The first needs your call.
+      1. **F4, blocks the display fix in TASK-1276.** Your ruling gives the unmatched form as `Pierre Chat via gitlab-prod @pchat`. A tracker user can set their display name to `op-pierre Pierre Chat`. The reviewer reproduced it: the spoofed line then reads like the real matched `op-pierre Pierre Chat via gitlab-prod @pchat`, and only the handle differs. On a `trusted` source no notice shows at all.
+         - Recommendation: a matched author starts with the operator's slug, followed by the operator's name from the squad's own roster, never the tracker's: `op-pierre Pierre Chat via gitlab-prod @pchat`. An unmatched author always starts with the handle, with the tracker's name quoted after it (quotes and control characters escaped): `@mallory "op-pierre Pierre Chat" via gitlab-prod`. One form starts with a slug, the other with `@`, so the two can never read alike, trusted or not. `--json` `author` follows the same rule.
+         - Alternative: drop the tracker display name from the unmatched form, giving `@mallory via gitlab-prod`. It is safer still, but loses the name.
+      2. **F2, decided, for your information.** Your ruling 8c0a817 describes the pull as an incremental query since the cursor plus a full listing. The derived cursor loses issues and changes (F2, reproduced). ADR-1274 §14 now drops the cursor: the pull diffs the full listing, which your ruling already requires on every pull, against each item's stored `updated_at`. It keeps your invariants: no stored state, closed, `out-of-filter` and `gone` detected on every pull, and the item always stays.
+- [2026-11-04T02:27:19Z] `architect` Robert Architect:
+  - Amended (2026-11-04) for REV-1281: the pull drops the cursor and diffs the listing (sections 1, 9, 10, 14, Rejected), GitLab fetches one issue by path and number (sections 9, 14), the unlink hint is limited to the title, mapped fields and description (section 11), and the credential verbs carry an operation-level mark before FEAT-33 (section 14). The display point (F4) is in the previous comment for op-pierre.
+- [2026-11-04T02:53:09Z] `architect` Robert Architect:
+  - Amended (2026-11-04) for REV-1281 F3: an item created by a pull that drops one of its issue events stores an empty updated_at (sections 1 and 14), so the dropped event is retried on new items too.
+- [2026-11-04T03:28:21Z] `architect` Robert Architect:
+  - - @op-pierre the premise of your ruling a7b791e point 4 was false, and I asked the question that carried it. The daemon has no serial command lock: it serves commands concurrently, and the only lock is the index file lock that transactions take. A pull fetches outside every lock, then compiles and applies in one transaction, against the index as it stands under that lock. Other commands therefore wait only for that last part, and two concurrent pulls cannot create the same issue twice. ADR-1274 Consequences and §14 now say so. No decision is needed, unless you want pulls serialised.
+- [2026-11-04T03:29:35Z] `architect` Robert Architect:
+  - Amended (2026-11-04): section 14 states that unlink keeps nothing, so a pull re-imports an issue the filter still lists as a new item; unlink warns when the record was open or closed. Brief for python-dev on TASK-1276.
+- [2026-11-04T03:33:17Z] `architect` Robert Architect:
+  - Amended (2026-11-04) for REV-1282: unnamed pull with a source failing access (section 10, 14), the tracker-enum exemption in the vocabulary guard (sections 9, 14), the issue web URL handed to converters (sections 9, 14), and stored = true accepted only on a kind with a writer (sections 4, 14).
 <!-- sq:discussion:end -->

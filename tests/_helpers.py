@@ -59,16 +59,19 @@ def make_service(
     """A `Service` over *paths* with the bundled spec and playbook unless one is given."""
     from squads._interactions._playbook import get_playbook_spec
     from squads._services._service import build_service
+    from squads._sources._loader import load_sources
     from squads._spec_documents import SpecDocuments
     from squads._specload import OverrideFiles
     from squads._workflow import bundled_spec
 
+    workflow = spec if spec is not None else bundled_spec()
     return build_service(
         paths,
         SpecDocuments(
-            workflow=spec if spec is not None else bundled_spec(),
+            workflow=workflow,
             playbook=playbook if playbook is not None else get_playbook_spec(),
             catalog=catalog_of(paths.squad_dir),
+            sources=lambda: load_sources(workflow, paths.squad_dir),
             files=OverrideFiles(),
         ),
         backends,

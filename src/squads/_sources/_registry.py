@@ -1,0 +1,31 @@
+"""The connector table: a literal ``(name, version)`` to connector mapping with no registration side
+effect. A connector class is imported only when a fetch needs it, so reading the table, as the
+sources loader does to validate names, loads no HTTP code."""
+
+from dataclasses import dataclass
+from importlib import import_module
+
+from squads._sources._connector import Connector
+
+
+@dataclass(frozen=True)
+class ConnectorEntry:
+    """Where a connector version lives and the converter its sources default to."""
+
+    module: str
+    cls: str
+    default_converter: str
+
+
+CONNECTORS: dict[tuple[str, str], ConnectorEntry] = {
+    ("gitlab", "v4"): ConnectorEntry("squads._sources._gitlab", "GitLabConnector", "gitlab-md")
+}
+
+
+def load_connector(name: str, version: str) -> type[Connector] | None:
+    """The connector class of ``(name, version)``, imported now, or ``None``."""
+    entry = CONNECTORS.get((name, version))
+    if entry is None:
+        return None
+    loaded: type[Connector] = getattr(import_module(entry.module), entry.cls)
+    return loaded

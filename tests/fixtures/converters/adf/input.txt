@@ -1,0 +1,12 @@
+{"type":"doc","version":1,"content":[
+{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Steps"}]},
+{"type":"paragraph","content":[{"type":"text","text":"Ask "},{"type":"mention","attrs":{"id":"5b10a","text":"@alice"}},{"type":"text","text":" to read the "},{"type":"text","text":"runbook","marks":[{"type":"link","attrs":{"href":"https://wiki.example.com/runbook"}}]},{"type":"text","text":", it is "},{"type":"text","text":"urgent","marks":[{"type":"strong"}]},{"type":"text","text":"."}]},
+{"type":"bulletList","content":[
+{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Restart the service"}]},
+{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"check the logs"}]}]}]}]},
+{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Report back"}]}]}]},
+{"type":"codeBlock","attrs":{"language":"sh"},"content":[{"type":"text","text":"systemctl restart api\n```"}]},
+{"type":"table","content":[
+{"type":"tableRow","content":[{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Env"}]}]},{"type":"tableHeader","content":[{"type":"paragraph","content":[{"type":"text","text":"Status"}]}]}]},
+{"type":"tableRow","content":[{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"prod"}]}]},{"type":"tableCell","content":[{"type":"paragraph","content":[{"type":"text","text":"down"}]}]}]}]}
+]}

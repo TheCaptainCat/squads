@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate the per-release provenance manifest for every overridable bundled artifact: the
-24 bundled templates plus ``workflow.toml``, ``roles.toml`` and ``playbook.toml``.
+24 bundled templates plus ``workflow.toml``, ``roles.toml``, ``playbook.toml`` and ``sources.toml``.
 
 Run this script before building a release wheel to update
 ``src/squads/_rendering/templates_manifest.json`` (the hash INDEX) and
@@ -87,7 +87,7 @@ _PYPROJECT_PATH = _REPO_ROOT / "pyproject.toml"
 
 #: Artifact key namespace: every key is package-root-relative.
 _TEMPLATES_PREFIX = "_rendering/templates/"
-_SPEC_TOML_NAMES = ("workflow.toml", "roles.toml", "playbook.toml")
+_SPEC_TOML_NAMES = ("workflow.toml", "roles.toml", "playbook.toml", "sources.toml")
 
 
 def _current_version() -> str:

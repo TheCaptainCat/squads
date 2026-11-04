@@ -3,7 +3,7 @@ id: FEAT-1272
 sequence_id: 1272
 type: feature
 title: sq source check and text converters
-status: Ready
+status: Done
 parent: EPIC-1268
 author: product-owner
 refs:
@@ -13,12 +13,12 @@ description: A per-source readiness checklist, and shared tracker-text converter
 subentities:
 - local_id: US1
   title: sq source check prints a checklist per source
-  status: Todo
+  status: Done
 - local_id: US2
   title: A registry of named text converters
-  status: Todo
+  status: Done
 created_at: '2026-11-03T15:57:08Z'
-updated_at: '2026-11-03T22:54:55Z'
+updated_at: '2026-11-04T04:14:02Z'
 ---
 <!-- sq:body -->
 Before pulling, an operator can see whether each declared source is usable and whether the squad's maps match what the tracker actually has: `sq source check [<name>]` runs each connector's probes and prints a checklist with a fix for every failure. It is distinct from `sq check`, which never calls the network.
@@ -43,7 +43,7 @@ Done when:
 - Each line is a pass, a blocking failure or a warning, and every failure is followed by a fix naming what to change on the tracker, in `sources.toml` or in the credential store.
 - Access probes: credential present, host reachable, authenticated (as whom), project or filter valid, read permission; a source's list stops at its first blocking access failure.
 - Vocabulary probes: every value a map names (label, issue type, priority, link type) exists on the tracker; a missing one is blocking.
-- Coverage probes: tracker values in-filter issues carry that no map covers, authors or assignees whose immutable ID is in no operator's `identities`, and identities whose ID no longer resolves, are warnings.
+- Coverage probes: tracker values in-filter issues carry that no map covers, and identities whose ID no longer resolves, are warnings. So are issue authors from the listing, and comment authors already imported into the squad, whose immutable ID is in no operator's `identities`: they are the people attribution serves, and the check makes no request per issue to find them. Assignees are not checked, because the pull never writes them.
 - `--json` prints the checklist; the exit code is 1 on any blocking failure, 0 otherwise.
 - `sq source pull` runs the access probes first and reports a failure with the same line.
 - The command and probe framework is connector-neutral; each connector version supplies its probes.
@@ -83,4 +83,6 @@ Done when:
   - @product-owner board check: US1, `sq source check` reads the token like the pull, so the ADR-1261 conflict noted on FEAT-1271 applies here too (a served command does not see the client's `SQUADS_SOURCE_*` variables).
 - [2026-11-03T21:25:41Z] `op-pierre` Pierre Chat:
   - Ruling (2026-11-03): `sq source check` runs where the squad is served and reads the same server-side credential store as the pull; see the ruling on FEAT-1271.
+- [2026-11-04T03:32:22Z] `product-owner` Nina Product:
+  - US1 coverage probe reworded per REV-1282 F9: authors from the listing plus imported comment authors; assignees dropped.
 <!-- sq:discussion:end -->

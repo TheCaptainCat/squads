@@ -1,0 +1,141 @@
+"""The connector interface and the records a connector returns. A record carries what the tracker
+says, in the tracker's own words; mapping it onto squad vocabulary is the compiler's job."""
+
+from abc import ABC, abstractmethod
+from collections.abc import Iterator, Mapping
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from squads._sources._probes import Expected, Family, ProbeResult
+
+
+@dataclass(frozen=True)
+class Reference:
+    """One tracker reference found in a text: its character span and the full key it names."""
+
+    start: int
+    end: int
+    key: str
+
+
+@dataclass(frozen=True)
+class Issue:
+    """One tracker issue as the tracker reports it."""
+
+    id: str
+    key: str
+    title: str
+    description: str
+    state: str
+    updated_at: str
+    author_id: str
+    author_handle: str
+    tracker_type: str = ""
+    labels: tuple[str, ...] = ()
+    #: Opaque values the connector needs again to fetch this issue's comments and links.
+    locator: tuple[tuple[str, str], ...] = ()
+
+
+@dataclass(frozen=True)
+class Comment:
+    """One tracker comment: a human note, never a system note."""
+
+    id: str
+    body: str
+    author_id: str
+    author_handle: str
+    author_name: str
+    created_at: str
+    updated_at: str
+
+
+@dataclass(frozen=True)
+class Link:
+    """One link from an issue to another, with the tracker's own name for the link type."""
+
+    link_type: str
+    target_id: str
+    target_key: str
+
+
+@dataclass(frozen=True)
+class FetchedIssue:
+    """An issue with the comments and links the pull needs for it."""
+
+    issue: Issue
+    comments: tuple[Comment, ...] = ()
+    links: tuple[Link, ...] = ()
+
+
+@dataclass(frozen=True)
+class SourceFetch:
+    """What the fetch phase brings back for one source.
+
+    ``changed`` holds the listed issues fetched in detail (no item holds them, or the listed
+    ``updated_at`` differs from the stored one), ``untouched`` counts the listed issues that needed
+    nothing, ``listed`` the IDs of every issue in the filter (closed included), and ``linked`` the
+    one-off fetch of each linked item the listing lacks: ``None`` for an issue the tracker no
+    longer returns.
+    """
+
+    changed: tuple[FetchedIssue, ...] = ()
+    untouched: int = 0
+    listed: frozenset[str] = frozenset()
+    linked: dict[str, FetchedIssue | None] = field(
+        default_factory=lambda: dict[str, FetchedIssue | None]()
+    )
+
+
+class Connector(ABC):
+    """What the pull, handle resolution and reference translation ask of one tracker."""
+
+    #: The fields of the credential entry this connector reads, in the order they are asked for.
+    credential_fields: tuple[str, ...]
+
+    @abstractmethod
+    def __init__(self, base_url: str, source_filter: str, credential: Mapping[str, str]) -> None:
+        """A connector for the tracker at *base_url*, reading the issues *source_filter* selects."""
+
+    @abstractmethod
+    def listing(self) -> list[Issue]:
+        """Every issue in the filter, closed ones included, with its tracker ``updated_at``."""
+
+    @abstractmethod
+    def issue(self, issue_id: str, key: str) -> Issue | None:
+        """One issue, found by the connector from its immutable ID and last known *key*, or
+        ``None`` when the tracker does not return it to this credential."""
+
+    @abstractmethod
+    def lookup(self, reference: str) -> Issue | None:
+        """The issue a person names by its key or its immutable ID, or ``None`` when the tracker
+        does not return one to this credential."""
+
+    @abstractmethod
+    def comments(self, issue: Issue) -> list[Comment]:
+        """The human comments of *issue*, oldest first."""
+
+    @abstractmethod
+    def links(self, issue: Issue) -> list[Link]:
+        """The links from *issue* to other issues."""
+
+    @abstractmethod
+    def issue_url(self, key: str) -> str:
+        """The web address of the issue named by *key*."""
+
+    @abstractmethod
+    def user_url(self, handle: str) -> str:
+        """The web address of the user named by *handle*."""
+
+    @abstractmethod
+    def resolve_handle(self, handle: str) -> str | None:
+        """The immutable user ID behind *handle*, or ``None`` when no user has it."""
+
+    @abstractmethod
+    def references(self, text: str, host_key: str) -> list[Reference]:
+        """Every tracker reference in *text*, qualified against *host_key*. Pure: no network."""
+
+    @abstractmethod
+    def probes(self, family: Family, expected: Expected) -> Iterator[ProbeResult]:
+        """The checks of one *family* for ``sq source check``, each yielded as it is made so the
+        runner can stop at the first blocking access failure."""

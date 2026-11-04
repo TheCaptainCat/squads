@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from squads import _actor as actor
 from squads import _aio
 from squads import _clock as clock
+from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._context import bind_context, get_context
 from squads._errors import SquadsError
@@ -20,23 +21,32 @@ from squads._index._resolver import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
 from squads._models import _markers as markers
 from squads._models._index import SquadsDB
-from squads._models._item import make_ref, split_ref
-from squads._models._participants import refuse_system_actor, require_valid_slug
+from squads._models._item import Item, make_ref, split_ref
+from squads._models._participants import (
+    is_sourced,
+    refuse_system_actor,
+    require_valid_slug,
+    source_of,
+)
+from squads._models._source import SourceRecord
 from squads._services._base import reject_markers, reject_non_view_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
     AddSubEvent,
     AssignEvent,
     BodyEvent,
+    CommentEditEvent,
     CommentEvent,
     CreateEvent,
     ImportEvent,
     RefEvent,
     ResolvedEvent,
+    SourceEvent,
     StatusEvent,
     SubBodyEvent,
     SubStatusEvent,
     UpdateEvent,
+    ViewBodyEvent,
     parse_events,
     utc_now_floor,
 )
@@ -204,13 +214,15 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         return ImportResult(plan=plan, applied=applied)
 
     # ------------------------------------------------------------------ validate-first pre-pass
-    async def _plan_import(self, events: list[ResolvedEvent]) -> ImportPlan:
+    async def _plan_import(
+        self, events: list[ResolvedEvent], base: SquadsDB | None = None
+    ) -> ImportPlan:
         """Resolve every handle, simulate id allocation, and check every event against the active
         spec, writing nothing and collecting every error. ``shadow`` is a throwaway deep copy of the
         index, so bumping its counter leaves the real one in ``self.store`` untouched. It also pre-
         flights the skew guard once per targeted pre-existing item.
         """
-        shadow = (await self.store.load()).model_copy(deep=True)
+        shadow = (base if base is not None else await self.store.load()).model_copy(deep=True)
         pre_existing_seqs = set(shadow.items)
         handles = HandleMap()
         counts = ImportOpCount()
@@ -331,8 +343,34 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             self._sim_sub_body(shadow, handles, event)
         elif isinstance(event, AssignEvent):
             self._sim_assign(shadow, handles, ev, event)
-        else:  # UpdateEvent — the last member of the exhaustive ImportEvent union
+        elif isinstance(event, UpdateEvent):
             self._sim_update(shadow, handles, ev, event)
+        else:
+            self._sim_internal(shadow, handles, event)
+
+    def _sim_internal(
+        self,
+        shadow: SquadsDB,
+        handles: HandleMap,
+        event: SourceEvent | ViewBodyEvent | CommentEditEvent,
+    ) -> None:
+        """The ops only a pull compiles."""
+        if isinstance(event, SourceEvent):
+            self._sim_source(shadow, handles, event)
+        elif isinstance(event, ViewBodyEvent):
+            self._sim_view_body(shadow, handles, event)
+        else:
+            require_item(shadow, handles.resolve_item(event.target))
+
+    @staticmethod
+    def _sim_source(shadow: SquadsDB, handles: HandleMap, event: SourceEvent) -> None:
+        item = require_item(shadow, handles.resolve_item(event.target))
+        item.source = None if event.record is None else SourceRecord.model_validate(event.record)
+
+    def _sim_view_body(self, shadow: SquadsDB, handles: HandleMap, event: ViewBodyEvent) -> None:
+        target = handles.resolve_item(event.target)
+        require_item(shadow, target)
+        self.view_body_mutate(target, event.view, event.text)
 
     def _sim_create(
         self, shadow: SquadsDB, handles: HandleMap, ev: ResolvedEvent, event: CreateEvent
@@ -379,15 +417,16 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
     def _sim_comment(
         self, shadow: SquadsDB, handles: HandleMap, event: CommentEvent, actor_slug: str
     ) -> None:
-        require_valid_slug(actor_slug, action="write a comment")
+        require_valid_slug(source_of(actor_slug) or actor_slug, action="write a comment")
         refuse_system_actor(actor_slug)
         target = handles.resolve_item(event.target)
         item = require_item(shadow, target)
         messages = event.all_messages()
         if not messages:
             raise SquadsError("a comment needs at least one message")
-        for msg in messages:
-            reject_markers(msg, "comment message")
+        if not is_sourced(actor_slug):
+            for msg in messages:
+                reject_markers(msg, "comment message")
         sub = _comment_selector(handles, target, event)
         if sub is not None:
             self._find(item, sub[0], sub[1])
@@ -443,6 +482,19 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         """Whether *event* only removes an assignee the target does not have: no write."""
         return event.only_clears_assignee() and require_item(db, target).assignee is None
 
+    @staticmethod
+    def _literal_maps(event: UpdateEvent) -> dict[str, dict[str, str | None]] | None:
+        """The map keys *event* sets; a handle is refused, since resolving one needs the tracker
+        and an import writes only what it is given."""
+        for name, keys in event.attributes.items():
+            for key, value in keys.items():
+                if value is not None and value.startswith("@"):
+                    raise SquadsError(
+                        f"{name}.{key}: {value!r} is a handle; set it with the update verb, or "
+                        "give the ID"
+                    )
+        return dict(event.attributes) or None
+
     def _sim_update(
         self, shadow: SquadsDB, handles: HandleMap, ev: ResolvedEvent, event: UpdateEvent
     ) -> None:
@@ -465,7 +517,9 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             clear_parent=event.clear_parent,
             set_attributes=dict(event.fields) or None,
             unset_attributes=list(event.unset_fields) or None,
+            map_attributes=self._literal_maps(event),
             now=ev.at,
+            by=ev.actor,
         )
 
     # ------------------------------------------------------------------ apply
@@ -475,30 +529,42 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         event's actor and clock. Only called after a clean pre-pass, so a failure here is I/O, and
         the store's files-then-index order leaves the index uncommitted for ``sq repair``.
         """
+        async with self.store.transaction() as db, self._deferred_item_writes():
+            applied = await self._apply_events(db, events)
+        return await self._with_findings(applied)
+
+    async def _apply_events(self, db: SquadsDB, events: list[ResolvedEvent]) -> ImportApplyResult:
+        """Apply *events* in order inside the caller's open transaction and deferred write block;
+        the board-debt findings are added once that block has closed (:meth:`_with_findings`)."""
         handles = HandleMap()
         counts = ImportOpCount()
         warnings: list[str] = []
         touched_ids: set[str] = set()
-        async with self.store.transaction() as db, self._deferred_item_writes():
-            for ev in events:
-                counts.bump(ev.op_name)
-                prior = get_context()
-                try:
-                    clock.set_now(ev.at)
-                    actor.set_actor(ev.actor)
-                    touched_ids |= await self._apply_one(db, handles, ev, warnings)
-                finally:
-                    bind_context(prior)
-        findings = await self._board_debt_findings(touched_ids)
-        warnings.extend(f"{f.item}: {f.message}" for f in findings if f.level != "error")
+        for ev in events:
+            counts.bump(ev.op_name)
+            prior = get_context()
+            try:
+                clock.set_now(ev.at)
+                actor.set_actor(ev.actor)
+                touched_ids |= await self._apply_one(db, handles, ev, warnings)
+            finally:
+                bind_context(prior)
         return ImportApplyResult(
             op_counts=counts,
             handle_to_id=dict(handles.items),
             handle_to_sub=dict(handles.subentities),
             created_ids=sorted(touched_ids & set(handles.items.values())),
             warnings=warnings,
-            findings=findings,
+            findings=[],
+            touched_ids=sorted(touched_ids),
         )
+
+    async def _with_findings(self, applied: ImportApplyResult) -> ImportApplyResult:
+        """*applied* with the findings of the items it touched, read after the commit."""
+        findings = await self._board_debt_findings(set(applied.touched_ids))
+        applied.warnings.extend(f"{f.item}: {f.message}" for f in findings if f.level != "error")
+        applied.findings = findings
+        return applied
 
     async def _board_debt_findings(self, touched_ids: set[str]) -> list[CheckIssue]:
         """The ``sq check`` catalog (unwritten bodies, over-long titles, ...) scoped to the items
@@ -521,7 +587,7 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
         issues = engine.report(final_db, {}, bodies=bodies, only=frozenset(touched_ids))
         return sorted((i for i in issues if i.item in touched_ids), key=check_issue_sort_key)
 
-    async def _apply_one(  # noqa: PLR0911 — one per-op dispatch, mirrors _simulate_one's shape
+    async def _apply_one(  # noqa: PLR0911, C901 — one per-op dispatch, mirrors _simulate_one
         self, db: SquadsDB, handles: HandleMap, ev: ResolvedEvent, warnings: list[str]
     ) -> set[str]:
         event = ev.event
@@ -592,8 +658,25 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             return {item.id}
         if isinstance(event, AssignEvent):
             return {await self._apply_assign(db, handles, event)}
-        # UpdateEvent — the last member of the exhaustive ImportEvent union
-        return {await self._apply_update(db, handles, event)}
+        if isinstance(event, UpdateEvent):
+            return {await self._apply_update(db, handles, event)}
+        return {await self._apply_internal(db, handles, event)}
+
+    async def _apply_internal(
+        self,
+        db: SquadsDB,
+        handles: HandleMap,
+        event: SourceEvent | ViewBodyEvent | CommentEditEvent,
+    ) -> str:
+        """The ops only a pull compiles."""
+        if isinstance(event, SourceEvent):
+            return await self._apply_source(db, handles, event)
+        if isinstance(event, CommentEditEvent):
+            return await self._apply_comment_edit(db, handles, event)
+        target = handles.resolve_item(event.target)
+        mutate = self.view_body_mutate(target, event.view, event.text)
+        item, _changed = await self._section_edit_core(db, target, mutate)
+        return item.id
 
     async def _apply_comment(
         self, db: SquadsDB, handles: HandleMap, event: CommentEvent, actor_slug: str
@@ -606,7 +689,58 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             event.all_messages(),
             as_slug=actor_slug,
             sub=sub,
+            attributes=event.attributes,
         )
+        return item.id
+
+    async def _apply_source(self, db: SquadsDB, handles: HandleMap, event: SourceEvent) -> str:
+        target = handles.resolve_item(event.target)
+        record = None if event.record is None else SourceRecord.model_validate(event.record)
+
+        def mutate(text: str, item: Item) -> tuple[str, bool]:
+            if item.source == record:
+                return text, False
+            item.source = record
+            self.store.log("source", item.id, {"source": event.record})
+            return text, True
+
+        item, _changed = await self._section_edit_core(db, target, mutate)
+        return item.id
+
+    async def _apply_comment_edit(
+        self, db: SquadsDB, handles: HandleMap, event: CommentEditEvent
+    ) -> str:
+        target = handles.resolve_item(event.target)
+        now_iso = clock.iso(clock.now())
+
+        def mutate(text: str, item: Item) -> tuple[str, bool]:
+            region = sections.get_section(text, markers.DISCUSSION) or ""
+            comments = discussion.split_discussion(region, sequence_id=item.sequence_id)
+            found = next(
+                (
+                    c
+                    for c in comments
+                    if is_sourced(c.author_slug) and c.attributes.get(event.key) == event.value
+                ),
+                None,
+            )
+            if found is None:
+                raise SquadsError(f"{item.id} holds no comment whose {event.key} is {event.value}")
+            entry = discussion.format_comment(
+                found.timestamp,
+                found.author_slug,
+                found.author,
+                event.messages,
+                edited_ts=now_iso,
+                attributes=event.attributes,
+            )
+            replaced = discussion.replace_comments(
+                region, [(found, entry)], sequence_id=item.sequence_id
+            )
+            self.store.log("comment_edit", item.id, {"source_id": event.value})
+            return sections.replace_section(text, markers.DISCUSSION, replaced), True
+
+        item, _changed = await self._section_edit_core(db, target, mutate)
         return item.id
 
     async def _apply_add_sub(
@@ -667,5 +801,6 @@ class ImportMixin(ItemsMixin, CollabMixin, SubentitiesMixin, RefsMixin):
             clear_parent=event.clear_parent,
             set_attributes=dict(event.fields) or None,
             unset_attributes=list(event.unset_fields) or None,
+            map_attributes=self._literal_maps(event),
         )
         return item.id

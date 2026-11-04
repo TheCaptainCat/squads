@@ -106,7 +106,7 @@ class HttpApi:
         """The daemon's answer, or ``None`` when the call is to run locally. A refusal, a lost
         connection and a timeout raise."""
         self.declined = False
-        if op.local_only:
+        if op.local_only or op.private:
             return None
         method, target, body = encode_request(op, req)
         sent = self._request_headers(method, body)

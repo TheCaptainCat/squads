@@ -47,12 +47,16 @@ class PromptRequired(BaseException):
     """A served command reached a prompt with no answer. It is a ``BaseException`` so that no
     handler of the command swallows it."""
 
-    def __init__(self, before: list[Chunk], stream: str, text: str, digest: str) -> None:
+    def __init__(
+        self, before: list[Chunk], stream: str, text: str, digest: str, hidden: bool
+    ) -> None:
         super().__init__(text)
         self.before = before
         self.stream = stream
         self.text = text
         self.digest = digest
+        #: Whether the answer is a secret the client reads without echo.
+        self.hidden = hidden
 
 
 class Capture:
@@ -77,6 +81,8 @@ class Capture:
         self._decoders: dict[str, codecs.IncrementalDecoder] = {}
         #: Index of the chunk that starts the prompt being asked, ``None`` when none is.
         self._mark: int | None = None
+        #: Whether the prompt being asked takes a secret.
+        self._hidden = False
         #: The digest of the last prompt answered, which every later digest builds on.
         self._chain = ""
 
@@ -110,9 +116,10 @@ class Capture:
         """Everything written and not yet shown to the user."""
         return [(stream, text) for stream, text in self._chunks]
 
-    def begin_prompt(self) -> None:
-        """The next write is a prompt's text."""
+    def begin_prompt(self, hidden: bool = False) -> None:
+        """The next write is a prompt's text; *hidden* says its answer is a secret."""
         self._mark = len(self._chunks)
+        self._hidden = hidden
 
     def _digest(self, before: list[Chunk], stream: str, text: str) -> str:
         screen = json.dumps([self._chain, before, stream, text])
@@ -136,7 +143,7 @@ class Capture:
                 # follows is a prompt too: Click asks again after a line that is not an answer.
                 self._mark = 0
                 return "" if answer.line is None else answer.line + "\n"
-        raise PromptRequired(before, stream, text, digest)
+        raise PromptRequired(before, stream, text, digest, self._hidden)
 
 
 #: The request running on the calling thread; ``None`` outside one.

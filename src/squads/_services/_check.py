@@ -59,6 +59,7 @@ from squads._services._results import (
 from squads._services._skill_files import (
     ScanContext,
 )
+from squads._services._source_checks import source_issues
 from squads._services._validators import (
     SQUAD_GLOBAL_CATALOG,
     SquadGlobalContext,
@@ -508,6 +509,7 @@ class CheckMixin(ServiceCore):
             )
         ]
         issues += self._orphaned_skill_issues(index)
+        issues += source_issues(index, self.sources, bodies)
         carriers = await self._id_carriers(ctx.carriers)
         listing = self._all_item_files()
         dup_groups = await confirmed_groups(duplicate_groups(carriers), listing)

@@ -14,6 +14,8 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError,
 from pydantic_core import ErrorDetails
 
 from squads import _clock as clock
+from squads._errors import SquadsError
+from squads._models._participants import refuse_source_actor
 from squads._services._results import ImportIssue
 from squads._workflow._models import WorkflowSpec
 
@@ -67,6 +69,7 @@ class CommentEvent(_EventBase):
     messages: list[str] = []
     message: str | None = None
     sub: tuple[str, str] | None = None
+    attributes: dict[str, str] = {}
 
     def all_messages(self) -> list[str]:
         """``messages`` with a single ``message`` folded in, in that order."""
@@ -142,6 +145,7 @@ class UpdateEvent(_EventBase):
     force: bool = False
     fields: dict[str, str] = {}
     unset_fields: list[str] = []
+    attributes: dict[str, dict[str, str | None]] = {}
 
     @model_validator(mode="after")
     def _update_names_a_valid_change(self) -> UpdateEvent:
@@ -166,6 +170,7 @@ class UpdateEvent(_EventBase):
             or self.status is not None
             or self.fields
             or self.unset_fields
+            or self.attributes
         )
 
     def only_clears_assignee(self) -> bool:
@@ -173,11 +178,47 @@ class UpdateEvent(_EventBase):
         return self.clear_assignee and not self._other_changes()
 
 
+class SourceEvent(_EventBase):
+    """Internal: set the ``source`` record of *target* to *record*, or remove it for ``None``.
+    Only a pull compiles it; the JSONL reader refuses the op."""
+
+    op: Literal["source"] = "source"
+    target: str
+    record: dict[str, str] | None = None
+
+
+class ViewBodyEvent(_EventBase):
+    """Internal: set the stored body of *view* on *target* to *text*. Only a pull compiles it."""
+
+    op: Literal["view-body"] = "view-body"
+    target: str
+    view: str
+    text: str
+
+
+class CommentEditEvent(_EventBase):
+    """Internal: replace the text and attributes of the comment of *target* whose attribute *key*
+    holds *value*. Only a pull compiles it."""
+
+    op: Literal["comment-edit"] = "comment-edit"
+    target: str
+    key: str
+    value: str
+    messages: list[str]
+    attributes: dict[str, str] = {}
+
+
+#: The ops only a pull compiles; the JSONL reader does not accept them.
+type InternalEvent = SourceEvent | ViewBodyEvent | CommentEditEvent
+
 #: The v1 op set, as a discriminated union on ``op`` — the closed vocabulary the JSONL
 #: parser accepts. The ergonomic fronts normalize to :class:`AddSubEvent` immediately after
 #: parsing (see :func:`parse_events`), so downstream code dispatches on this union's members.
 type ImportEvent = (
-    CreateEvent
+    SourceEvent
+    | ViewBodyEvent
+    | CommentEditEvent
+    | CreateEvent
     | StatusEvent
     | BodyEvent
     | CommentEvent
@@ -392,6 +433,11 @@ def parse_events(
 
         if current_actor is None:
             issues.append(ImportIssue(line=line_no, message="no actor: missing 'as'"))
+            continue
+        try:
+            refuse_source_actor(current_actor)
+        except SquadsError as exc:
+            issues.append(ImportIssue(line=line_no, message=str(exc)))
             continue
 
         events.append(

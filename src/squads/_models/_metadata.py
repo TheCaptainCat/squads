@@ -66,6 +66,9 @@ def coerce(key: str, spec: AttributeSpec, raw: str) -> Any:
         return _coerce_bool(key, raw)
     if spec.kind == "date":
         return _coerce_date(key, raw)
+    if spec.kind == "map":
+        flag = key.replace("_", "-")
+        raise SquadsError(f"{key!r} is a map; set a key with `--{flag} key=value`, not --set")
     return raw
 
 
@@ -103,6 +106,11 @@ def _is_kind(kind: str, value: Any) -> bool:
         return isinstance(value, list) and all(
             isinstance(part, str) for part in cast("list[Any]", value)
         )
+    if kind == "map":
+        return isinstance(value, dict) and all(
+            isinstance(k, str) and isinstance(v, str)
+            for k, v in cast("dict[Any, Any]", value).items()
+        )
     return _is_iso_date(value)
 
 
@@ -113,6 +121,8 @@ def _kind_phrase(kind: str) -> str:
         return "a list of strings"
     if kind == "bool":
         return "true or false"
+    if kind == "map":
+        return "a mapping of strings to strings"
     return "an ISO date (YYYY-MM-DD)"
 
 

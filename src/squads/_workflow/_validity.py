@@ -430,6 +430,19 @@ def check_parent_cycles(
             dfs(t)
 
 
+def _migration_hint(name: str) -> str:
+    """The pointer to the manual steps when *name* is a command a release reserved."""
+    from squads._migrations._reserved import RESERVED_COMMAND_STEPS
+
+    steps = RESERVED_COMMAND_STEPS.get(name)
+    if steps is None:
+        return ""
+    return (
+        f"; a squad upgrading follows the steps `sq migrate chlog {steps}` prints, run with "
+        "the release it is upgrading from"
+    )
+
+
 def check_item_refs(
     items: dict[str, ItemSpec],
     all_lifecycle_names: set[str],
@@ -451,11 +464,11 @@ def check_item_refs(
             errors.append(
                 f"item {t!r}: shadows the built-in `sq {t}` command — rename the type "
                 "(its whole per-type verb surface, `sq <type> <n> <verb>`, becomes unreachable "
-                "behind the built-in)"
+                f"behind the built-in){_migration_hint(t)}"
             )
         errors.extend(
             f"item {t!r}: alias {alias!r} shadows the built-in `sq {alias}` command — rename "
-            "or drop the alias"
+            f"or drop the alias{_migration_hint(alias)}"
             for alias in ts.aliases
             if alias in RESERVED_CLI_VERBS
         )
@@ -1148,6 +1161,7 @@ PINNED_ROSTER_ATTRIBUTES: dict[str, dict[str, str]] = {
         AttributeKey.TECH: "str",
     },
     ROSTER_OPERATOR: {
+        AttributeKey.IDENTITIES: "map",
         AttributeKey.PRONOUNS: "str",
     },
     ROSTER_SKILL: {
@@ -1255,7 +1269,7 @@ def _check_view_source(
         if src.name is None or src.name not in items:
             errors.append(f"{tag}: source names item type {src.name!r}, not declared in [items]")
         return
-    if src.kind in ("role", "self"):
+    if src.kind in ("role", "self", "source"):
         if src.name is not None:
             errors.append(f"{tag}: a {src.kind!r} source takes no name (got {src.name!r})")
         return
@@ -1274,11 +1288,12 @@ def check_views(
     """Referential floor over ``[views]``, run on the merged mapping so ``sq workflow lint`` reports
     a broken view with every other violation in one pass. A view's ``source.name`` must name a
     declared entry of the vocabulary its ``source.kind`` points at
-    (``[ref_kinds]``/``[subentity_kinds]``/``[items]``; ``role``/``self`` take none, ``playbook``'s
-    is optional), as ``_parse_ref_rules`` does for kinds, so a source that can never resolve is
-    refused. In the same pass (not via ``ViewSpec``'s pydantic validation, which would abort at the
-    first) the view's key must be a bare TOML key (:data:`_BARE_TOML_KEY_RE`) other than
-    :data:`RESERVED_VIEW_NAME`, and its ``position`` must parse (:func:`parse_view_position`).
+    (``[ref_kinds]``/``[subentity_kinds]``/``[items]``; ``role``/``self``/``source`` take none,
+    ``playbook``'s is optional), as ``_parse_ref_rules`` does for kinds, so a source that can
+    never resolve is refused. In the same pass (not via ``ViewSpec``'s pydantic validation, which
+    would abort at the first) the view's key must be a bare TOML key (:data:`_BARE_TOML_KEY_RE`)
+    other than :data:`RESERVED_VIEW_NAME`, and its ``position`` must parse
+    (:func:`parse_view_position`).
     """
     for name, v in sorted(views.items()):
         tag = f"view {name!r}"
@@ -1293,6 +1308,11 @@ def check_views(
         except ValueError as exc:
             errors.append(f"{tag}: invalid position {v.position!r}: {exc}")
         _check_view_source(tag, v.source, items, subentity_kinds, ref_kinds, errors)
+        if v.stored and v.source.kind != "source":
+            errors.append(
+                f"{tag}: `stored = true` needs a source kind whose writer fills the body; "
+                "only `source` has one"
+            )
         if v.transform is not None:
             errors.extend(f"{tag}: {problem}" for problem in view_transform_problems(v.transform))
 

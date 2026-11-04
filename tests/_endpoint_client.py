@@ -177,8 +177,8 @@ class EndpointClient:
                 return _outcome(answer["exit_code"], shown)
             shown.append((answer["stream"], answer["text"]))
             line = next(typed, "")
-            if answer["stream"] == "stdout":
-                # The runner echoes the line a prompt reads, as a terminal does.
+            if answer["stream"] == "stdout" and not answer.get("hidden"):
+                # The runner echoes the line a prompt reads, as a terminal does, but not a secret.
                 shown.append(("stdout", line + "\n"))
             request = {
                 **request,

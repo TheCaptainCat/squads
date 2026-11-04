@@ -16,12 +16,14 @@ import typer.core
 
 import squads._cli._common as common
 from squads import _badges as badges
+from squads._errors import SquadsError
 from squads._workflow._models import Field, WorkflowSpec
 
 #: Context-meta keys under which the options file what they receive.
 VALUES_KEY = "squads.field_values"
 UNSET_KEY = "squads.field_unset"
 MIN_KEY = "squads.field_min"
+MAP_KEY = "squads.map_values"
 
 
 def flag_name(code: str) -> str:
@@ -82,6 +84,34 @@ def min_option(field: Field, codes: list[str]) -> Any:
     )
 
 
+def map_option(name: str) -> Any:
+    """`--<name> key=value` (repeatable) for the map attribute *name*; `key=` removes the key."""
+    flag = flag_name(name)
+
+    def callback(ctx: _click.Context, param: _click.Parameter, value: Any) -> None:
+        if value:
+            ctx.meta.setdefault(MAP_KEY, {})[name] = list(value)
+
+    return typer.core.TyperOption(
+        param_decls=[f"--{flag}", name],
+        multiple=True,
+        default=None,
+        metavar="KEY=VALUE",
+        help=f"Set a key of {name} as `key=value` (repeatable); `key=` removes the key.",
+        expose_value=False,
+        callback=callback,
+    )
+
+
+def map_attribute_names(spec: WorkflowSpec, item_type: str) -> list[str]:
+    """The settable map attributes *item_type* declares."""
+    return [
+        name
+        for name, attr in spec.item_attributes(item_type).items()
+        if attr.kind == "map" and attr.settable
+    ]
+
+
 def _flags(params: list[Any]) -> set[str]:
     return {opt.removeprefix("--") for p in params for opt in (*p.opts, *p.secondary_opts)}
 
@@ -111,6 +141,7 @@ def update_command_cls(item_type: str) -> type[typer.core.TyperCommand]:
                 fields = spec.fields_for(item_type)
                 extra = [value_option(f, field_help(f, field_codes(f, spec))) for f in fields]
                 extra += [clear_option(f) for f in fields if not f.required]
+                extra += [map_option(n) for n in map_attribute_names(spec, item_type)]
                 params = extended(params, extra)
             return params
 
@@ -148,3 +179,17 @@ def given_unset(ctx: typer.Context) -> list[str]:
 def given_min(ctx: typer.Context) -> dict[str, str]:
     """The thresholds the `--min-<code>` options received, by field code."""
     return dict(ctx.meta.get(MIN_KEY, {}))
+
+
+def given_maps(ctx: typer.Context) -> dict[str, dict[str, str | None]]:
+    """The keys the map options received, by attribute name: a value, or ``None`` to remove."""
+    out: dict[str, dict[str, str | None]] = {}
+    for name, pairs in ctx.meta.get(MAP_KEY, {}).items():
+        keys: dict[str, str | None] = {}
+        for pair in pairs:
+            key, sep, value = pair.partition("=")
+            if not sep or not key.strip():
+                raise SquadsError(f"--{flag_name(name)} expects key=value, got {pair!r}")
+            keys[key.strip()] = value if value else None
+        out[name] = keys
+    return out

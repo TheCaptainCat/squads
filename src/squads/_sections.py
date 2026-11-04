@@ -21,6 +21,10 @@ _FRONTMATTER_RE = re.compile(r"^---\r?\n(.*?)\r?\n---(?:\r?\n)?", re.DOTALL)
 #: Prose placeholders (``<!-- sq:* -->``) hold characters no real tag can, so never match.
 MARKER_RE = re.compile(r"<!--\s*(sq:\w[\w:-]*)\s*-->")
 
+#: The opening of any sq tag, however its payload is spelled: ``<!--``, optional whitespace, ``sq:``
+#: and a word character. Prose holding it could forge a comment's attribute line.
+SQ_TAG_OPENER_RE = re.compile(r"<!--\s*sq:\w")
+
 
 # --------------------------------------------------------------------------- frontmatter
 

@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.table import Table
 
 from squads._api._dto._queues import Blocked, Inbox, Mine, Workload
+from squads._cli._render._comments import untrusted_notice
 from squads._cli._render._items import item_cell
 from squads._cli._render._search import empty_note
 from squads._cli._render._style import cell_text, e
@@ -18,9 +19,11 @@ def render_inbox(inbox: Inbox, console: Console, *, skipped: int) -> None:
     for entry in inbox.items:
         status = entry.display.status_code
         console.print(f"[bold]{entry.id}[/bold] {e(entry.title)} [dim]({status})[/dim]")
-        for line, region in zip(entry.lines, entry.regions, strict=True):
+        for line, region, source in zip(entry.lines, entry.regions, entry.untrusted, strict=True):
             suffix = f" [dim]({e(region)})[/dim]" if region else ""
             console.print(f"    {e(line)}{suffix}")
+            if source is not None:
+                console.print(f"    [yellow]{e(untrusted_notice(source))}[/yellow]")
 
 
 def render_mine(mine: Mine, console: Console) -> None:

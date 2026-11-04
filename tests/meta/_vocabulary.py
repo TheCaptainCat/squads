@@ -76,6 +76,48 @@ def engine_words() -> frozenset[str]:
     return COLOR_INTENTS
 
 
+#: Module-level constants whose string elements are a tracker's own API names, which happen to
+#: spell squad vocabulary: `(module path, constant name, reason)`. The scan skips the literals
+#: inside these constants only; every other literal of the module is still checked.
+EXEMPT_TRACKER_ENUMS: tuple[tuple[str, str, str], ...] = (
+    (
+        "src/squads/_sources/_gitlab_probes.py",
+        "_ISSUE_TYPES",
+        "the values of GitLab API v4's issue_type",
+    ),
+    (
+        "src/squads/_sources/_gitlab_probes.py",
+        "_LINK_TYPES",
+        "the values of GitLab API v4's link_type",
+    ),
+)
+
+
+def exempt_enum_ids(tree: ast.AST, rel: str) -> set[int]:
+    """The string constants inside the exempt constants of module *rel*; a listed constant that is
+    not a module-level tuple or frozenset of string literals is refused."""
+    wanted = {name for module, name, _ in EXEMPT_TRACKER_ENUMS if module == rel}
+    ids: set[int] = set()
+    if not wanted or not isinstance(tree, ast.Module):
+        return ids
+    for node in tree.body:
+        if not isinstance(node, ast.Assign | ast.AnnAssign):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        for target in targets:
+            if not (isinstance(target, ast.Name) and target.id in wanted) or node.value is None:
+                continue
+            value = node.value
+            if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+                assert value.func.id == "frozenset" and len(value.args) == 1, target.id
+                value = value.args[0]
+            assert isinstance(value, ast.Tuple | ast.Set), f"{rel}: {target.id} is not a tuple"
+            elements = value.elts
+            assert all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in elements)
+            ids |= {id(e) for e in elements}
+    return ids
+
+
 @dataclass(frozen=True)
 class Hit:
     path: str
@@ -225,7 +267,10 @@ def literal_hits(root: Path, names: Vocabulary, *, ignore: Iterable[str] = ()) -
     for path in source_files(root, ".py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         rel = path.relative_to(root).as_posix()
+        exempt = exempt_enum_ids(tree, rel)
         for node in string_constants(tree):
+            if id(node) in exempt:
+                continue
             stem = _stem(str(node.value))
             if stem in wanted:
                 hits.append(Hit(rel, node.lineno, stem, wanted[stem]))

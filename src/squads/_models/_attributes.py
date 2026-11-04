@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from squads._models._item import Item
 
 
-type AttributeKind = Literal["str", "list", "bool", "date"]
+type AttributeKind = Literal["str", "list", "bool", "date", "map"]
 
 
 class AttributeSpec(BaseModel):
@@ -60,6 +60,8 @@ class AttributeKey:
     TAGS = "tags"
     # reviews
     TARGET_REF = "target_ref"
+    # operators: tracker user IDs by source name
+    IDENTITIES = "identities"
 
 
 #: The two values of a role's or skill's ``origin``: shipped with the tool or generated from the
@@ -83,6 +85,7 @@ CORE_KEYS: tuple[str, ...] = (
     "labels",
     "refs",
     "subentities",
+    "source",
     "created_at",
     "updated_at",
     "created_session",
@@ -126,6 +129,17 @@ def list_attribute(item: Item, key: str) -> list[str] | None:
     value: Any = item.attribute(key)
     if isinstance(value, list) and all(isinstance(v, str) for v in value):  # pyright: ignore[reportUnknownVariableType]
         return list(value)  # pyright: ignore[reportUnknownArgumentType]
+    return None
+
+
+def map_attribute(item: Item, key: str) -> dict[str, str] | None:
+    """The attribute *key* when it is a mapping of strings to strings, else ``None``."""
+    value: Any = item.attribute(key)
+    if isinstance(value, dict) and all(
+        isinstance(k, str) and isinstance(v, str)
+        for k, v in value.items()  # pyright: ignore[reportUnknownVariableType]
+    ):
+        return dict(value)  # pyright: ignore[reportUnknownArgumentType]
     return None
 
 

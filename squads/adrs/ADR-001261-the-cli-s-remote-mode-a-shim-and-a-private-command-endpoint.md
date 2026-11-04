@@ -16,7 +16,7 @@ description: The CLI becomes a stdlib shim that sends argv to a private daemon e
   which runs the CLI in process on LocalApi and renders; local fallback before sending;
   content-keyed parse cache
 created_at: '2026-10-30T19:12:57Z'
-updated_at: '2026-11-03T22:50:35Z'
+updated_at: '2026-11-04T03:29:35Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -56,6 +56,8 @@ The operator set a new direction for the CLI's remote mode on 2026-10-30 (FEAT-1
 A `503 {"not_executed": "retiring"}` stays the only refusal after which the shim may run the command itself (ADR-1052, points 2 and 13). The vocabulary hash is not sent: the shim parses nothing, and the daemon parses with the configuration it fingerprinted, which the retirement check holds to the files on disk.
 
 ### 2. The daemon runs the CLI in process, and its commands call the daemon's operations
+
+> **Corrected 2026-11-04 (ADR-1274 §14).** The "Execution is serial" bullet below, and the matching line on ADR-1225 section 7 under Amendments, are false. The daemon has no serial command lock. Each served command runs on a worker thread (`aio.to_thread` in `_daemon/_commands.py`), and commands run concurrently. What is serialised is the index transaction: `IndexStore.transaction()` takes its loop lock, process mutex and file lock, so writes order against each other there, and a transaction always loads the index under the lock. The per-request consoles, context and stdio proxies this section describes are what make concurrent served commands safe.
 
 - **The Typer app is built once, at daemon start-up.** It needs no cache keyed on the vocabulary: any edit to `.squads.toml` or `.overrides/` retires the daemon (ADR-1052, point 13), so the app never outlives the vocabulary it was built from.
 - **The API inside a served command is the daemon's own `LocalApi`,** bound on the request's `RequestContext` before the root callback runs. It reuses the normal-mode service composed at start-up and, per call, the steps of ADR-1225 section 7 that apply in process: the schema grant, the composition mode, the read scope. No fork, no subprocess, no HTTP call to itself. `select_api` refuses to run inside a served command, and a `tests/meta` guard holds that the endpoint's modules import neither `squads._cli._remote`, `http.client` nor `subprocess`.
@@ -306,4 +308,6 @@ Applied on acceptance, each in place under board rule 6 (a clause-level change; 
   - Amended in place 2026-10-31 for the tech writer's TASK-1266 comparison; the code is the reference and no code change is needed. Status unchanged. Point 1: a listed variable has the client's value or none, and an unlisted one reads the daemon's environment. Point 4: --install-completion and --show-completion run locally (LOCAL_ROOT_OPTIONS); the shim's import set covers the live-daemon and cold-start paths only, while a local run imports what local mode imports (--version adds the rich console); the squads __init__ holds __version__ and version_line.
 - [2026-11-03T22:50:35Z] `architect` Robert Architect:
   - Amended in place 2026-11-03 per ADR-1274, board rule 6: one dated note added at §5 (hidden prompt; source credentials read from the serving side store). No other text changed. Status unchanged. ADR-1274 is not yet accepted.
+- [2026-11-04T03:29:35Z] `architect` Robert Architect:
+  - Correction note added to section 2 (2026-11-04): the daemon has no serial command lock; served commands run concurrently on worker threads and only the index transaction is serialised. Found while amending ADR-1274.
 <!-- sq:discussion:end -->

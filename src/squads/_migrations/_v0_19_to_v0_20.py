@@ -2,8 +2,8 @@
 slug ``source``, adds the comment-attribute line under a comment header and the paired view tag,
 none of which a 0.19 file holds in that meaning. The runner writes nothing to item files. Before the
 schema is stamped it scans every item file and refuses the whole run, listing every case, when an
-item carries a top-level ``source`` key, a role has the slug ``source``, or a line directly after a
-comment header already has the shape of a comment-attribute line, which 0.20 would read as an
+item carries a top-level ``source`` key, a role has the slug ``source``, or a line directly after
+a comment header already has the shape of a comment-attribute line, which 0.20 would read as an
 attribute and no longer as comment text. A squad clear of all three is carried unchanged. It runs
 only through ``sq migrate up`` via ``_migrations._registry``.
 """
@@ -27,11 +27,38 @@ SUMMARY = (
 MANUAL = (
     "Clear what `sq migrate up` refuses before running it again; it lists every case and writes "
     "nothing. "
-    "(1) An item whose frontmatter has a top-level `source` key: rename the key, since `source` is "
-    "now the item's link to an external tracker. "
-    "(2) A role whose slug is `source`: `source` is reserved, so give the role another slug. "
+    "(1) An item whose frontmatter has a top-level `source` key: `source` is now the item's link "
+    "to an external tracker, so a key of that name cannot stay. Run these steps with the 0.19 "
+    "release, before `sq migrate up`, because a newer build refuses them on a 0.19 squad. Declare "
+    "an attribute under another name for the holder's type in `squads/.overrides/workflow.toml` "
+    '(`[items.<type>.attributes]`, `<new> = { kind = "str" }`), then run `sq migrate '
+    "rename-field source <new>`, which moves the value on every item and refuses, changing "
+    "nothing, where a holder does not declare `<new>`. To drop the value instead, follow with "
+    "`sq <type> <n> update --unset <new>` for each holder. "
+    "(2) A role whose slug is `source`: `source` is now reserved, and a roster slug never "
+    "changes, so replace the role. Run these steps with the 0.19 release, before `sq migrate "
+    "up`, because a newer build refuses them on a 0.19 squad. Create its successor under a new "
+    "slug the way the role was made (`sq role add <new> --file <def>` with the definition `sq "
+    "role source show` prints, or `sq role activate <new> --from <template>`). Reassign its "
+    "work: `sq <type> <n> update --assignee <new>` for each item assigned to `source`, and "
+    "`--author <new>` for each item it authored. Re-add each of its memories with `sq memory "
+    "<new> add`, from `sq memory source show <slug>`, then `sq memory source forget <slug>`. "
+    "Then delete the role with `sq role source remove --purge`; archiving is not enough, "
+    "because an archived role still holds its slug. What is lost: the old role's own body and "
+    "discussion (git history keeps them); its inbox, since an `@source` in an existing comment "
+    "reaches no one; the authorship of its comments, which keep `source` as their author and can "
+    "no longer be edited or removed; and any ref to the old role's ID, which you must re-point "
+    "by hand. "
     "(3) A comment whose header is directly followed by a line holding `sq:attrs` in an HTML "
-    "comment: reword or remove the line, since it would be read as the comment's attributes."
+    "comment: reword or remove the line, since it would be read as the comment's attributes. "
+    "(4) A workflow override that declares an item type or an alias named `source`: `source` is "
+    "now a reserved command, so the override no longer loads. Run these steps with the 0.19 "
+    "release, before `sq migrate up`, because a newer build refuses them on a 0.19 squad. For an "
+    "alias, rename or drop it in `squads/.overrides/workflow.toml`; no item file changes. For a "
+    "type, declare a successor type under another name in the same file, run `sq migrate "
+    "rename-type source <new>`, which moves every item of the type to the new prefix and folder, "
+    "then delete the `source` type from the override. What is lost: the items' old IDs, so a "
+    "reference to one in prose or outside the squad no longer resolves."
 )
 
 _SOURCE_KEY = "source"

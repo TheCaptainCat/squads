@@ -118,8 +118,9 @@ class ServedCommand:
     windows_truecolor: bool | None
     #: When the request arrived (``time.perf_counter``), which the spans of the command count from.
     arrived: float
-    #: Marks that the output so far is what the user has seen and the next write is the prompt.
-    begin_prompt: Callable[[], None]
+    #: Marks that the output so far is what the user has seen and the next write is the prompt;
+    #: the flag says the answer is a secret the client reads without echo.
+    begin_prompt: Callable[[bool], None]
 
 
 @dataclass(frozen=True)

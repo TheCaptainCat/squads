@@ -208,6 +208,7 @@ def view_catalog(spec: WorkflowSpec) -> ViewCatalog:
             view=name,
             source_kind=v.source.kind,
             source_name=v.source.name,
+            stored=v.stored,
             transform=v.transform.model_dump(exclude_none=True) if v.transform else None,
         )
         for name, v in sorted(spec.views.items())

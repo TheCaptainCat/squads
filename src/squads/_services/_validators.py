@@ -52,7 +52,7 @@ from squads._models._config import CONFIG_FILENAME
 from squads._models._index import SquadsDB
 from squads._models._item import Item, split_ref
 from squads._models._metadata import value_problem
-from squads._models._participants import SlugBreach, roster_slug_breaches
+from squads._models._participants import SlugBreach, is_sourced, roster_slug_breaches
 from squads._paths import SquadPaths, number_for_id
 from squads._pronouns import pronouns_problem
 from squads._rendering._engine import scaffold_body
@@ -404,7 +404,7 @@ def _agent_registered(ctx: ValidatorContext) -> list[CheckIssue]:
         if attr == "author" and ctx.item.type == ROSTER_SKILL and ctx.item.author == ctx.item.slug:
             continue
         slug = getattr(ctx.item, attr)
-        if slug and slug not in ctx.registered_slugs:
+        if slug and slug not in ctx.registered_slugs and not is_sourced(slug):
             issues.append(
                 CheckIssue(
                     level,

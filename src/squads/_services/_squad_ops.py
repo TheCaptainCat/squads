@@ -80,6 +80,7 @@ from squads._overrides._service import (
     scaffold_playbook,
     scaffold_role,
     scaffold_roles_catalog,
+    scaffold_sources,
     scaffold_template,
     scaffold_workflow,
     scan_overrides,
@@ -411,6 +412,8 @@ class SquadStateOpsMixin(
             dest = scaffold_playbook(squad_dir, force=req.force)
         elif req.kind == "roles":
             dest = scaffold_roles_catalog(squad_dir, force=req.force)
+        elif req.kind == "sources":
+            dest = scaffold_sources(squad_dir, force=req.force)
         else:
             dest = scaffold_template(squad_dir, template_name=req.name, force=req.force)
         return Response(

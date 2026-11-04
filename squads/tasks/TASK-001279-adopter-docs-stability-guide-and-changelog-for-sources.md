@@ -3,7 +3,7 @@ id: TASK-1279
 sequence_id: 1279
 type: task
 title: Adopter docs, stability guide and changelog for sources
-status: Draft
+status: InProgress
 parent: FEAT-1273
 author: tech-lead
 assignee: tech-writer
@@ -16,7 +16,7 @@ description: Stability contracts, the external sources adopter page, connector d
 subentities:
 - local_id: ST1
   title: Stability guide contracts
-  status: Todo
+  status: Done
 - local_id: ST2
   title: Adopter page for external sources
   status: Todo
@@ -28,7 +28,7 @@ subentities:
   status: Todo
   maps_to: US1
 created_at: '2026-11-03T23:02:46Z'
-updated_at: '2026-11-03T23:19:03Z'
+updated_at: '2026-11-04T03:26:48Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -132,4 +132,24 @@ Document the four connector versions (`gitlab`, `github`, `jira@cloud-v3`, `jira
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-04T00:08:54Z] `tech-writer` Theo Writer:
+  - Progress from @tech-writer: the stored view bodies portion is written (uncommitted; CHANGELOG.md and docs/ only).
+    
+    - CHANGELOG `## [0.20.0]`: a Migration block (schema 0.19 to 0.20, writes no item file, the three refusals with their output and remedies) and seven Added entries: stored views and the pair, the escape and LF rule, body writes keeping pairs and their refusals, view add completing an open-only tag, the four markers_balanced findings, the template/transform `body` keyword, and the `show --json` stored entry.
+    - docs/workflow.md: new "Stored views" section; the computed-every-time, show --json, field reference, template context and transform call/output text cover stored views.
+    - docs/stability.md: new Tier 1 section "View tags and stored view bodies"; the `body` and `views` rows of show --json (REV-1280 F2) and the self-source note.
+    - docs/overrides.md: `stored` in the view grammar, the computed-on-every-request paragraph and the template context.
+    - docs/migration.md: new "Upgrading to 0.20: the schema step".
+    - No subtask is marked: ST1 and ST3 grow with the later tasks, ST2 and ST4 have not started. Nothing about sources, connectors, credentials, pulls or the `source` view kind is written.
+    - Open points for @manager: (1) the altered-pair refusal names `sq <type> <n> show --refresh`, which no build has yet, and the docs quote that message as-is; (2) the migration's manual text says to give a `source` role another slug, but no command changes a slug (stability.md, "A roster slug never changes"), so the remedy needs a real procedure; (3) `sq workflow views --json` rows carry no `stored` key.
+- [2026-11-04T03:26:48Z] `tech-writer` Theo Writer:
+  - Progress from @tech-writer: the sources pull and source check part is written (uncommitted; CHANGELOG.md and docs/ only).
+    
+    - New adopter page docs/sources.md: sources.toml and the connector-defaults key form, the version rule, credentials (location, modes), source list, check, pull (listing diff, per-issue drop and retry, states), reading a pulled item (notice, `trusted`, `--json` comment keys), ownership refusals, unlink and relink, `show --refresh`, `identities`, the eight check rules, the GitLab connector, the converters, redirects, where the commands run. Indexed in docs/README.md.
+    - docs/stability.md: `source` core key and the nested-record rule; the namespaced author and the reserved `source` word; the attribute line; the sources.toml grammar; the credential store; the source commands (Tier 2); JSON rows for item `source`, discussion entries, inbox `untrusted`, operator `identities`, `sq source` shapes and the views catalog `stored`.
+    - docs/overrides.md (sources.toml in the layout and scaffold, the `map` kind, `source` core key, `identities` on operator, the source check rules), docs/workflow.md (pulled items, the bundled `source_description` view, who writes a stored body), docs/daemon.md (long commands, source commands and credentials), docs/adoption.md (no `as` names a source), docs/migration.md (the `source` type or alias load refusal and its steps).
+    - CHANGELOG 0.20.0: the stale migration remedies and the stored-body writer fixed; Added and Changed entries for sources, credentials, pull, check, list, ownership, refresh/unlink/relink, map and identities, converters, check rules, redirects, the reserved word, JSON changes and the wider marker refusal.
+    - ST1 is Done. ST2 stays open: I could not verify that a pull holds the daemon's serial lock for its whole run, so the page does not state it. ST3 and ST4 wait on the Jira and GitHub connectors.
+    - Held back as asked: the sourced-comment author display and the `kind = "source"` view grammar.
+    - For @manager: (1) the altered-pair refusal for a stored view that no source feeds still names `sq <type> <n> show --refresh`, which refuses an item with no source record; (2) `sq workflow views --json` adds `stored` before `transform`, not after the last field as the additive rule in stability.md says.
 <!-- sq:discussion:end -->

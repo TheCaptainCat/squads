@@ -1,0 +1,16 @@
+# squads bundled sources document
+# Loaded and validated by load_sources() in _sources/_loader.py.
+#
+# A squad declares the trackers it pulls issues from as [sources.<name>] tables in
+# .overrides/sources.toml; this bundled file declares none. [connectors.<name>.<version>]
+# holds what a source of that connector version inherits: its converter and its maps. A source's
+# own maps overlay these key by key, and an entry set to "" unmaps the tracker value.
+
+[connectors.gitlab.v4]
+converter = "gitlab-md"
+
+[connectors.gitlab.v4.maps.links]
+relates_to = "related"
+blocks = "blocks"
+
+[sources]

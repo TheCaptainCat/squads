@@ -1,5 +1,6 @@
-"""The squad's spec documents, resolved together: the workflow spec, the playbook and the role
-catalog, each built from one read of its packaged file and of its project override.
+"""The squad's spec documents, resolved together: the workflow spec, the playbook, the role
+catalog and the sources document, each built from one read of its packaged file and of its
+project override.
 
 :func:`resolve_documents` is the one place that chooses them; the service it feeds keeps the
 documents and the override text (:class:`~squads._specload.OverrideFiles`) they were read from.
@@ -16,6 +17,8 @@ from squads._interactions._playbook import get_playbook_spec
 from squads._roles._catalog import get_catalog
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
 from squads._roles._models import CatalogSource, RoleCatalogSpec
+from squads._sources._loader import load_sources
+from squads._sources._spec import SourcesSource, SourcesSpec
 from squads._specload import Lazy, OverrideFiles, override_present
 from squads._workflow import _loader as workflow_loader
 from squads._workflow import bundled_spec
@@ -25,11 +28,13 @@ from squads._workflow._models import WorkflowSpec
 
 @dataclass(frozen=True)
 class SpecDocuments:
-    """The documents one service holds; the role catalog is read on first use, then kept."""
+    """The documents one service holds; the role catalog and the sources document are read on
+    first use, then kept."""
 
     workflow: WorkflowSpec
     playbook: PlaybookSpec
     catalog: CatalogSource
+    sources: SourcesSource
     files: OverrideFiles
 
 
@@ -105,14 +110,19 @@ def resolve_documents(
     bundled_playbook: bool = False,
 ) -> SpecDocuments:
     """Resolve the documents for *squad_dir*: the given *workflow* spec or the squad's from
-    *sources*, the squad's playbook or (with *bundled_playbook*) the bundled one, and the lazy
-    catalog from *sources*."""
+    *sources*, the squad's playbook or (with *bundled_playbook*) the bundled one, the lazy
+    catalog from *sources*, and the lazy sources document validated against the chosen spec."""
     spec = workflow if workflow is not None else sources.workflow()
     playbook = (
         get_playbook_spec()
         if bundled_playbook
         else resolve_playbook(spec, squad_dir, sources.files)
     )
+    declared: Lazy[SourcesSpec] = Lazy(lambda: load_sources(spec, squad_dir, sources.files))
     return SpecDocuments(
-        workflow=spec, playbook=playbook, catalog=sources.catalog, files=sources.files
+        workflow=spec,
+        playbook=playbook,
+        catalog=sources.catalog,
+        sources=declared,
+        files=sources.files,
     )

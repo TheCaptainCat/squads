@@ -1,8 +1,8 @@
 """A declared view's source resolved against an item, in the shape of the command the source
 comes from, built by that command's own projection: ``sq tree --json`` nodes for a ``ref`` or
 ``subtree`` source, a sub-entity listing's rows for ``subentity``, ``sq role show --json`` for
-``role``, ``sq show --json`` plus the spec's identity for ``self``, and the lane and roster for
-``playbook``."""
+``role``, ``sq show --json`` plus the spec's identity for ``self``, the lane and roster for
+``playbook``, and the host's issue for ``source``."""
 
 import hashlib
 import json
@@ -18,6 +18,7 @@ from squads._api._dto._workflow import (
     PlaybookLaneRole,
     PlaybookRosterEntry,
     PlaybookView,
+    SourceIssueView,
     SpecIdentity,
     ViewSource,
 )
@@ -30,7 +31,7 @@ from squads._services import _results as results
 from squads._services._item_dto import participant_names
 from squads._services._item_read_dto import subentity_entry, tree_node
 from squads._specload import override_present
-from squads._views import PlaybookSource, children_by_parent
+from squads._views import PlaybookSource, SourceIssue, children_by_parent
 from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
 
 if TYPE_CHECKING:
@@ -150,6 +151,10 @@ async def view_source(svc: Service, view_name: str, item_id: str) -> Response[Vi
             return Response(data=role.data, warnings=role.warnings)
         case "playbook":
             return Response(data=_playbook_source(cast(PlaybookSource, result)))
+        case "source":
+            issue = cast("SourceIssue | None", result)
+            data = None if issue is None else SourceIssueView(**vars(issue))
+            return Response(data=data)
         case _:
             shown = await _self_source(svc, item, view_name)
             return Response(data=shown.data, warnings=shown.warnings)

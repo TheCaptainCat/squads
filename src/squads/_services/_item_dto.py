@@ -1,6 +1,6 @@
 """Items projected onto their DTOs, with the display content the spec and the roster decide."""
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 from typing import Any, cast
 
 from squads import _badges as badges
@@ -8,7 +8,6 @@ from squads import _discussion as discussion
 from squads import _pronouns
 from squads._api._dto._display import AttributeDisplay, BadgeDisplay, Column, Display, StatusDisplay
 from squads._api._dto._items import (
-    Comment,
     ItemRow,
     ItemShowDisplay,
     KindDisplay,
@@ -20,6 +19,7 @@ from squads._models._index import SquadsDB
 from squads._models._item import Item
 from squads._models._subentity import SubEntity
 from squads._models._vocab import label_for
+from squads._services._comment_view import comment_dtos
 from squads._services._results import SubentityDetail
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
 from squads._workflow._models import WorkflowSpec
@@ -107,11 +107,6 @@ def item_row(item: Item, spec: WorkflowSpec, names: Mapping[str, str]) -> ItemRo
             "display": item_display(item, spec, names),
         }
     )
-
-
-def comment_dtos(comments: Sequence[discussion.Comment]) -> list[Comment]:
-    """A discussion's entries, each with its hash shown at the scope's length."""
-    return [Comment.model_validate(entry) for entry in discussion.comments_json(comments)]
 
 
 def kind_display(kind: str, spec: WorkflowSpec) -> KindDisplay:

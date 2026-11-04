@@ -101,7 +101,8 @@ The output is the same; the timing and Ctrl-C are not.
   seconds for its answer, including any time spent queued behind another request. The corpus-wide
   commands wait for as long as they take: `sq migrate up`, `sq migrate repad`,
   `sq migrate rename-type`, `sq migrate rename-status`, `sq migrate rename-field`,
-  `sq migrate rename-kind`, `sq repair`, `sq renumber` and `sq import`. After 10 seconds they print
+  `sq migrate rename-kind`, `sq repair`, `sq renumber`, `sq import`, `sq source pull` and
+  `sq source check`. After 10 seconds they print
   a line on stderr naming the operation, so a long run is not taken for a hang:
 
   ```
@@ -358,6 +359,14 @@ another machine can reach, and admits a request only when:
 
 A `GET` or `HEAD` never changes anything. The daemon never reads a file whose path a client sends,
 so a caller who reaches it reaches the squad and nothing else your user can read.
+
+**Source commands and credentials.** The `sq source` commands, `show --refresh` and
+`source unlink|relink` run where the squad is served, so in remote mode the daemon reaches the
+tracker and reads the credential store of the user it runs as (see
+[sources.md § "Credentials"](sources.md#credentials)). They are taken as command lines on the CLI
+listener only: none is an operation of the HTTP API, and the OpenAPI document names none of them.
+`sq source credential set` asks for each value in your terminal without echo, and the answer is
+never part of a command's output.
 
 **The actor is a claim.** A client names the actor a write is recorded under (the CLI sends what
 `--as` says), and the daemon does not verify it. The actor recorded on an item, a comment or a

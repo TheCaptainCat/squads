@@ -232,6 +232,114 @@ migration needs no manual step, and its entry says so rather than leaving you to
 
 ---
 
+## Upgrading to 0.20: the schema step
+
+0.20 reads three things a 0.19 file may already hold in another meaning: a top-level `source`
+key in an item's frontmatter, which becomes a core key, the role slug `source`, which becomes
+reserved, and an indented HTML comment opening with `sq:attrs` on the line directly under a
+comment header, which 0.20 reads as that comment's attributes rather than its text. It also adds
+the paired tag of a stored view (see
+[stability.md § "View tags and stored view bodies"](stability.md#view-tags-and-stored-view-bodies)).
+So 0.20 moves the schema from 0.19 to 0.20, and until the squad is migrated it stops every
+command with:
+
+```text
+error: this squad is at schema v0.19; squads 0.20.0 expects v0.20. Run sq migrate up to upgrade it (see `sq migrate help`).
+```
+
+**Before upgrading, rename a type or an alias named `source`.** `source` is a command of `sq` in
+0.20, so a workflow override that declares a type or an alias of that name is refused at load,
+and every command stops, `sq migrate up` included. The message names the manual steps:
+
+```text
+error: this squad's workflow override could not be loaded, so no command can answer with the vocabulary it declares.
+  file:  …/squads/.overrides/workflow.toml
+  cause: Invalid workflow spec:
+  - item 'task': alias 'source' shadows the built-in `sq source` command — rename or drop the alias; a squad upgrading follows the steps `sq migrate chlog v0.19.0..v0.20.0` prints, run with the release it is upgrading from
+  Fix the file, then re-run. `sq workflow lint` reports every problem at once with a fix hint.
+```
+
+Run these steps with 0.19, before upgrading, because 0.20 cannot load the override that declares
+the name:
+
+- **An alias:** rename or drop it in `squads/.overrides/workflow.toml`. No item file changes.
+- **A type:** declare a successor type under another name in the same file, run
+  `sq migrate rename-type source <new>`, which moves every item of the type to the new prefix and
+  folder (see
+  [workflow.md § "Renaming existing types and statuses"](workflow.md#renaming-existing-types-and-statuses)),
+  then delete the `source` type from the override. The items' old IDs are lost, so a reference to
+  one in prose or outside the squad no longer resolves.
+
+**The step rewrites no item file.** It scans every item file, and a squad clear of the three cases
+is stamped and carried unchanged; the index is rebuilt from the files, as on every run. Commit,
+then run it once per squad:
+
+```bash
+sq migrate up
+sq migrate chlog v0.19.0..v0.20.0
+sq check
+sq sync
+```
+
+```text
+  0.20.0 (schema v0.19→v0.20): `source` becomes a core item key and a reserved role slug, and a line shaped like a comment attribute under a comment header is read as one. Nothing is rewritten: the run refuses a squad that holds any of the three.
+migrated to schema v0.20; index rebuilt — run `sq sync` to regenerate the agent files (pointers, skills, CLAUDE.md/AGENTS.md sections)
+manual steps remain — read them with `sq migrate chlog v0.19.0..v0.20.0`
+```
+
+**What it refuses.** A squad holding any of the three cases stops the run with exit `1` before
+the stamp, with nothing written and the schema left at 0.19. Every case is listed:
+
+```text
+error: TASK-<n>: has a top-level 'source' key, now a core key
+TASK-<n>: line 29 directly under a comment header has the shape of a comment attribute
+2 problem(s) found; fix them by hand (`sq migrate chlog v0.19.0..v0.20.0` lists the steps).
+This step wrote nothing and the schema stamp is unchanged.
+The squad is still at schema v0.19: fix the cause, then re-run `sq migrate up`, which rebuilds the index from the files first.
+```
+
+A role with the slug `source` is listed as `ROLE-<n>: is a role with the reserved slug 'source'`.
+Fix each case, then run `sq migrate up` again. The first two need commands that a newer build
+refuses on a 0.19 squad, so run them with the 0.19 release, before upgrading:
+
+- **A top-level `source` key on an item.** `source` is the item's link to an external tracker, so
+  a key of that name cannot stay. Declare an attribute under another name for the holder's type in
+  `squads/.overrides/workflow.toml`:
+
+  ```toml
+  [items.<type>.attributes]
+  <new> = { kind = "str" }
+  ```
+
+  Then run `sq migrate rename-field source <new>`, which moves the value on every item and
+  refuses, changing nothing, where a holder does not declare `<new>`. To drop the value instead,
+  follow with `sq <type> <n> update --unset <new>` for each holder.
+- **A role whose slug is `source`.** `source` is reserved, and a roster slug never changes (see
+  [stability.md § "A roster slug never changes"](stability.md#a-roster-slug-never-changes)), so
+  replace the role:
+  1. Create its successor under a new slug the way the role was made: `sq role add <new> --file
+     <def>` with the definition `sq role source show` prints, or `sq role activate <new> --from
+     <template>`.
+  2. Reassign its work: `sq <type> <n> update --assignee <new>` for each item assigned to
+     `source`, and `--author <new>` for each item it authored.
+  3. Re-add each of its memories with `sq memory <new> add`, from `sq memory source show <slug>`,
+     then `sq memory source forget <slug>`.
+  4. Delete the role with `sq role source remove --purge`. Archiving is not enough, because an
+     archived role still holds its slug.
+
+  What is lost: the old role's own body and discussion (git history keeps them); its inbox, since
+  an `@source` in an existing comment reaches no one; the authorship of its comments, which keep
+  `source` as their author and can no longer be edited or removed; and any ref to the old role's
+  ID, which you re-point by hand.
+- **An attribute-shaped line under a comment header:** reword or remove the line, since 0.20 would
+  read it as the comment's attributes.
+
+**The whole team upgrades together.** Once the squad is at 0.20, an older squads refuses every
+command on it and asks for a package upgrade, so upgrade every machine, CI job and agent host
+that runs `sq` on the squad.
+
+---
+
 ## Upgrading to 0.19: the schema step
 
 0.19 stores every badge value and every sub-entity mapping under the key its declaration names,

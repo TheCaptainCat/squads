@@ -161,8 +161,8 @@ async def test_op_refuses_an_operation_the_log_does_not_know(history, invoke) ->
         1,
         [
             "error: unknown operation 'ghost' (one of: create, status, update, body, view, "
-            "comment, comment_edit, comment_remove, subentity, ref, link, retype, default_role, "
-            "remove, repair, renumber, migrate, rename-type, rename-status, rename-field, "
-            "rename-kind)"
+            "comment, comment_edit, comment_remove, subentity, ref, link, retype, source, "
+            "default_role, remove, repair, renumber, migrate, rename-type, rename-status, "
+            "rename-field, rename-kind)"
         ],
     )

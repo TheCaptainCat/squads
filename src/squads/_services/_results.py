@@ -328,6 +328,8 @@ class InboxLine:
     region: str | None
     hash: str | None = None
     """The full hash of the comment the line is in, when it is in one."""
+    source: str | None = None
+    """The source that wrote the comment the line is in, when a source wrote it."""
 
 
 @dataclass(frozen=True)
@@ -423,6 +425,8 @@ class ImportApplyResult:
     created_ids: list[str] = field(default_factory=list[str])
     warnings: list[str] = field(default_factory=list[str])
     findings: list[CheckIssue] = field(default_factory=list[CheckIssue])
+    #: Every item the apply pass wrote, for the findings read after the commit.
+    touched_ids: list[str] = field(default_factory=list[str])
 
     @property
     def error_findings(self) -> list[CheckIssue]:

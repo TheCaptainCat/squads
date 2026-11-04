@@ -342,6 +342,25 @@ async def test_up_lists_every_case_a_0_19_corpus_holds_and_stamps_nothing(
 
 
 @pytest.mark.covers("migrate up")
+async def test_up_refuses_a_workflow_override_naming_a_type_or_alias_source_and_names_the_manual(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    override = squad / ".overrides" / "workflow.toml"
+    override.parent.mkdir()
+    override.write_text('[items.task]\naliases = ["t", "source"]\n', encoding="utf-8")
+    before = _snapshot(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 1
+    assert "alias 'source' shadows the built-in `sq source` command" in result.output
+    assert "`sq migrate chlog v0.19.0..v0.20.0`" in result.output
+    assert _snapshot(squad) == before
+
+
+@pytest.mark.covers("migrate up")
 async def test_up_run_again_changes_no_file(tmp_path, monkeypatch, invoke) -> None:
     squad = shutil.copytree(SCHEMA_17_SQUAD, tmp_path / "old")
     monkeypatch.chdir(squad)

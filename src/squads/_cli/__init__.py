@@ -61,6 +61,12 @@ LAZY_GROUPS: tuple[LazyGroup, ...] = (
         "Post, list and take down notices on the team board.",
     ),
     LazyGroup(
+        "source",
+        "squads._cli._source",
+        "source_app",
+        "Manage the trackers this squad pulls issues from.",
+    ),
+    LazyGroup(
         "migrate",
         "squads._cli._migrate",
         "migrate_app",

@@ -3,7 +3,7 @@ id: FEAT-1271
 sequence_id: 1271
 type: feature
 title: Sources spec and pull
-status: Ready
+status: InProgress
 parent: EPIC-1268
 author: product-owner
 refs:
@@ -39,7 +39,7 @@ subentities:
   title: Source credentials held where the squad is served
   status: Todo
 created_at: '2026-11-03T15:57:07Z'
-updated_at: '2026-11-03T23:18:11Z'
+updated_at: '2026-11-03T23:59:45Z'
 ---
 <!-- sq:body -->
 A squad declares the trackers it pulls from, and `sq source pull` turns each opted-in issue into an item that agents work on. The tracker owns the issue's title, description, mapped fields and comments; the squad owns status, assignee, labels, type after creation, sub-entities, refs and its own comments. Nothing is written back to the tracker.

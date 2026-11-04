@@ -28,7 +28,6 @@ from squads._context import etag_of, get_context
 from squads._errors import ItemNotFoundError, SquadsError
 from squads._index._resolver import item_file, require_item
 from squads._index._store import IndexStore
-from squads._interactions._models import PlaybookSpec
 from squads._interactions._role_guidance import (
     RoleLike,
     allowed_create_types,
@@ -63,8 +62,10 @@ from squads._models._participants import (
     ANONYMOUS_SLUG,
     OPERATOR_SLUG_PREFIX,
     group_verb_problem,
+    is_sourced,
     operator_slug_problem,
     operator_slug_suggestion,
+    refuse_source_actor,
     require_valid_slug,
     reserved_role_slug_reason,
 )
@@ -73,7 +74,6 @@ from squads._paths import SquadPaths, number_for_id
 from squads._rendering._engine import render, scaffold_body
 from squads._roles._catalog import RoleDef
 from squads._roles._loader import ROLES_OVERRIDE_FILENAME
-from squads._roles._models import CatalogSource
 from squads._roles._projection import OperatorView, RoleView
 from squads._roles._resolver import (
     holds_default_designation,
@@ -98,8 +98,9 @@ from squads._services._skill_files import (
     stamped_skill_slug,
 )
 from squads._services._validators import ValidatorEngine
-from squads._specload import OverrideFiles
+from squads._spec_documents import SpecDocuments
 from squads._util import operator_slug, slugify
+from squads._view_bodies import encode_inner, find_view_pairs
 from squads._view_remedies import view_placement_invocation
 from squads._workflow import (
     ROSTER_OPERATOR,
@@ -361,7 +362,8 @@ def is_blank(text: str) -> bool:
 
 
 def require_title(title: str, what: str = "title") -> None:
-    """Raise ``SquadsError`` when *title* is blank (see :func:`is_blank`).
+    """Raise ``SquadsError`` when *title* is blank (see :func:`is_blank`) or holds an sq marker tag,
+    which would sit in the item's file outside any region and fail ``sq check``.
 
     The guard behind every write that sets an item's title: a blank title is not storable (the
     index model requires one), so it is refused before anything is written. A title that slugs
@@ -369,6 +371,7 @@ def require_title(title: str, what: str = "title") -> None:
     """
     if is_blank(title):
         raise SquadsError(f"{what} must not be empty")
+    reject_markers(title, what)
 
 
 def reject_markers(text: str, what: str = "body") -> None:
@@ -378,7 +381,7 @@ def reject_markers(text: str, what: str = "body") -> None:
     guidance, since an author writing about the marker system reaches for backticks first, which do
     not help, and so must be told what to write instead.
     """
-    if not sections.find_markers(text):
+    if not sections.find_markers(text) and sections.SQ_TAG_OPENER_RE.search(text) is None:
         return
     raise SquadsError(
         f"{what} must not contain sq marker comments (<!-- sq:… -->). "
@@ -461,22 +464,22 @@ class ServiceCore:
     def __init__(
         self,
         paths: SquadPaths,
-        spec: WorkflowSpec,
-        playbook: PlaybookSpec,
+        documents: SpecDocuments,
         store: IndexStore,
         backends: Callable[[], list[AgentBackend]],
-        catalog: CatalogSource,
-        files: OverrideFiles,
         refusal: SquadsError | None = None,
     ):
         self.paths = paths
-        self.spec = spec
-        self.playbook = playbook
+        self.spec = documents.workflow
+        self.playbook = documents.playbook
         self.store = store
         self._backends = backends
-        self.catalog = catalog
-        self.files = files
-        self.roster_projection = RosterProjection(paths, spec, playbook, store, backends, catalog)
+        self.catalog = documents.catalog
+        self.sources = documents.sources
+        self.files = documents.files
+        self.roster_projection = RosterProjection(
+            paths, self.spec, self.playbook, store, backends, self.catalog
+        )
         self._refusal = refusal
 
     @property
@@ -797,7 +800,8 @@ class ServiceCore:
         # declares an author for are lane-checked, resolved through the active spec and playbook.
         lane_warning: str | None = None
         if (
-            item_type in laned_types(self.playbook)
+            not is_sourced(author)
+            and item_type in laned_types(self.playbook)
             and not is_lane_exempt(
                 author,
                 self._default_role_slug(db) or catalog_default_slug(self.catalog()),
@@ -1317,6 +1321,8 @@ class ServiceCore:
         # a roster type (role/skill/operator) definition may self-author (bootstrap)
         if self.spec.item_is_roster(item_type) and author == slug:
             return
+        if is_sourced(author):
+            return  # written by a pull; the declared sources are `sq check`'s concern
         if not self._is_participant(db, author):
             raise SquadsError(
                 f"author {author!r} is not a registered role or operator — register it first"
@@ -1358,6 +1364,54 @@ class ServiceCore:
         return code
 
     # ------------------------------------------------------------------ shared helpers
+    def view_body_mutate(
+        self, item_id: str, view: str, text: str
+    ) -> Callable[[str, Item], tuple[str, bool]]:
+        """The section edit that sets the stored body of *view* on *item_id* to *text*, escaped,
+        placing the view's pair first when the body has none. It refuses a view not declared
+        stored. Line endings are stored as LF, so the body reads back equal up to them."""
+        declared = self.spec.views.get(view)
+        if declared is None or not declared.stored:
+            raise SquadsError(f"view {view!r} is not declared stored; it has no body to set")
+        inner = encode_inner(text.replace("\r\n", "\n").replace("\r", "\n"))
+
+        def mutate(file_text: str, item: Item) -> tuple[str, bool]:
+            self._refuse_classified_roster_write(item_id, item, "A view edit", allow_view=view)
+            if (stray := view_tags.out_of_region_view_error(item_id, view, file_text)) is not None:
+                raise SquadsError(stray)
+            current = sections.get_section(file_text, markers.BODY)
+            if current is None:
+                raise SquadsError(f"{item_id} has no sq:body region; a view body cannot be set")
+            slug = item.slug
+            addr: int | str = (
+                slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item_id)
+            )
+            placed = view_tags.place_view_tags(
+                current,
+                None,
+                seeded=views.seeded_view_names(
+                    item.type, slug, self.spec, from_squad=self.paths.squad_dir
+                )
+                | {view},
+                spec=self.spec,
+                item_type=item.type,
+                addr=addr,
+            )
+            new_inner = view_tags.with_view_inner(placed, view, inner)
+            if new_inner == current.replace("\r\n", "\n").strip("\n"):
+                return file_text, False
+            self.store.log("view", item.id, {"view": view, "body": True})
+            return sections.replace_section(file_text, markers.BODY, new_inner), True
+
+        return mutate
+
+    async def _stored_view_body(self, item: Item, view_name: str) -> str:
+        """The unescaped stored body of *view_name* on *item*, empty without a pair."""
+        text = await self._read_item_file(item, item_file(self.paths, item))
+        region = sections.get_section(text, markers.BODY) or ""
+        pair = next((p for p in find_view_pairs(region) if p.parts.name == view_name), None)
+        return pair.body if pair is not None else ""
+
     async def _locked_section_edit(
         self, item_id: str, mutate: Callable[[str, Item], tuple[str, bool]]
     ) -> tuple[Item, bool]:
@@ -1486,6 +1540,7 @@ class ServiceCore:
         normalised; without one the actor stays the system's."""
         declared = actor.declared_actor()
         if declared is not None:
+            refuse_source_actor(declared)
             actor.set_actor(await self.resolve_participant(declared))
 
     async def resolve_any_id(self, token: str) -> str:

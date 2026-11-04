@@ -122,6 +122,17 @@ if TYPE_CHECKING:
         SKILL_VIEW_DISABLE,
         SKILLS_ADD,
     )
+    from squads._api._ops_sources import (
+        SOURCE_CHECK,
+        SOURCE_CREDENTIAL_FIELDS,
+        SOURCE_CREDENTIAL_REMOVE,
+        SOURCE_CREDENTIAL_SET,
+        SOURCE_LIST,
+        SOURCE_PULL,
+        SOURCE_REFRESH,
+        SOURCE_RELINK,
+        SOURCE_UNLINK,
+    )
     from squads._api._ops_squad import (
         ADOPT,
         CHECK,
@@ -267,6 +278,15 @@ __all__ = (
     "SKILL_UPDATE",
     "SKILL_VIEW_ADD",
     "SKILL_VIEW_DISABLE",
+    "SOURCE_CHECK",
+    "SOURCE_CREDENTIAL_FIELDS",
+    "SOURCE_CREDENTIAL_REMOVE",
+    "SOURCE_CREDENTIAL_SET",
+    "SOURCE_LIST",
+    "SOURCE_PULL",
+    "SOURCE_REFRESH",
+    "SOURCE_RELINK",
+    "SOURCE_UNLINK",
     "SUBENTITY_ADD",
     "SUBENTITY_BODY",
     "SUBENTITY_COMMENT_ADD",
@@ -416,6 +436,20 @@ _GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "ROLE_COMMENTS",
             "SKILL_COMMENTS",
             "OPERATOR_COMMENTS",
+        ),
+    ),
+    (
+        "sources",
+        (
+            "SOURCE_CHECK",
+            "SOURCE_CREDENTIAL_FIELDS",
+            "SOURCE_CREDENTIAL_SET",
+            "SOURCE_CREDENTIAL_REMOVE",
+            "SOURCE_LIST",
+            "SOURCE_PULL",
+            "SOURCE_REFRESH",
+            "SOURCE_RELINK",
+            "SOURCE_UNLINK",
         ),
     ),
     (
@@ -575,6 +609,15 @@ _ORDER: tuple[str, ...] = (
     "OVERRIDES_DIFF",
     "OVERRIDES_SCAFFOLD",
     "OVERRIDES_UPDATE",
+    "SOURCE_CHECK",
+    "SOURCE_CREDENTIAL_FIELDS",
+    "SOURCE_CREDENTIAL_SET",
+    "SOURCE_CREDENTIAL_REMOVE",
+    "SOURCE_LIST",
+    "SOURCE_PULL",
+    "SOURCE_REFRESH",
+    "SOURCE_RELINK",
+    "SOURCE_UNLINK",
     "REFLOG",
     "CHECK",
     "SYNC",
@@ -658,7 +701,7 @@ def _table() -> tuple[Operation[Any, Any], ...]:
 
 @functools.cache
 def _routed() -> tuple[Operation[Any, Any], ...]:
-    return tuple(op for op in _table() if not op.local_only)
+    return tuple(op for op in _table() if not op.local_only and not op.private)
 
 
 def __getattr__(name: str) -> Any:
