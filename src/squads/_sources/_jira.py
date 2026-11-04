@@ -10,7 +10,15 @@ from email.message import Message
 from typing import Any, cast
 
 from squads._errors import SquadsError
-from squads._sources._connector import TYPE, Comment, Connector, Issue, Link, Reference
+from squads._sources._connector import (
+    TYPE,
+    Comment,
+    Connector,
+    Issue,
+    Link,
+    Reference,
+    RestrictedIssueError,
+)
 from squads._sources._http import (
     Advance,
     HttpClient,
@@ -21,6 +29,7 @@ from squads._sources._http import (
 from squads._sources._jira_probes import JiraHooks, JiraProbes
 from squads._sources._probes import Expected, Family, ProbeResult
 from squads._sources._records import mapping, names, records, text
+from squads._sources._spec import SourceScope
 
 #: A reference to an issue: a project key, a dash and a number.
 _REFERENCE_RE = re.compile(r"(?<![\w-])([A-Z][A-Z0-9_]+-\d+)\b")
@@ -36,10 +45,20 @@ _ISSUE_FIELDS = (
     "reporter",
     "creator",
     "updated",
+    "security",
 )
-_SUMMARY, _DESCRIPTION, _STATUS, _ISSUE_TYPE, _PRIORITY, _LABELS, _, _CREATOR, _UPDATED = (
-    _ISSUE_FIELDS
-)
+(
+    _SUMMARY,
+    _DESCRIPTION,
+    _STATUS,
+    _ISSUE_TYPE,
+    _PRIORITY,
+    _LABELS,
+    _,
+    _CREATOR,
+    _UPDATED,
+    _SECURITY,
+) = _ISSUE_FIELDS
 _FIELDS = ",".join(_ISSUE_FIELDS)
 _PAGE_SIZE = "100"
 #: The ``statusCategory`` keys of Jira's status model: the work is finished, or it is not.
@@ -88,9 +107,9 @@ class JiraConnector(Connector):
     #: The REST API root below the base URL.
     api: str
 
-    def __init__(self, base_url: str, source_filter: str, credential: Mapping[str, str]) -> None:
+    def __init__(self, base_url: str, scope: SourceScope, credential: Mapping[str, str]) -> None:
         self._base = base_url.rstrip("/")
-        self._jql = source_filter
+        self._jql = scope.value
         self._http = HttpClient(self._base, self._headers(credential))
 
     @abstractmethod
@@ -173,6 +192,8 @@ class JiraConnector(Connector):
         if not (issue_id and key):
             raise UnexpectedAnswerError("an issue without an id and a key")
         fields = mapping(record.get("fields"))
+        if fields.get(_SECURITY):
+            raise RestrictedIssueError
         category = text(mapping(mapping(fields.get(_STATUS)).get("statusCategory")), "key")
         if category not in _CLOSED_CATEGORIES | _OPEN_CATEGORIES:
             raise UnexpectedAnswerError(f"issue {key} has no known status category")
@@ -193,10 +214,15 @@ class JiraConnector(Connector):
         )
 
     def listing(self) -> list[Issue]:
-        """Every issue the JQL filter selects, closed ones included."""
-        return [
-            self._parse_issue(mapping(r)) for r in self._search(self._filter(), _FIELDS, _PAGE_SIZE)
-        ]
+        """Every issue the scope's JQL returns, closed ones included."""
+        found: list[Issue] = []
+        self.restricted = 0
+        for record in self._search(self._filter(), _FIELDS, _PAGE_SIZE):
+            try:
+                found.append(self._parse_issue(mapping(record)))
+            except RestrictedIssueError:
+                self.restricted += 1
+        return found
 
     def _issue_by(self, reference: str) -> Issue | None:
         """The issue named by an ID or a key; Jira answers 404 for one it will not show."""
@@ -208,7 +234,10 @@ class JiraConnector(Connector):
             )
         except NotFoundError:
             return None
-        return self._parse_issue(mapping(record))
+        try:
+            return self._parse_issue(mapping(record))
+        except RestrictedIssueError:
+            return None
 
     def issue(self, issue_id: str, key: str) -> Issue | None:
         """One issue by its ID, which survives a move to another project; ``None`` when Jira does

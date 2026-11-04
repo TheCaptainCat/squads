@@ -12,11 +12,11 @@ pytestmark = pytest.mark.anyio
 SECRET = "glpat-not-a-real-token"
 MAPS = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
 PRIORITY = '\n[sources.platform.maps.fields.priority.labels]\n"priority::high" = "high"\n'
-HEAD = '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
+HEAD = '[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
 ACCESS = [
     "  pass  http://tracker answers",
     "  pass  authenticated as squads-bot (id 1)",
-    "  pass  the token reads the issues the filter selects",
+    "  pass  the token reads the issues of the scope",
 ]
 HEADER = "platform (gitlab@v4)"
 
@@ -145,7 +145,9 @@ async def test_an_unmapped_label_and_an_unknown_author_are_warnings_and_exit_0(
     project, invoke, credentials_home
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        _route(tracker, "/api/v4/issues")["body"][0]["labels"].append("priority::low")
+        _route(tracker, "/api/v4/projects/platform%2Fapi/issues")["body"][0]["labels"].append(
+            "priority::low"
+        )
         await _declare(invoke, project, tracker.base_url, MAPS + PRIORITY)
         await _operator(invoke, "Alice Tester", "4567")
         await _operator(invoke, "Carol Tester", "7777")
@@ -278,7 +280,7 @@ async def test_an_unnamed_pull_reports_a_source_failing_access_pulls_the_others_
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             "".join(
-                f'[sources.{name}]\nconnector = "gitlab"\nfilter = "squads"\n'
+                f'[sources.{name}]\nconnector = "gitlab"\nproject = "platform/api"\n'
                 f'base_url = "{tracker.base_url}"\n{MAPS.replace("platform", name)}\n'
                 for name, tracker in (("platform", healthy), ("other", refusing))
             ),
@@ -327,7 +329,7 @@ async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
     project, invoke, credentials_home
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        _route(tracker, "/api/v4/issues")["body"] = []
+        _route(tracker, "/api/v4/projects/platform%2Fapi/issues")["body"] = []
         await _declare(invoke, project, tracker.base_url, MAPS + PRIORITY)
         code, output = await _checked(invoke, tracker, "platform")
 
@@ -337,8 +339,8 @@ async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
             [
                 HEADER,
                 *ACCESS[:2],
-                "  warn  the filter 'squads' selects no issue",
-                "        fix: label an issue on the tracker, or correct `filter` of source "
+                "  warn  the scope project 'platform/api' holds no issue",
+                "        fix: create an issue in the scope, or correct the scope of source "
                 "'platform' in sources.toml",
                 "  warn  maps.fields.priority.labels: 'priority::high' is carried by no in-filter "
                 "issue, so it cannot be confirmed among the tracker's labels",

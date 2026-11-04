@@ -3,12 +3,15 @@
 calls on a worker thread."""
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 
 from squads import _aio as aio
 from squads._errors import SquadsError
+from squads._models._source import OUT_OF_FILTER
 from squads._sources import _credentials as credentials
 from squads._sources._connector import Connector, FetchedIssue, Issue, SourceFetch
 from squads._sources._http import NotFoundError
+from squads._sources._maps import mapped_types
 from squads._sources._probes import ACCESS, Expected, missing_credential, run_probes
 from squads._sources._registry import load_connector
 from squads._sources._spec import SourceSpec, SourcesSpec
@@ -43,8 +46,8 @@ def connector_class(source: SourceSpec) -> type[Connector]:
 
 
 def connector_for(source: SourceSpec, credential: Mapping[str, str]) -> Connector:
-    """The connector class *source* names, built for its base URL, filter and *credential*."""
-    return connector_class(source)(source.base_url, source.filter, credential)
+    """The connector class *source* names, built for its base URL, scope and *credential*."""
+    return connector_class(source)(source.base_url, source.scope, credential)
 
 
 async def open_connector(source: SourceSpec, credential: Mapping[str, str]) -> Connector:
@@ -71,23 +74,60 @@ def _with_details(connector: Connector, issue: Issue) -> FetchedIssue | None:
         return None
 
 
+@dataclass
+class _Triage:
+    """What the listing rows decide before any detail is fetched."""
+
+    wanted: list[Issue] = field(default_factory=list[Issue])
+    lines: list[str] = field(default_factory=list[str])
+    untouched: int = 0
+    filtered_out: int = 0
+    no_type: int = 0
+
+
+def _triage(
+    listing: list[Issue], source: SourceSpec, stored: Mapping[str, frozenset[tuple[str, str]]]
+) -> _Triage:
+    """Sort the listing rows into those to read in detail, those that need nothing, and the
+    selected-but-unheld ones the filter or the type map leaves out."""
+    out = _Triage()
+    for issue in listing:
+        accepted = source.accepts(issue)
+        if issue.id in stored:
+            state = issue.state if accepted else OUT_OF_FILTER
+            if stored[issue.id] == frozenset({(issue.updated_at, state)}):
+                out.untouched += 1
+            else:
+                out.wanted.append(issue)
+        elif not accepted:
+            out.filtered_out += 1
+        else:
+            types = mapped_types(source.maps, issue)
+            if not types:
+                out.no_type += 1
+            elif len(types) > 1:
+                out.lines.append(
+                    f"{issue.key}: not created, the issue maps to several types ({sorted(types)})"
+                )
+            else:
+                out.wanted.append(issue)
+    return out
+
+
 def _fetch(
     connector: Connector,
+    source: SourceSpec,
     stored: Mapping[str, frozenset[tuple[str, str]]],
     linked: Mapping[str, str],
 ) -> SourceFetch:
     listing = connector.listing()
     listed = frozenset(issue.id for issue in listing)
-    wanted = [
-        issue
-        for issue in listing
-        if issue.id not in stored
-        or stored[issue.id] != frozenset({(issue.updated_at, issue.state)})
-    ]
+    triage = _triage(listing, source, stored)
+    skipped = triage.lines
+    untouched = triage.untouched
     found: dict[str, FetchedIssue | None] = {}
     changed: list[FetchedIssue] = []
-    skipped: list[str] = []
-    for issue in wanted:
+    for issue in triage.wanted:
         details = _with_details(connector, issue)
         if details is not None:
             changed.append(details)
@@ -99,21 +139,36 @@ def _fetch(
             )
     for issue_id in sorted(set(linked) - listed):
         issue = connector.issue(issue_id, linked[issue_id])
-        found[issue_id] = None if issue is None else _with_details(connector, issue)
-    return SourceFetch(tuple(changed), len(listing) - len(wanted), listed, found, tuple(skipped))
+        if issue is None:
+            found[issue_id] = None
+        elif stored.get(issue_id) == frozenset({(issue.updated_at, OUT_OF_FILTER)}):
+            untouched += 1
+        else:
+            found[issue_id] = _with_details(connector, issue)
+    return SourceFetch(
+        tuple(changed),
+        untouched,
+        listed,
+        found,
+        tuple(skipped),
+        connector.restricted,
+        triage.filtered_out,
+        triage.no_type,
+    )
 
 
 async def fetch_source(
     connector: Connector,
+    source: SourceSpec,
     stored: Mapping[str, frozenset[tuple[str, str]]],
     linked: Mapping[str, str],
 ) -> SourceFetch:
-    """The issues of *source*'s filter that no item holds or whose listed ``updated_at`` differs
-    from the stored ones (*stored*: ID to the ``(updated_at, state)`` of each item holding it, so an
-    issue back in the filter is read again), fetched in
-    detail, and each linked item of *linked* (ID to last known key) the filter no longer lists,
-    fetched one by one, through the *connector* :func:`open_connector` returned."""
-    return await aio.to_thread(lambda: _fetch(connector, stored, linked))
+    """The issues of *source* to read in detail, through the *connector* :func:`open_connector`
+    returned: a selected issue no item holds that maps to one type, and a held issue whose listed
+    ``updated_at`` or state differs from the stored ones (*stored*: ID to the ``(updated_at,
+    state)`` of each item holding it). Each held item of *linked* (ID to last known key) the
+    listing lacks is fetched by ID."""
+    return await aio.to_thread(lambda: _fetch(connector, source, stored, linked))
 
 
 def _fetch_one(connector: Connector, found: Issue | None, issue_id: str) -> SourceFetch:

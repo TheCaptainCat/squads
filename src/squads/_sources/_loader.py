@@ -13,8 +13,15 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from squads._errors import SquadsError
 from squads._models._participants import is_valid_slug
 from squads._sources._converters import CONVERTERS
+from squads._sources._filter import Expression, FilterSyntaxError, parse_expression
 from squads._sources._registry import CONNECTORS
-from squads._sources._spec import ConnectorDefaults, SourceMaps, SourceSpec, SourcesSpec
+from squads._sources._spec import (
+    ConnectorDefaults,
+    SourceMaps,
+    SourceScope,
+    SourceSpec,
+    SourcesSpec,
+)
 from squads._specload import (
     OverrideFiles,
     OverrideMessages,
@@ -32,6 +39,12 @@ SOURCES_OVERRIDE_FILENAME = ".overrides/sources.toml"
 SOURCES_TOP_LEVEL_KEYS: frozenset[str] = frozenset({"connectors", "sources"})
 SOURCES_SELECTED_SECTIONS: frozenset[str] = frozenset({"connectors", "sources"})
 
+#: Every scope key any connector version declares; a source table holds these apart from its other
+#: keys so a key of another connector is reported as a scope fault, not as an unknown key.
+_SCOPE_KEYS: frozenset[str] = frozenset(
+    key for entry in CONNECTORS.values() for key in entry.scope_keys
+)
+
 SOURCES_OVERRIDE_MESSAGES = OverrideMessages(
     malformed="malformed sources override {path}: {exc}",
     unreadable="cannot read sources override {path}: {exc}",
@@ -47,7 +60,8 @@ class _Declaration(BaseModel):
     connector: str
     version: str | None = None
     base_url: str
-    filter: str = ""
+    #: The ``filter`` table as written; its shape is checked against the connector version.
+    filter: Any = None
     trusted: bool = False
     enabled: bool = True
     converter: str | None = None
@@ -187,9 +201,74 @@ def _map_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSp
     return problems
 
 
+def _scope_of(
+    name: str, given: dict[str, Any], connector: str, version: str
+) -> tuple[SourceScope | None, list[str]]:
+    """The one scope *given* names for a source of ``connector@version``, or what is wrong."""
+    keys = CONNECTORS[(connector, version)].scope_keys
+    listed = ", ".join(keys)
+    foreign = sorted(set(given) - set(keys))
+    if foreign:
+        return None, [
+            f"source {name!r}: {key!r} is not a scope key of {connector}@{version} "
+            f"(scope keys: {listed})"
+            for key in foreign
+        ]
+    if len(given) != 1:
+        found = "no scope key" if not given else f"{len(given)} scope keys ({', '.join(given)})"
+        return None, [f"source {name!r}: {found}; name exactly one of: {listed}"]
+    ((key, value),) = given.items()
+    if not isinstance(value, str) or not value.strip():
+        return None, [f"source {name!r}: scope key {key!r} must be a non-empty string"]
+    return SourceScope(key=key, value=value), []
+
+
+def _kind_of(value: Any) -> str:
+    """What a TOML value is, as a message names it."""
+    return "a string" if isinstance(value, str) else f"a {type(value).__name__}"
+
+
+def _filter_of(
+    name: str, raw: Any, connector: str, version: str
+) -> tuple[dict[str, Expression], list[str]]:
+    """The parsed ``filter`` table of a source of ``connector@version``, or what is wrong."""
+    if raw is None:
+        return {}, []
+    entry = CONNECTORS[(connector, version)]
+    sides = ", ".join(entry.sides)
+    if not isinstance(raw, dict):
+        return {}, [
+            f"source {name!r}: sources.{name}.filter is a table of one expression per side "
+            f"(sides: {sides}), not {_kind_of(raw)}; the issues a source follows are "
+            f"named by its scope, one of: {', '.join(entry.scope_keys)}"
+        ]
+    if not raw:
+        return {}, [
+            f"source {name!r}: sources.{name}.filter is an empty table; write a side ({sides}) "
+            "or remove it"
+        ]
+    parsed: dict[str, Expression] = {}
+    problems: list[str] = []
+    for side, text in cast("dict[str, Any]", raw).items():
+        where = f"source {name!r}: sources.{name}.filter.{side}"
+        if side not in entry.sides:
+            problems.append(f"{where}: the connector has no side {side!r} (sides: {sides})")
+        elif not isinstance(text, str):
+            problems.append(f"{where}: must be a string holding one expression")
+        elif not text.strip(" \t\r\n"):
+            problems.append(f"{where}: the expression is empty")
+        else:
+            try:
+                parsed[side] = parse_expression(text)
+            except FilterSyntaxError as exc:
+                problems.append(f"{where}: {exc}")
+    return parsed, problems
+
+
 def _resolve(
     name: str,
     decl: _Declaration,
+    scope_keys: dict[str, Any],
     defaults_by_key: dict[str, ConnectorDefaults],
     spec: WorkflowSpec,
 ) -> tuple[SourceSpec | None, list[str]]:
@@ -211,8 +290,10 @@ def _resolve(
     if converter not in CONVERTERS:
         known = ", ".join(sorted(CONVERTERS))
         problems.append(f"source {name!r}: converter {converter!r} is unknown (known: {known})")
-    if not decl.filter.strip():
-        problems.append(f"source {name!r}: filter is required and must not be empty")
+    scope, found = _scope_of(name, scope_keys, decl.connector, version)
+    problems.extend(found)
+    selection, found = _filter_of(name, decl.filter, decl.connector, version)
+    problems.extend(found)
     problems.extend(
         _side_problems(f"source {name!r}", decl.maps, CONNECTORS[(decl.connector, version)].sides)
     )
@@ -232,14 +313,15 @@ def _resolve(
             "item type"
         )
     problems.extend(_map_problems(name, maps, decl.maps, spec))
-    if problems:
+    if problems or scope is None:
         return None, problems
     resolved = SourceSpec(
         name=name,
         connector=decl.connector,
         version=version,
         base_url=decl.base_url,
-        filter=decl.filter,
+        scope=scope,
+        filter=selection,
         trusted=decl.trusted,
         enabled=decl.enabled,
         converter=converter,
@@ -332,6 +414,20 @@ def _known_sides(table: dict[str, Any]) -> tuple[str, ...]:
     return ()
 
 
+def _scope_part(table: Any) -> dict[str, Any]:
+    """The scope keys of a ``[sources.<name>]`` table."""
+    if not isinstance(table, dict):
+        return {}
+    return {k: v for k, v in cast("dict[str, Any]", table).items() if k in _SCOPE_KEYS}
+
+
+def _without_scope(table: Any) -> Any:
+    """The ``[sources.<name>]`` table without its scope keys."""
+    if not isinstance(table, dict):
+        return table
+    return {k: v for k, v in cast("dict[str, Any]", table).items() if k not in _SCOPE_KEYS}
+
+
 def _build(raw: RawMapping, spec: WorkflowSpec, prefix: str) -> SourcesSpec:
     connectors, problems = _connector_defaults(raw)
     sources: dict[str, SourceSpec] = {}
@@ -340,11 +436,12 @@ def _build(raw: RawMapping, spec: WorkflowSpec, prefix: str) -> SourcesSpec:
         if shape:
             problems.extend(shape)
             continue
-        decl, errors = _parse(_Declaration, table, f"source {name!r}")
+        scope_keys = _scope_part(table)
+        decl, errors = _parse(_Declaration, _without_scope(table), f"source {name!r}")
         problems.extend(errors)
         if decl is None:
             continue
-        resolved, found = _resolve(name, decl, connectors, spec)
+        resolved, found = _resolve(name, decl, scope_keys, connectors, spec)
         problems.extend(found)
         if resolved is not None:
             sources[name] = resolved

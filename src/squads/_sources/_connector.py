@@ -8,11 +8,17 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from squads._sources._probes import Expected, Family, ProbeResult
+    from squads._sources._spec import SourceScope
 
 
 #: The side of an issue that holds its labels, and the side that holds its issue type.
 LABELS = "labels"
 TYPE = "type"
+
+
+class RestrictedIssueError(Exception):
+    """An issue the tracker marks restricted (confidential, or under a security level): squads
+    treats it as not returned."""
 
 
 @dataclass(frozen=True)
@@ -84,11 +90,11 @@ class FetchedIssue:
 class SourceFetch:
     """What the fetch phase brings back for one source.
 
-    ``changed`` holds the listed issues fetched in detail (no item holds them, or the listed
-    ``updated_at`` differs from the stored one), ``untouched`` counts the listed issues that needed
-    nothing, ``listed`` the IDs of every issue in the filter (closed included), and ``linked`` the
-    one-off fetch of each linked item the listing lacks: ``None`` for an issue the tracker no
-    longer returns.
+    ``changed`` holds the issues fetched in detail (a selected issue no item holds, or one an item
+    holds whose listed ``updated_at`` or state differs from the stored one), ``untouched`` counts
+    the held issues that needed nothing, ``listed`` the IDs of every issue of the scope (closed
+    included), and ``linked`` the one-off fetch of each held item the listing lacks: ``None`` for
+    an issue the tracker no longer returns.
     """
 
     changed: tuple[FetchedIssue, ...] = ()
@@ -99,6 +105,11 @@ class SourceFetch:
     )
     #: One line for each listed issue the tracker stopped returning while it was read.
     skipped: tuple[str, ...] = ()
+    #: How many restricted issues the listing dropped.
+    restricted: int = 0
+    #: How many unheld listed issues the filter rejected, and how many accepted ones map to no type.
+    filtered_out: int = 0
+    skipped_no_type: int = 0
 
 
 class Connector(ABC):
@@ -107,13 +118,17 @@ class Connector(ABC):
     #: The fields of the credential entry this connector reads, in the order they are asked for.
     credential_fields: tuple[str, ...]
 
+    #: How many restricted issues the last :meth:`listing` dropped.
+    restricted: int = 0
+
     @abstractmethod
-    def __init__(self, base_url: str, source_filter: str, credential: Mapping[str, str]) -> None:
-        """A connector for the tracker at *base_url*, reading the issues *source_filter* selects."""
+    def __init__(self, base_url: str, scope: SourceScope, credential: Mapping[str, str]) -> None:
+        """A connector for the tracker at *base_url*, reading the issues of *scope*."""
 
     @abstractmethod
     def listing(self) -> list[Issue]:
-        """Every issue in the filter, closed ones included, with its tracker ``updated_at``."""
+        """Every unrestricted issue of the scope, closed ones included, with its tracker
+        ``updated_at``; the restricted ones are counted in :attr:`restricted`."""
 
     @abstractmethod
     def issue(self, issue_id: str, key: str) -> Issue | None:

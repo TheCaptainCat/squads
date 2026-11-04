@@ -1,5 +1,5 @@
 """The checks of ``sq source check`` that every tracker shares: whether the host answers, the
-credential works and reads the filter, whether every value a map names exists, and which tracker
+credential works and reads the scope, whether every value a map names exists, and which tracker
 values nothing maps. A tracker names its endpoints and what it can enumerate."""
 
 from abc import ABC, abstractmethod
@@ -61,11 +61,11 @@ class TrackerProbes(ABC):
 
     @abstractmethod
     def read(self) -> bool:
-        """Whether the filter selects at least one issue; raises when the tracker refuses it."""
+        """Whether the scope holds at least one issue; raises when the tracker refuses it."""
 
     @abstractmethod
-    def filter_text(self) -> str:
-        """The source's filter as a message quotes it."""
+    def scope_text(self) -> str:
+        """The source's scope as a message quotes it."""
 
     @abstractmethod
     def credential_fix(self, expected: Expected) -> str:
@@ -158,7 +158,7 @@ class TrackerProbes(ABC):
         )
 
     def _read_failure(self, exc: SquadsError, expected: Expected) -> ProbeResult:
-        """Why the filter could not be read, and the fix that fits the cause."""
+        """Why the scope could not be read, and the fix that fits the cause."""
         if isinstance(exc, RateLimitedError):
             return self._limited(exc)
         if isinstance(exc, RejectedError):
@@ -169,8 +169,8 @@ class TrackerProbes(ABC):
             return ProbeResult(
                 ACCESS,
                 FAIL,
-                f"the filter {self.filter_text()} is not accepted: {exc}",
-                f"correct `filter` of source {expected.source!r} in sources.toml",
+                f"the scope {self.scope_text()} is not accepted: {exc}",
+                f"correct the scope of source {expected.source!r} in sources.toml",
             )
         return ProbeResult(ACCESS, FAIL, str(exc), self._host_fix(expected))
 
@@ -193,12 +193,12 @@ class TrackerProbes(ABC):
             yield ProbeResult(
                 ACCESS,
                 WARN,
-                f"the filter {self.filter_text()} selects no issue",
-                f"label an issue on the tracker, or correct `filter` of source {name!r} "
+                f"the scope {self.scope_text()} holds no issue",
+                f"create an issue in the scope, or correct the scope of source {name!r} "
                 "in sources.toml",
             )
             return
-        yield ProbeResult(ACCESS, PASS, "the token reads the issues the filter selects")
+        yield ProbeResult(ACCESS, PASS, "the token reads the issues of the scope")
 
     # -------------------------------------------------------------- vocabulary
     def _vocabulary(self, expected: Expected) -> Iterator[ProbeResult]:

@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1283,
+  "counter": 1286,
   "padding": 6,
   "items": {
     "12": {
@@ -66231,7 +66231,7 @@
       "subentities": [],
       "path": "agents/skills/SKILL-000974-launch-dev-host.md",
       "created_at": "2026-09-29T14:09:09Z",
-      "updated_at": "2026-09-29T14:09:27Z",
+      "updated_at": "2026-11-04T08:57:08Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -66269,7 +66269,7 @@
       "type": "epic",
       "title": "External sources: work tracked elsewhere",
       "slug": "external-sources-work-tracked-elsewhere",
-      "status": "Done",
+      "status": "InProgress",
       "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
       "parent": null,
       "author": "product-owner",
@@ -66279,7 +66279,7 @@
       "subentities": [],
       "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
       "created_at": "2026-11-03T15:57:06Z",
-      "updated_at": "2026-11-04T08:29:07Z",
+      "updated_at": "2026-11-04T09:54:29Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66624,7 +66624,7 @@
       "subentities": [],
       "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
       "created_at": "2026-11-03T22:41:36Z",
-      "updated_at": "2026-11-04T08:14:43Z",
+      "updated_at": "2026-11-04T09:52:23Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66936,7 +66936,7 @@
       ],
       "path": "tasks/TASK-001278-github-and-jira-connectors-behind-the-registry.md",
       "created_at": "2026-11-03T23:02:46Z",
-      "updated_at": "2026-11-04T05:38:55Z",
+      "updated_at": "2026-11-04T08:42:49Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67578,6 +67578,194 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1283"
+    },
+    "1284": {
+      "sequence_id": 1284,
+      "type": "bug",
+      "title": "Pull drops links between issues of different sources",
+      "slug": "pull-drops-links-between-issues-of-different-sources",
+      "status": "Open",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1271"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001284-pull-drops-links-between-issues-of-different-sources.md",
+      "created_at": "2026-11-04T09:00:26Z",
+      "updated_at": "2026-11-04T09:19:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "severity": "high"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1284"
+    },
+    "1285": {
+      "sequence_id": 1285,
+      "type": "feature",
+      "title": "Scoped sources and filter expressions",
+      "slug": "scoped-sources-and-filter-expressions",
+      "status": "InProgress",
+      "description": "Sources name a scope; squads filters; links span a tracker's sources",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "BUG-1284:implements",
+        "ADR-1274"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Scope keys replace the label filter",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Filter expressions and pull report",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Links resolve across a tracker's sources",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Docs and changelog for scoped sources",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001285-scoped-sources-and-filter-expressions.md",
+      "created_at": "2026-11-04T09:54:38Z",
+      "updated_at": "2026-11-04T09:59:29Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1285"
+    },
+    "1286": {
+      "sequence_id": 1286,
+      "type": "task",
+      "title": "Scoped sources, filter expressions and cross-source links",
+      "slug": "scoped-sources-filter-expressions-and-cross-source-links",
+      "status": "InProgress",
+      "description": "Scope keys, a filter evaluated in squads, pull report counts, restricted issues, links across a tracker's sources",
+      "parent": "FEAT-1285",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "BUG-1284:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Scope keys and the filter expression parser",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restricted issues skipped and counted",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Filter on the listing and the pull report counts",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Single-issue commands decide scope and filter",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Links carry their inverse type",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Links and holders resolve across one tracker",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Probes read the scope and the filter values",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Docs and changelog for scoped sources",
+          "status": "Todo",
+          "assignee": "tech-writer",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001286-scoped-sources-filter-expressions-and-cross-source-links.md",
+      "created_at": "2026-11-04T09:58:37Z",
+      "updated_at": "2026-11-04T10:35:47Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1286"
     }
   }
 }

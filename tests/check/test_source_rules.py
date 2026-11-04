@@ -25,7 +25,7 @@ from tests.check._arrange import (
 pytestmark = pytest.mark.anyio
 
 SOURCES = (
-    '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
+    '[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
     'base_url = "https://tracker.example"\n\n[sources.platform.maps.types.type]\nissue = "task"\n'
 )
 
@@ -90,7 +90,7 @@ async def test_an_item_whose_source_is_disabled_or_undeclared_is_a_warning(
     task = await _mirror(invoke, squad, "Mirror")
     assert await check_json() == ([], 0)
 
-    write_override(squad, "sources.toml", SOURCES.replace("filter", "enabled = false\nfilter"))
+    write_override(squad, "sources.toml", SOURCES.replace("project", "enabled = false\nproject"))
     disabled = await check_json()
     write_override(squad, "sources.toml", SOURCES.replace("platform", "other"))
     undeclared = await check_json()

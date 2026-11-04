@@ -15,7 +15,7 @@ SECRET = "glpat-not-a-real-token"
 KNOWN = {"author_id": "4567", "author_handle": "pchat", "author_name": "Pierre Chat"}
 STRANGER = {"author_id": "999", "author_handle": "visitor", "author_name": "Vera Visitor"}
 TYPES = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
-HEAD = '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
+HEAD = '[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
 
 
 def _declare(project, base_url: str, extra: str = "") -> None:

@@ -36,7 +36,7 @@ subentities:
   status: Done
   maps_to: US5
 created_at: '2026-11-03T23:02:46Z'
-updated_at: '2026-11-04T05:38:55Z'
+updated_at: '2026-11-04T08:42:49Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -245,4 +245,10 @@ Tests (2): pull from recorded responses creates an item with a wiki-markup descr
     - Unconfirmed API: `expand=properties` on the DC comment listing returning `sd.public.comment`.
 - [2026-11-04T05:38:55Z] `manager` Catherine Manager:
   - Accepted: REV-1283 approved with all findings verified; full suite 2117 passed; gates and sq check clean. Moved to Done under the operator's delegation of the loop.
+- [2026-11-04T08:35:10Z] `manager` Catherine Manager:
+  - Correction: GitLab is in the same position as GitHub and Jira. Its fixtures (tests/fixtures/sources/gitlab/routes.json) are hand-written from the API documentation and served on a loopback port; no pull has run against a live GitLab instance.
+- [2026-11-04T08:42:49Z] `manager` Catherine Manager:
+  - Live run (2026-11-04) on a private self-hosted GitLab 19.5 instance, from throwaway squads: source check, dry-run, pull, second pull (all unchanged), show --refresh, the title ownership refusal and sq repair (equal index) all behave as documented. Live shapes confirmed: /version, /user, labels, the instance-wide /issues listing by label, issue links, /users?username handle resolution, global issue IDs.
+  - Gap found: a link becomes a ref only when both issues belong to the same source (_services/_pull.py links(), keyed on source name + issue ID). With one source per label (epics, stories), every epic-to-story link was dropped silently; one source covering both kept them.
+  - Not exercised live: comments (the issues had none), closed, out-of-filter and gone issues, the type side, rate limits.
 <!-- sq:discussion:end -->

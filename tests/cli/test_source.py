@@ -17,7 +17,9 @@ pytestmark = pytest.mark.anyio
 
 TRACKER = "http://127.0.0.1:9"
 SECRET = "glpat-not-a-real-token"
-HEAD = f'[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\nbase_url = "{TRACKER}/"\n'
+HEAD = (
+    f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\nbase_url = "{TRACKER}/"\n'
+)
 TYPES = '\n[sources.platform.maps.types.labels]\nbug = "task"\n'
 SOURCE = HEAD + TYPES
 
@@ -65,6 +67,20 @@ async def test_override_scaffold_sources_writes_a_stamped_starter(project, invok
             "state": "current",
         }
     ]
+
+
+@pytest.mark.covers("override scaffold", "name")
+async def test_the_scaffolded_worked_example_loads_once_uncommented(project, invoke) -> None:
+    await invoke(["override", "scaffold", "sources"])
+    path = project.squad_dir / ".overrides" / "sources.toml"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("# --- Worked example"))
+    example = [line.removeprefix("# ") if line != "#" else "" for line in lines[start + 2 : -1]]
+    path.write_text("\n".join([*lines[: start + 1], *example]) + "\n", encoding="utf-8")
+
+    listed = await read_json(invoke, ["source", "list", "--json"])
+
+    assert [s["name"] for s in listed["sources"]] == ["platform"]
 
 
 # ------------------------------------------------------------------------------------ validation

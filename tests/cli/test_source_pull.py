@@ -15,7 +15,10 @@ MAPS = (
     '\n[sources.platform.maps.types.type]\nissue = "task"\n'
     '\n[sources.platform.maps.fields.priority.labels]\n"priority::high" = "high"\n'
 )
-HEAD = 'connector = "gitlab"\nfilter = "squads"\n'
+HEAD = 'connector = "gitlab"\nproject = "platform/api"\n'
+
+
+_FILTER = "[sources.platform.filter]\nlabels = '{}'\n"
 
 
 async def _declare(invoke, project, base_url: str, extra: str = "") -> None:
@@ -31,7 +34,7 @@ async def _declare(invoke, project, base_url: str, extra: str = "") -> None:
 
 def _listing(tracker: harness.Tracker) -> list[dict[str, Any]]:
     """The recorded issue listing, which a case edits to change what the tracker answers."""
-    route = next(r for r in tracker.routes if r["path"] == "/api/v4/issues")
+    route = next(r for r in tracker.routes if r["path"] == "/api/v4/projects/platform%2Fapi/issues")
     return route["body"]
 
 
@@ -91,6 +94,9 @@ async def test_a_first_pull_creates_the_items_with_their_record_description_and_
                 "left_out": None,
                 "lines": [],
                 "failed": False,
+                "restricted": 0,
+                "filtered_out": 0,
+                "skipped_no_type": 0,
             }
         ],
     }
@@ -224,7 +230,7 @@ async def test_a_linked_issue_the_filter_lost_is_out_of_filter_or_gone_and_its_i
     assert first["sources"][0]["created"] == ["TASK-2", "TASK-3", "TASK-4", "TASK-5"]
     assert states == ["out-of-filter", "gone"]
     assert second["sources"][0]["lines"] == [
-        "platform/api#20: out-of-filter; TASK-4 stays",
+        "platform/api#20: out-of-filter (outside the scope); TASK-4 stays",
         "platform/api#21: deleted or no longer readable; TASK-5 stays",
     ]
 
@@ -304,17 +310,120 @@ async def test_a_named_pull_of_a_disabled_source_is_refused_and_an_unnamed_pull_
 
 
 @pytest.mark.covers("source pull", "source")
-async def test_an_issue_mapping_to_no_item_type_is_reported_and_not_created(
+async def test_an_issue_mapping_to_no_item_type_is_counted_not_named_and_not_detailed(
     project, invoke, credentials_home
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         await _declare(invoke, project, tracker.base_url)
         _listing(tracker)[1]["issue_type"] = "incident"
         pulled = await _pull(invoke, "platform")
+        asked = [path for path, _, _ in tracker.requests]
+        shown = await invoke(["source", "pull", "platform"])
 
     [report] = pulled["sources"]
-    assert report["created"] == ["TASK-2"]
-    assert report["lines"] == ["platform/api#13: not created, the issue maps to no item type"]
+    assert (report["created"], report["skipped_no_type"], report["lines"]) == (["TASK-2"], 1, [])
+    assert not [p for p in asked if "/issues/13" in p]
+    assert "skipped 1 (no type)" in shown.output
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_an_issue_mapping_to_two_types_is_named_with_its_values_on_every_pull(
+    project, invoke, credentials_home
+) -> None:
+    two = '\n[sources.platform.maps.types.labels]\nbug = "bug"\n'
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, two)
+        first = await _pull(invoke, "platform")
+        asked = [path for path, _, _ in tracker.requests]
+        second = await _pull(invoke, "platform")
+
+    expected = ["platform/api#12: not created, the issue maps to several types (['bug', 'task'])"]
+    assert first["sources"][0]["lines"] == expected
+    assert second["sources"][0]["lines"] == expected
+    assert first["sources"][0]["created"] == ["TASK-2"]
+    assert not [p for p in asked if "/issues/12/" in p]
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_the_filter_selects_issues_and_counts_the_rejected_ones(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, _FILTER.format("squads and not bug"))
+        pulled = await _pull(invoke, "platform")
+        shown = await invoke(["source", "pull", "platform"])
+
+    [report] = pulled["sources"]
+    assert (report["created"], report["filtered_out"], report["lines"]) == (["TASK-2"], 1, [])
+    assert "filtered out 1" in shown.output
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_the_sides_of_a_filter_are_anded(project, invoke, credentials_home) -> None:
+    both = "[sources.platform.filter]\nlabels = 'squads'\ntype = 'incident'\n"
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        _listing(tracker)[1]["issue_type"] = "incident"
+        await _declare(invoke, project, tracker.base_url, both)
+        pulled = await _pull(invoke, "platform")
+
+    [report] = pulled["sources"]
+    assert (report["created"], report["filtered_out"]) == ([], 1)
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_held_issue_the_filter_now_rejects_reads_out_of_filter_and_is_not_read_again(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url)
+        await _pull(invoke, "platform")
+        await _declare(invoke, project, tracker.base_url, _FILTER.format("squads and not bug"))
+        second = await _pull(invoke, "platform")
+        state = (await _shown(invoke, tracker, 2))["source"]["state"]
+        before = len(tracker.requests)
+        third = await _pull(invoke, "platform")
+        later = [path for path, _, _ in tracker.requests[before:]]
+
+    assert state == "out-of-filter"
+    assert second["sources"][0]["lines"] == [
+        "platform/api#12: out-of-filter (rejected by the filter); TASK-2 stays"
+    ]
+    assert third["sources"][0]["unchanged"] == 2
+    assert not [p for p in later if p.endswith(("/notes", "/links"))]
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_an_out_of_filter_issue_the_filter_accepts_again_reads_open_again(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url)
+        await _pull(invoke, "platform")
+        await _declare(invoke, project, tracker.base_url, _FILTER.format("squads and not bug"))
+        await _pull(invoke, "platform")
+        await _declare(invoke, project, tracker.base_url)
+        again = await _pull(invoke, "platform")
+        state = (await _shown(invoke, tracker, 2))["source"]["state"]
+
+    assert (state, again["sources"][0]["refreshed"]) == ("open", 1)
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_an_out_of_filter_issue_outside_the_scope_is_not_fetched_in_detail_again(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url)
+        await _pull(invoke, "platform")
+        _listing(tracker)[:] = _listing(tracker)[1:]
+        await _pull(invoke, "platform")
+        before = len(tracker.requests)
+        third = await _pull(invoke, "platform")
+        later = [path for path, _, _ in tracker.requests[before:]]
+
+    assert (await _shown(invoke, tracker, 2))["source"]["state"] == "out-of-filter"
+    assert third["sources"][0]["lines"] == []
+    assert not [p for p in later if p.endswith(("/notes", "/links"))]
 
 
 @pytest.mark.covers("import", "file")
@@ -337,7 +446,9 @@ async def test_a_redirect_to_another_address_never_carries_the_token(
         harness.serve([]) as elsewhere,
         harness.serve(harness.load_routes("gitlab/routes.json")) as tracker,
     ):
-        route = next(r for r in tracker.routes if r["path"] == "/api/v4/issues")
+        route = next(
+            r for r in tracker.routes if r["path"] == "/api/v4/projects/platform%2Fapi/issues"
+        )
         route.update(status=302, headers={"Location": f"{elsewhere.base_url}/steal"})
         await _declare(invoke, project, tracker.base_url)
         result = await invoke(["source", "pull", "platform"])
@@ -385,6 +496,9 @@ async def test_a_link_target_that_fails_costs_only_the_link_and_the_report_lists
                 "platform/api#13: dropped, title must not be empty",
             ],
             "failed": False,
+            "restricted": 0,
+            "filtered_out": 0,
+            "skipped_no_type": 0,
         }
     ]
     assert host["refs"] == []
@@ -513,4 +627,56 @@ async def test_a_dropped_link_keeps_the_host_issue_to_be_fetched_and_reported_ag
     assert [r["lines"] for p in pulls for r in p["sources"]] == [
         [line, "platform/api#13: dropped, title must not be empty"],
         [line, "platform/api#13: dropped, title must not be empty"],
+    ]
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_confidential_issue_is_not_imported_and_the_report_counts_it(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url)
+        _listing(tracker)[1]["confidential"] = True
+        pulled = await _pull(invoke, "platform")
+        again = await _pull(invoke, "platform")
+        shown = await invoke(["source", "pull", "platform"])
+
+    [report] = pulled["sources"]
+    assert (report["created"], report["restricted"]) == (["TASK-2"], 1)
+    assert (again["sources"][0]["created"], again["sources"][0]["restricted"]) == ([], 1)
+    assert "restricted 1" in shown.output
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_an_internal_note_is_not_imported_as_a_comment(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        notes = _notes(tracker, 12)
+        notes.append({**notes[0], "id": 399, "body": "Staff only.", "internal": True})
+        await _declare(invoke, project, tracker.base_url)
+        await _pull(invoke, "platform")
+        first = await _shown(invoke, tracker, 2)
+
+    assert [c["body"] for c in first["discussion"]] == [
+        "- The endpoint returns 500 when the body is empty."
+    ]
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_held_issue_that_becomes_confidential_reads_gone_and_its_item_stays(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url)
+        await _pull(invoke, "platform")
+        _listing(tracker)[1]["confidential"] = True
+        _issue_route(tracker, 13)["confidential"] = True
+        second = await _pull(invoke, "platform")
+        state = (await _shown(invoke, tracker, 3))["source"]["state"]
+
+    assert state == "gone"
+    assert second["sources"][0]["restricted"] == 1
+    assert second["sources"][0]["lines"] == [
+        "platform/api#13: deleted or no longer readable; TASK-3 stays"
     ]
