@@ -16,11 +16,10 @@ across posts or clears.
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._dto._board import BoardClearRequest, BoardListRequest, BoardPostRequest
+from squads._api import BoardClearRequest, BoardListRequest, BoardPostRequest, ops
 from squads._cli import _calls as calls
 from squads._cli._common import console, handle_errors, require_as, resolve_body
-from squads._cli._render._board import render_cleared, render_notices, render_posted
+from squads._cli._render import render_cleared, render_notices, render_posted
 
 board_app = typer.Typer(
     no_args_is_help=True,

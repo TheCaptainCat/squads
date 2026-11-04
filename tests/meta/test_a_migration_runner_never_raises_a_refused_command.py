@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 import squads._migrations as migrations_pkg
-from squads._api._ops import OPERATIONS
+from squads._api import ops
 
 _DIR = Path(migrations_pkg.__file__).parent
 _FORBIDDEN_NAMES = frozenset({"skew_message", "ensure_no_skew"})
@@ -32,7 +32,7 @@ _NO_CALL = frozenset({"migrate help", "migrate chlog"})
 def _permitted_when_behind() -> set[str]:
     granted = {
         _MIGRATE_COMMANDS[op.name]
-        for op in OPERATIONS
+        for op in ops.OPERATIONS
         if op.name in _MIGRATE_COMMANDS and op.grant is not None and op.grant.behind
     }
     return granted | _NO_CALL

@@ -9,11 +9,9 @@ from collections.abc import Mapping
 from types import MappingProxyType
 
 from squads._interactions._loader import bundled_type_names
-from squads._models import _attributes as attrs
-from squads._models._attributes import ORIGIN_PROJECT, ORIGIN_SYSTEM
-from squads._models._item import Item
-from squads._roles._catalog import PREDEFINED, get_catalog
-from squads._workflow._models import ROSTER_SKILL, WorkflowSpec
+from squads._models import ORIGIN_PROJECT, ORIGIN_SYSTEM, AttributeKey, Item, attrs
+from squads._roles import PREDEFINED, get_catalog
+from squads._workflow import ROSTER_SKILL, WorkflowSpec
 
 SQUADS_SKILL = "squads"
 
@@ -75,9 +73,7 @@ def resolve_operator_invocable(
 ) -> tuple[bool, bool]:
     """``(value, is_set)``: the squad's stored boolean when *item* carries one, else the
     declared default. Any other stored value resolves as if absent."""
-    stored = (
-        None if item is None else attrs.flag_attribute(item, attrs.AttributeKey.OPERATOR_INVOCABLE)
-    )
+    stored = None if item is None else attrs.flag_attribute(item, AttributeKey.OPERATOR_INVOCABLE)
     if stored is not None:
         return stored, True
     return declared_operator_invocable(slug, spec), False

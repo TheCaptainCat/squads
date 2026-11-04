@@ -1,20 +1,19 @@
 """The source operations: the credential verbs, which fill and empty the per-user store the
 serving process owns. No operation here returns, logs or stores a credential value in the squad."""
 
-from squads._api._dto._sources import (
+from squads._api import (
     CredentialFields,
     CredentialFieldsRequest,
     CredentialRemoved,
     CredentialRemoveRequest,
     CredentialSetRequest,
     CredentialWritten,
+    Response,
 )
-from squads._api._response import Response
 from squads._errors import SquadsError
 from squads._services._base import ServiceCore
 from squads._services._fetch import connector_class
-from squads._sources import _credentials as credentials
-from squads._sources._spec import SourceSpec
+from squads._sources import SourceSpec
 
 
 class SourceOpsMixin(ServiceCore):
@@ -41,7 +40,7 @@ class SourceOpsMixin(ServiceCore):
                 f"the credential of source {source.name!r} takes a non-empty value for each of: "
                 f"{', '.join(fields)}"
             )
-        path = credentials.write_entry(source.base_url, req.values)
+        path = self.credentials.write_entry(source.base_url, req.values)
         return Response(
             data=CredentialWritten(
                 source=source.name, base_url=source.base_url, fields=fields, path=str(path)
@@ -51,7 +50,7 @@ class SourceOpsMixin(ServiceCore):
     async def remove_credential(self, req: CredentialRemoveRequest) -> Response[CredentialRemoved]:
         """Delete the credential of the source; nothing happens when it has none."""
         source = self._declared_source(req.source)
-        removed = credentials.remove_entry(source.base_url)
+        removed = self.credentials.remove_entry(source.base_url)
         return Response(
             data=CredentialRemoved(source=source.name, base_url=source.base_url, removed=removed)
         )

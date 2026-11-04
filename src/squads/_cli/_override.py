@@ -12,16 +12,16 @@ Each prints what it read or wrote as JSON with ``--json``.
 
 import typer
 
-from squads._api import _ops as ops
-from squads._api._dto._overrides import (
+from squads._api import (
     OverrideDiffRequest,
     OverrideListRequest,
     OverrideScaffoldRequest,
     OverrideUpdateRequest,
+    ops,
 )
 from squads._cli import _calls as calls
 from squads._cli._common import console, err_console, handle_errors
-from squads._cli._render._overrides import (
+from squads._cli._render import (
     print_errors,
     render_diffs,
     render_overrides,

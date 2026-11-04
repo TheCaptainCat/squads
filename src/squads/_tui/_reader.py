@@ -9,9 +9,7 @@ from textual.content import Content
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Markdown, Static, TabbedContent, TabPane
 
-from squads._api import _ops as ops
-from squads._api._dto._display import Display
-from squads._api._dto._items import Comment, ItemShow, ItemShowRequest, Subentity
+from squads._api import Comment, Display, ItemShow, ItemShowRequest, Subentity, ops
 from squads._tui._session import Session
 
 _EMPTY = "*(none)*"

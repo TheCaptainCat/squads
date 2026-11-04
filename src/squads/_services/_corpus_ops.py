@@ -3,14 +3,16 @@ the import, each answering with its report."""
 
 from collections.abc import Sequence
 
-from squads._api._dto._squad import (
+from squads._api import (
     AppliedMigration,
     ImportFindingRow,
     ImportIssueRow,
     ImportReport,
     ImportRequest,
+    LeftReference,
     MigrateRequest,
     MigrationReport,
+    MovedFile,
     Reconciled,
     RenamedId,
     RenameFieldReport,
@@ -28,18 +30,12 @@ from squads._api._dto._squad import (
     RepadRequest,
     RepairReport,
     RepairRequest,
+    Response,
 )
-from squads._api._dto._squad import (
-    LeftReference as LeftReferenceDto,
-)
-from squads._api._dto._squad import (
-    MovedFile as MovedFileDto,
-)
-from squads._api._response import Response
 from squads._context import get_context
-from squads._migrations._registry import MIGRATIONS, Migration
-from squads._models._schema import SCHEMA_VERSION
-from squads._services._duplicate_ids import LeftReference, MovedFile
+from squads._migrations import MIGRATIONS, Migration
+from squads._models import SCHEMA_VERSION
+from squads._services._duplicate_ids import FileMove, StaleReference
 from squads._services._import import ImportMixin
 from squads._services._maintenance import MaintenanceMixin
 from squads._services._rename import RenameMixin
@@ -57,14 +53,14 @@ def unreadable_lines(messages: Sequence[str]) -> list[str]:
     return [m if isinstance(m, SelfRemedied) else f"{m}{_CARRIED_FORWARD}" for m in messages]
 
 
-def moved_files(moves: Sequence[MovedFile]) -> list[MovedFileDto]:
+def moved_files(moves: Sequence[FileMove]) -> list[MovedFile]:
     """The files a renumber moved, as the report carries them."""
-    return [MovedFileDto(old=m.old, new=m.new, file=m.file, target=m.target) for m in moves]
+    return [MovedFile(old=m.old, new=m.new, file=m.file, target=m.target) for m in moves]
 
 
-def left_references(refs: Sequence[LeftReference]) -> list[LeftReferenceDto]:
+def left_references(refs: Sequence[StaleReference]) -> list[LeftReference]:
     """The references a renumber left unchanged, as the report carries them."""
-    return [LeftReferenceDto(id=r.id, file=r.file, where=r.where, text=r.text) for r in refs]
+    return [LeftReference(id=r.id, file=r.file, where=r.where, text=r.text) for r in refs]
 
 
 def _manual_span(applied: list[Migration]) -> str:

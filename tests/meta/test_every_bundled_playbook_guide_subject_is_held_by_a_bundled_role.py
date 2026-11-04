@@ -4,8 +4,8 @@ nobody is dead text, and the playbook loader checks grammar only."""
 
 import pytest
 
-from squads._interactions._playbook import get_playbook_spec
-from squads._roles._catalog import get_catalog
+from squads._interactions import get_playbook_spec
+from squads._roles import get_catalog
 
 
 def _subjects() -> list[tuple[str, str]]:

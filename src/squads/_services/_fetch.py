@@ -7,14 +7,23 @@ from dataclasses import dataclass, field
 
 from squads import _aio as aio
 from squads._errors import SquadsError
-from squads._models._source import OUT_OF_FILTER
-from squads._sources import _credentials as credentials
-from squads._sources._connector import Connector, FetchedIssue, Issue, SourceFetch
-from squads._sources._http import NotFoundError
-from squads._sources._maps import mapped_types
-from squads._sources._probes import ACCESS, Expected, missing_credential, run_probes
-from squads._sources._registry import load_connector
-from squads._sources._spec import SourceSpec, SourcesSpec
+from squads._models import OUT_OF_FILTER
+from squads._sources import (
+    ACCESS,
+    Connector,
+    CredentialStore,
+    Expected,
+    FetchedIssue,
+    Issue,
+    NotFoundError,
+    SourceFetch,
+    SourceSpec,
+    SourcesSpec,
+    load_connector,
+    mapped_types,
+    missing_credential,
+    run_probes,
+)
 
 
 def require_enabled(source: SourceSpec) -> None:
@@ -26,7 +35,7 @@ def require_enabled(source: SourceSpec) -> None:
         )
 
 
-def require_credential(source: SourceSpec) -> dict[str, str]:
+def require_credential(credentials: CredentialStore, source: SourceSpec) -> dict[str, str]:
     """The stored credential of *source*; refused naming the command that stores one."""
     credential = credentials.read_entry(source.base_url)
     if credential is None:
@@ -221,7 +230,9 @@ async def resolve_handle(source: SourceSpec, credential: Mapping[str, str], hand
 
 
 async def resolve_identity_handles(
-    sources: Callable[[], SourcesSpec], values: Mapping[str, str | None]
+    credentials: CredentialStore,
+    sources: Callable[[], SourcesSpec],
+    values: Mapping[str, str | None],
 ) -> dict[str, str | None]:
     """*values* (source name to a user ID, a ``@handle`` or ``None`` to remove) with each handle
     replaced by the immutable ID its source's connector answers; an ID is kept as given.
@@ -235,5 +246,5 @@ async def resolve_identity_handles(
             continue
         source = sources().source(name)
         require_enabled(source)
-        out[name] = await resolve_handle(source, require_credential(source), value)
+        out[name] = await resolve_handle(source, require_credential(credentials, source), value)
     return out

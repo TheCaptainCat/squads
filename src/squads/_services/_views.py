@@ -7,14 +7,13 @@ from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
 from squads._errors import SquadsError
-from squads._index._resolver import item_file, require_item
-from squads._models import _markers as markers
-from squads._models._item import Item
+from squads._index import item_file, require_item
+from squads._models import Item, markers
 from squads._paths import number_for_id
 from squads._services._base import ServiceCore
 from squads._services._source_view import described_by
 from squads._transform import TransformLoader
-from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, ViewSpec
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, ViewSpec
 
 
 class ViewsMixin(ServiceCore):

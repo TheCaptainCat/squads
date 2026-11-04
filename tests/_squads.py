@@ -15,7 +15,7 @@ from pathlib import Path
 
 from squads._context import bind_context, get_context
 from squads._paths import SquadPaths, resolve
-from squads._services import _service as service
+from squads._services import _service as services_service
 
 FROZEN = datetime(2026, 6, 7, 10, 0, 0, tzinfo=UTC)
 
@@ -38,17 +38,17 @@ def build_squad(root: Path, builder: Builder) -> Path:
 
 def init_minimal(root: Path) -> None:
     """The unseeded `minimal` squad: one role, no bundled skills, so the counter starts at 1."""
-    asyncio.run(service.init(root=root, roles_spec="minimal", _skip_skill_seed=True))
+    asyncio.run(services_service.init(root=root, roles_spec="minimal", _skip_skill_seed=True))
 
 
 def init_seeded(root: Path) -> None:
     """The `minimal` squad with the bundled skills seeded, as `sq init` leaves it."""
-    asyncio.run(service.init(root=root, roles_spec="minimal"))
+    asyncio.run(services_service.init(root=root, roles_spec="minimal"))
 
 
 def init_full(root: Path) -> None:
     """The squad with every bundled role and the bundled skills seeded."""
-    asyncio.run(service.init(root=root, roles_spec="all"))
+    asyncio.run(services_service.init(root=root, roles_spec="all"))
 
 
 def init_overridden(
@@ -73,7 +73,7 @@ def init_overridden(
             encoding="utf-8",
         )
     asyncio.run(
-        service.init(
+        services_service.init(
             root=root,
             roles_spec=roles_spec,
             squad_dir=squad_dir,

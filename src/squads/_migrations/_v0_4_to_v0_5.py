@@ -17,14 +17,14 @@ from typing import Any
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._backends._claude_code._frontmatter import oneline
-from squads._index._store import IndexStore
-from squads._interactions._skills import bundled_skill_slugs, skill_description
+from squads._backends import oneline
+from squads._index import IndexStore
+from squads._interactions import bundled_skill_slugs, skill_description
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import with_legacy_extra
-from squads._models._item import Item
+from squads._models import Item
 from squads._paths import SquadPaths
-from squads._rendering._engine import render
+from squads._rendering import render
 
 _CLAUDE_DIR = ".claude"
 _SKILLS = "skills"

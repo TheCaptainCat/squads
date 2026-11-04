@@ -6,7 +6,7 @@ import json
 from rich.console import Console
 from rich.tree import Tree
 
-from squads._api._dto._reflog import Reflog, ReflogEntryRow
+from squads._api import Reflog, ReflogEntryRow
 from squads._cli._render._style import e
 
 

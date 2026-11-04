@@ -1,7 +1,7 @@
 """Transforms of the bundled views: pure functions from a resolved source to plain data."""
 
-from squads._models._item import Item
-from squads._workflow._models import WorkflowSpec
+from squads._models import Item
+from squads._workflow import WorkflowSpec
 
 type Row = dict[str, str | None]
 

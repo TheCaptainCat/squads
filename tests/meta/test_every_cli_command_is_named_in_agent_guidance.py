@@ -11,12 +11,18 @@ import typer.main
 from squads import _docfiles
 from squads._backends import _managed_region
 from squads._cli import app
-from squads._interactions._playbook import get_playbook_spec, managed_item_types
-from squads._interactions._skills import GREETING_SKILL, MEMORY_SKILL, SQUADS_SKILL, item_skill_name
+from squads._interactions import (
+    GREETING_SKILL,
+    MEMORY_SKILL,
+    SQUADS_SKILL,
+    get_playbook_spec,
+    item_skill_name,
+    managed_item_types,
+)
 from squads._language import WorkingLanguage
-from squads._models._item import Item
-from squads._rendering._engine import render
-from squads._roles._projection import RoleView
+from squads._models import Item
+from squads._rendering import render
+from squads._roles import RoleView
 from squads._views import PlaybookSource
 from squads._workflow import bundled_spec
 

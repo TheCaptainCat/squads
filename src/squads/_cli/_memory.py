@@ -19,22 +19,22 @@ counter-allocated id (see `squads._memory._store`); `show`/`forget` take the mem
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._dto._memory import (
+from squads._api import (
     MemoryAddRequest,
     MemoryForgetRequest,
     MemoryListRequest,
     MemorySearchRequest,
     MemoryShowRequest,
+    ops,
 )
 from squads._cli import _calls as calls
 from squads._cli._common import console, handle_errors, resolve_body_optional
-from squads._cli._render._memory import (
+from squads._cli._render import (
     render_added,
     render_forgotten,
     render_memories,
     render_memory,
-    render_search,
+    render_memory_search,
 )
 
 memory_app = typer.Typer(
@@ -96,7 +96,7 @@ def search_memories(
         calls.print_json(ops.MEMORY_SEARCH, response)
     else:
         calls.print_warnings(response)
-        render_search(response.data, console)
+        render_memory_search(response.data, console)
     calls.finish(response, json_out=json_out)
 
 

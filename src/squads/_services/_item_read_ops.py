@@ -4,33 +4,36 @@ and discussion, and its sub-entities, each answering with its DTO."""
 from collections.abc import Callable
 
 from squads import _spans as spans
-from squads._api._dto._comments import Comments, CommentsRequest
-from squads._api._dto._graph import GraphNode, GraphRequest
-from squads._api._dto._items import KindDisplay
-from squads._api._dto._queues import (
+from squads._api import (
     Blocked,
     BlockedRequest,
+    Comments,
+    CommentsRequest,
+    GraphNode,
+    GraphRequest,
     Inbox,
     InboxRequest,
+    KindDisplay,
     Mine,
     MineRequest,
-    Workload,
-    WorkloadRequest,
-)
-from squads._api._dto._refs import Refs, RefsRequest
-from squads._api._dto._search import SearchRequest, SearchResults
-from squads._api._dto._subentities import (
+    Refs,
+    RefsRequest,
+    Response,
+    SearchRequest,
+    SearchResults,
     SubentitiesRequest,
     SubentityEntry,
     SubentityList,
     SubentityRequest,
     SubentityShow,
     SubentityShowDisplay,
+    TreeRequest,
+    TreeView,
+    Workload,
+    WorkloadRequest,
 )
-from squads._api._dto._tree import TreeRequest, TreeView
-from squads._api._response import Response
 from squads._errors import SquadsError
-from squads._models._item import Item
+from squads._models import Item
 from squads._services._base import ItemFilter
 from squads._services._item_dto import (
     kind_display,

@@ -9,13 +9,11 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from squads._api._api import Operation
-from squads._api._client import HttpApi
-from squads._api._response import Response
-from squads._cli import _calls as calls
-from squads._cli._remote import context_headers
+from squads._api import HttpApi, Operation, Response
+from squads._cli import _calls as cli_calls
+from squads._cli import _remote as cli_remote
 from squads._context import get_context
-from squads._daemon._lifecycle import fingerprint
+from squads._daemon import _lifecycle as daemon_lifecycle
 from squads._endpoint import Endpoint, endpoint_for
 from squads._paths import resolve
 from squads._spec_documents import spec_sources
@@ -35,7 +33,7 @@ class ParityApi:
 
     def _application(self, endpoint: Endpoint) -> Served:
         """The application serving *endpoint*'s squad on its current configuration."""
-        current = fingerprint(endpoint.root, endpoint.squad_dir)
+        current = daemon_lifecycle.fingerprint(endpoint.root, endpoint.squad_dir)
         held = self._served.get(endpoint.root)
         if held is not None and held[0] == current:
             return held[1]
@@ -49,7 +47,7 @@ class ParityApi:
     async def call[Req: BaseModel, Res](self, op: Operation[Req, Res], req: Req) -> Response[Res]:
         ctx = get_context()
         endpoint = endpoint_for(ctx.client_cwd or Path.cwd(), environ={}, version="test")
-        local = calls.local_api()
+        local = cli_calls.local_api()
         if endpoint is None or op.local_only or op.private:
             return await local.call(op, req)
         served = self._application(endpoint)
@@ -60,7 +58,7 @@ class ParityApi:
         api = HttpApi(
             connect=connect,
             endpoint=f"{served.host}:{served.port}",
-            headers=context_headers,
+            headers=cli_remote.context_headers,
             vocabulary=lambda: spec_sources(endpoint.squad_dir).vocabulary(),
             package_version="test",
             local=None,

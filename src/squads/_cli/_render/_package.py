@@ -3,7 +3,7 @@
 from rich.console import Console
 from rich.table import Table
 
-from squads._api._dto._package import Doc, DocIndex, MigrationIndex, MigrationSteps
+from squads._api import Doc, DocIndex, MigrationIndex, MigrationSteps
 from squads._cli._render._style import e
 
 

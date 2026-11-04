@@ -59,10 +59,10 @@ def github_md(text: str, base_url: str, issue_url: str) -> str:
 
 
 CONVERTERS: dict[str, str] = {
-    "adf": "squads._sources._adf:adf",
+    "adf": "squads._sources._jira:adf",
     "gitlab-md": "squads._sources._converters:gitlab_md",
     "github-md": "squads._sources._converters:github_md",
-    "jira-wiki": "squads._sources._jira_wiki:jira_wiki",
+    "jira-wiki": "squads._sources._jira:jira_wiki",
 }
 
 

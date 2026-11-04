@@ -9,19 +9,14 @@ A declaration is the literal a ``breaches`` marker carries: ``rule``, ``rule:par
 import re
 from dataclasses import dataclass
 
-from squads._services._check_rules import BINDING_RULES
-from squads._services._validators import CATALOG, SQUAD_GLOBAL_CATALOG
-from squads._workflow._validator_names import (
+from squads._services import _check_rules as services_checkrules
+from squads._services import _validators as services_validators
+from squads._workflow import (
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
-    LEVEL_RANK,
-    PARAMETERIZED_VALIDATOR_NAMES,
-    REQUIRED_PARAM_VALIDATOR_NAMES,
     SELECTABLE_SQUAD_GLOBAL_NAMES,
-    SQUAD_GLOBAL_PARAM_MINIMUM,
-    VALIDATOR_LEVEL_FLOOR,
-    VALIDATOR_LEVELS,
 )
+from squads._workflow import _validator_names as workflow_validatornames
 
 PARAM = ":param"
 
@@ -47,34 +42,51 @@ def parse_declaration(text: str) -> Declaration | None:
 
 def breach_declarations() -> frozenset[str]:
     """One declaration per rule `sq check` can report: every catalog member and binding rule."""
-    return frozenset(set(CATALOG) | set(SQUAD_GLOBAL_CATALOG) | set(BINDING_RULES))
+    return frozenset(
+        set(services_validators.CATALOG)
+        | set(services_validators.SQUAD_GLOBAL_CATALOG)
+        | set(services_checkrules.BINDING_RULES)
+    )
 
 
 def param_declarations() -> frozenset[str]:
     """One ``rule:param`` per member that takes a parameter."""
-    names = PARAMETERIZED_VALIDATOR_NAMES | SQUAD_GLOBAL_PARAM_MINIMUM.keys()
+    names = (
+        workflow_validatornames.PARAMETERIZED_VALIDATOR_NAMES
+        | workflow_validatornames.SQUAD_GLOBAL_PARAM_MINIMUM.keys()
+    )
     return frozenset(f"{name}{PARAM}" for name in names)
 
 
 def required_param_members() -> frozenset[str]:
     """The members whose param is required: a bare member cannot load, so the param case is the
     breach case and one marker declares both."""
-    return frozenset(REQUIRED_PARAM_VALIDATOR_NAMES | SQUAD_GLOBAL_PARAM_MINIMUM.keys())
+    return frozenset(
+        workflow_validatornames.REQUIRED_PARAM_VALIDATOR_NAMES
+        | workflow_validatornames.SQUAD_GLOBAL_PARAM_MINIMUM.keys()
+    )
 
 
 def other_level(default: str, floor: str | None) -> str | None:
     """The level a selection can give a member besides its *default*, ``None`` when *floor*
     forbids it."""
-    (other,) = VALIDATOR_LEVELS - {default}
-    return other if LEVEL_RANK[other] >= LEVEL_RANK[floor or "warn"] else None
+    (other,) = workflow_validatornames.VALIDATOR_LEVELS - {default}
+    return (
+        other
+        if workflow_validatornames.LEVEL_RANK[other]
+        >= workflow_validatornames.LEVEL_RANK[floor or "warn"]
+        else None
+    )
 
 
 def level_declarations() -> frozenset[str]:
     """One ``rule@<level>`` per selectable member, at the level that is not its default and that
     its floor allows."""
     found: set[str] = set()
-    for name in CATALOG:
-        level = other_level(DEFAULT_VALIDATOR_LEVEL[name], VALIDATOR_LEVEL_FLOOR.get(name))
+    for name in services_validators.CATALOG:
+        level = other_level(
+            DEFAULT_VALIDATOR_LEVEL[name], workflow_validatornames.VALIDATOR_LEVEL_FLOOR.get(name)
+        )
         if level is not None:
             found.add(f"{name}@{level}")
     for name in SELECTABLE_SQUAD_GLOBAL_NAMES:

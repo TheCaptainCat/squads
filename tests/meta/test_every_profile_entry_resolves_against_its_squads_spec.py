@@ -6,10 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from squads._models._vocab import label_for
-from squads._workflow import bundled_spec
-from squads._workflow._loader import load_workflow_spec
-from squads._workflow._models import WorkflowSpec
+from squads._models import label_for
+from squads._workflow import WorkflowSpec, bundled_spec, load_workflow_spec
 from tests._override_populated import OVERRIDE as OVERRIDE_DOCUMENTS
 from tests._profile import BUNDLED, OVERRIDE, Profile
 

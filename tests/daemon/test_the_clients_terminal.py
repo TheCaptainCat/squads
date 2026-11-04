@@ -16,10 +16,10 @@ import typer.main
 from rich.default_styles import DEFAULT_STYLES
 from typer._click import Command
 
-from squads._cli import _common as common
-from squads._cli import main_callback
+from squads._cli import _app as cli_app
+from squads._cli import _common as cli_common
 from squads._context import ServedCommand, bind_context, get_context
-from squads._daemon._proxies import TYPER_CONSOLE, TYPER_STYLES
+from squads._daemon import _proxies as daemon_proxies
 from squads._paths import SquadPaths
 from tests._endpoint_client import command_body, post_commands, terminal_facts
 
@@ -159,7 +159,7 @@ def test_a_windows_console_without_virtual_terminal_processing_is_laid_out_as_le
 def test_a_windows_clients_console_decides_the_colour_system(
     detected: str | None, legacy: bool, truecolor: bool | None, chosen: str | None
 ) -> None:
-    assert common.windows_color_system(detected, legacy, truecolor) == chosen
+    assert cli_common.windows_color_system(detected, legacy, truecolor) == chosen
 
 
 def test_a_served_console_takes_its_colour_system_from_the_clients_console(
@@ -172,7 +172,7 @@ def test_a_served_console_takes_its_colour_system_from_the_clients_console(
     def system(truecolor: bool) -> str | None:
         served = ServedCommand({}, "utf-8", None, None, True, truecolor, 0.0, lambda hidden: None)
         bind_context(replace(get_context(), served=served))
-        return common.build_console(stderr=False).color_system
+        return cli_common.build_console(stderr=False).color_system
 
     assert (system(True), system(False)) == ("truecolor", "256")
 
@@ -202,7 +202,7 @@ def test_a_prompt_answered_with_the_end_of_input_aborts_the_command(
 
 def _echoing() -> Command:
     host = typer.Typer(name="sq")
-    host.callback()(main_callback)
+    host.callback()(cli_app.main_callback)
 
     @host.command("echo-cafe")
     def echo_cafe() -> None:  # pyright: ignore[reportUnusedFunction]
@@ -299,9 +299,9 @@ def test_help_is_laid_out_for_the_clients_environment_as_local_mode_lays_it_out(
 
 
 def test_the_typer_console_a_served_command_replaces_is_the_shape_it_expects() -> None:
-    parameters = inspect.signature(TYPER_CONSOLE).parameters
-    console = TYPER_CONSOLE()
+    parameters = inspect.signature(daemon_proxies.TYPER_CONSOLE).parameters
+    console = daemon_proxies.TYPER_CONSOLE()
     theme = console._theme_stack._entries[-1]  # pyright: ignore[reportPrivateUsage]
 
     assert [(p.name, p.default) for p in parameters.values()] == [("stderr", False)]
-    assert set(theme) - set(DEFAULT_STYLES) == set(TYPER_STYLES)
+    assert set(theme) - set(DEFAULT_STYLES) == set(daemon_proxies.TYPER_STYLES)

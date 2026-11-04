@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from tests._import_scan import SRC, module_name
+from tests._import_scan import SRC, defining, module_name
 
 DIRS = (SRC / "_cli", SRC / "_tui")
 
@@ -178,7 +178,8 @@ def _resolve(dotted: str, aliases: dict[str, str], modules: set[str]) -> Name | 
     for cut in range(len(parts) - 1, 0, -1):
         module = ".".join(parts[:cut])
         if module in modules:
-            return module, parts[cut]
+            defined, rest = defining(module, parts[cut:])
+            return (defined, rest[0]) if rest else None
     return None
 
 
@@ -297,13 +298,24 @@ def test_the_scan_derives_the_known_writers() -> None:
     writers = _writers(_all_units())
     assert {
         ("squads._aio", "atomic_write_text"),
-        ("squads._board._store", "post"),
-        ("squads._memory._store", "add"),
+        ("squads._board._store", "BoardStore"),
+        ("squads._memory._store", "MemoryStore"),
         ("squads._index._reflog", "append_line"),
         ("squads._backends._managed_region", "inject"),
         ("squads._backends._base", "AgentBackend"),
         ("squads._backends._registry", "get_backend"),
     } <= writers
+
+
+def test_a_name_taken_through_a_package_init_resolves_to_its_defining_module() -> None:
+    modules = {"squads._workflow", "squads._workflow._bundled", "squads._cli"}
+    aliases = {"bundled_spec": "squads._workflow.bundled_spec", "cli": "squads._cli"}
+
+    assert _resolve("bundled_spec", aliases, modules) == (
+        "squads._workflow._bundled",
+        "bundled_spec",
+    )
+    assert _resolve("cli.main", aliases, modules) == ("squads._cli._app", "main")
 
 
 def test_no_command_or_screen_writes_a_file() -> None:

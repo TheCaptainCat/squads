@@ -4,7 +4,7 @@ each assignee's workload."""
 from rich.console import Console
 from rich.table import Table
 
-from squads._api._dto._queues import Blocked, Inbox, Mine, Workload
+from squads._api import Blocked, Inbox, Mine, Workload
 from squads._cli._render._comments import untrusted_notice
 from squads._cli._render._items import item_cell
 from squads._cli._render._search import empty_note

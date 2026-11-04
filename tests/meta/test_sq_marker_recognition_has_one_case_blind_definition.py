@@ -5,8 +5,8 @@ import ast
 import re
 from pathlib import Path
 
-from squads import _sections as sections
-from squads._models import _markers as markers
+from squads import _sections as squads_sections
+from squads._models import markers
 from squads._workflow import bundled_spec
 
 #: The module that is allowed to define marker recognition, relative to the repo root.
@@ -194,11 +194,11 @@ def test_the_live_primitive_recognises_every_declared_local_prefix() -> None:
     blind = [
         kind
         for kind, ks in spec.subentity_kinds.items()
-        if not sections.find_markers(markers.open_marker(f"{kind}:{ks.local_prefix}1"))
+        if not squads_sections.find_markers(markers.open_marker(f"{kind}:{ks.local_prefix}1"))
     ]
     assert not blind, f"find_markers is blind to declared sub-entity kind(s): {blind}"
 
 
 def test_the_live_primitive_still_refuses_the_documentation_placeholder() -> None:
     """The other half of the contract."""
-    assert sections.find_markers("never alter the <!-- sq:* --> marker lines") == []
+    assert squads_sections.find_markers("never alter the <!-- sq:* --> marker lines") == []

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from squads._services._collab import CollabMixin
+from squads._services import _collab as services_collab
 
 
 def _repo_root() -> Path:
@@ -145,5 +145,7 @@ def test_the_scan_ignores_a_read_with_no_corpus_walk(tmp_path: Path) -> None:
 @pytest.mark.parametrize("name", ["search", "inbox"])
 def test_each_corpus_walking_command_returns_a_skipped_file_channel(name: str) -> None:
     """The behavioural half: a guard that catches and says nothing is no better than no guard."""
-    annotation = str(inspect.signature(getattr(CollabMixin, name)).return_annotation)
+    annotation = str(
+        inspect.signature(getattr(services_collab.CollabMixin, name)).return_annotation
+    )
     assert "UnreadableItems" in annotation, f"{name} returns {annotation!r}"

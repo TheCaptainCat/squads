@@ -3,7 +3,7 @@ alone."""
 
 from rich.console import Console
 
-from squads._api._dto._check import CheckReport, SyncReport
+from squads._api import CheckReport, SyncReport
 from squads._cli._render._style import e
 
 

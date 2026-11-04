@@ -14,22 +14,26 @@ from typing import Any, cast
 from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 
-from squads._api._api import Operation
-from squads._api._dto._daemon import DaemonIdentity, DaemonStopping
-from squads._api._errors import HTTP_STATUS, ErrorBody
-from squads._api._http import (
+from squads._api import (
     ACTOR_HEADER,
     AT_HEADER,
     CLIENT_DIR_HEADER,
     CLIENT_HEADER,
+    CONDITIONAL_WRITES,
+    HTTP_STATUS,
     IF_MATCH_HEADER,
     PARENT_SESSION_HEADER,
     SCHEMA_HEADER,
     SESSION_HEADER,
     VOCABULARY_HEADER,
+    DaemonIdentity,
+    DaemonStopping,
+    ErrorBody,
+    Operation,
+    Response,
+    carries_etag,
+    ops,
 )
-from squads._api._ops import CONDITIONAL_WRITES, ROUTED_OPERATIONS, carries_etag
-from squads._api._response import Response
 from squads._daemon._request import is_list
 
 _REF = "#/components/schemas/{model}"
@@ -201,7 +205,7 @@ def build_document(schema_version: str) -> dict[str, Any]:
     """The OpenAPI document of every operation in the table, whose ``info.version`` is
     *schema_version*."""
     models: list[tuple[type[BaseModel], str]] = []
-    for op in ROUTED_OPERATIONS:
+    for op in ops.ROUTED_OPERATIONS:
         models.append((op.request, "validation"))
         models.append((cast(type[BaseModel], Response[op.response]), "validation"))
     extra: tuple[type[BaseModel], ...] = (ErrorBody, DaemonIdentity, DaemonStopping)
@@ -216,7 +220,7 @@ def build_document(schema_version: str) -> dict[str, Any]:
         "required": ["not_executed"],
     }
     paths: dict[str, dict[str, Any]] = {}
-    for op in ROUTED_OPERATIONS:
+    for op in ops.ROUTED_OPERATIONS:
         method, path = op.route
         paths.setdefault(path, {})[method.lower()] = _operation(op, definitions, mapping)
     paths["/v1/daemon"] = {

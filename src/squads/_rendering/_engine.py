@@ -22,31 +22,27 @@ if TYPE_CHECKING:
 from squads import _badges as badges
 from squads import _clock as clock
 from squads._errors import SquadsError
-from squads._interactions._cheatsheet import (
+from squads._interactions import (
+    PlaybookSpec,
     ReviewGate,
+    authoring_owners,
     cheatsheet_alias_example,
     cheatsheet_anchor_context,
     cheatsheet_anchor_type,
     cheatsheet_review_gate,
-)
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._playbook import authoring_owners, get_playbook_spec, parent_chain
-from squads._interactions._role_guidance import (
+    custom_item_skill_commands,
     example_assignee_slug,
+    get_playbook_spec,
     item_skill_role_sections,
     live_roster_text,
+    parent_chain,
 )
-from squads._interactions._skills import custom_item_skill_commands
-from squads._models import _markers as markers
-from squads._models._item import Item
-from squads._models._vocab import label_for
+from squads._models import Item, label_for, markers
 from squads._paths import number_for_id
 from squads._sections import get_section
 from squads._specload import TEMPLATE_OVERRIDE_MESSAGES, override_present, read_override_text
 from squads._util import slugify
-from squads._workflow import bundled_spec
-from squads._workflow._lifecycle_order import linearize_lifecycle
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec, bundled_spec, linearize_lifecycle
 
 #: Where a project's own template overrides live, relative to the squad dir — the one place
 #: this path is spelled, so a message naming where to author a view template override (e.g.

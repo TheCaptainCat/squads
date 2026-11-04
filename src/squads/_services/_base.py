@@ -23,21 +23,21 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
-from squads._backends._base import AgentBackend, BackendContext
+from squads._backends import AgentBackend, BackendContext
+from squads._board import BoardStore
 from squads._context import etag_of, get_context
 from squads._errors import ItemNotFoundError, SquadsError
-from squads._index._resolver import item_file, require_item
-from squads._index._store import IndexStore
-from squads._interactions._role_guidance import (
+from squads._index import IndexStore, item_file, require_item
+from squads._interactions import (
     RoleLike,
     allowed_create_types,
     catalog_default_slug,
     in_lane_owner,
     is_lane_exempt,
+    item_origin,
     laned_types,
     slug_only_role,
 )
-from squads._interactions._skills import item_origin
 from squads._itemfile import (
     ensure_no_skew,
     new_item_text,
@@ -46,36 +46,36 @@ from squads._itemfile import (
     write_text,
 )
 from squads._language import WorkingLanguage, resolve_working_language
-from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey
-from squads._models._index import SquadsDB
-from squads._models._item import (
+from squads._memory import MemoryStore
+from squads._models import (
+    ANONYMOUS_SLUG,
     DISPLAY_ID_PADDING,
+    OPERATOR_SLUG_PREFIX,
+    AttributeKey,
     Item,
+    SquadsDB,
     effective_prefix,
     format_item_id,
-    make_ref,
-    parse_item_token,
-    split_ref,
-)
-from squads._models._participants import (
-    ANONYMOUS_SLUG,
-    OPERATOR_SLUG_PREFIX,
     group_verb_problem,
     is_sourced,
+    make_ref,
+    markers,
     operator_slug_problem,
     operator_slug_suggestion,
+    parse_item_token,
+    prefix_for,
     refuse_source_actor,
     require_valid_slug,
     reserved_role_slug_reason,
+    split_ref,
 )
-from squads._models._vocab import prefix_for
 from squads._paths import SquadPaths, number_for_id
-from squads._rendering._engine import render, scaffold_body
-from squads._roles._catalog import RoleDef
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME
-from squads._roles._projection import OperatorView, RoleView
-from squads._roles._resolver import (
+from squads._rendering import render, scaffold_body
+from squads._roles import (
+    ROLES_OVERRIDE_FILENAME,
+    OperatorView,
+    RoleDef,
+    RoleView,
     holds_default_designation,
     resolve_role_tolerantly,
 )
@@ -98,6 +98,7 @@ from squads._services._skill_files import (
     stamped_skill_slug,
 )
 from squads._services._validators import ValidatorEngine
+from squads._sources import CredentialStore
 from squads._spec_documents import SpecDocuments
 from squads._util import operator_slug, slugify
 from squads._view_bodies import encode_inner, find_view_pairs
@@ -106,9 +107,11 @@ from squads._workflow import (
     ROSTER_OPERATOR,
     ROSTER_ROLE,
     ROSTER_SKILL,
+    Field,
+    ItemSpec,
+    WorkflowSpec,
     dropped_via_selected,
 )
-from squads._workflow._models import Field, ItemSpec, WorkflowSpec
 
 
 # Body-local sub-entities: kind <-> parent type and the container marker, derived from the active
@@ -473,6 +476,9 @@ class ServiceCore:
         self.spec = documents.workflow
         self.playbook = documents.playbook
         self.store = store
+        self.board = BoardStore(paths)
+        self.memory = MemoryStore(paths)
+        self.credentials = CredentialStore()
         self._backends = backends
         self.catalog = documents.catalog
         self.sources = documents.sources
@@ -518,7 +524,7 @@ class ServiceCore:
         template-seeded-view derivation (:func:`~squads._views.template_seeded_view_names`,
         the migration/``sq check`` seam) can never resolve a type to two different templates.
         """
-        from squads._rendering._engine import creation_template_name
+        from squads._rendering import creation_template_name
 
         return creation_template_name(item_type, self.spec, from_squad=self.paths.squad_dir)
 

@@ -7,14 +7,10 @@ from collections.abc import Mapping
 
 from squads import _discussion as discussion
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeKey, map_attribute
-from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._participants import source_of
-from squads._models._source import GONE, LOST_STATES
+from squads._models import GONE, LOST_STATES, AttributeKey, Item, SquadsDB, map_attribute, source_of
 from squads._paths import number_for_id
 from squads._services._results import CheckIssue
-from squads._sources._spec import SourcesSource, SourcesSpec
+from squads._sources import SourcesSource, SourcesSpec
 from squads._workflow import ROSTER_OPERATOR
 
 

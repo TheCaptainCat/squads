@@ -13,10 +13,9 @@ import pytest
 import typer.core
 from typer._click.core import Context
 
-from squads._cli._create import CREATE_ATTRIBUTE_KINDS, attribute_flag
-from squads._cli._field_options import flag_name
-from squads._workflow import bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._cli import _create as cli_create
+from squads._cli import _field_options as cli_fieldoptions
+from squads._workflow import WorkflowSpec, bundled_spec
 from tests._cli_surface import (
     ADD_KIND,
     ADDRESS_SEGMENT,
@@ -140,8 +139,8 @@ def field_options(item_type: str, spec: WorkflowSpec, verb: tuple[str, ...]) -> 
     if verb != ("update",):
         return set()
     fields_ = spec.fields_for(item_type)
-    return {f"--{flag_name(f.code)}" for f in fields_} | {
-        f"--no-{flag_name(f.code)}" for f in fields_ if not f.required
+    return {f"--{cli_fieldoptions.flag_name(f.code)}" for f in fields_} | {
+        f"--no-{cli_fieldoptions.flag_name(f.code)}" for f in fields_ if not f.required
     }
 
 
@@ -229,11 +228,13 @@ def create_problems(tree: Tree, spec: WorkflowSpec) -> list[str]:
     reference = ("create", REFERENCE_TYPE)
     for item_type in sorted(set(spec.non_roster_types()) & created):
         path = ("create", item_type)
-        fields_ = {f"--{flag_name(f.code)}": None for f in spec.fields_for(item_type)}
+        fields_ = {
+            f"--{cli_fieldoptions.flag_name(f.code)}": None for f in spec.fields_for(item_type)
+        }
         fields_ |= {
-            f"--{attribute_flag(name)}": None
+            f"--{cli_create.attribute_flag(name)}": None
             for name, attribute in spec.item_attributes(item_type).items()
-            if attribute.settable and attribute.kind in CREATE_ATTRIBUTE_KINDS
+            if attribute.settable and attribute.kind in cli_create.CREATE_ATTRIBUTE_KINDS
         }
         if tree.classes[path] != tree.classes[reference]:
             found.append(f"create {item_type}: is not built by the shared create builder")

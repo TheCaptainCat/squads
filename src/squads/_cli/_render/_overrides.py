@@ -5,7 +5,7 @@ define, not workflow vocabulary."""
 from rich.console import Console
 from rich.table import Table
 
-from squads._api._dto._overrides import (
+from squads._api import (
     OverrideDiff,
     OverrideDiffRow,
     OverrideList,

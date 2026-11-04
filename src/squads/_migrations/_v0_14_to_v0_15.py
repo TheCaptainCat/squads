@@ -71,18 +71,17 @@ from pathlib import Path
 from squads import _clock as clock
 from squads._actor import current_session
 from squads._errors import SquadsError
-from squads._index._store import IndexStore
+from squads._index import IndexStore
 from squads._itemfile import read_frontmatter, read_item_text, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import legacy_extra
 from squads._migrations._outcome import MigrationOutcome
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
+from squads._models import SquadsDB, markers
 from squads._paths import SquadPaths, number_for_id
 from squads._sections import find_markers, get_section, replace_frontmatter, replace_section
 from squads._view_tags import place_view_tags
 from squads._views import resolve_view_target, roster_body_view_name, template_seeded_view_names
-from squads._workflow._models import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 MANUAL = """\
 ## Schema 0.14 → 0.15 — views are positioned, disabled rather than removed

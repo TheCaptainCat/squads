@@ -5,16 +5,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._role_guidance import skills_for_role
-from squads._interactions._skills import resolve_operator_invocable
+from squads._interactions import PlaybookSpec, resolve_operator_invocable, skills_for_role
 from squads._language import WorkingLanguage, resolve_working_language
-from squads._models._item import Item
+from squads._models import Item
 from squads._paths import SquadPaths
-from squads._roles._catalog import RoleDef
-from squads._roles._models import CatalogSource
-from squads._roles._projection import OperatorView, RoleView
-from squads._workflow._models import WorkflowSpec
+from squads._roles import CatalogSource, OperatorView, RoleDef, RoleView
+from squads._workflow import WorkflowSpec
 
 
 @dataclass(frozen=True)

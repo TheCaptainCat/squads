@@ -9,9 +9,9 @@ from typing import Any, cast
 
 from pydantic import ValidationError
 
+from squads._config import DisplaySettings, SquadsConfig
 from squads._endpoint import parse_daemon
 from squads._errors import SquadsError
-from squads._models._config import DisplaySettings, SquadsConfig
 
 _LEGACY_KEYS = ("default_backend", "default_role")
 _CARRIED_KEYS = frozenset(SquadsConfig.model_fields) - {

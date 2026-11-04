@@ -6,15 +6,16 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel
 
-from squads._api import _ops as ops
-from squads._api._api import Api, Operation
-from squads._api._dto._workflow import (
+from squads._api import (
+    Api,
     CatalogRequest,
     CollectionCatalog,
+    Operation,
+    Response,
     StatusCatalog,
     TypeCatalog,
+    ops,
 )
-from squads._api._response import Response
 from squads._errors import SquadsError
 
 #: Answers the API the next call goes through; asked again on every call.

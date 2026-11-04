@@ -12,12 +12,11 @@ level. It runs only through ``sq migrate up`` via ``_migrations._registry``.
 from typing import Any, cast
 
 from squads import _aio
-from squads._index._store import IndexStore
+from squads._index import IndexStore
 from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import EntriesRefused, MigrationOutcome
-from squads._models._attributes import CORE_KEYS
-from squads._models._subentity import SUBENTITY_CORE_KEYS
+from squads._models import CORE_KEYS, SUBENTITY_CORE_KEYS
 from squads._sections import replace_frontmatter
 
 SUMMARY = (

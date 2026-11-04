@@ -13,7 +13,7 @@ from typing import Any, cast
 from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._migrations import _meta_compat
-from squads._models import _markers as markers
+from squads._models import markers
 from squads._paths import SquadPaths
 
 #: Frozen: the declared-default ref kind at schema 0.1/0.2, the retired

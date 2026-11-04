@@ -1,1 +1,64 @@
-"""Private subpackage — import members from its underscore modules."""
+"""Private subpackage — import members from the package."""
+
+from squads._models import _attributes as attrs  # noqa: F401  # pyright: ignore[reportUnusedImport]
+from squads._models import _markers as markers  # noqa: F401  # pyright: ignore[reportUnusedImport]
+from squads._models._attributes import CORE_KEYS as CORE_KEYS
+from squads._models._attributes import ORIGIN_PROJECT as ORIGIN_PROJECT
+from squads._models._attributes import ORIGIN_SYSTEM as ORIGIN_SYSTEM
+from squads._models._attributes import ORIGIN_VALUES as ORIGIN_VALUES
+from squads._models._attributes import ROW_ADDED_KEYS as ROW_ADDED_KEYS
+from squads._models._attributes import SUBENTITY_ROW_ADDED_KEYS as SUBENTITY_ROW_ADDED_KEYS
+from squads._models._attributes import AttributeKey as AttributeKey
+from squads._models._attributes import AttributeSpec as AttributeSpec
+from squads._models._attributes import map_attribute as map_attribute
+from squads._models._attributes import parse_invocable_choice as parse_invocable_choice
+from squads._models._index import SquadsDB as SquadsDB
+from squads._models._item import DEFAULT_ID_PADDING as DEFAULT_ID_PADDING
+from squads._models._item import DISPLAY_ID_PADDING as DISPLAY_ID_PADDING
+from squads._models._item import INVENTED_WHEN_ABSENT as INVENTED_WHEN_ABSENT
+from squads._models._item import MAX_ID_PADDING as MAX_ID_PADDING
+from squads._models._item import Item as Item
+from squads._models._item import effective_prefix as effective_prefix
+from squads._models._item import format_item_id as format_item_id
+from squads._models._item import make_ref as make_ref
+from squads._models._item import parse_item_token as parse_item_token
+from squads._models._item import prefix_from_id as prefix_from_id
+from squads._models._item import ref_id_matches as ref_id_matches
+from squads._models._item import slug_from_stem as slug_from_stem
+from squads._models._item import split_ref as split_ref
+from squads._models._metadata import RETIRED_ROLE_KEYS as RETIRED_ROLE_KEYS
+from squads._models._metadata import coerce_attribute as coerce_attribute
+from squads._models._metadata import require_settable as require_settable
+from squads._models._metadata import value_problem as value_problem
+from squads._models._omission import Omission as Omission
+from squads._models._participants import ANONYMOUS_NAME as ANONYMOUS_NAME
+from squads._models._participants import ANONYMOUS_SLUG as ANONYMOUS_SLUG
+from squads._models._participants import AUTHOR_PATTERN as AUTHOR_PATTERN
+from squads._models._participants import OPERATOR_SLUG_PREFIX as OPERATOR_SLUG_PREFIX
+from squads._models._participants import ROLE_GROUP_VERBS as ROLE_GROUP_VERBS
+from squads._models._participants import SOURCE_AUTHOR_PREFIX as SOURCE_AUTHOR_PREFIX
+from squads._models._participants import SYSTEM_SLUG as SYSTEM_SLUG
+from squads._models._participants import SlugBreach as SlugBreach
+from squads._models._participants import group_verb_problem as group_verb_problem
+from squads._models._participants import is_sourced as is_sourced
+from squads._models._participants import is_valid_slug as is_valid_slug
+from squads._models._participants import operator_slug_problem as operator_slug_problem
+from squads._models._participants import operator_slug_suggestion as operator_slug_suggestion
+from squads._models._participants import refuse_source_actor as refuse_source_actor
+from squads._models._participants import refuse_system_actor as refuse_system_actor
+from squads._models._participants import require_valid_slug as require_valid_slug
+from squads._models._participants import reserved_role_slug_problem as reserved_role_slug_problem
+from squads._models._participants import reserved_role_slug_reason as reserved_role_slug_reason
+from squads._models._participants import roster_slug_breaches as roster_slug_breaches
+from squads._models._participants import source_of as source_of
+from squads._models._schema import SCHEMA_VERSION as SCHEMA_VERSION
+from squads._models._schema import schema_tuple as schema_tuple
+from squads._models._source import GONE as GONE
+from squads._models._source import LOST_STATES as LOST_STATES
+from squads._models._source import OUT_OF_FILTER as OUT_OF_FILTER
+from squads._models._source import SourceRecord as SourceRecord
+from squads._models._subentity import SUBENTITY_CORE_KEYS as SUBENTITY_CORE_KEYS
+from squads._models._subentity import SubEntity as SubEntity
+from squads._models._vocab import label_for as label_for
+from squads._models._vocab import labels_for as labels_for
+from squads._models._vocab import prefix_for as prefix_for

@@ -11,12 +11,12 @@ from pathlib import Path
 from typing import Any
 
 from squads import __version__
-from squads import _clock as clock
-from squads._overrides._manifest import artifact_changed_since, known_index_versions
+from squads import _clock as squads_clock
+from squads._overrides import _manifest as overrides_manifest
+from squads._overrides import artifact_changed_since
 from squads._paths import SquadPaths
 from squads._spec_documents import resolve_workflow
-from squads._workflow import bundled_spec
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec, bundled_spec
 
 
 def issue(rule: str, level: str, item: str, message: str) -> dict[str, str]:
@@ -136,19 +136,23 @@ async def role_id(invoke: Any, slug: str) -> str:
 
 async def at(invoke: Any, when: datetime, *args: str) -> Any:
     """Run `sq *args` recording *when* as the time of the change, and assert it exits 0."""
-    return await ok(invoke, "--at", clock.iso(when), *args)
+    return await ok(invoke, "--at", squads_clock.iso(when), *args)
 
 
 def stale_base(key: str) -> str:
     """A released version whose bundled artifact *key* differs from the installed one."""
-    return next(v for v in known_index_versions() if artifact_changed_since(key, v))
+    return next(
+        v for v in overrides_manifest.known_index_versions() if artifact_changed_since(key, v)
+    )
 
 
 def unchanged_base(key: str) -> str:
     """A released version older than the installed one whose bundled artifact *key* is the same as
     the installed one, or unrecorded."""
     return next(
-        v for v in known_index_versions() if v != __version__ and not artifact_changed_since(key, v)
+        v
+        for v in overrides_manifest.known_index_versions()
+        if v != __version__ and not artifact_changed_since(key, v)
     )
 
 

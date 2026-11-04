@@ -3,10 +3,9 @@ changed, so a session reloads what it read after a retirement and not on every c
 
 import pytest
 
-from squads._api import _ops as ops
-from squads._api._dto._workflow import CatalogRequest
-from squads._cli._calls import local_api
-from squads._cli._remote import build_http_api
+from squads._api import CatalogRequest, ops
+from squads._cli import _calls as cli_calls
+from squads._cli import _remote as cli_remote
 
 pytestmark = pytest.mark.anyio
 
@@ -15,7 +14,7 @@ async def test_the_flag_is_set_by_a_retirement_and_clear_again_on_the_next_daemo
     project, run_daemon
 ) -> None:
     running = run_daemon(project)
-    api = build_http_api(running.endpoint, local=local_api)
+    api = cli_remote.build_http_api(running.endpoint, local=cli_calls.local_api)
     await api.call(ops.WORKFLOW_TYPES, CatalogRequest())
     assert api.declined is False
 

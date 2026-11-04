@@ -13,33 +13,31 @@ from squads import _clock as clock
 from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
-from squads._backends._base import AgentBackend, BackendContext
+from squads._backends import AgentBackend, BackendContext
+from squads._config import CONFIG_FILENAME
 from squads._errors import IndexFullError, SquadsError
-from squads._index._reconcile import (
+from squads._index import (
     ReconcileResult,
+    append_line,
     carry_forward_indexed_timestamps,
     fold_stem_into_floor,
+    item_file,
     plan_reconcile,
+    reflog_path,
 )
-from squads._index._reflog import append_line, reflog_path
-from squads._index._resolver import item_file
-from squads._interactions._loader import (
-    playbook_override_command_lines,
-    playbook_override_guide_pairs,
-)
-from squads._interactions._playbook import (
-    orphaned_playbook_guide_message,
-    orphaned_playbook_guides,
-    unheld_capability_token_message,
-    unheld_capability_tokens,
-)
-from squads._interactions._skills import (
+from squads._interactions import (
     bundled_skill_slugs,
     custom_item_skill_description,
     custom_skill_slugs,
+    orphaned_playbook_guide_message,
+    orphaned_playbook_guides,
     orphaned_skill_item_type,
+    playbook_override_command_lines,
+    playbook_override_guide_pairs,
     skill_description,
     skill_origin,
+    unheld_capability_token_message,
+    unheld_capability_tokens,
 )
 from squads._itemfile import (
     frontmatter_skew,
@@ -49,30 +47,34 @@ from squads._itemfile import (
     skew_message,
     write_text,
 )
-from squads._migrations._config_text import ConfigRewrite, plan_config_rewrite
-from squads._migrations._context import MigrationContext
-from squads._migrations._outcome import EntriesRefused
-from squads._migrations._registry import MIGRATIONS, Migration, release_reading_schema
-from squads._models import _attributes as attrs
-from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey
-from squads._models._config import CONFIG_FILENAME
-from squads._models._index import SquadsDB
-from squads._models._item import (
+from squads._migrations import (
+    MIGRATIONS,
+    ConfigRewrite,
+    EntriesRefused,
+    Migration,
+    MigrationContext,
+    plan_config_rewrite,
+    release_reading_schema,
+)
+from squads._models import (
     DEFAULT_ID_PADDING,
     DISPLAY_ID_PADDING,
     MAX_ID_PADDING,
+    RETIRED_ROLE_KEYS,
+    SCHEMA_VERSION,
+    AttributeKey,
     Item,
+    SquadsDB,
+    attrs,
     format_item_id,
+    markers,
+    prefix_for,
     prefix_from_id,
+    schema_tuple,
 )
-from squads._models._metadata import RETIRED_ROLE_KEYS
-from squads._models._schema import SCHEMA_VERSION, schema_tuple
-from squads._models._vocab import prefix_for
 from squads._paths import number_for_id
-from squads._rendering._engine import creation_template_name, render
-from squads._roles._loader import LEGACY_DEV_TABLE_MESSAGE, ROLES_OVERRIDE_FILENAME
-from squads._roles._projection import RoleView
+from squads._rendering import creation_template_name, render
+from squads._roles import LEGACY_DEV_TABLE_MESSAGE, ROLES_OVERRIDE_FILENAME, RoleView
 from squads._sections import join_frontmatter
 from squads._services._base import ServiceCore
 from squads._services._corpus_files import (
@@ -90,10 +92,10 @@ from squads._services._corpus_files import (
 from squads._services._corpus_fit import corpus_fit_refusal
 from squads._services._duplicate_ids import (
     SHARED_NUMBER_REMEDY,
-    LeftReference,
-    MovedFile,
+    FileMove,
     RenumberScope,
     SameIdRenumber,
+    StaleReference,
     duplicate_groups,
     duplicate_id_remedy,
     normalized_id,
@@ -117,9 +119,13 @@ from squads._services._skill_files import (
     SkillScan,
     stamped_skill_parts,
 )
-from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import (
+    ROSTER_ROLE,
+    ROSTER_SKILL,
+    WORKFLOW_OVERRIDE_FILENAME,
+    WorkflowSpec,
+    bundled_spec,
+)
 
 # (id, markdown path, type, slug, number) — one scanned item file, used by repair/renumber.
 # ``type`` is a plain ``str`` — every type (built-in or custom) resolves from the spec.
@@ -1478,7 +1484,7 @@ class MaintenanceMixin(ServiceCore):
                 pass
 
         renumbered = SameIdRenumber()
-        references: list[LeftReference] = []
+        references: list[StaleReference] = []
         if renumber:
             renumbered = await self._renumber_same_id(
                 previous_counter, previous_padding, known_corpus
@@ -1815,7 +1821,7 @@ class MaintenanceMixin(ServiceCore):
                 lines[lines.index(old)] = new
         return "\n".join(lines)
 
-    async def _renumber(self) -> list[MovedFile]:
+    async def _renumber(self) -> list[FileMove]:
         """Resolve duplicate global ID numbers from a merge: reassign + rewrite references. Returns
         each file given a new number."""
         records = await self._scan_records()
@@ -1836,7 +1842,7 @@ class MaintenanceMixin(ServiceCore):
         paths = await self._apply_remap((md for _, md, *_ in records), remap, renames)
         squad = self.paths.squad_dir
         return [
-            MovedFile(
+            FileMove(
                 fid,
                 remap[fid],
                 md.relative_to(squad).as_posix(),
@@ -1979,7 +1985,7 @@ class MaintenanceMixin(ServiceCore):
         ``op_filter`` ``op`` exactly; ``since`` keeps ``ts >= since`` (ISO-8601 string order);
         ``tail`` keeps the last N after filtering.
         """
-        from squads._index._reflog import read_lines
+        from squads._index import read_lines
 
         raw = await read_lines(reflog_path(self.paths.squad_dir))
 

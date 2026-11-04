@@ -272,7 +272,8 @@ must be clean for whatever you touched.
 to it. `CLAUDE.md` is the terse working reference the agents themselves read.
 
 **The conventions most likely to bounce a change:** every core module and subpackage is
-underscore-private and `__init__`s don't re-export; the markdown frontmatter is the source of truth
+underscore-private, and each package's `__init__` re-exports exactly the names other packages
+import from it; the markdown frontmatter is the source of truth
 and `.squads.json` is only a rebuildable index; file content is edited through the marker helpers,
 never by rewriting an authored body; time comes from the injectable clock, never `datetime.now()`;
 and no tracked-item id appears in source, tests or config — the linkage belongs in the item, not the

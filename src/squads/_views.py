@@ -28,47 +28,45 @@ from pathlib import Path
 from typing import Literal, cast
 
 from squads._errors import SquadsError
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
-from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec
-from squads._interactions._role_guidance import developer_roles
-from squads._interactions._skills import (
+from squads._interactions import (
     GREETING_SKILL,
     MEMORY_SKILL,
+    PLAYBOOK_OVERRIDE_FILENAME,
     SQUADS_SKILL,
+    ItemPlaybookSpec,
+    PlaybookSpec,
+    developer_roles,
     item_type_for_skill_slug,
 )
 from squads._language import WorkingLanguage
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import (
+from squads._models import (
     Item,
+    SquadsDB,
+    SubEntity,
     effective_prefix,
+    markers,
     ref_id_matches,
     split_ref,
 )
-from squads._models._subentity import SubEntity
 from squads._paths import number_for_id
-from squads._rendering._engine import (
+from squads._rendering import (
     TEMPLATES_OVERRIDE_DIR,
     creation_template_name,
     has_template,
     render,
     template_source,
 )
-from squads._roles._catalog import RoleDef
-from squads._roles._models import CatalogSource
-from squads._roles._projection import RoleView
-from squads._roles._resolver import resolve_role_for_item
+from squads._roles import CatalogSource, RoleDef, RoleView, resolve_role_for_item
 from squads._sections import get_section, iter_marker_spans
 from squads._transform import TransformData, TransformLoader
 from squads._view_bodies import find_view_pairs
-from squads._workflow._models import (
+from squads._workflow import (
     ROSTER_ROLE,
     ROSTER_SKILL,
     ViewSpec,
     WorkflowSpec,
+    subentity_source_reason,
 )
-from squads._workflow._validity import subentity_source_reason
 
 #: A deferred roster: only the ``playbook`` source kind calls it, so every other kind costs
 #: nothing. A caller invoked more than once per roster (a body with several ``playbook`` tags)

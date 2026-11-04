@@ -11,7 +11,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from squads import _clock as clock
-from squads._api._errors import FORBIDDEN, HTTP_STATUS, MISDIRECTED, ErrorBody, ErrorDetail
+from squads._api import FORBIDDEN, HTTP_STATUS, MISDIRECTED, ErrorBody, ErrorDetail
 
 CLI = "cli"
 BROWSER = "browser"

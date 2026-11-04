@@ -8,7 +8,7 @@ It depends only on ``_errors`` and the ``_api`` DTOs it builds, to keep the impo
 
 from pathlib import Path
 
-from squads._api._dto._package import Doc, DocEntry, DocIndex
+from squads._api import Doc, DocEntry, DocIndex
 from squads._errors import SquadsError
 
 _HERE = Path(__file__).resolve()

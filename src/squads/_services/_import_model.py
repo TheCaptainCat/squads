@@ -15,9 +15,9 @@ from pydantic_core import ErrorDetails
 
 from squads import _clock as clock
 from squads._errors import SquadsError
-from squads._models._participants import refuse_source_actor
+from squads._models import refuse_source_actor
 from squads._services._results import ImportIssue
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec
 
 
 class _EventBase(BaseModel):

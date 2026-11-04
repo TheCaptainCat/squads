@@ -19,7 +19,7 @@ uv build                # wheel/sdist (templates ship as package data)
 _cli → _api ← _services → (index store, backends, rendering, roles, interactions, …)
 _cli → _services only in _cli/_calls.local_api() (the LocalApi factory)
 _api  imports only pydantic, _errors and _models
-_models  shared; imports only _clock, _endpoint, _errors and _util (and, through _clock, _context)
+_models  shared; imports only _clock, _errors and _util (and, through _clock, _context)
 ```
 
 Every command calls an operation through the `Api` and renders the DTO it answers with; the TUI
@@ -36,13 +36,27 @@ authority, and a new edge is a row in its diff. No set of packages imports each 
 top, and the guard holds that too: an import that would close a cycle goes inside a function.
 
 **Module privacy convention.** Every implementation module and subpackage is **private** —
-leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …). Package
-`__init__.py` files do **not** re-export (this is a CLI, not yet a library API), so internal code
-imports straight from the underscore modules (`from squads._models._item import Item`). The only
-non-empty inits are `squads/__init__` (`__version__`), `_cli/__init__` (the Typer `app` and `main`,
-which the entry point `squads.__main__:main` runs) and `_workflow/__init__` (the bundled-spec accessor); the guard module
-lists them.
-Namespace-style imports use an alias to keep call sites readable: `from squads import _clock as clock`.
+leading-underscore names (`_service.py`, `_models/`, `_backends/_claude_code/`, …); this is a CLI,
+not a library API. Every private package, nested ones included, **re-exports** from its
+`__init__.py` exactly the names a `src` module outside it imports: one
+`from squads._models._item import Item as Item` line per name, taken only from a direct child, so
+`_api/__init__` re-exports DTOs from `squads._api._dto`. An init holds those lines and an optional
+docstring, nothing else; an underscore name or a name only tests use is never re-exported. A module
+outside a package imports through the init of the outermost package that holds the target and not
+the importer, one statement per package (`from squads._models import Item, SubEntity`); a module
+inside a package imports its sibling modules directly (`from squads._backends._base import
+AgentBackend`), never a name from its own or an enclosing package's init. Three modules read as
+`ns.NAME` are re-exported as namespaces under their unprefixed names: `ops`
+(`from squads._api import ops`), `markers` and `attrs` (`from squads._models import attrs`). The
+top-level `squads/__init__` (`__version__`, `version_line`) does not re-export, and no init imports
+a module selected by name at run time (the command modules `LAZY_GROUPS` names, `_cli/_remote.py`,
+the connector subpackages named in `CONNECTORS` of `_sources/_registry.py`). A top-level module is
+not a package and keeps the alias form: `from squads import _clock as clock`. A test imports a name
+through the init that re-exports it, and imports the module object to monkeypatch or to reach a
+name the init does not export, under one alias used in every test, `<package>_<module>` without
+underscores (`from squads._cli import _create as cli_create`, `cli_common`, `api_api`).
+`tests/meta/test_package_import_edges_match_the_recorded_table.py` holds the rule: init shape, no
+reach-in, no reach-out, exact surface, and every package level acyclic over top-level imports.
 
 - `_models/` — pydantic v2. `_item` (`Item`), `_subentity` (`SubEntity` — one sub-entity's
   state, carried on `Item.subentities`: the core keys `local_id`/`title`/`status`/`assignee`/
@@ -50,8 +64,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   either is read and written through `badge_value(code)`/`set_badge_value(code, value)`), `_index` (`SquadsDB`), `_vocab` (`prefix_for`/`label_for` —
   the per-type vocabulary resolver; there is **no** `ItemType`/`Status` enum and no built-in
   prefix→folder map, the spec is the sole authority and folder resolution goes through
-  `SquadPaths.folder_for`), `_markers` (sq anchor tags), `_config` (`.squads.toml`), `_attributes`
-  (`AttributeKey`, `AttributeSpec`, `CORE_KEYS` and the typed roster accessors).
+  `SquadPaths.folder_for`), `_markers` (sq anchor tags, re-exported as `markers`), `_attributes`
+  (`AttributeKey`, `AttributeSpec`, `CORE_KEYS` and the typed roster accessors, re-exported as
+  `attrs`).
+- `_config.py` — `SquadsConfig`, the `.squads.toml` model; a top-level module, outside `_models`,
+  so importing `_models` never loads the configuration model.
 - `_endpoint.py` — standard library only, and lean (no `dataclasses`, `typing` or `importlib.metadata`,
   so its records are plain classes): the one resolution from a start directory and the `-C` values to
   the squad directory and an `Endpoint` (transport, runtime directory, the four files per key, whether the
@@ -97,10 +114,14 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
 - `_sources/` — external trackers, no `_services` import: `_spec.py` (`SourcesSpec`/`SourceSpec`),
   `_loader.py` (the `sources.toml` document, validated against the workflow spec), `_connector.py`
   (the connector interface and the records it returns), `_registry.py` (the literal
-  `(name, version)` → connector table), `_gitlab.py`, `_converters.py` (tracker text to markdown),
-  `_http.py` (stdlib JSON client) and `_credentials.py` (the per-user credential store, never in the squad).
+  `(name, version)` → connector table), `_converters.py` (tracker text to markdown),
+  `_http.py` (stdlib JSON client) and `_credentials.py` (`CredentialStore`, the per-user credential store,
+  never in the squad); each platform is a subpackage (`_gitlab/`, `_github/`, `_jira/`) holding its
+  `_connector.py`, `_probes.py` and platform files; its init re-exports the connector classes (and
+  the Jira converters), and `_registry.py` imports it by name, never the `_sources` init.
 - `_workflow/` — `_loader.py` + `_models.py`: `WorkflowSpec` and friends. The workflow capabilities
-  are **methods on the spec**; `__init__` exposes `bundled_spec()`, which is **not** override-aware.
+  are **methods on the spec**; `_bundled.py` holds `bundled_spec()`, re-exported by the package and
+  **not** override-aware.
   Spec and playbook parameters are required: thread the active spec (`Service.spec`,
   `_cli._common.get_active_spec()`) and playbook (`Service.playbook`), and pass `bundled_spec()` /
   `get_playbook_spec()` explicitly only where the bundled document is meant. The exceptions take
@@ -152,7 +173,9 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   that every DTO field is JSON-native and every `json_field` names a field of its response.
 - `_services/` — orchestration, the logic behind each command. A shared `_base.ServiceCore`
   (create/get/list + backend + role/skill lookups) holding the `_roster_projection.RosterProjection`
-  collaborator (roles, operators and skills projected onto the backends), plus the concern
+  collaborator (roles, operators and skills projected onto the backends) and the three stores,
+  `self.board` (`BoardStore`, `_board/`), `self.memory` (`MemoryStore`, `_memory/`) and
+  `self.credentials` (`CredentialStore`, `_sources/_credentials.py`), plus the concern
   **mixins** that are the 23 `Service` bases, in MRO order: the operation mixins, whose handlers
   each answer with a DTO (`ItemWriteOpsMixin` in `_item_write_ops`, `ItemReadOpsMixin` in
   `_item_read_ops`, `RosterOpsMixin` in `_roster_ops`, `RetypeOpsMixin` in `_item_write_ops`,
@@ -199,9 +222,11 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   tag placement and read-time expansion engine beside `_sections.py`, and `_view_remedies.py` the
   command text a message names to place, disable or clear a view tag. `_view_bodies.py` holds the
   stored-view pair (a view declared `stored`): its escape grammar, recognition and `ViewPair`.
-- `_cli/` — Typer app (`__init__` holds the root `-C` callback and builds the command table);
+- `_cli/` — Typer app: `_app.py` holds the `app`, the root `-C` callback and the command table, and
+  `_entry.py` imports the eagerly registered command modules (`_main`, `_import`, `_ui`) onto it;
+  the init re-exports `app`, `main` and `run` from `_entry.py`, and `build_console` for `_daemon`;
   one `_module` per command group; `_common.py` has the shared console/error decorator/parsers.
-  The root builds each command group on first lookup: `LAZY_GROUPS` in `_cli/__init__.py` names
+  The root builds each command group on first lookup: `LAZY_GROUPS` in `_cli/_app.py` names
   each group's module and Typer, and each bundled item type and alias gets its app from the
   bundled spec, built once per root command; `sq --help` builds them all. A token the active spec
   gives to another type is re-routed (`_common.retargeted_type`); there is no code table of
@@ -214,8 +239,8 @@ Namespace-style imports use an alias to keep call sites readable: `from squads i
   the printers for `--json`, warnings and omissions), then renders. `_render/` holds the
   renderers: they take a DTO and a console only, and
   `tests/meta/test_renderers_read_neither_the_vocabulary_nor_the_configuration.py` keeps them, and
-  `_tui/` through every module it loads, off `squads._workflow`, `squads._paths`, the
-  configuration model, `_services`, `_cli/_calls.py` and `_cli/_common.py`.
+  `_tui/` through every module it loads, off `squads._workflow`, `squads._paths`, `squads._config`,
+  `_services`, `_cli/_calls.py` and `_cli/_common.py`.
 - `_spans.py` — wall-clock spans of one invocation, printed to stderr as `SQUADS_SPAN <name> <ms>`
   when `SQUADS_SPANS` is non-empty (`t=<perf_counter>` sets the origin `mark` times count from);
   free when unset. `scripts/bench_local_mode.py` compares the run time of two `sq` builds on a

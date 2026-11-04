@@ -19,13 +19,13 @@ and recovers the counter from ``max(sequence_id)``. It runs only through ``sq mi
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._backends._claude_code._frontmatter import oneline
-from squads._index._store import IndexStore
+from squads._backends import oneline
+from squads._index import IndexStore
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import with_legacy_extra
-from squads._models._item import Item
+from squads._models import Item
 from squads._paths import SquadPaths, number_for_id
-from squads._rendering._engine import render
+from squads._rendering import render
 
 # Frozen v0.8/v0.10 "skill" vocabulary (type-name, prefix, folder and status literals and this
 # skill's description at this schema). Never derive it from the live spec, enum or registry: a

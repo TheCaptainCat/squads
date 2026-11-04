@@ -4,8 +4,7 @@ composed on, so they take the request's directory and the documents read for it,
 from collections.abc import Callable
 from pathlib import Path
 
-from squads._api._dto._squad import AdoptReport, AdoptRequest, InitReport, InitRequest
-from squads._api._response import Response
+from squads._api import AdoptReport, AdoptRequest, InitReport, InitRequest, Response
 from squads._context import get_context
 from squads._paths import process_dir
 from squads._services._corpus_ops import left_references, moved_files, unreadable_lines

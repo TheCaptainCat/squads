@@ -7,11 +7,11 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from squads._api._dto._display import Column
-from squads._api._dto._workflow import (
+from squads._api import (
     Cheatsheet,
     CollectionCatalog,
     CollectionRow,
+    Column,
     LifecycleCatalog,
     LifecycleRow,
     LintFinding,

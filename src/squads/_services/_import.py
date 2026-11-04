@@ -17,18 +17,20 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads._context import bind_context, get_context
 from squads._errors import SquadsError
-from squads._index._resolver import item_file, require_item
+from squads._index import item_file, require_item
 from squads._itemfile import frontmatter_skew, skew_message
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import Item, make_ref, split_ref
-from squads._models._participants import (
+from squads._models import (
+    Item,
+    SourceRecord,
+    SquadsDB,
     is_sourced,
+    make_ref,
+    markers,
     refuse_system_actor,
     require_valid_slug,
     source_of,
+    split_ref,
 )
-from squads._models._source import SourceRecord
 from squads._services._base import reject_markers, reject_non_view_markers
 from squads._services._collab import CollabMixin
 from squads._services._import_model import (
@@ -63,7 +65,7 @@ from squads._services._results import (
 )
 from squads._services._subentities import SubentitiesMixin
 from squads._services._validators import ValidatorEngine
-from squads._workflow._models import ROSTER_ROLE, Field, WorkflowSpec
+from squads._workflow import ROSTER_ROLE, Field, WorkflowSpec
 
 #: Exception types the per-event dispatch collects as validation problems rather than bugs:
 #: ``SquadsError`` subclasses, and the pydantic ``ValidationError`` from building an

@@ -51,12 +51,8 @@ from squads._interactions._role_guidance import (
     CAPABILITY_TOKEN_CANDIDATE,
     guide_text_lines,
 )
-from squads._models._participants import (
-    group_verb_problem,
-    is_valid_slug,
-    reserved_role_slug_problem,
-)
-from squads._roles._models import CAPABILITY_NAME_PATTERN, malformed_capability_names
+from squads._models import group_verb_problem, is_valid_slug, reserved_role_slug_problem
+from squads._roles import CAPABILITY_NAME_PATTERN, malformed_capability_names
 from squads._specload import (
     OverrideFiles,
     OverrideMessages,
@@ -68,8 +64,7 @@ from squads._specload import (
     override_present,
 )
 from squads._specmerge import RawMapping, describe_spec_error
-from squads._workflow._loader import as_entry_list, as_table
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec, as_entry_list, as_table
 
 #: Canonical location for the project playbook override (relative to squad_dir).
 PLAYBOOK_OVERRIDE_FILENAME = ".overrides/playbook.toml"
@@ -478,7 +473,7 @@ def playbook_stamp_finding(
                 "`sq override update playbook` to re-stamp",
             )
         return None
-    from squads._overrides._manifest import PLAYBOOK_KEY, artifact_changed_since
+    from squads._overrides import PLAYBOOK_KEY, artifact_changed_since
 
     if stamp != __version__ and artifact_changed_since(PLAYBOOK_KEY, stamp):
         return (

@@ -10,11 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from squads._errors import ConfigIntegrityError
-from squads._interactions._models import PlaybookSpec
-from squads._models._index import SquadsDB
-from squads._models._item import Item, split_ref
-from squads._roles._models import CatalogSource
-from squads._roles._resolver import holds_default_designation
+from squads._interactions import PlaybookSpec
+from squads._models import Item, SquadsDB, split_ref
+from squads._roles import CatalogSource, holds_default_designation
 from squads._services._config_integrity import (
     Clause,
     ConfigIntegrityFinding,
@@ -22,8 +20,7 @@ from squads._services._config_integrity import (
     check_all,
     render_finding,
 )
-from squads._workflow import ROSTER_OPERATOR
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_OPERATOR, WorkflowSpec
 
 
 def _clause_ref_kinds(clause: Clause, spec: WorkflowSpec) -> frozenset[str]:

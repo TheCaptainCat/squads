@@ -10,8 +10,7 @@ from textual.content import Content
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Markdown, Static
 
-from squads._api import _ops as ops
-from squads._api._dto._board import BoardListRequest, NoticeRow
+from squads._api import BoardListRequest, NoticeRow, ops
 from squads._tui._session import Session
 
 _EMPTY = "*(no notices)*"

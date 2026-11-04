@@ -6,8 +6,9 @@ from datetime import UTC
 from squads import _aio as aio
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._api._dto._sources import (
+from squads._api import (
     ProbeLine,
+    Response,
     SourceChecked,
     SourceChecklist,
     SourceCheckRequest,
@@ -21,14 +22,17 @@ from squads._api._dto._sources import (
     SourceUnlinked,
     SourceUnlinkRequest,
 )
-from squads._api._response import Response
 from squads._errors import SquadsError
-from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey, map_attribute
-from squads._models._index import SquadsDB
-from squads._models._item import Item
-from squads._models._participants import SOURCE_AUTHOR_PREFIX, source_of
-from squads._models._source import OUT_OF_FILTER
+from squads._models import (
+    OUT_OF_FILTER,
+    SOURCE_AUTHOR_PREFIX,
+    AttributeKey,
+    Item,
+    SquadsDB,
+    map_attribute,
+    markers,
+    source_of,
+)
 from squads._paths import number_for_id
 from squads._services._comment_view import AUTHOR_HANDLE, AUTHOR_ID
 from squads._services._fetch import (
@@ -47,9 +51,13 @@ from squads._services._pull import (
     Fetched,
     PullMixin,
 )
-from squads._sources import _credentials as credentials
-from squads._sources._probes import Expected, ProbeResult, missing_credential, run_probes
-from squads._sources._spec import SourceSpec
+from squads._sources import (
+    Expected,
+    ProbeResult,
+    SourceSpec,
+    missing_credential,
+    run_probes,
+)
 from squads._view_bodies import find_view_pairs
 from squads._workflow import ROSTER_OPERATOR
 
@@ -80,7 +88,7 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
                 connector=source.connector,
                 version=source.version,
                 enabled=source.enabled,
-                credential=credentials.has_entry(source.base_url),
+                credential=self.credentials.has_entry(source.base_url),
                 items=sum(len(ids) for (owner, _), ids in held.items() if owner == name),
                 newest_updated_at=max(
                     (
@@ -127,7 +135,7 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
         return tuple((user_id, handle, where) for (user_id, handle), where in found.items())
 
     async def _checklist(self, source: SourceSpec, db: SquadsDB) -> SourceChecklist:
-        credential = credentials.read_entry(source.base_url)
+        credential = self.credentials.read_entry(source.base_url)
         results: list[ProbeResult]
         if credential is None:
             results = [missing_credential(source.name)]
@@ -166,7 +174,9 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
             )
         source = self.sources().source(record.name)
         require_enabled(source)
-        fetch = await fetch_issue(source, require_credential(source), record.id, record.key)
+        fetch = await fetch_issue(
+            source, require_credential(self.credentials, source), record.id, record.key
+        )
         entry = Fetched(source, fetch)
         now = clock.now().astimezone(UTC).replace(microsecond=0)
 
@@ -225,7 +235,7 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
         source = self.sources().source(req.source)
         require_enabled(source)
         issue_id, fetch = await fetch_referenced_issue(
-            source, require_credential(source), req.issue
+            source, require_credential(self.credentials, source), req.issue
         )
         fetched = fetch.changed[0] if fetch.changed else fetch.linked[issue_id]
         assert fetched is not None

@@ -10,11 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from squads._models._config import SquadsConfig
+from squads._config import SquadsConfig
 from squads._paths import SquadPaths
-from squads._roles._catalog import get_catalog
-from squads._workflow import bundled_spec
-from squads._workflow._loader import load_workflow_spec
+from squads._roles import get_catalog
+from squads._workflow import bundled_spec, load_workflow_spec
 from tests._override_populated import OVERRIDE
 from tests._squads import init_overridden
 from tests.meta import _vocabulary as vocabulary

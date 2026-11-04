@@ -3,7 +3,7 @@
 from rich.console import Console
 from rich.table import Table
 
-from squads._api._dto._refs import RefEntry, Refs
+from squads._api import RefEntry, Refs
 
 
 def render_refs(refs: Refs, console: Console) -> None:

@@ -21,15 +21,15 @@ from typing import Any, NamedTuple, cast
 
 from squads import _badges as badges
 from squads._errors import CommentNotFoundError, SquadsError
-from squads._models import _markers as markers
-from squads._models._item import Item
-from squads._models._participants import (
+from squads._models import (
     AUTHOR_PATTERN,
+    Item,
+    SubEntity,
     is_sourced,
+    markers,
     require_valid_slug,
     source_of,
 )
-from squads._models._subentity import SubEntity
 from squads._sections import (
     append_to_section,
     find_markers,
@@ -506,7 +506,7 @@ def build_block(
     State (status, assignee, field values, mapping) lives in the parent's frontmatter, not here.
     The skeleton lives in ``templates/subentities/block.md.j2`` (sub-tags derive from ``tag``).
     """
-    from squads._rendering._engine import render
+    from squads._rendering import render
 
     heading = f"### {local_id} — {title}".rstrip()
     return render(
@@ -561,7 +561,7 @@ def set_head(  # noqa: PLR0913 — the head's whole state, passed by keyword
     head_tag = _head_tag(kind, local_id)
     held = field_values or {}
     target = spec.mapping_target_kind(kind)
-    from squads._rendering._engine import render
+    from squads._rendering import render
 
     inner = render(
         "subentities/head.md.j2",
@@ -652,7 +652,7 @@ def render_summary(
     if not subentities:
         return ""
     cols = summary_columns(kind, spec)
-    from squads._rendering._engine import render
+    from squads._rendering import render
 
     return render(
         "subentities/summary.md.j2",

@@ -3,8 +3,8 @@ slug or the `@<developer>` placeholder, so its hand-offs follow whoever holds th
 
 import re
 
-from squads._interactions._playbook import get_playbook_spec
-from squads._roles._catalog import PREDEFINED
+from squads._interactions import get_playbook_spec
+from squads._roles import PREDEFINED
 
 _BUNDLED_SLUG_MENTION = re.compile(
     r"(?<![\w-])@(" + "|".join(re.escape(r.slug) for r in PREDEFINED) + r")(?![\w-])"

@@ -11,7 +11,7 @@ from typing import Any, cast
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from squads._errors import SquadsError
-from squads._models._participants import is_valid_slug
+from squads._models import is_valid_slug
 from squads._sources._converters import CONVERTERS
 from squads._sources._filter import Expression, FilterSyntaxError, parse_expression
 from squads._sources._registry import CONNECTORS
@@ -31,7 +31,7 @@ from squads._specload import (
     load_override,
 )
 from squads._specmerge import RawMapping, describe_spec_error
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import WorkflowSpec
 
 #: Canonical location for the project sources override (relative to squad_dir).
 SOURCES_OVERRIDE_FILENAME = ".overrides/sources.toml"

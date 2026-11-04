@@ -6,8 +6,8 @@ CLI command names a declared item type's own name/alias is refused for colliding
 import typer.main
 
 from squads._cli import app
+from squads._workflow import _models as workflow_models
 from squads._workflow import bundled_spec
-from squads._workflow._models import RESERVED_CLI_VERBS
 
 
 def _live_non_type_command_names() -> frozenset[str]:
@@ -24,8 +24,8 @@ def _live_non_type_command_names() -> frozenset[str]:
 
 def test_reserved_cli_verbs_is_exactly_the_live_non_type_command_set() -> None:
     live = _live_non_type_command_names()
-    missing_from_constant = live - RESERVED_CLI_VERBS
-    stale_in_constant = RESERVED_CLI_VERBS - live
+    missing_from_constant = live - workflow_models.RESERVED_CLI_VERBS
+    stale_in_constant = workflow_models.RESERVED_CLI_VERBS - live
     assert not missing_from_constant, (
         "a built-in top-level command exists that RESERVED_CLI_VERBS doesn't know about — a "
         f"type could claim it undetected; add to the constant: {sorted(missing_from_constant)}"

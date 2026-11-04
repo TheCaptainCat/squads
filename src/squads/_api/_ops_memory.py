@@ -1,7 +1,7 @@
 """The memory operations of the table."""
 
 from squads._api._api import Operation
-from squads._api._dto._memory import (
+from squads._api._dto import (
     Memory,
     MemoryAdded,
     MemoryAddRequest,

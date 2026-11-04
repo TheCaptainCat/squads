@@ -5,7 +5,7 @@ import ast
 import re
 from pathlib import Path
 
-from squads._index._reflog import REFLOG_OPS
+from squads._index import REFLOG_OPS
 
 _SRC = Path(__file__).resolve().parents[2] / "src" / "squads"
 _DOCS = Path(__file__).resolve().parents[2] / "docs" / "workflow.md"

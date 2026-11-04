@@ -15,18 +15,18 @@ where the squad is served, never in the squad.
 
 import typer
 
-from squads._api import _ops as ops
-from squads._api._dto._sources import (
+from squads._api import (
     CredentialFieldsRequest,
     CredentialRemoveRequest,
     CredentialSetRequest,
     SourceCheckRequest,
     SourceListRequest,
     SourcePullRequest,
+    ops,
 )
 from squads._cli import _calls as calls
 from squads._cli._common import console, handle_errors, prompt_secret
-from squads._cli._render._sources import (
+from squads._cli._render import (
     render_checked,
     render_credential_removed,
     render_credential_written,

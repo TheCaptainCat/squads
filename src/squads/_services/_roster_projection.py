@@ -7,26 +7,37 @@ the CLI, the TUI and tests call.
 from collections.abc import Callable
 from pathlib import Path
 
-from squads._backends._base import AgentBackend, BackendContext
+from squads._backends import AgentBackend, BackendContext
 from squads._errors import SquadsError
-from squads._index._store import IndexStore
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._role_guidance import skills_for_role, slug_only_role
-from squads._interactions._skills import (
+from squads._index import IndexStore
+from squads._interactions import (
+    PlaybookSpec,
     active_skill_slugs,
     orphaned_skill_item_type,
     resolve_operator_invocable,
+    skills_for_role,
+    slug_only_role,
 )
-from squads._models._index import SquadsDB
-from squads._models._item import Item, effective_prefix, ref_id_matches, split_ref
-from squads._models._participants import ANONYMOUS_NAME, ANONYMOUS_SLUG
+from squads._models import (
+    ANONYMOUS_NAME,
+    ANONYMOUS_SLUG,
+    Item,
+    SquadsDB,
+    effective_prefix,
+    ref_id_matches,
+    split_ref,
+)
 from squads._paths import SquadPaths, number_for_id
 from squads._pronouns import pronouns
-from squads._roles._models import CatalogSource
-from squads._roles._projection import OperatorView, RoleView
-from squads._roles._resolver import resolve_role, resolve_role_for_item, resolve_role_tolerantly
-from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
-from squads._workflow._models import WorkflowSpec
+from squads._roles import (
+    CatalogSource,
+    OperatorView,
+    RoleView,
+    resolve_role,
+    resolve_role_for_item,
+    resolve_role_tolerantly,
+)
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 
 def is_live_roster_entry(item: Item, spec: WorkflowSpec) -> bool:

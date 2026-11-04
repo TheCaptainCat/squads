@@ -5,7 +5,7 @@ A catalog finding carries its validator's declared name (``VALIDATOR_NAMES`` and
 binding: it runs in every squad and no ``validators`` selection can turn it off.
 """
 
-from squads._workflow._validator_names import SQUAD_GLOBAL_VALIDATOR_NAMES, VALIDATOR_NAMES
+from squads._workflow import SQUAD_GLOBAL_VALIDATOR_NAMES, VALIDATOR_NAMES
 
 #: Rule name -> the source that reports it.
 BINDING_RULES: dict[str, str] = {

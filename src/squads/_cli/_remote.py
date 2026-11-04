@@ -9,17 +9,19 @@ from pathlib import Path
 from pydantic import BaseModel
 
 import squads
-from squads._api._api import Api, Operation
-from squads._api._client import Connect, HttpApi
-from squads._api._http import (
+from squads._api import (
     ACTOR_HEADER,
     AT_HEADER,
     CLIENT_DIR_HEADER,
     PARENT_SESSION_HEADER,
     SESSION_HEADER,
+    Api,
+    Connect,
+    HttpApi,
+    Operation,
+    Response,
+    VocabularyHash,
 )
-from squads._api._response import Response
-from squads._api._vocabulary import VocabularyHash
 from squads._cli import _common as common
 from squads._cli._calls import local_api
 from squads._context import get_context

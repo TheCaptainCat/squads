@@ -8,8 +8,8 @@ from typing import NoReturn
 
 from typer.testing import CliRunner
 
-from squads._api._vocabulary import OVERRIDE_DOCUMENT
-from squads._cli import _common as common
+from squads._api import _vocabulary
+from squads._cli import _common as cli_common
 from squads._cli import app
 from squads._context import bind_context, get_context
 from squads._errors import SquadsError
@@ -59,7 +59,7 @@ def test_parsing_a_command_opens_no_override_document_the_hash_leaves_out(
     sys.addaudithook(opens)
     opens.on = True
     try:
-        common.bind_active_spec(project.root)
+        cli_common.bind_active_spec(project.root)
         runner = CliRunner()
         bind_context(replace(get_context(), api=RefusingApi()))
         for args in (
@@ -73,7 +73,9 @@ def test_parsing_a_command_opens_no_override_document_the_hash_leaves_out(
             runner.invoke(app, args)
     finally:
         opens.on = False
-    assert opens.seen <= {OVERRIDE_DOCUMENT.removeprefix(".overrides/")}, sorted(opens.seen)
+    assert opens.seen <= {_vocabulary.OVERRIDE_DOCUMENT.removeprefix(".overrides/")}, sorted(
+        opens.seen
+    )
 
 
 def test_the_scan_sees_a_document_that_is_opened(project: SquadPaths) -> None:

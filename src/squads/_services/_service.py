@@ -14,18 +14,16 @@ from enum import StrEnum
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from squads import _aio, _clock
-from squads._api._api import Mode
-from squads._api._http import RequestMetadata
-from squads._backends._base import AgentBackend
-from squads._backends._registry import get_backend
+from squads._api import Mode, RequestMetadata
+from squads._backends import AgentBackend, get_backend
+from squads._config import CONFIG_FILENAME, SquadsConfig
 from squads._context import NoticeLog, Preconditions, RequestContext, bind_context
 from squads._errors import AlreadyInitializedError, PlaybookConfigError, SquadsError
-from squads._index._store import IndexStore
+from squads._index import IndexStore
 from squads._language import DEFAULT_WORKING_LANGUAGE
-from squads._models._config import CONFIG_FILENAME, SquadsConfig
 from squads._parse_cache import ParseCache
 from squads._paths import SquadPaths, load_config, process_dir
-from squads._roles._catalog import resolve_roles
+from squads._roles import resolve_roles
 from squads._services._board import BoardMixin
 from squads._services._check import CheckMixin
 from squads._services._collab import CollabMixin
@@ -51,13 +49,14 @@ from squads._services._subentities import SubentitiesMixin
 from squads._services._views import ViewsMixin
 from squads._spec_documents import SpecDocuments, SpecSources, resolve_documents, spec_sources
 from squads._specload import Lazy, override_present
-from squads._workflow import ROSTER_ROLE, bundled_spec
-from squads._workflow._loader import (
+from squads._workflow import (
+    ROSTER_ROLE,
     WORKFLOW_OVERRIDE_FILENAME,
+    WorkflowSpec,
+    bundled_spec,
     spec_refusal,
     validate_against_index_fail_closed,
 )
-from squads._workflow._models import WorkflowSpec
 
 
 class Service(

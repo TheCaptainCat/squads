@@ -1,7 +1,7 @@
 """The board operations of the table."""
 
 from squads._api._api import Operation
-from squads._api._dto._board import (
+from squads._api._dto import (
     BoardClearRequest,
     BoardListRequest,
     BoardPostRequest,

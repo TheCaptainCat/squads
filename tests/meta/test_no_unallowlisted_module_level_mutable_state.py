@@ -14,11 +14,8 @@ ALLOWLIST: dict[str, frozenset[str]] = {
         # fixed startup-command template set every agent pointer renders slug-substituted
         {"_STARTUP_COMMAND_TEMPLATES"}
     ),
-    "src/squads/_workflow/__init__.py": frozenset(
-        {
-            "__all__",
-            "_BUNDLED_SPEC",  # immutable bundled default spec, loaded once
-        }
+    "src/squads/_workflow/_bundled.py": frozenset(
+        {"_BUNDLED_SPEC"}  # immutable bundled default spec, loaded once
     ),
     "src/squads/_workflow/_loader.py": frozenset(
         # fixed retired-view-grammar-key -> refusal-reason lookup table, read by the
@@ -77,7 +74,7 @@ ALLOWLIST: dict[str, frozenset[str]] = {
             # CODE constant, shared read-only across requests
         }
     ),
-    "src/squads/_cli/__init__.py": frozenset(
+    "src/squads/_cli/_app.py": frozenset(
         {
             "_spec",  # bundled spec used to statically register the root command tree
             "_STATIC_TYPES",  # derived from _spec — the statically-registered type-name list

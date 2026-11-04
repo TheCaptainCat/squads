@@ -27,10 +27,10 @@ from typing import TYPE_CHECKING, cast
 from pydantic import BaseModel
 
 from squads._errors import SquadsError
-from squads._models._item import Item
+from squads._models import Item
 
 if TYPE_CHECKING:
-    from squads._workflow._models import ViewSpec, ViewTransform, WorkflowSpec
+    from squads._workflow import ViewSpec, ViewTransform, WorkflowSpec
 
 #: The folder, inside the squad directory, an override transform ``path`` resolves against.
 OVERRIDES_DIR = ".overrides"

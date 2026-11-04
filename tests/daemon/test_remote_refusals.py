@@ -11,13 +11,11 @@ from typing import NoReturn
 import pytest
 
 from squads import _aio
-from squads._api import _client
-from squads._api._client import HttpApi
-from squads._api._vocabulary import VocabularyHash
+from squads._api import HttpApi, VocabularyHash, _client
+from squads._cli import _remote as cli_remote
 from squads._cli import app
-from squads._cli._remote import context_headers
 from squads._context import bind_context, get_context
-from squads._models._schema import SCHEMA_VERSION
+from squads._models import SCHEMA_VERSION
 from squads._paths import SquadPaths
 from tests._daemon_harness import Served
 
@@ -35,7 +33,7 @@ def client_of(daemon: Served, vocabulary: VocabularyHash) -> HttpApi:
             daemon.host, daemon.port, timeout=timeout
         ),
         endpoint=f"{daemon.host}:{daemon.port}",
-        headers=context_headers,
+        headers=cli_remote.context_headers,
         vocabulary=lambda: vocabulary,
         package_version="1.2.3",
         local=no_local_run,

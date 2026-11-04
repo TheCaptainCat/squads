@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1286,
+  "counter": 1290,
   "padding": 6,
   "items": {
     "12": {
@@ -40275,10 +40275,10 @@
     "78": {
       "sequence_id": 78,
       "type": "decision",
-      "title": "Module-privacy convention: underscore-prefixed internals, no re-exporting inits",
-      "slug": "module-privacy-convention-underscore-prefixed-internals-no-r",
+      "title": "Module-privacy convention: underscore-prefixed internals, re-exports only from private inits",
+      "slug": "module-privacy-convention-underscore-prefixed-internals-re-e",
       "status": "Accepted",
-      "description": "Every implementation module is private with leading underscores and non-re-exporting inits, so 1.0 freezes no accidental public API",
+      "description": "Every implementation module is underscore-private; only private package inits re-export (ADR-1287), so 1.0 freezes no accidental public API",
       "parent": null,
       "author": "architect",
       "assignee": null,
@@ -40287,9 +40287,9 @@
         "GUIDE-79"
       ],
       "subentities": [],
-      "path": "adrs/ADR-000078-module-privacy-convention-underscore-prefixed-internals-no-r.md",
+      "path": "adrs/ADR-000078-module-privacy-convention-underscore-prefixed-internals-re-e.md",
       "created_at": "2026-06-12T14:23:20Z",
-      "updated_at": "2026-10-25T21:37:09Z",
+      "updated_at": "2026-11-04T11:06:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -65621,12 +65621,13 @@
         "ADR-76",
         "ADR-77",
         "ADR-78",
-        "ADR-49"
+        "ADR-49",
+        "ADR-1287"
       ],
       "subentities": [],
       "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
       "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-10-15T20:49:19Z",
+      "updated_at": "2026-11-04T14:11:54Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67758,7 +67759,7 @@
       ],
       "path": "tasks/TASK-001286-scoped-sources-filter-expressions-and-cross-source-links.md",
       "created_at": "2026-11-04T09:58:37Z",
-      "updated_at": "2026-11-04T10:35:47Z",
+      "updated_at": "2026-11-04T10:45:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67766,6 +67767,243 @@
       },
       "slug_in_file": false,
       "id": "TASK-1286"
+    },
+    "1287": {
+      "sequence_id": 1287,
+      "type": "decision",
+      "title": "Private packages re-export their outside-used names",
+      "slug": "private-packages-re-export-their-outside-used-names",
+      "status": "Accepted",
+      "description": "Every private package's init re-exports exactly the names other packages import, so an importer writes one statement per package; the guard holds init shape, no reach-in and an exact surface",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-79",
+        "ADR-78"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001287-private-packages-re-export-their-outside-used-names.md",
+      "created_at": "2026-11-04T10:58:24Z",
+      "updated_at": "2026-11-04T12:42:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1287"
+    },
+    "1288": {
+      "sequence_id": 1288,
+      "type": "feature",
+      "title": "Re-exporting private packages",
+      "slug": "re-exporting-private-packages",
+      "status": "InProgress",
+      "description": "Every private package's init re-exports the names other packages import, per ADR-1287; codebase swept, docs corrected.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1287:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Guard and package sweep",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Documentation corrected",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001288-re-exporting-private-packages.md",
+      "created_at": "2026-11-04T11:05:52Z",
+      "updated_at": "2026-11-04T11:08:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "FEAT-1288"
+    },
+    "1289": {
+      "sequence_id": 1289,
+      "type": "task",
+      "title": "Sweep private packages to re-exporting inits",
+      "slug": "sweep-private-packages-to-re-exporting-inits",
+      "status": "InProgress",
+      "description": "Guard, three moves and a leaf-first sweep of every private package to the ADR-1287 re-export rule; docs corrected",
+      "parent": "FEAT-1288",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1287:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Guard, resolver, PENDING and the three moves",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Sweep _models",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Sweep _workflow, _roles and _interactions",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Sweep _api/_dto and _api",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Sweep _rendering, _index, _sources, _overrides, _board, _memory",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Sweep _backends, _migrations, _tui and _services",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Sweep _cli/_render, _cli, _daemon; delete PENDING",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Correct the documents stating the old rule",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001289-sweep-private-packages-to-re-exporting-inits.md",
+      "created_at": "2026-11-04T11:07:46Z",
+      "updated_at": "2026-11-04T14:13:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1289"
+    },
+    "1290": {
+      "sequence_id": 1290,
+      "type": "feature",
+      "title": "Injected skills and one role skill per agent",
+      "slug": "injected-skills-and-one-role-skill-per-agent",
+      "status": "Draft",
+      "description": "Pointers inject their body; each agent preloads its own role skill; per-type skills retire",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Skill pointers render their body at startup",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Each agent preloads its own role skill",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "The squads and greeting skills carry only what is theirs",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "A migration retires the per-type skills",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Docs and changelog for role skills",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
+      "created_at": "2026-11-04T13:32:39Z",
+      "updated_at": "2026-11-04T13:33:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1290"
     }
   }
 }

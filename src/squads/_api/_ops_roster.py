@@ -1,8 +1,10 @@
 """The roster operations of the table."""
 
 from squads._api._api import Operation
-from squads._api._dto._comments import Comments
-from squads._api._dto._operators import (
+from squads._api._dto import (
+    Comments,
+    DeveloperList,
+    DeveloperListRequest,
     OperatorAddRequest,
     OperatorList,
     OperatorListRequest,
@@ -10,10 +12,6 @@ from squads._api._dto._operators import (
     OperatorStatusMove,
     OperatorUpdateRequest,
     OperatorWrite,
-)
-from squads._api._dto._roles import (
-    DeveloperList,
-    DeveloperListRequest,
     RoleActivateRequest,
     RoleAddRequest,
     RoleCatalog,
@@ -26,15 +24,10 @@ from squads._api._dto._roles import (
     RoleUpdateRequest,
     RoleViewChange,
     RoleWrite,
-)
-from squads._api._dto._roster import (
     RosterAddress,
     RosterBodyRequest,
     RosterRemoveRequest,
     RosterStatusRequest,
-    ViewRequest,
-)
-from squads._api._dto._skills import (
     SkillAddRequest,
     SkillRefChange,
     SkillRefRemoveRequest,
@@ -48,6 +41,7 @@ from squads._api._dto._skills import (
     SkillUpdateRequest,
     SkillViewChange,
     SkillWrite,
+    ViewRequest,
 )
 
 #: A literal under ``/v1/roles/`` is a group verb of ``sq role``, which no role can be addressed by.

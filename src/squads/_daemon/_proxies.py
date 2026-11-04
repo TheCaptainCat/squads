@@ -20,7 +20,7 @@ import typer.rich_utils as rich_utils
 from rich.console import Console
 from rich.theme import Theme
 
-from squads._cli import _common as common
+from squads._cli import build_console
 from squads._context import get_context
 from squads._shim import SENT_ENVIRONMENT
 
@@ -272,7 +272,7 @@ def typer_console(stderr: bool = False) -> Console:
         or os.environ.get("PY_COLORS")
     )
     columns = os.environ.get("TERMINAL_WIDTH")
-    console = common.build_console(
+    console = build_console(
         stderr=stderr,
         force_terminal=False if os.environ.get("_TYPER_FORCE_DISABLE_TERMINAL") else forced or None,
         width=int(columns) if columns else None,

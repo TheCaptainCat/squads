@@ -1,1 +1,3 @@
-"""Private subpackage — import members from its underscore modules."""
+"""The AGENTS.md backend."""
+
+from squads._backends._agents_md._backend import AgentsMdBackend as AgentsMdBackend

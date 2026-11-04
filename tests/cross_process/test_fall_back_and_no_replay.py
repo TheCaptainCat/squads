@@ -12,7 +12,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from squads._cli._remote import endpoint_name
+from squads._cli import _remote as cli_remote
 from squads._daemon_start import failure_line
 from squads._endpoint import Endpoint, endpoint_for, runtime_dir_problem
 from squads._paths import SquadPaths
@@ -71,9 +71,9 @@ def test_a_connection_lost_after_the_request_was_sent_is_an_error_and_is_not_rep
         daemon.close()
     assert (result.returncode, result.stdout) == (1, "")
     assert result.stderr == (
-        f"error: the connection to the squad served at {endpoint_name(endpoint)} was lost after "
-        "the request was sent; the operation may still complete. Check its result before running "
-        "it again.\n"
+        f"error: the connection to the squad served at {cli_remote.endpoint_name(endpoint)} "
+        "was lost after the request was sent; the operation may still complete. Check its "
+        "result before running it again.\n"
     )
     assert daemon.requests == 1
     listed = run(sq_command(project, "list", "--type", "task", "--json"))

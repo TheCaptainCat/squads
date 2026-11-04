@@ -18,10 +18,8 @@ from squads import _aio
 from squads._cli import app
 from squads._context import RequestContext, bind_context, get_context
 from squads._paths import SquadPaths
-from squads._rendering._engine import _env_cache
-from squads._workflow import bundled_spec
-from squads._workflow._loader import load_workflow_spec
-from squads._workflow._models import WorkflowSpec
+from squads._rendering import _engine as rendering_engine
+from squads._workflow import WorkflowSpec, bundled_spec, load_workflow_spec
 from tests import _cli_surface as cli_surface
 from tests import _write_guard
 from tests._endpoint_client import EndpointClient
@@ -55,18 +53,18 @@ def _reset_context():  # pyright: ignore[reportUnusedFunction]  # autouse: pytes
     bind_context(RequestContext())
     yield
     bind_context(RequestContext())
-    from squads._cli import _CustomTypeGroup
-    from squads._cli._create import _CustomCreateGroup
+    from squads._cli import _app as cli_app
+    from squads._cli import _create as cli_create
 
-    _CustomTypeGroup._custom_cmd_cache.clear()
-    _CustomCreateGroup._custom_cmd_cache.clear()
+    cli_app._CustomTypeGroup._custom_cmd_cache.clear()
+    cli_create._CustomCreateGroup._custom_cmd_cache.clear()
 
 
 @pytest.fixture(autouse=True)
 def _reset_engine_state():  # pyright: ignore[reportUnusedFunction]  # autouse: pytest calls it
     """Evict the compiled-template cache after each test so an override never outlives it."""
     yield
-    _env_cache.clear()
+    rendering_engine._env_cache.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -268,7 +266,7 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
             bind_context(replace(get_context(), api=parity))
         spec = _squad_spec()
         reached.update(_reached(args, spec))
-        _env_cache.clear()
+        rendering_engine._env_cache.clear()
         if endpoint is not None:
             result = await _aio.to_thread(functools.partial(endpoint.invoke, runner, args, **kw))
         else:

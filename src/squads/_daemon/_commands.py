@@ -20,14 +20,13 @@ import typer.main
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from squads import _aio as aio
-from squads._api._api import Api, Operation
-from squads._api._response import Response
+from squads._api import Api, Operation, Response
 from squads._cli import app
 from squads._cli import run as run_cli
 from squads._context import RequestContext, ServedCommand
 from squads._daemon import _proxies as proxies
 from squads._errors import SquadsError
-from squads._services._service import RequestScope
+from squads._services import RequestScope
 
 _log = logging.getLogger("squads.daemon")
 

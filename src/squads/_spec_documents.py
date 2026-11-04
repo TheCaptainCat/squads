@@ -9,21 +9,30 @@ documents and the override text (:class:`~squads._specload.OverrideFiles`) they 
 from dataclasses import dataclass
 from pathlib import Path
 
-from squads._api._vocabulary import VocabularyHash, vocabulary_hash
+from squads._api import VocabularyHash, vocabulary_hash
 from squads._errors import PlaybookConfigError, SquadsError
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME, load_playbook
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._playbook import get_playbook_spec
-from squads._roles._catalog import get_catalog
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME, load_role_catalog
-from squads._roles._models import CatalogSource, RoleCatalogSpec
-from squads._sources._loader import load_sources
-from squads._sources._spec import SourcesSource, SourcesSpec
+from squads._interactions import (
+    PLAYBOOK_OVERRIDE_FILENAME,
+    PlaybookSpec,
+    get_playbook_spec,
+    load_playbook,
+)
+from squads._roles import (
+    ROLES_OVERRIDE_FILENAME,
+    CatalogSource,
+    RoleCatalogSpec,
+    get_catalog,
+    load_role_catalog,
+)
+from squads._sources import SourcesSource, SourcesSpec, load_sources
 from squads._specload import Lazy, OverrideFiles, override_present
-from squads._workflow import _loader as workflow_loader
-from squads._workflow import bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME, bundled_workflow_bytes
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import (
+    WORKFLOW_OVERRIDE_FILENAME,
+    WorkflowSpec,
+    bundled_spec,
+    bundled_workflow_bytes,
+    load_workflow_spec,
+)
 
 
 @dataclass(frozen=True)
@@ -74,7 +83,7 @@ def resolve_workflow(squad_dir: Path, files: OverrideFiles | None = None) -> Wor
     overrides it."""
     if not override_present(squad_dir / WORKFLOW_OVERRIDE_FILENAME):
         return bundled_spec()
-    return workflow_loader.load_workflow_spec(squad_dir, files)
+    return load_workflow_spec(squad_dir, files)
 
 
 def resolve_catalog(squad_dir: Path, files: OverrideFiles | None = None) -> RoleCatalogSpec:

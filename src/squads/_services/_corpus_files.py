@@ -13,10 +13,9 @@ from typing import Any
 from squads import _aio
 from squads._errors import SquadsError
 from squads._itemfile import read_frontmatter
-from squads._models._vocab import prefix_for
+from squads._models import prefix_for
 from squads._paths import number_for_id
-from squads._workflow import ROSTER_SKILL
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_SKILL, WorkflowSpec
 
 
 def stem_digit_run(md: Path, item_type: str, spec: WorkflowSpec) -> str | None:

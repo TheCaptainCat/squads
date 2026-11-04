@@ -8,11 +8,7 @@ test is the guard against drift in both directions."""
 import typer.main
 
 from squads._cli import app
-from squads._models._participants import (
-    OPERATOR_SLUG_PREFIX,
-    ROLE_GROUP_VERBS,
-    SKILL_GROUP_VERBS,
-)
+from squads._models import OPERATOR_SLUG_PREFIX, ROLE_GROUP_VERBS, _participants
 
 
 def _verbs(group: str) -> frozenset[str]:
@@ -25,7 +21,7 @@ def test_the_role_group_verbs_are_the_registered_commands() -> None:
 
 
 def test_the_skill_group_verbs_are_the_registered_commands() -> None:
-    assert _verbs("skill") == SKILL_GROUP_VERBS
+    assert _verbs("skill") == _participants.SKILL_GROUP_VERBS
 
 
 def test_no_operator_group_verb_starts_with_the_operator_prefix() -> None:

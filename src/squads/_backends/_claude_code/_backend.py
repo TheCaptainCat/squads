@@ -17,20 +17,19 @@ from squads._backends._claude_code._frontmatter import (
     normalize_model,
     oneline,
 )
-from squads._interactions._playbook import managed_item_types
-from squads._interactions._role_guidance import delegate_example_slugs, developer_roles
-from squads._interactions._skills import (
+from squads._interactions import (
     custom_item_skill_description,
     custom_item_skill_name,
+    delegate_example_slugs,
+    developer_roles,
     is_system_skill,
     item_skill_name,
+    managed_item_types,
     skill_description,
 )
-from squads._models import _markers as markers
-from squads._models._item import Item
-from squads._rendering._engine import render
-from squads._roles._catalog import RoleDef
-from squads._roles._projection import OperatorView, RoleView
+from squads._models import Item, markers
+from squads._rendering import render
+from squads._roles import OperatorView, RoleDef, RoleView
 from squads._view_tags import place_view_tags
 from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 from squads._workflow import ROSTER_SKILL

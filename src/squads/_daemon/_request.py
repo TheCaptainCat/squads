@@ -8,7 +8,7 @@ from typing import Any, Union, get_args, get_origin
 from pydantic import BaseModel, ValidationError
 from starlette.requests import Request
 
-from squads._api._api import Operation
+from squads._api import Operation
 from squads._errors import SquadsError
 
 

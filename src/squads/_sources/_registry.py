@@ -34,10 +34,10 @@ CONNECTORS: dict[tuple[str, str], ConnectorEntry] = {
         "squads._sources._github", "GitHubConnector", "github-md", _TYPE_SIDES, ("repository",)
     ),
     ("jira", "cloud-v3"): ConnectorEntry(
-        "squads._sources._jira_cloud", "JiraCloudConnector", "adf", _JIRA_SIDES, _JIRA_SCOPE
+        "squads._sources._jira", "JiraCloudConnector", "adf", _JIRA_SIDES, _JIRA_SCOPE
     ),
     ("jira", "dc-v2"): ConnectorEntry(
-        "squads._sources._jira_dc", "JiraDcConnector", "jira-wiki", _JIRA_SIDES, _JIRA_SCOPE
+        "squads._sources._jira", "JiraDcConnector", "jira-wiki", _JIRA_SIDES, _JIRA_SCOPE
     ),
 }
 

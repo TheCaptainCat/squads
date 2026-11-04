@@ -7,7 +7,7 @@ The counter starts after the squad's role and its seeded skills, so the numbers 
 import asyncio
 from pathlib import Path
 
-from squads._workflow._loader import load_workflow_spec
+from squads._workflow import load_workflow_spec
 from tests._helpers import create_item, make_service
 from tests._squads import init_overridden, paths_of
 

@@ -24,18 +24,20 @@ from typing import Any, NamedTuple, cast
 
 from squads import _aio
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._index._store import IndexStore
-from squads._interactions._skills import role_origin, skill_origin
+from squads._index import IndexStore
+from squads._interactions import role_origin, skill_origin
 from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
-from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey
-from squads._models._index import SquadsDB
-from squads._models._item import Item, slug_from_stem
-from squads._models._participants import roster_slug_breaches
-from squads._roles._models import DEV_TEMPLATE_NAME
-from squads._roles._resolver import resolve_role_with_base, role_defined_by_file
+from squads._models import (
+    AttributeKey,
+    Item,
+    SquadsDB,
+    markers,
+    roster_slug_breaches,
+    slug_from_stem,
+)
+from squads._roles import DEV_TEMPLATE_NAME, resolve_role_with_base, role_defined_by_file
 from squads._sections import (
     find_markers,
     has_section,
@@ -43,7 +45,7 @@ from squads._sections import (
     split_lines,
     with_discussion_region,
 )
-from squads._workflow._models import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, ROSTER_TYPES
 
 # --------------------------------------------------------------------------- contributions
 

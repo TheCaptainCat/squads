@@ -68,11 +68,18 @@ sanctioned way to satisfy it.
 ## Conventions
 
 - **Private layout.** Every module and subpackage is underscore-prefixed
-  (`squads._services._service`, `squads._models._item`, …) and package `__init__`s don't re-export
-  — import straight from the underscore modules. (`squads/__init__` keeps `__version__`;
-  `_cli/__init__` the Typer `app`, `main` and the lazy command table; `_workflow/__init__` the
-  bundled-spec accessor.) The backends are a literal table in `_backends/_registry.py`; nothing
-  registers on import.
+  (`squads._services._service`, `squads._models._item`, …). Each private package's `__init__`
+  re-exports exactly the names modules outside it import, one `Name as Name` line per name from a
+  direct child and nothing else, so an importer writes one statement per package
+  (`from squads._models import Item, SubEntity`) and a module imports its own package's siblings
+  directly. `ops`, `markers` and `attrs` are re-exported as namespaces (`from squads._api import
+  ops`). The top-level `squads/__init__` keeps `__version__` and `version_line` and re-exports
+  nothing; a module selected by name at run time (a lazy command group, a connector) is never
+  imported by its package's init. A test imports a re-exported name through the init, or the module
+  object to monkeypatch or reach anything else, under one alias used in every test,
+  `<package>_<module>` without underscores (`from squads._cli import _common as cli_common`).
+  `tests/meta/test_package_import_edges_match_the_recorded_table.py` holds the rule. The backends
+  are a literal table in `_backends/_registry.py`; nothing registers on import.
 - **Frontmatter is the source of truth.** `.squads.json` is a rebuildable index — never store
   anything in it that can't be reconstructed from the `.md` files (`sq repair` proves it).
 - **Marker-safe edits only** — touch file content via `squads._sections`; never rewrite an agent's
@@ -172,7 +179,7 @@ in that test's `LONG_BODIES` list.
      `--json` or render through `_cli/_render/`, and end with `calls.finish`. A top-level command
      is registered on `app` in `_cli/_main.py`; a command in a group, on that group's Typer.
   4. A new command group is a Typer in its own `_cli` module and a `LAZY_GROUPS` row in
-     `_cli/__init__.py`; `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the
+     `_cli/_app.py`; `tests/meta/test_lazy_command_groups_match_the_typer_groups.py` holds the
      table to the group Typers.
   5. Add its surface cases under `tests/cli/` (one per parameter, `--json` included), and write its
      help to [Writing `--help` text](#writing---help-text).

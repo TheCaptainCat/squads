@@ -8,20 +8,16 @@ from typing import Any, Protocol
 import typer
 
 import squads._cli._common as common
-from squads._api._api import Operation
-from squads._api._dto._roster import (
+from squads._api import (
+    Operation,
+    Response,
     RosterBodyRequest,
     RosterRemoveRequest,
     RosterStatusRequest,
     SeveredRef,
 )
-from squads._api._response import Response
 from squads._cli import _calls as calls
-from squads._cli._render._roster import (
-    render_body_written,
-    render_removed,
-    render_status_move,
-)
+from squads._cli._render import render_body_written, render_removed, render_status_move
 
 #: The ``ctx.obj`` key of the address as typed, which the operation resolves.
 ADDR_KEY = "addr"

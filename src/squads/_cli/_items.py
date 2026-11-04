@@ -25,9 +25,7 @@ from rich.console import Console
 import squads._cli._common as common
 import squads._cli._field_options as field_options
 from squads import _badges as badges
-from squads._api import _ops as ops
-from squads._api._api import Operation
-from squads._api._dto._item_writes import ItemViewChanged, ItemViewRequest, SubentityUpdated
+from squads._api import ItemViewChanged, ItemViewRequest, Operation, SubentityUpdated, ops
 from squads._cli import _calls as calls
 from squads._cli._common import (
     console,
@@ -40,7 +38,7 @@ from squads._cli._common import (
     resolve_local_id,
 )
 from squads._errors import SquadsError
-from squads._workflow._models import Field, WorkflowSpec
+from squads._workflow import Field, WorkflowSpec
 
 
 def _address(ctx: typer.Context) -> dict[str, str]:
@@ -73,7 +71,7 @@ def _view_change(
     json_out: bool,
     enable: bool,
 ) -> None:
-    from squads._cli._render._roster import render_view_change
+    from squads._cli._render import render_view_change
 
     common.declare_actor(as_)
 
@@ -92,7 +90,7 @@ def _view_change(
 
 def _subentity_comments(kind: str) -> common.CommentHost:
     """The discussion of a sub-entity of *kind*."""
-    from squads._api._dto._comment_writes import (
+    from squads._api import (
         SubentityCommentAddRequest,
         SubentityCommentEditRequest,
         SubentityCommentRequest,
@@ -324,10 +322,8 @@ def build_item_app(
 
 
 def _cmd_show(item: typer.Typer) -> None:
-    from squads._api._dto._items import ItemShowRequest
-    from squads._api._dto._sources import SourceRefreshRequest
-    from squads._cli._render._items import render_show
-    from squads._cli._render._sources import render_refreshed
+    from squads._api import ItemShowRequest, SourceRefreshRequest
+    from squads._cli._render import render_refreshed, render_show
 
     @item.command("show")
     @handle_errors
@@ -363,8 +359,8 @@ def _cmd_show(item: typer.Typer) -> None:
 
 
 def _cmd_update(item: typer.Typer, item_type: str) -> None:
-    from squads._api._dto._item_writes import ItemUpdateRequest
-    from squads._cli._render._writes import render_updated
+    from squads._api import ItemUpdateRequest
+    from squads._cli._render import render_updated
 
     @item.command("update", cls=field_options.update_command_cls(item_type))
     @handle_errors
@@ -446,8 +442,8 @@ def _cmd_update(item: typer.Typer, item_type: str) -> None:
 
 
 def _cmd_status(item: typer.Typer) -> None:
-    from squads._api._dto._items import ItemStatusRequest
-    from squads._cli._render._items import render_status
+    from squads._api import ItemStatusRequest
+    from squads._cli._render import render_status
 
     @item.command("status")
     @handle_errors
@@ -473,8 +469,8 @@ def _cmd_status(item: typer.Typer) -> None:
 
 
 def _cmd_body(item: typer.Typer) -> None:
-    from squads._api._dto._item_writes import ItemBodyRequest
-    from squads._cli._render._roster import render_body_written
+    from squads._api import ItemBodyRequest
+    from squads._cli._render import render_body_written
 
     @item.command("body")
     @handle_errors
@@ -507,8 +503,8 @@ def _cmd_body(item: typer.Typer) -> None:
 
 
 def _cmd_retype(item: typer.Typer) -> None:
-    from squads._api._dto._item_writes import ItemRetypeRequest
-    from squads._cli._render._writes import render_retyped
+    from squads._api import ItemRetypeRequest
+    from squads._cli._render import render_retyped
 
     @item.command("retype")
     @handle_errors
@@ -544,8 +540,8 @@ def _cmd_retype(item: typer.Typer) -> None:
 
 
 def _cmd_remove(item: typer.Typer) -> None:
-    from squads._api._dto._item_writes import ItemRemoveRequest
-    from squads._cli._render._writes import render_item_removed
+    from squads._api import ItemRemoveRequest
+    from squads._cli._render import render_item_removed
 
     @item.command("remove")
     @handle_errors
@@ -579,10 +575,8 @@ def _cmd_remove(item: typer.Typer) -> None:
 
 
 def _cmd_refs(item: typer.Typer) -> None:
-    from squads._api._dto._item_writes import ItemRefRemoveRequest, ItemRefRequest
-    from squads._api._dto._refs import RefsRequest
-    from squads._cli._render._refs import render_refs
-    from squads._cli._render._writes import render_ref_added, render_ref_removed
+    from squads._api import ItemRefRemoveRequest, ItemRefRequest, RefsRequest
+    from squads._cli._render import render_ref_added, render_ref_removed, render_refs
 
     @item.command("refs")
     @handle_errors
@@ -701,8 +695,8 @@ def _cmd_view(item: typer.Typer) -> None:
 def _cmd_source(item: typer.Typer) -> None:
     """The ``sq <type> <n> source unlink|relink`` group that cuts an item from its tracker issue
     and attaches an item a source created to one."""
-    from squads._api._dto._sources import SourceRelinkRequest, SourceUnlinkRequest
-    from squads._cli._render._sources import render_relinked, render_unlinked
+    from squads._api import SourceRelinkRequest, SourceUnlinkRequest
+    from squads._cli._render import render_relinked, render_unlinked
 
     source_app = typer.Typer(
         no_args_is_help=True, help="Tie the item to its tracker issue, or cut it free."
@@ -812,8 +806,8 @@ def _doc[F: Callable[..., object]](text: str) -> Callable[[F], F]:
 
 
 def _register_subentity(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
-    from squads._api._dto._subentities import SubentitiesRequest
-    from squads._cli._render._subentities import render_subentities
+    from squads._api import SubentitiesRequest
+    from squads._cli._render import render_subentities
 
     plural = spec.subentity_plural(kind)
 
@@ -894,8 +888,8 @@ def _register_add(item: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     non-initial
     status at creation — built dynamically from the resolved ``SubentityKindSpec``. Replaces
     the three hand-written per-kind ``_register_add`` closures."""
-    from squads._api._dto._item_writes import SubentityAddRequest
-    from squads._cli._render._writes import render_subentity_added
+    from squads._api import SubentityAddRequest
+    from squads._cli._render import render_subentity_added
 
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
@@ -988,7 +982,7 @@ def _register_update(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
     """The sub-entity metadata entry point — one ``--<field-code>`` option per declared field
     (identically to ``add-<kind>``) + ``--no-<field-code>`` per optional field +
     ``--<target-kind>``/``--no-<target-kind>`` iff maps_to_parent."""
-    from squads._api._dto._item_writes import SubentityUpdateRequest
+    from squads._api import SubentityUpdateRequest
 
     ks = spec.subentity_kinds[kind]
     fields = spec.fields_for(kind)
@@ -1149,10 +1143,8 @@ def _remove_help(kind: str, spec: WorkflowSpec) -> str:
 
 
 def _register_sub_verbs(sub: typer.Typer, kind: str, spec: WorkflowSpec) -> None:
-    from squads._api._dto._item_writes import SubentityBodyRequest, SubentityRemoveRequest
-    from squads._api._dto._subentities import SubentityRequest
-    from squads._cli._render._subentities import render_subentity
-    from squads._cli._render._writes import render_subentity_removed
+    from squads._api import SubentityBodyRequest, SubentityRemoveRequest, SubentityRequest
+    from squads._cli._render import render_subentity, render_subentity_removed
 
     @sub.command("show")
     @handle_errors

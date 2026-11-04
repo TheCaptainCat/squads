@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 
-from squads._models._omission import Omission
+from squads._models import Omission
 
 
 class Response[T](BaseModel, frozen=True, defer_build=True):

@@ -81,7 +81,7 @@ class SkillRefsRequest(RosterAddress):
     incoming: bool = False
 
 
-class RefEntry(DTO):
+class SkillRefEntry(DTO):
     """One ref: the item at its other end, and its kind."""
 
     id: str
@@ -93,8 +93,8 @@ class SkillRefs(DTO):
 
     model_config = ConfigDict(serialize_by_alias=True, validate_by_name=True)
 
-    out: list[RefEntry] | None = Field(default=None, exclude_if=_absent)
-    incoming: list[RefEntry] | None = Field(default=None, alias="in", exclude_if=_absent)
+    out: list[SkillRefEntry] | None = Field(default=None, exclude_if=_absent)
+    incoming: list[SkillRefEntry] | None = Field(default=None, alias="in", exclude_if=_absent)
 
 
 class SkillRefRequest(RosterAddress):

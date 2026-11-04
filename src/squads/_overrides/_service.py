@@ -21,15 +21,13 @@ from typing import Any, cast
 
 from squads import __version__
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._interactions._loader import (
+from squads._interactions import (
     PLAYBOOK_OVERRIDE_FILENAME,
     PLAYBOOK_OVERRIDE_MESSAGES,
     bundled_playbook_toml_text,
     playbook_stamp_finding,
 )
-from squads._models import _attributes as attrs
-from squads._models import _markers as markers
-from squads._models._item import Item
+from squads._models import Item, attrs, markers
 from squads._overrides._manifest import (
     PLAYBOOK_KEY,
     ROLES_KEY,
@@ -51,18 +49,22 @@ from squads._overrides._stamp import (
     write_template_stamp,
 )
 from squads._paths import path_from_process_dir
-from squads._rendering._engine import invalidate_squad_dir, template_compile_error
-from squads._roles._catalog import PREDEFINED, RoleDef, get_catalog, role_by_slug
-from squads._roles._loader import (
+from squads._rendering import invalidate_squad_dir, template_compile_error
+from squads._roles import (
+    PREDEFINED,
     ROLES_OVERRIDE_FILENAME,
     ROLES_OVERRIDE_MESSAGES,
+    CatalogSource,
+    RoleDef,
+    RoleSpec,
     bundled_roles_raw,
     bundled_roles_toml_text,
+    get_catalog,
+    role_base_from_item,
+    role_by_slug,
 )
-from squads._roles._models import CatalogSource, RoleSpec
-from squads._roles._resolver import role_base_from_item
 from squads._sections import find_markers
-from squads._sources._loader import (
+from squads._sources import (
     SOURCES_OVERRIDE_FILENAME,
     SOURCES_OVERRIDE_MESSAGES,
     bundled_sources_raw,
@@ -79,7 +81,7 @@ from squads._specload import (
     read_override_text,
 )
 from squads._util import version_tuple
-from squads._workflow._loader import (
+from squads._workflow import (
     WORKFLOW_OVERRIDE_FILENAME,
     WORKFLOW_OVERRIDE_MESSAGES,
     bundled_workflow_toml_text,
@@ -1731,11 +1733,7 @@ def _check_role_override_resolves(
     show`` reads one for a never-activated bundled role, so the message names which consumer
     refuses.
     """
-    from squads._roles._resolver import (
-        materialised_base,
-        resolve_role_with_base,
-        stored_values,
-    )
+    from squads._roles import materialised_base, resolve_role_with_base, stored_values
 
     item = role_items_by_slug.get(slug)
     base_role = materialised_base(item, catalog) if item is not None else None

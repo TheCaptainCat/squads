@@ -5,8 +5,7 @@ import ast
 from datetime import UTC, datetime
 from pathlib import Path
 
-from squads._models._item import Item
-from squads._models._subentity import SubEntity
+from squads._models import Item, SubEntity
 from squads._workflow import bundled_spec
 from tests.meta import _vocabulary as vocabulary
 from tests.meta._roots import REPO_ROOT

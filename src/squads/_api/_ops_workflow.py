@@ -1,17 +1,7 @@
 """The workflow operations of the table."""
 
 from squads._api._api import Grant, Ground, Mode, Operation
-from squads._api._dto._overrides import (
-    OverrideDiff,
-    OverrideDiffRequest,
-    OverrideList,
-    OverrideListRequest,
-    OverrideScaffoldRequest,
-    OverrideUpdateRequest,
-    ScaffoldedOverride,
-    StampedOverrides,
-)
-from squads._api._dto._workflow import (
+from squads._api._dto import (
     CatalogRequest,
     Cheatsheet,
     CheatsheetRequest,
@@ -19,7 +9,15 @@ from squads._api._dto._workflow import (
     LifecycleCatalog,
     LintReport,
     LintRequest,
+    OverrideDiff,
+    OverrideDiffRequest,
+    OverrideList,
+    OverrideListRequest,
+    OverrideScaffoldRequest,
+    OverrideUpdateRequest,
     RefKindCatalog,
+    ScaffoldedOverride,
+    StampedOverrides,
     StatusCatalog,
     StatusRoleCatalog,
     SubentityKindCatalog,

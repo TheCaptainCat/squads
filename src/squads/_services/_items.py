@@ -13,20 +13,28 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads import _views as views
-from squads._api._dto._items import Comment
+from squads._api import Comment
 from squads._errors import InvalidTransitionError, SquadsError, StatusNotInWorkflowError
-from squads._index._resolver import item_file, require_item
+from squads._index import item_file, require_item
 from squads._itemfile import ensure_no_skew
-from squads._models import _markers as markers
-from squads._models._attributes import AttributeKey, map_attribute, parse_invocable_choice
-from squads._models._index import SquadsDB
-from squads._models._item import Item, effective_prefix, format_item_id, ref_id_matches, split_ref
-from squads._models._metadata import coerce_attribute, require_settable
-from squads._models._participants import is_sourced
+from squads._models import (
+    AttributeKey,
+    Item,
+    SquadsDB,
+    coerce_attribute,
+    effective_prefix,
+    format_item_id,
+    is_sourced,
+    map_attribute,
+    markers,
+    parse_invocable_choice,
+    ref_id_matches,
+    require_settable,
+    split_ref,
+)
 from squads._paths import number_for_id
 from squads._pronouns import checked_pronouns
-from squads._roles._catalog import RoleDef
-from squads._roles._resolver import model_problem, resolve_role_for_item
+from squads._roles import RoleDef, model_problem, resolve_role_for_item
 from squads._services import _retirement as retirement
 from squads._services._base import (
     ServiceCore,

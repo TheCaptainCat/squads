@@ -6,7 +6,7 @@ from typing import cast
 from rich.console import Console
 from rich.text import Text
 
-from squads._api._dto._display import Display
+from squads._api import Display
 from squads._cli._markup import escape_markup
 
 #: Concrete `rich` colour per colour intent: a total map plus a ``"neutral"`` entry that is also

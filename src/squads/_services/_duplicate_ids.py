@@ -11,7 +11,7 @@ from squads import _aio
 from squads import _sections as sections
 from squads._errors import SquadsError
 from squads._itemfile import write_text
-from squads._models._item import DISPLAY_ID_PADDING, format_item_id, prefix_from_id
+from squads._models import DISPLAY_ID_PADDING, format_item_id, prefix_from_id
 from squads._paths import number_for_id
 
 #: What a report line says to do about a duplicated id; no verb can choose between the copies.
@@ -169,7 +169,7 @@ class CarrierLog:
 
 
 @dataclass(frozen=True)
-class MovedFile:
+class FileMove:
     """One file given a new number: its id before and after, and its path before and after,
     relative to the squad folder."""
 
@@ -180,7 +180,7 @@ class MovedFile:
 
 
 @dataclass(frozen=True)
-class LeftReference:
+class StaleReference:
     """One reference to an old id that a renumber left unchanged: the id, the file holding it,
     where in that file, and the text."""
 
@@ -194,7 +194,7 @@ class LeftReference:
 class SameIdRenumber:
     """What ``repair --renumber`` did about ids carried by more than one file."""
 
-    moved: list[MovedFile] = field(default_factory=list[MovedFile])
+    moved: list[FileMove] = field(default_factory=list[FileMove])
     ids: list[str] = field(default_factory=list[str])
 
 
@@ -303,12 +303,12 @@ async def _renumber_files(
     padding: int,
     first_free: int,
     scope: RenumberScope,
-) -> tuple[list[MovedFile], int]:
+) -> tuple[list[FileMove], int]:
     """Renumber every file after the first in *ordered*; only each file's own ``id``,
     ``sequence_id``, name and the hint scaffolded from its number change. Returns the moves and
     the next free number."""
     prefix = prefix_from_id(key)
-    moved: list[MovedFile] = []
+    moved: list[FileMove] = []
     next_free = first_free
     for md in ordered[1:]:
         new_display = format_item_id(prefix, next_free, DISPLAY_ID_PADDING)
@@ -323,17 +323,17 @@ async def _renumber_files(
         new_text = scope.rehint(new_text, fm, target, str(number_for_id(key)))
         await write_text(md, new_text)
         await _aio.path_rename(md, target)
-        moved.append(MovedFile(key, new_display, _rel(squad_dir, md), _rel(squad_dir, target)))
+        moved.append(FileMove(key, new_display, _rel(squad_dir, md), _rel(squad_dir, target)))
         next_free += 1
     return moved, next_free
 
 
 async def references_left(
     squad_dir: Path, item_files: list[Path], old_ids: list[str]
-) -> list[LeftReference]:
+) -> list[StaleReference]:
     """Every reference to each of *old_ids* in *item_files*, as the files stand now."""
     return [
-        LeftReference(old_id, rel, where, text)
+        StaleReference(old_id, rel, where, text)
         for old_id in old_ids
         for rel, where, text in await references_to(squad_dir, item_files, old_id)
     ]

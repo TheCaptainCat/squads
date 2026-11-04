@@ -5,7 +5,7 @@ from collections.abc import Iterator, Mapping
 from typing import Any
 
 from squads._sources._http import NotFoundError, member_items
-from squads._sources._jira import JiraConnector, offset_advance
+from squads._sources._jira._connector import JiraConnector, offset_advance
 from squads._sources._records import mapping, records, text
 
 #: The comment property through which Jira Service Management marks an agent-only comment.

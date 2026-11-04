@@ -11,8 +11,8 @@ from typing import Any
 import pytest
 
 from squads import _aio
-from squads._index._store import IndexStore
-from squads._services._maintenance import MaintenanceMixin
+from squads._index import IndexStore
+from squads._services import _maintenance as services_maintenance
 
 INDEX_NAME = ".squads.json"
 
@@ -130,7 +130,7 @@ def install(monkeypatch: pytest.MonkeyPatch) -> WriteLedger:
     real_write = _aio.write_text
     real_rename = _aio.path_rename
     real_transaction = IndexStore.transaction
-    real_rebuild = MaintenanceMixin._rebuild_index_from_disk  # pyright: ignore[reportPrivateUsage]
+    real_rebuild = services_maintenance.MaintenanceMixin._rebuild_index_from_disk  # pyright: ignore[reportPrivateUsage]
 
     def replace(path: Path, text: str) -> None:
         real_replace(path, text)
@@ -148,7 +148,9 @@ def install(monkeypatch: pytest.MonkeyPatch) -> WriteLedger:
         method = sys._getframe(1).f_code.co_name
         return ledger.unit(self.index_path.parent, method, real_transaction(self))
 
-    async def rebuild(self: MaintenanceMixin, *args: Any, **kwargs: Any) -> Any:
+    async def rebuild(
+        self: services_maintenance.MaintenanceMixin, *args: Any, **kwargs: Any
+    ) -> Any:
         async with ledger.unit(
             self.paths.squad_dir,
             "_rebuild_index_from_disk",
@@ -161,7 +163,7 @@ def install(monkeypatch: pytest.MonkeyPatch) -> WriteLedger:
     monkeypatch.setattr(_aio, "write_text", write_text)
     monkeypatch.setattr(_aio, "path_rename", path_rename)
     monkeypatch.setattr(IndexStore, "transaction", transaction)
-    monkeypatch.setattr(MaintenanceMixin, "_rebuild_index_from_disk", rebuild)
+    monkeypatch.setattr(services_maintenance.MaintenanceMixin, "_rebuild_index_from_disk", rebuild)
     return ledger
 
 

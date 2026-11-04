@@ -10,9 +10,9 @@ decision lives in the operation. The default ``at`` of events that omit their ow
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
+from squads._api import ops
 from squads._cli import _calls as calls
-from squads._cli import app
+from squads._cli._app import app
 
 
 @app.command(name="import")
@@ -43,8 +43,8 @@ def import_events(
     Exit 3 means the events are on disk: do not retry on a non-zero exit; read
     `applied` from `--json` instead.
     """
-    from squads._api._dto._squad import ImportRequest
-    from squads._cli._render._squad import render_import, render_import_refusal
+    from squads._api import ImportRequest
+    from squads._cli._render import render_import, render_import_refusal
 
     text = common.read_client_text(file, what="import file")
     request = ImportRequest(text=text, dry_run=dry_run, default_as=as_)

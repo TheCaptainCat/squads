@@ -4,7 +4,7 @@ Per-item operations (show/update/status/body/comment/refs + sub-entities) live i
 resource-oriented `sq <type> <num> <verb> …` groups built by `_items.build_item_app`.
 
 The ``workflow`` command group (cheatsheet + lint) lives in ``_workflow_cmd.py`` and is
-registered as a Typer sub-app in ``_cli/__init__.py``.
+registered as a Typer sub-app in ``_cli/_app.py``.
 """
 
 import sys
@@ -15,9 +15,9 @@ import typer
 
 import squads._cli._common as common
 import squads._cli._field_options as field_options
-from squads._api import _ops as ops
+from squads._api import ops
 from squads._cli import _calls as calls
-from squads._cli import app
+from squads._cli._app import app
 from squads._cli._common import (
     console,
     err_console,
@@ -29,13 +29,13 @@ from squads._cli._common import (
     parse_type,
     print_json_clean,
 )
+from squads._config import CONFIG_FILENAME
 from squads._context import get_context
 from squads._errors import SquadsError
-from squads._index._reflog import REFLOG_OPS
-from squads._models._config import CONFIG_FILENAME
-from squads._models._schema import SCHEMA_VERSION
+from squads._index import REFLOG_OPS
+from squads._models import SCHEMA_VERSION
 from squads._paths import load_config, process_dir, resolve
-from squads._roles._catalog import resolve_roles
+from squads._roles import resolve_roles
 
 # ---------------------------------------------------------------------------
 # Generic badge helpers — one path for every declared badge axis.
@@ -176,8 +176,8 @@ def init(  # noqa: PLR0913 — one parameter per init option
 ):
     """Initialize squads in the current directory."""
     # Parse --backend flags (repeatable; "none" sentinel → sq-only squad).
-    from squads._api._dto._squad import InitRequest
-    from squads._cli._render._squad import render_init
+    from squads._api import InitRequest
+    from squads._cli._render import render_init
 
     active_backends = _parse_backend_option(backend)
 
@@ -292,8 +292,8 @@ def adopt(
     ),
 ):
     """Adopt an existing squad folder and index the items already in it."""
-    from squads._api._dto._squad import AdoptRequest
-    from squads._cli._render._squad import render_adopt
+    from squads._api import AdoptRequest
+    from squads._cli._render import render_adopt
 
     request = AdoptRequest(
         squad_dir=squad_dir,
@@ -356,8 +356,8 @@ def list_items(  # noqa: PLR0913 — the badge axis is generic, not a growing ha
     hides once retired. Filters combine: an item is listed only when it matches
     every one given.
     """
-    from squads._api._dto._items import ItemListRequest
-    from squads._cli._render._items import render_list
+    from squads._api import ItemListRequest
+    from squads._cli._render import render_list
 
     if compact and json_out:
         raise typer.BadParameter("--compact and --json are mutually exclusive")
@@ -437,8 +437,8 @@ def tree(  # noqa: PLR0913 — the badge axis is generic, not a growing hand-lis
     absent from the tree while `sq list` still returned it; the anchor is a tiebreak, since
     every member is an equally good root.
     """
-    from squads._api._dto._tree import TreeRequest
-    from squads._cli._render._tree import render_tree
+    from squads._api import TreeRequest
+    from squads._cli._render import render_tree
 
     badges, badge_min = _build_badge_filters(ctx, badge, min_badge)
     if sort is not None:
@@ -487,8 +487,8 @@ def repair(
 
     Exit codes: 1 a file was unreadable or refs need checking. See sq docs faq.
     """
-    from squads._api._dto._squad import RepairRequest
-    from squads._cli._render._squad import render_repair
+    from squads._api import RepairRequest
+    from squads._cli._render import render_repair
 
     response = calls.call(ops.REPAIR, RepairRequest(renumber=renumber))
     report = response.data
@@ -530,8 +530,8 @@ def renumber(
     Read the other branch's counter (for `--onto`) with:
       git show <mainref>:squads/.squads.json | jq .counter
     """
-    from squads._api._dto._squad import RenumberRequest
-    from squads._cli._render._squad import render_renumber
+    from squads._api import RenumberRequest
+    from squads._cli._render import render_renumber
 
     if (onto is None) == (by is None):
         raise typer.BadParameter("provide exactly one of --onto or --by")
@@ -553,8 +553,8 @@ def inbox(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    from squads._api._dto._queues import InboxRequest
-    from squads._cli._render._queues import render_inbox
+    from squads._api import InboxRequest
+    from squads._cli._render import render_inbox
 
     response = calls.call(ops.INBOX, InboxRequest(slug=role))
     if json_out:
@@ -584,8 +584,8 @@ def search(
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    from squads._api._dto._search import SearchRequest
-    from squads._cli._render._search import render_search
+    from squads._api import SearchRequest
+    from squads._cli._render import render_search
 
     request = SearchRequest(
         q=text,
@@ -609,8 +609,8 @@ def blocked(
     ),
 ):
     """Show open items that wait on another open item."""
-    from squads._api._dto._queues import BlockedRequest
-    from squads._cli._render._queues import render_blocked
+    from squads._api import BlockedRequest
+    from squads._cli._render import render_blocked
 
     response = calls.call(ops.BLOCKED, BlockedRequest())
     if json_out:
@@ -659,8 +659,8 @@ def graph(
     can rename.
     Fields: sq docs stability
     """
-    from squads._api._dto._graph import GraphRequest
-    from squads._cli._render._graph import render_graph, render_graph_text
+    from squads._api import GraphRequest
+    from squads._cli._render import render_graph, render_graph_text
 
     valid_formats = ("dot", "mermaid", "mermaid-md")
     if format_ and format_ not in valid_formats:
@@ -690,8 +690,8 @@ def workload(
 
     Items and sub-entities are counted separately.
     """
-    from squads._api._dto._queues import WorkloadRequest
-    from squads._cli._render._queues import render_workload
+    from squads._api import WorkloadRequest
+    from squads._cli._render import render_workload
 
     response = calls.call(ops.WORKLOAD, WorkloadRequest())
     if json_out:
@@ -710,8 +710,8 @@ def mine(
     json_out: bool = typer.Option(False, "--json", help="Print a JSON array, one object per item."),
 ):
     """List the items assigned to someone, directly or through a sub-entity."""
-    from squads._api._dto._queues import MineRequest
-    from squads._cli._render._queues import render_mine
+    from squads._api import MineRequest
+    from squads._cli._render import render_mine
 
     response = calls.call(ops.MINE, MineRequest(slug=role, all=all_))
     if json_out:
@@ -730,8 +730,8 @@ def sync(
     ),
 ):
     """Regenerate tool-owned managed files to the current squads version."""
-    from squads._api._dto._check import SyncRequest
-    from squads._cli._render._check import render_sync
+    from squads._api import SyncRequest
+    from squads._cli._render import render_sync
 
     response = calls.call(ops.SYNC, SyncRequest())
     if json_out:
@@ -754,8 +754,8 @@ def docs(
 ):
     """Print the squads documentation in the terminal, offline."""
     from squads import _docfiles
-    from squads._api._dto._package import DocIndex
-    from squads._cli._render._package import render_doc, render_doc_index
+    from squads._api import DocIndex
+    from squads._cli._render import render_doc, render_doc_index
 
     found = _docfiles.doc_index() if name is None else _docfiles.doc(name)
     if json_out:
@@ -815,8 +815,8 @@ def reflog(
     status changes. A squad with no log yet prints nothing rather than an error.
     """
     from squads import _clock as clock
-    from squads._api._dto._reflog import ReflogRequest
-    from squads._cli._render._reflog import render_reflog, render_reflog_tree
+    from squads._api import ReflogRequest
+    from squads._cli._render import render_reflog, render_reflog_tree
 
     since_ts: str | None = None
     if since:
@@ -859,8 +859,8 @@ def show_any(
     full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
 ):
     """Show any item by ID or number, whatever its type."""
-    from squads._api._dto._items import ItemShowRequest
-    from squads._cli._render._items import render_show
+    from squads._api import ItemShowRequest
+    from squads._cli._render import render_show
 
     response = calls.call(ops.ITEM_SHOW, ItemShowRequest(id=item_id))
     if json_out:
@@ -886,8 +886,8 @@ def check(
     A broken workflow or playbook override is reported as an issue, and the other
     checks still run.
     """
-    from squads._api._dto._check import CheckRequest
-    from squads._cli._render._check import render_check
+    from squads._api import CheckRequest
+    from squads._cli._render import render_check
 
     response = calls.call(ops.CHECK, CheckRequest())
     if json_out:

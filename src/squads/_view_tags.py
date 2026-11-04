@@ -13,14 +13,10 @@ from itertools import pairwise
 from pathlib import Path
 
 from squads._errors import SquadsError
-from squads._interactions._models import PlaybookSpec
+from squads._interactions import PlaybookSpec
 from squads._language import WorkingLanguage
-from squads._models import _markers as markers
-from squads._models._index import SquadsDB
-from squads._models._item import (
-    Item,
-)
-from squads._roles._models import CatalogSource
+from squads._models import Item, SquadsDB, markers
+from squads._roles import CatalogSource
 from squads._sections import get_section, iter_marker_spans, split_frontmatter, strip_marker_lines
 from squads._transform import TransformLoader
 from squads._view_bodies import ViewPair, collapse_pairs, encode_inner, find_view_pairs
@@ -32,12 +28,7 @@ from squads._views import (
     resolve_source,
     resolve_view_target,
 )
-from squads._workflow._models import (
-    ROSTER_ROLE,
-    ROSTER_SKILL,
-    WorkflowSpec,
-    parse_view_position,
-)
+from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec, parse_view_position
 
 # --------------------------------------------------------------------------- placement
 

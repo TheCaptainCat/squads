@@ -20,8 +20,8 @@ from typing import Any
 import uvicorn
 from typer._click import Command
 
-from squads._daemon._app import build_app
-from squads._daemon._state import DaemonState, RetirementCheck, never_retiring
+from squads._daemon import _app as daemon_app
+from squads._daemon import _state as daemon_state
 from squads._paths import SquadPaths
 from squads._spec_documents import spec_sources
 from tests._squads import FROZEN
@@ -48,7 +48,7 @@ class Served:
 
     host: str
     port: int
-    state: DaemonState
+    state: daemon_state.DaemonState
 
     def request(
         self,
@@ -83,9 +83,9 @@ class Served:
         return self.request("GET", target, headers=headers)
 
 
-def new_state(paths: SquadPaths) -> DaemonState:
+def new_state(paths: SquadPaths) -> daemon_state.DaemonState:
     """The identity of a daemon serving the squad at *paths*."""
-    return DaemonState(
+    return daemon_state.DaemonState(
         pid=os.getpid(),
         version="test",
         root=paths.root,
@@ -99,14 +99,14 @@ def new_state(paths: SquadPaths) -> DaemonState:
 def serve_squad(
     paths: SquadPaths,
     *,
-    retirement_check: RetirementCheck = never_retiring,
+    retirement_check: daemon_state.RetirementCheck = daemon_state.never_retiring,
     command: Command | None = None,
     clock: Callable[[], datetime | None] = lambda: None,
 ) -> Generator[Served]:
     """Serve the squad at *paths* until the block ends. *command* is the command tree the
     endpoint serves in place of the CLI's, and *clock* the time its commands run on."""
     state = new_state(paths)
-    app = build_app(state, retirement_check, command=command, clock=clock)
+    app = daemon_app.build_app(state, retirement_check, command=command, clock=clock)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("127.0.0.1", 0))
     host, port = sock.getsockname()

@@ -4,16 +4,16 @@ import re
 from pathlib import Path
 from typing import get_args
 
-from squads._services._import_model import ImportEvent, _EventBase
+from squads._services import _import_model as services_importmodel
 
 _ADOPTION = Path(__file__).resolve().parents[2] / "docs" / "adoption.md"
 
 
-def _event_models() -> list[type[_EventBase]]:
-    return list(get_args(ImportEvent.__value__))
+def _event_models() -> list[type[services_importmodel._EventBase]]:
+    return list(get_args(services_importmodel.ImportEvent.__value__))
 
 
-def _op_of(model: type[_EventBase]) -> str:
+def _op_of(model: type[services_importmodel._EventBase]) -> str:
     (op,) = get_args(model.model_fields["op"].annotation)
     return op
 

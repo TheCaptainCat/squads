@@ -24,15 +24,16 @@ Address resolution order (exact match, no fuzzy):
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._dto._roster import RosterAddress, ViewRequest
-from squads._api._dto._skills import (
+from squads._api import (
+    RosterAddress,
     SkillAddRequest,
     SkillRefRemoveRequest,
     SkillRefRequest,
     SkillRefsRequest,
     SkillRoleRequest,
     SkillUpdateRequest,
+    ViewRequest,
+    ops,
 )
 from squads._cli import _calls as calls
 from squads._cli._common import (
@@ -40,14 +41,14 @@ from squads._cli._common import (
     console,
     register_comment_verbs,
 )
-from squads._cli._render._roster import (
+from squads._cli._render import (
     render_ref_change,
     render_regenerated,
     render_role_link,
+    render_roster_updated,
     render_skill_added,
     render_skill_refs,
     render_skill_show,
-    render_updated,
     render_view_change,
 )
 from squads._cli._roster import (
@@ -324,7 +325,10 @@ def skill_update(
     )
     response = calls.call(ops.SKILL_UPDATE, request)
     finish_write(
-        ops.SKILL_UPDATE, response, json_out, lambda write: render_updated(write.entry.id, console)
+        ops.SKILL_UPDATE,
+        response,
+        json_out,
+        lambda write: render_roster_updated(write.entry.id, console),
     )
 
 

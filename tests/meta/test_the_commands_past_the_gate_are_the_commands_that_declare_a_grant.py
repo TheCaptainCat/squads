@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from squads._api._ops import OPERATIONS
+from squads._api import ops
 from squads._context import RequestContext, bind_context
 from squads._errors import SchemaGateError
-from squads._services._local_api import LocalApi
+from squads._services import LocalApi
 
 _CORPUS_DIR = Path(__file__).parent.parent / "fixtures" / "corpus"
 
@@ -34,7 +34,7 @@ def _stamped(tmp_path: Path, direction: str, index: int) -> Path:
 def _declared(direction: str) -> set[str]:
     return {
         op.name
-        for op in OPERATIONS
+        for op in ops.OPERATIONS
         if op.grant is not None and op.grant.covers(behind=direction == "behind")
     }
 
@@ -44,7 +44,7 @@ def _observed(direction: str, tmp_path: Path) -> set[str]:
     copied again only after one that got through."""
     past: set[str] = set()
     root = _stamped(tmp_path, direction, 0)
-    for index, op in enumerate(OPERATIONS, start=1):
+    for index, op in enumerate(ops.OPERATIONS, start=1):
         bind_context(RequestContext(client_cwd=root))
         try:
             asyncio.run(LocalApi().call(op, op.request.model_construct()))
@@ -58,7 +58,7 @@ def _observed(direction: str, tmp_path: Path) -> set[str]:
 
 
 def test_the_walk_sees_the_whole_operation_table() -> None:
-    names = {op.name for op in OPERATIONS}
+    names = {op.name for op in ops.OPERATIONS}
     assert {"items.list", "squad.repair", "check", "squad.migrate", "squad.init"} <= names
     assert len(names) > 100
 

@@ -17,32 +17,9 @@ from pathlib import Path
 import pytest
 
 from squads import __version__
-from squads._overrides._manifest import (
-    PLAYBOOK_KEY,
-    ROLES_KEY,
-    SOURCES_KEY,
-    WORKFLOW_KEY,
-    _load_manifest,
-    _load_store,
-    artifact_changed_since,
-    artifact_floor,
-    artifact_hash_at_version,
-    base_version_artifact_content,
-    bundled_template_content,
-    current_artifact_hash,
-    current_template_hash,
-    invalidate_cache,
-    known_index_versions,
-    template_changed_since,
-    template_hash_at_version,
-    template_key,
-)
-from squads._overrides._stamp import (
-    read_template_stamp,
-    read_toml_stamp,
-    write_template_stamp,
-    write_toml_stamp,
-)
+from squads._overrides import PLAYBOOK_KEY, WORKFLOW_KEY, artifact_changed_since
+from squads._overrides import _manifest as overrides_manifest
+from squads._overrides import _stamp as overrides_stamp
 
 #: The 256 KB compressed in-wheel ceiling on the content store.
 _STORE_CEILING_BYTES = 256 * 1024
@@ -69,17 +46,17 @@ def _installed_template_hashes() -> dict[str, str]:
 
 
 def test_the_index_has_a_current_version_hash_for_every_overridable_bundled_artifact() -> None:
-    invalidate_cache()
+    overrides_manifest.invalidate_cache()
     installed_templates = _installed_template_hashes()
     assert installed_templates, "no bundled templates found — package data misconfigured?"
-    installed_keys = {template_key(name) for name in installed_templates} | {
+    installed_keys = {overrides_manifest.template_key(name) for name in installed_templates} | {
         WORKFLOW_KEY,
-        ROLES_KEY,
+        overrides_manifest.ROLES_KEY,
         PLAYBOOK_KEY,
-        SOURCES_KEY,
+        overrides_manifest.SOURCES_KEY,
     }
 
-    manifest_entry = _load_manifest().get(__version__)
+    manifest_entry = overrides_manifest._load_manifest().get(__version__)
     assert manifest_entry is not None, f"manifest has no entry for v{__version__}"
 
     missing = installed_keys - set(manifest_entry)
@@ -94,22 +71,22 @@ def test_the_index_has_a_current_version_hash_for_every_overridable_bundled_arti
     # version's recorded hash for that key still naming the *previous* release's bytes. Over
     # the whole installed set (every bundled template plus the three spec TOMLs), not only the
     # handful of artifacts the content-gated drift tests below happen to exercise.
-    installed = {key: current_artifact_hash(key) for key in installed_keys}
+    installed = {key: overrides_manifest.current_artifact_hash(key) for key in installed_keys}
     mismatched = {key for key, actual in installed.items() if manifest_entry.get(key) != actual}
     assert not mismatched, f"manifest hashes are stale for: {sorted(mismatched)}"
 
-    one_hash = template_hash_at_version("items/task.md.j2", __version__)
+    one_hash = overrides_manifest.template_hash_at_version("items/task.md.j2", __version__)
     assert one_hash is not None and len(one_hash) == 64  # SHA-256 hex
-    assert artifact_hash_at_version(WORKFLOW_KEY, __version__) is not None
+    assert overrides_manifest.artifact_hash_at_version(WORKFLOW_KEY, __version__) is not None
 
 
 def test_a_content_only_edit_with_no_regeneration_is_caught(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A manifest entry naming an earlier release's hash for one key is reported as drift."""
-    invalidate_cache()
-    real_manifest = _load_manifest()
-    victim = template_key("items/task.md.j2")
+    overrides_manifest.invalidate_cache()
+    real_manifest = overrides_manifest._load_manifest()
+    victim = overrides_manifest.template_key("items/task.md.j2")
     an_earlier_version = next(
         v for v in real_manifest if v != __version__ and victim in real_manifest[v]
     )
@@ -120,7 +97,7 @@ def test_a_content_only_edit_with_no_regeneration_is_caught(
 
     doctored = {v: dict(entry) for v, entry in real_manifest.items()}
     doctored[__version__][victim] = stale_hash
-    monkeypatch.setattr(sys.modules[__name__], "_load_manifest", lambda: doctored)
+    monkeypatch.setattr(overrides_manifest, "_load_manifest", lambda: doctored)
     with pytest.raises(AssertionError, match="manifest hashes are stale for"):
         test_the_index_has_a_current_version_hash_for_every_overridable_bundled_artifact()
 
@@ -128,55 +105,60 @@ def test_a_content_only_edit_with_no_regeneration_is_caught(
     # `mismatched` — same fixture shape, different (still-detected) defect.
     without_entry = {v: dict(entry) for v, entry in real_manifest.items()}
     del without_entry[__version__][victim]
-    monkeypatch.setattr(sys.modules[__name__], "_load_manifest", lambda: without_entry)
+    monkeypatch.setattr(overrides_manifest, "_load_manifest", lambda: without_entry)
     with pytest.raises(AssertionError, match="manifest is missing hashes for"):
         test_the_index_has_a_current_version_hash_for_every_overridable_bundled_artifact()
 
 
 def test_current_template_hash_matches_the_actual_bundled_bytes() -> None:
-    content = bundled_template_content("items/task.md.j2")
+    content = overrides_manifest.bundled_template_content("items/task.md.j2")
     assert content is not None
     expected = hashlib.sha256(content.encode("utf-8")).hexdigest()
-    assert current_template_hash("items/task.md.j2") == expected
-    assert bundled_template_content("items/nonexistent.md.j2") is None
+    assert overrides_manifest.current_template_hash("items/task.md.j2") == expected
+    assert overrides_manifest.bundled_template_content("items/nonexistent.md.j2") is None
 
 
 def test_template_changed_since_is_false_for_the_current_and_for_an_unknown_version() -> None:
-    invalidate_cache()
-    assert not template_changed_since("items/task.md.j2", __version__)
-    assert not template_changed_since("items/task.md.j2", "0.0.0-nonexistent")
+    overrides_manifest.invalidate_cache()
+    assert not overrides_manifest.template_changed_since("items/task.md.j2", __version__)
+    assert not overrides_manifest.template_changed_since("items/task.md.j2", "0.0.0-nonexistent")
 
 
 def test_artifact_changed_since_is_content_gated_for_every_kind() -> None:
     """Unknown history is silent and the running version is never drifted from itself."""
-    invalidate_cache()
-    for key in (WORKFLOW_KEY, ROLES_KEY, PLAYBOOK_KEY, SOURCES_KEY):
+    overrides_manifest.invalidate_cache()
+    for key in (
+        WORKFLOW_KEY,
+        overrides_manifest.ROLES_KEY,
+        PLAYBOOK_KEY,
+        overrides_manifest.SOURCES_KEY,
+    ):
         assert not artifact_changed_since(key, __version__)
         assert not artifact_changed_since(key, "0.0.0-nonexistent")
 
 
 def test_template_stamp_comment_round_trips_insert_then_replace() -> None:
-    assert read_template_stamp("no stamp here") is None
-    inserted = write_template_stamp("content here", "0.3.0")
+    assert overrides_stamp.read_template_stamp("no stamp here") is None
+    inserted = overrides_stamp.write_template_stamp("content here", "0.3.0")
     assert inserted.startswith("<!-- squads:override-base:0.3.0 -->")
     assert "content here" in inserted
-    assert read_template_stamp(inserted) == "0.3.0"
+    assert overrides_stamp.read_template_stamp(inserted) == "0.3.0"
 
-    replaced = write_template_stamp(inserted, "0.4.0")
+    replaced = overrides_stamp.write_template_stamp(inserted, "0.4.0")
     assert "0.3.0" not in replaced
-    assert read_template_stamp(replaced) == "0.4.0"
+    assert overrides_stamp.read_template_stamp(replaced) == "0.4.0"
 
 
 def test_toml_stamp_comment_round_trips_insert_then_replace() -> None:
-    assert read_toml_stamp("full_name = 'Ada'") is None
-    inserted = write_toml_stamp('full_name = "Ada"', "0.3.0")
+    assert overrides_stamp.read_toml_stamp("full_name = 'Ada'") is None
+    inserted = overrides_stamp.write_toml_stamp('full_name = "Ada"', "0.3.0")
     assert inserted.startswith("# squads:override-base:0.3.0")
     assert 'full_name = "Ada"' in inserted
-    assert read_toml_stamp(inserted) == "0.3.0"
+    assert overrides_stamp.read_toml_stamp(inserted) == "0.3.0"
 
-    replaced = write_toml_stamp(inserted, "0.4.0")
+    replaced = overrides_stamp.write_toml_stamp(inserted, "0.4.0")
     assert "0.3.0" not in replaced
-    assert read_toml_stamp(replaced) == "0.4.0"
+    assert overrides_stamp.read_toml_stamp(replaced) == "0.4.0"
 
 
 # ─── Retention guards: the shipped index + store ──────────────────────────────
@@ -184,9 +166,9 @@ def test_toml_stamp_comment_round_trips_insert_then_replace() -> None:
 
 def test_every_index_named_hash_resolves_in_the_store() -> None:
     """The retention promise itself: every ``(version, artifact)`` pair the index names."""
-    invalidate_cache()
-    manifest = _load_manifest()
-    store = _load_store()
+    overrides_manifest.invalidate_cache()
+    manifest = overrides_manifest._load_manifest()
+    store = overrides_manifest._load_store()
     unresolved = [
         f"{version}:{key}"
         for version, entry in manifest.items()
@@ -198,9 +180,9 @@ def test_every_index_named_hash_resolves_in_the_store() -> None:
 
 def test_every_stored_blob_is_referenced_by_at_least_one_index_entry() -> None:
     """Not an invariant the generator's write mode maintains — it never deletes."""
-    invalidate_cache()
-    manifest = _load_manifest()
-    store = _load_store()
+    overrides_manifest.invalidate_cache()
+    manifest = overrides_manifest._load_manifest()
+    store = overrides_manifest._load_store()
     referenced = {h for entry in manifest.values() for h in entry.values()}
     orphans = set(store) - referenced
     assert not orphans, f"content-store blobs with no referencing index entry: {sorted(orphans)}"
@@ -219,23 +201,25 @@ def test_the_content_store_stays_under_its_in_wheel_compressed_ceiling() -> None
 
 def test_the_store_covers_every_release_the_index_covers_from_its_own_floor() -> None:
     """Full retention: the store's version coverage matches the index's."""
-    invalidate_cache()
-    versions = known_index_versions()
+    overrides_manifest.invalidate_cache()
+    versions = overrides_manifest.known_index_versions()
     assert versions, "index has no versions at all"
     assert versions[0] == "0.4.0", f"expected the index floor to be 0.4.0, got {versions[0]!r}"
     for version in versions:
-        entry = _load_manifest()[version]
+        entry = overrides_manifest._load_manifest()[version]
         for key in entry:
-            assert base_version_artifact_content(key, version) is not None, (
+            assert overrides_manifest.base_version_artifact_content(key, version) is not None, (
                 f"{key} at v{version} is index-named but not carried by the store"
             )
 
 
 def test_a_spec_document_has_a_later_artifact_floor_than_a_template() -> None:
     """A document introduced after the index's floor has its own later floor."""
-    invalidate_cache()
-    templates_floor = artifact_floor(template_key("items/task.md.j2"))
-    workflow_floor = artifact_floor(WORKFLOW_KEY)
+    overrides_manifest.invalidate_cache()
+    templates_floor = overrides_manifest.artifact_floor(
+        overrides_manifest.template_key("items/task.md.j2")
+    )
+    workflow_floor = overrides_manifest.artifact_floor(WORKFLOW_KEY)
     assert templates_floor == "0.4.0"
     assert workflow_floor is not None
     from squads._util import version_tuple
@@ -245,7 +229,7 @@ def test_a_spec_document_has_a_later_artifact_floor_than_a_template() -> None:
 
 def test_regenerating_the_manifest_twice_at_the_same_version_is_stable() -> None:
     """Re-running the generator at an unchanged version replaces the index entry."""
-    invalidate_cache()
+    overrides_manifest.invalidate_cache()
     manifest = json.loads(
         (pkg_resources.files("squads._rendering") / "templates_manifest.json").read_text(
             encoding="utf-8"

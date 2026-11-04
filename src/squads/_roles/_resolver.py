@@ -41,8 +41,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from squads._errors import RoleNotFoundError, SquadsError
-from squads._models import _attributes as attrs
-from squads._models._item import Item
+from squads._models import Item, attrs
 from squads._pronouns import pronouns
 from squads._roles._catalog import (
     PREDEFINED,

@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from squads._context import record_notice
-from squads._models._schema import SCHEMA_VERSION
+from squads._models import SCHEMA_VERSION
 
 #: The closed ``op`` vocabulary, the one list every surface naming reflog operations (this
 #: docstring, ``sq reflog --op``'s help, the workflow guide's table) reads or is checked against. It

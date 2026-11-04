@@ -23,30 +23,31 @@ Address resolution order (exact match, no fuzzy):
 import typer
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._dto._roles import (
+from squads._api import (
+    Response,
     RoleActivateRequest,
     RoleAddRequest,
     RoleCatalogRequest,
     RoleListRequest,
     RoleUpdateRequest,
+    RosterAddress,
+    ViewRequest,
+    ops,
 )
-from squads._api._dto._roster import RosterAddress, ViewRequest
-from squads._api._response import Response
 from squads._cli import _calls as calls
 from squads._cli._common import (
     AddressDispatchGroup,
     console,
     register_comment_verbs,
 )
-from squads._cli._render._roster import (
+from squads._cli._render import (
     render_default_move,
     render_named_entry,
     render_regenerated,
     render_role_catalog,
     render_role_list,
     render_role_show,
-    render_updated,
+    render_roster_updated,
     render_view_change,
 )
 from squads._cli._roster import (
@@ -58,8 +59,8 @@ from squads._cli._roster import (
     register_write_verbs,
 )
 from squads._errors import NotInitializedError, SquadsError
-from squads._models._participants import ROLE_GROUP_VERBS
-from squads._roles._listing import bundled_catalog
+from squads._models import ROLE_GROUP_VERBS
+from squads._roles import bundled_catalog
 
 
 class _RoleDispatchGroup(AddressDispatchGroup):
@@ -412,7 +413,10 @@ def update_role(  # noqa: PLR0913 — a flag per role field
     )
     response = calls.call(ops.ROLE_UPDATE, request)
     finish_write(
-        ops.ROLE_UPDATE, response, json_out, lambda write: render_updated(write.entry.id, console)
+        ops.ROLE_UPDATE,
+        response,
+        json_out,
+        lambda write: render_roster_updated(write.entry.id, console),
     )
 
 

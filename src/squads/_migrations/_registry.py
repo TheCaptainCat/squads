@@ -16,7 +16,7 @@ type (see :class:`~squads._migrations._outcome.MigrationOutcome`).
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from squads._api._dto._package import MigrationEntry, MigrationIndex, MigrationSteps
+from squads._api import MigrationEntry, MigrationIndex, MigrationSteps
 from squads._migrations import (
     _v0_1_to_v0_2,
     _v0_2_to_v0_3,
@@ -35,7 +35,7 @@ from squads._migrations import (
 )
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
-from squads._models._schema import schema_tuple
+from squads._models import schema_tuple
 from squads._paths import SquadPaths
 from squads._util import version_tuple
 

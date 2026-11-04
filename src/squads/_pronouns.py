@@ -6,8 +6,7 @@ from rich.text import Text
 
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._models._attributes import AttributeKey
-from squads._models._item import Item
+from squads._models import AttributeKey, Item
 
 #: The longest pronouns value, in characters, after trimming.
 PRONOUNS_MAX_LENGTH = 40

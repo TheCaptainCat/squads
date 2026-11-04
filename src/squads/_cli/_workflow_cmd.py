@@ -26,17 +26,29 @@ from pydantic import BaseModel
 from rich.console import Console
 
 import squads._cli._common as common
-from squads._api import _ops as ops
-from squads._api._api import Operation
-from squads._api._dto._workflow import (
+from squads._api import (
     CatalogRequest,
     CheatsheetRequest,
     LintRequest,
+    Operation,
     ViewResolveRequest,
+    ops,
 )
 from squads._cli import _calls as calls
 from squads._cli._common import console, e, handle_errors
-from squads._cli._render import _workflow as render
+from squads._cli._render import (
+    render_cheatsheet,
+    render_collections,
+    render_lifecycles,
+    render_lint,
+    render_ref_kinds,
+    render_roles,
+    render_statuses,
+    render_subentity_kinds,
+    render_types,
+    render_view,
+    render_views,
+)
 from squads._errors import SquadsError
 
 workflow_app = typer.Typer(
@@ -57,7 +69,7 @@ def _print_cheatsheet(*, raw: bool, json_out: bool = False) -> None:
         calls.print_json(ops.WORKFLOW_SHOW, response)
         return
     calls.print_warnings(response)
-    render.render_cheatsheet(response.data, console, raw=raw)
+    render_cheatsheet(response.data, console, raw=raw)
 
 
 @workflow_app.callback()
@@ -109,7 +121,7 @@ def workflow_types(
 
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_TYPES, json_out, render.render_types)
+    _catalog(ops.WORKFLOW_TYPES, json_out, render_types)
 
 
 @workflow_app.command("subentity-kinds")
@@ -123,7 +135,7 @@ def workflow_subentity_kinds(
 
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_SUBENTITY_KINDS, json_out, render.render_subentity_kinds)
+    _catalog(ops.WORKFLOW_SUBENTITY_KINDS, json_out, render_subentity_kinds)
 
 
 @workflow_app.command("lifecycles")
@@ -137,7 +149,7 @@ def workflow_lifecycles(
 
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_LIFECYCLES, json_out, render.render_lifecycles)
+    _catalog(ops.WORKFLOW_LIFECYCLES, json_out, render_lifecycles)
 
 
 @workflow_app.command("collections")
@@ -151,7 +163,7 @@ def workflow_collections(
 
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_COLLECTIONS, json_out, render.render_collections)
+    _catalog(ops.WORKFLOW_COLLECTIONS, json_out, render_collections)
 
 
 @workflow_app.command("statuses")
@@ -165,7 +177,7 @@ def workflow_statuses(
 
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_STATUSES, json_out, render.render_statuses)
+    _catalog(ops.WORKFLOW_STATUSES, json_out, render_statuses)
 
 
 @workflow_app.command("roles")
@@ -180,7 +192,7 @@ def workflow_roles(
     A status role says whether its statuses are settled, hidden or live.
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_ROLES, json_out, render.render_roles)
+    _catalog(ops.WORKFLOW_ROLES, json_out, render_roles)
 
 
 @workflow_app.command("ref-kinds")
@@ -194,7 +206,7 @@ def workflow_ref_kinds(
 
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_REF_KINDS, json_out, render.render_ref_kinds)
+    _catalog(ops.WORKFLOW_REF_KINDS, json_out, render_ref_kinds)
 
 
 @workflow_app.command("views")
@@ -207,7 +219,7 @@ def workflow_views(
     Resolve one against an item with `sq workflow view <name> <id>`.
     Fields: sq docs stability
     """
-    _catalog(ops.WORKFLOW_VIEWS, json_out, render.render_views)
+    _catalog(ops.WORKFLOW_VIEWS, json_out, render_views)
 
 
 # ─── view ─────────────────────────────────────────────────────────────────────
@@ -235,7 +247,7 @@ def workflow_view(
         calls.print_json(ops.WORKFLOW_VIEW, response)
         return
     calls.print_warnings(response)
-    render.render_view(response.data, console)
+    render_view(response.data, console)
 
 
 # ─── lint ─────────────────────────────────────────────────────────────────────
@@ -267,6 +279,6 @@ def workflow_lint(
         calls.print_json(ops.WORKFLOW_LINT, response)
     else:
         calls.print_warnings(response)
-        render.render_lint(response.data, console)
+        render_lint(response.data, console)
     if response.data.errors:
         raise typer.Exit(1)

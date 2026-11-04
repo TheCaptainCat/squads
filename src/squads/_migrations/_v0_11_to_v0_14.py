@@ -33,21 +33,16 @@ from pathlib import Path
 
 from squads import _aio
 from squads import _clock as clock
-from squads._backends._base import BackendContext
-from squads._backends._registry import get_backend
-from squads._index._store import IndexStore
-from squads._interactions._models import PlaybookSpec
-from squads._interactions._skills import item_skill_name, skill_description
+from squads._backends import BackendContext, get_backend
+from squads._index import IndexStore
+from squads._interactions import PlaybookSpec, item_skill_name, skill_description
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import legacy_extra, with_legacy_extra
-from squads._models._item import Item
-from squads._models._vocab import prefix_for
+from squads._models import Item, prefix_for
 from squads._paths import SquadPaths, number_for_id
-from squads._roles._models import CatalogSource
-from squads._roles._projection import OperatorView, RoleView
+from squads._roles import CatalogSource, OperatorView, RoleView
 from squads._sections import join_frontmatter, split_frontmatter
-from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 #: The two type names this runner brings onto an existing squad's disk. They are declared by the
 #: workflow spec; this tuple only names which declared entries the folder/surface step applies to,

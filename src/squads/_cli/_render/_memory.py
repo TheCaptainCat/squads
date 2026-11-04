@@ -3,7 +3,7 @@ forgotten."""
 
 from rich.console import Console
 
-from squads._api._dto._memory import Memory, MemoryAdded, MemoryForgotten, MemoryList, MemorySearch
+from squads._api import Memory, MemoryAdded, MemoryForgotten, MemoryList, MemorySearch
 from squads._cli._render._style import e
 
 
@@ -16,7 +16,7 @@ def render_memories(listing: MemoryList, console: Console) -> None:
         console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.description)}")
 
 
-def render_search(found: MemorySearch, console: Console) -> None:
+def render_memory_search(found: MemorySearch, console: Console) -> None:
     """Each memory that matched, with up to three of its matching lines."""
     if not found.items:
         console.print(f"[dim]no matches for {e(found.query)}[/dim]")

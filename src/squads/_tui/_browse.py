@@ -9,9 +9,7 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import ContentSwitcher, Footer, Header, Static, Tree
 
-from squads._api import _ops as ops
-from squads._api._dto._memory import MemoryListRequest, MemoryRow
-from squads._api._dto._tree import TreeNode, TreeRequest
+from squads._api import MemoryListRequest, MemoryRow, TreeNode, TreeRequest, ops
 from squads._errors import SquadsError
 from squads._tui._board import BoardScreen
 from squads._tui._filter import FilterScreen

@@ -5,27 +5,30 @@ from collections.abc import Callable, Mapping
 
 from squads import _badges as badges
 from squads import _discussion as discussion
-from squads._api._dto._display import Column, titled_columns
-from squads._api._dto._graph import GraphNode, GraphNodeDisplay
-from squads._api._dto._items import SubentitySummary
-from squads._api._dto._queues import (
+from squads._api import (
     BlockedEntry,
     Blocker,
+    Column,
+    GraphNode,
+    GraphNodeDisplay,
     InboxEntry,
     MatchedSubentity,
     MineDisplay,
     MineRow,
     QueueDisplay,
+    RefDisplay,
+    RefEntry,
+    SearchHit,
+    SearchMatch,
+    SubentityEntry,
+    SubentitySummary,
+    TreeNode,
+    TreeNodeDisplay,
     WorkloadDisplay,
     WorkloadEntry,
+    titled_columns,
 )
-from squads._api._dto._refs import RefDisplay, RefEntry
-from squads._api._dto._search import SearchHit, SearchMatch
-from squads._api._dto._subentities import SubentityEntry
-from squads._api._dto._tree import TreeNode, TreeNodeDisplay
-from squads._models._item import Item
-from squads._models._subentity import SubEntity
-from squads._models._vocab import label_for
+from squads._models import Item, SubEntity, label_for
 from squads._services import _results as results
 from squads._services._item_dto import (
     badge_displays,
@@ -35,8 +38,7 @@ from squads._services._item_dto import (
     status_display,
     subentity_display,
 )
-from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE
-from squads._workflow._models import WorkflowSpec
+from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, WorkflowSpec
 
 
 def mine_columns(spec: WorkflowSpec) -> list[Column]:

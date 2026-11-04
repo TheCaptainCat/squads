@@ -4,11 +4,10 @@ source maps, its stored view body or a comment a source wrote."""
 from collections.abc import Iterable
 
 from squads._errors import SquadsError
-from squads._models._item import Item
-from squads._models._participants import source_of
+from squads._models import Item, source_of
 from squads._paths import number_for_id
-from squads._sources._spec import SourcesSource
-from squads._workflow._models import WorkflowSpec
+from squads._sources import SourcesSource
+from squads._workflow import WorkflowSpec
 
 
 def _unlink_command(item: Item) -> str:

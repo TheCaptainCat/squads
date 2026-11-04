@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from squads import __version__
-from squads._models._schema import SCHEMA_VERSION
+from squads._models import SCHEMA_VERSION
 from tests.cli import _bundled_documents as documents
 from tests.cli._output import json_text, printed
 

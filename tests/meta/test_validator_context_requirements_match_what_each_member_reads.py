@@ -5,7 +5,7 @@ import ast
 from pathlib import Path
 from typing import Any, cast
 
-from squads._services._validators import CATALOG, VALIDATOR_CONTEXT, ContextRequirement
+from squads._services import _validators as services_validators
 
 _SOURCE = ("src", "squads", "_services", "_validators.py")
 
@@ -13,7 +13,7 @@ _SOURCE = ("src", "squads", "_services", "_validators.py")
 #: entry, and it is the accessor whose whole subject is which of them a context carries.
 _NON_MEMBER_READERS = frozenset({"held_context"})
 
-_FIELDS = frozenset(r.value for r in ContextRequirement)
+_FIELDS = frozenset(r.value for r in services_validators.ContextRequirement)
 
 
 def _module_ast() -> ast.Module:
@@ -50,7 +50,7 @@ def _member_function_names() -> dict[str, str]:
     ``Validator`` is a call-only Protocol, so the function's own ``__name__`` is not part of
     the declared interface — cast to read it, rather than widen the Protocol for a test.
     """
-    return {name: cast(Any, fn).__name__ for name, fn in CATALOG.items()}
+    return {name: cast(Any, fn).__name__ for name, fn in services_validators.CATALOG.items()}
 
 
 def test_call_path_dependent_context_is_read_only_inside_catalog_members() -> None:
@@ -71,12 +71,14 @@ def test_call_path_dependent_context_is_read_only_inside_catalog_members() -> No
 def test_each_member_declares_exactly_the_context_it_reads() -> None:
     reads = _reads_by_function(_module_ast())
     functions = _member_function_names()
-    assert len(functions) == len(CATALOG) > 1, "the catalog resolved to too few members to scan"
+    assert len(functions) == len(services_validators.CATALOG) > 1, (
+        "the catalog resolved to too few members to scan"
+    )
 
     mismatched: dict[str, tuple[set[str], set[str]]] = {}
     for name, fn_name in functions.items():
         actual = set(reads.get(fn_name, frozenset()))
-        declared = {r.value for r in VALIDATOR_CONTEXT.get(name, frozenset())}
+        declared = {r.value for r in services_validators.VALIDATOR_CONTEXT.get(name, frozenset())}
         if actual != declared:
             mismatched[name] = (actual, declared)
 

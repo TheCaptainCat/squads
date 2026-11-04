@@ -12,22 +12,14 @@ from typing import Protocol
 import pytest
 
 from squads import __version__
-from squads._interactions._loader import PLAYBOOK_OVERRIDE_FILENAME
-from squads._overrides import _service as override_service
-from squads._overrides._manifest import (
-    PLAYBOOK_KEY,
-    ROLES_KEY,
-    SOURCES_KEY,
-    WORKFLOW_KEY,
-    artifact_floor,
-    template_key,
-)
-from squads._overrides._service import STATE_DRIFTED, OverrideEntry
-from squads._overrides._stamp import stamp_template_file, stamp_toml_file
-from squads._roles._loader import ROLES_OVERRIDE_FILENAME
-from squads._sources._loader import SOURCES_OVERRIDE_FILENAME
-from squads._workflow import bundled_spec
-from squads._workflow._loader import WORKFLOW_OVERRIDE_FILENAME
+from squads._interactions import PLAYBOOK_OVERRIDE_FILENAME
+from squads._overrides import PLAYBOOK_KEY, STATE_DRIFTED, WORKFLOW_KEY, OverrideEntry
+from squads._overrides import _manifest as overrides_manifest
+from squads._overrides import _service as overrides_service
+from squads._overrides import _stamp as overrides_stamp
+from squads._roles import ROLES_OVERRIDE_FILENAME
+from squads._sources import SOURCES_OVERRIDE_FILENAME
+from squads._workflow import WORKFLOW_OVERRIDE_FILENAME, bundled_spec
 from tests._helpers import catalog_of
 
 pytestmark = pytest.mark.anyio
@@ -116,12 +108,12 @@ def _place_role_shadowing(squad_dir: Path) -> None:
 def _place_role_add_only(squad_dir: Path) -> None:
     """A per-slug file over a role the project's own catalog declares: it has a base, and the
     base is not the bundled document, so no stamp is owed."""
-    from squads._roles._catalog import BUNDLES
+    from squads._roles import _catalog as roles_catalog
 
     catalog = _shadowing_path(squad_dir, ".overrides/roles.toml")
     catalog.write_text(
         "# squads:override-base:0.0.0\n"
-        f"[bundles]\nall = {[*BUNDLES['all'], 'uniformity-probe-role']!r}\n"
+        f"[bundles]\nall = {[*roles_catalog.BUNDLES['all'], 'uniformity-probe-role']!r}\n"
         '\n[[roles]]\nslug = "uniformity-probe-role"\nfull_name = "Probe"\ntitle = "t"\n'
         'description = "d"\nmission = "m"\n'.replace("'", '"'),
         encoding="utf-8",
@@ -211,23 +203,23 @@ def _place_sources_add_only(squad_dir: Path) -> None:
 #: shadowing/add-only override, how to restamp it, what a human types on the command line).
 _KIND_FIXTURES: dict[str, _KindFixture] = {
     "template": _KindFixture(
-        manifest_key=template_key(_TEMPLATE_REL),
+        manifest_key=overrides_manifest.template_key(_TEMPLATE_REL),
         diff_name=_TEMPLATE_REL,
         display=f".overrides/templates/{_TEMPLATE_REL}",
         add_only_display=".overrides/templates/custom/not_a_bundled_template.md.j2",
         place_shadowing=_place_template_shadowing,
         place_add_only=_place_template_add_only,
-        restamp=stamp_template_file,
+        restamp=overrides_stamp.stamp_template_file,
         cli_argv=[_TEMPLATE_REL],
     ),
     "role": _KindFixture(
-        manifest_key=ROLES_KEY,
+        manifest_key=overrides_manifest.ROLES_KEY,
         diff_name=_ROLE_SLUG,
         display=f".overrides/roles/{_ROLE_SLUG}.toml",
         add_only_display=".overrides/roles/uniformity-probe-role.toml",
         place_shadowing=_place_role_shadowing,
         place_add_only=_place_role_add_only,
-        restamp=stamp_toml_file,
+        restamp=overrides_stamp.stamp_toml_file,
         cli_argv=["--role", _ROLE_SLUG],
     ),
     "workflow": _KindFixture(
@@ -237,7 +229,7 @@ _KIND_FIXTURES: dict[str, _KindFixture] = {
         add_only_display=WORKFLOW_OVERRIDE_FILENAME,
         place_shadowing=_place_workflow_shadowing,
         place_add_only=_place_workflow_add_only,
-        restamp=stamp_toml_file,
+        restamp=overrides_stamp.stamp_toml_file,
         cli_argv=["workflow"],
     ),
     "playbook": _KindFixture(
@@ -247,27 +239,27 @@ _KIND_FIXTURES: dict[str, _KindFixture] = {
         add_only_display=PLAYBOOK_OVERRIDE_FILENAME,
         place_shadowing=_place_playbook_shadowing,
         place_add_only=_place_playbook_add_only,
-        restamp=stamp_toml_file,
+        restamp=overrides_stamp.stamp_toml_file,
         cli_argv=["playbook"],
     ),
     "roles": _KindFixture(
-        manifest_key=ROLES_KEY,
+        manifest_key=overrides_manifest.ROLES_KEY,
         diff_name="roles",
         display=ROLES_OVERRIDE_FILENAME,
         add_only_display=ROLES_OVERRIDE_FILENAME,
         place_shadowing=_place_roles_catalog_shadowing,
         place_add_only=_place_roles_catalog_add_only,
-        restamp=stamp_toml_file,
+        restamp=overrides_stamp.stamp_toml_file,
         cli_argv=["roles"],
     ),
     "sources": _KindFixture(
-        manifest_key=SOURCES_KEY,
+        manifest_key=overrides_manifest.SOURCES_KEY,
         diff_name="sources",
         display=SOURCES_OVERRIDE_FILENAME,
         add_only_display=SOURCES_OVERRIDE_FILENAME,
         place_shadowing=_place_sources_shadowing,
         place_add_only=_place_sources_add_only,
-        restamp=stamp_toml_file,
+        restamp=overrides_stamp.stamp_toml_file,
         cli_argv=["sources"],
     ),
 }
@@ -287,7 +279,7 @@ async def _cli_scaffold_gap(
     if scaffolded.exit_code != 0:
         detail = scaffolded.output.strip()
         return f"CLI reachability (scaffold exited {scaffolded.exit_code}: {detail!r})"
-    entries = {e.name: e for e in override_service.scan_overrides(squad_dir)}
+    entries = {e.name: e for e in overrides_service.scan_overrides(squad_dir)}
     entry = entries.get(fixture.diff_name)
     if entry is not None and entry.kind == kind:
         return None
@@ -314,7 +306,7 @@ async def _cli_update_gap(kind: str, fixture: _KindFixture, squad_dir: Path, inv
     if updated.exit_code != 0:
         detail = updated.output.strip()
         return f"CLI reachability (update exited {updated.exit_code}: {detail!r})"
-    entries = {e.name: e for e in override_service.scan_overrides(squad_dir)}
+    entries = {e.name: e for e in overrides_service.scan_overrides(squad_dir)}
     restamped = entries.get(fixture.diff_name)
     if restamped is not None and restamped.base_version == __version__:
         return None
@@ -340,24 +332,24 @@ async def _uniformity_gaps(kind: str, fixture: _KindFixture, squad_dir: Path, in
     gaps: list[str] = []
 
     # 1. Manifest entry.
-    if artifact_floor(fixture.manifest_key) is None:
+    if overrides_manifest.artifact_floor(fixture.manifest_key) is None:
         gaps.append("manifest entry")
 
     # 2. State classifier + 3. stamp-obligation finding (shadowing, unstamped -> error).
     fixture.place_shadowing(squad_dir)
-    entries = {e.name: e for e in override_service.scan_overrides(squad_dir)}
+    entries = {e.name: e for e in overrides_service.scan_overrides(squad_dir)}
     entry = entries.get(fixture.diff_name)
     if entry is None or entry.state != STATE_DRIFTED:
         gaps.append("state classifier")
 
-    issues = override_service.check_override_issues(squad_dir, catalog=catalog_of(squad_dir))
+    issues = overrides_service.check_override_issues(squad_dir, catalog=catalog_of(squad_dir))
     shadow_errors = [i for i in issues if i[0] == "error" and i[1] == fixture.display]
     if not shadow_errors:
         gaps.append("stamp-obligation finding (shadowing must error)")
 
     # 3b. Add-only, unstamped -> silent (the other half of the same finding).
     fixture.place_add_only(squad_dir)
-    add_only_issues = override_service.check_override_issues(
+    add_only_issues = overrides_service.check_override_issues(
         squad_dir, catalog=catalog_of(squad_dir)
     )
     if any(i[1] == fixture.add_only_display for i in add_only_issues):
@@ -372,7 +364,7 @@ async def _uniformity_gaps(kind: str, fixture: _KindFixture, squad_dir: Path, in
     path = _path_for_display(squad_dir, fixture.display)
     fixture.restamp(path, __version__)
     try:
-        same_version = override_service.diff_override(squad_dir, fixture.diff_name, kind)
+        same_version = overrides_service.diff_override(squad_dir, fixture.diff_name, kind)
     except Exception:
         gaps.append("delta-mine")
         gaps.append("delta-upgrade")
@@ -383,7 +375,7 @@ async def _uniformity_gaps(kind: str, fixture: _KindFixture, squad_dir: Path, in
             gaps.append("delta-upgrade")
 
         fixture.restamp(path, "0.1.0")
-        ancient = override_service.diff_override(squad_dir, fixture.diff_name, kind)
+        ancient = overrides_service.diff_override(squad_dir, fixture.diff_name, kind)
         if not ancient.delta_upgrade:
             gaps.append("delta-upgrade")
 
@@ -415,7 +407,7 @@ async def test_the_kind_set_is_derived_from_scan_overrides(project, invoke) -> N
     for fixture in _KIND_FIXTURES.values():
         fixture.place_shadowing(squad_dir)
 
-    scanned_kinds = {entry.kind for entry in override_service.scan_overrides(squad_dir)}
+    scanned_kinds = {entry.kind for entry in overrides_service.scan_overrides(squad_dir)}
     fixture_kinds = set(_KIND_FIXTURES)
 
     wired_but_uncovered = scanned_kinds - fixture_kinds
@@ -452,15 +444,15 @@ async def test_removing_the_manifest_entry_is_caught(project, invoke) -> None:
 @pytest.mark.parametrize("kind", sorted(_KIND_FIXTURES))
 async def test_removing_the_state_classifier_is_caught(project, monkeypatch, invoke, kind) -> None:
     fixture = _KIND_FIXTURES[kind]
-    real_scan = override_service.scan_overrides
+    real_scan = overrides_service.scan_overrides
 
     def sabotaged_scan(squad_dir: Path) -> list[OverrideEntry]:
         return [
-            replace(e, state=override_service.STATE_CURRENT) if e.name == fixture.diff_name else e
+            replace(e, state=overrides_service.STATE_CURRENT) if e.name == fixture.diff_name else e
             for e in real_scan(squad_dir)
         ]
 
-    monkeypatch.setattr(override_service, "scan_overrides", sabotaged_scan)
+    monkeypatch.setattr(overrides_service, "scan_overrides", sabotaged_scan)
     gaps = await _uniformity_gaps(kind, fixture, project.squad_dir, invoke)
     assert "state classifier" in gaps, f"{kind}: sabotaged state classifier went undetected"
 
@@ -470,7 +462,7 @@ async def test_removing_the_stamp_obligation_finding_is_caught(
     project, monkeypatch, invoke, kind
 ) -> None:
     fixture = _KIND_FIXTURES[kind]
-    real_check = override_service.check_override_issues
+    real_check = overrides_service.check_override_issues
 
     def sabotaged_check(squad_dir: Path, role_items_by_slug=None, **kwargs):
         return [
@@ -479,7 +471,7 @@ async def test_removing_the_stamp_obligation_finding_is_caught(
             if i[1] != fixture.display
         ]
 
-    monkeypatch.setattr(override_service, "check_override_issues", sabotaged_check)
+    monkeypatch.setattr(overrides_service, "check_override_issues", sabotaged_check)
     gaps = await _uniformity_gaps(kind, fixture, project.squad_dir, invoke)
     assert "stamp-obligation finding (shadowing must error)" in gaps, (
         f"{kind}: sabotaged stamp-obligation finding went undetected"
@@ -489,7 +481,7 @@ async def test_removing_the_stamp_obligation_finding_is_caught(
 @pytest.mark.parametrize("kind", sorted(_KIND_FIXTURES))
 async def test_removing_delta_mine_is_caught(project, monkeypatch, invoke, kind) -> None:
     fixture = _KIND_FIXTURES[kind]
-    real_diff = override_service.diff_override
+    real_diff = overrides_service.diff_override
 
     def sabotaged_diff(squad_dir: Path, name: str, diff_kind: str):
         result = real_diff(squad_dir, name, diff_kind)
@@ -497,7 +489,7 @@ async def test_removing_delta_mine_is_caught(project, monkeypatch, invoke, kind)
             return replace(result, delta_mine="")
         return result
 
-    monkeypatch.setattr(override_service, "diff_override", sabotaged_diff)
+    monkeypatch.setattr(overrides_service, "diff_override", sabotaged_diff)
     gaps = await _uniformity_gaps(kind, fixture, project.squad_dir, invoke)
     assert "delta-mine" in gaps, f"{kind}: sabotaged Δ-mine went undetected"
 
@@ -505,7 +497,7 @@ async def test_removing_delta_mine_is_caught(project, monkeypatch, invoke, kind)
 @pytest.mark.parametrize("kind", sorted(_KIND_FIXTURES))
 async def test_removing_delta_upgrade_is_caught(project, monkeypatch, invoke, kind) -> None:
     fixture = _KIND_FIXTURES[kind]
-    real_diff = override_service.diff_override
+    real_diff = overrides_service.diff_override
 
     def sabotaged_diff(squad_dir: Path, name: str, diff_kind: str):
         result = real_diff(squad_dir, name, diff_kind)
@@ -513,6 +505,6 @@ async def test_removing_delta_upgrade_is_caught(project, monkeypatch, invoke, ki
             return replace(result, delta_upgrade="")
         return result
 
-    monkeypatch.setattr(override_service, "diff_override", sabotaged_diff)
+    monkeypatch.setattr(overrides_service, "diff_override", sabotaged_diff)
     gaps = await _uniformity_gaps(kind, fixture, project.squad_dir, invoke)
     assert "delta-upgrade" in gaps, f"{kind}: sabotaged Δ-upgrade went undetected"
