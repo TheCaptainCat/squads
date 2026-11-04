@@ -70,6 +70,12 @@ class SourcePullReport(DTO):
     lines: list[str]
     #: Whether the source was left out because it failed its access probes.
     failed: bool = False
+    #: How many restricted issues the listing dropped.
+    restricted: int = 0
+    #: How many listed issues the filter rejected that no item holds.
+    filtered_out: int = 0
+    #: How many selected issues map to no item type.
+    skipped_no_type: int = 0
 
 
 class SourcePulled(DTO):

@@ -6,11 +6,20 @@ from collections.abc import Iterator, Mapping
 from typing import Any, cast
 
 from squads._errors import SquadsError
-from squads._sources._connector import TYPE, Comment, Connector, Issue, Link, Reference
+from squads._sources._connector import (
+    TYPE,
+    Comment,
+    Connector,
+    Issue,
+    Link,
+    Reference,
+    RestrictedIssueError,
+)
 from squads._sources._gitlab_probes import GitLabProbes
 from squads._sources._http import HttpClient, NotFoundError, UnexpectedAnswerError
 from squads._sources._probes import Expected, Family, ProbeResult
 from squads._sources._records import text
+from squads._sources._spec import SourceScope
 
 #: A reference to an issue: an optional project path, then ``#`` and the project-local number.
 _REFERENCE_RE = re.compile(r"(?<![\w/&#.-])((?:[\w.-]+/)*[\w.-]+)?#(\d+)\b")
@@ -38,9 +47,11 @@ class GitLabConnector(Connector):
 
     credential_fields = ("token",)
 
-    def __init__(self, base_url: str, source_filter: str, credential: Mapping[str, str]) -> None:
+    def __init__(self, base_url: str, scope: SourceScope, credential: Mapping[str, str]) -> None:
         self._base = base_url.rstrip("/")
-        self._filter = source_filter
+        self._scope = scope
+        kind = "groups" if scope.key == "group" else "projects"
+        self._listing_path = f"/api/v4/{kind}/{urllib.parse.quote(scope.value, safe='')}/issues"
         self._http = HttpClient(self._base, {"PRIVATE-TOKEN": credential.get("token", "")})
 
     def probes(self, family: Family, expected: Expected) -> Iterator[ProbeResult]:
@@ -53,15 +64,17 @@ class GitLabConnector(Connector):
                 listed = self.listing()
             return listed
 
-        return GitLabProbes(self._http, self._base, self._query(), listing).run(family, expected)
+        return GitLabProbes(
+            self._http, self._base, self._listing_path, self._query(), self._scope, listing
+        ).run(family, expected)
 
     def _query(self) -> dict[str, str]:
-        query = {"scope": "all", "state": "all"}
-        if self._filter:
-            query["labels"] = self._filter
-        return query
+        """The one parameter of a listing: every state, no other condition."""
+        return {"state": "all"}
 
     def _parse_issue(self, record: Mapping[str, Any]) -> Issue:
+        if record.get("confidential"):
+            raise RestrictedIssueError
         author_id, author_handle, _ = _user(record.get("author"))
         references = record.get("references")
         full = (
@@ -90,11 +103,15 @@ class GitLabConnector(Connector):
         )
 
     def listing(self) -> list[Issue]:
-        """Every issue in the filter, closed ones included."""
-        return [
-            self._parse_issue(record)
-            for record in self._http.pages("/api/v4/issues", self._query())
-        ]
+        """Every issue of the project or group, closed ones included."""
+        found: list[Issue] = []
+        self.restricted = 0
+        for record in self._http.pages(self._listing_path, self._query()):
+            try:
+                found.append(self._parse_issue(record))
+            except RestrictedIssueError:
+                self.restricted += 1
+        return found
 
     def issue(self, issue_id: str, key: str) -> Issue | None:
         """One issue by the project path and number of its last known *key*, which any user with
@@ -104,7 +121,7 @@ class GitLabConnector(Connector):
         return found if found is not None and found.id == issue_id else None
 
     def lookup(self, reference: str) -> Issue | None:
-        """The issue named by a key (``group/project#12``), or by its global ID when the filter
+        """The issue named by a key (``group/project#12``), or by its global ID when the scope
         lists it; ``None`` when GitLab returns neither."""
         wanted = reference.strip()
         if "#" in wanted:
@@ -121,7 +138,10 @@ class GitLabConnector(Connector):
             )
         except NotFoundError:
             return None
-        return self._parse_issue(cast("Mapping[str, Any]", record))
+        try:
+            return self._parse_issue(cast("Mapping[str, Any]", record))
+        except RestrictedIssueError:
+            return None
 
     def _issue_path(self, issue: Issue, tail: str) -> str:
         locator = dict(issue.locator)
@@ -129,12 +149,12 @@ class GitLabConnector(Connector):
         return f"/api/v4/projects/{project}/issues/{locator.get('iid', '')}/{tail}"
 
     def comments(self, issue: Issue) -> list[Comment]:
-        """The human notes of *issue*, oldest first; system notes are left out."""
+        """The human notes of *issue*, oldest first; system and internal notes are left out."""
         query = {"order_by": "created_at", "sort": "asc"}
         notes: list[Comment] = []
         for note in self._http.pages(self._issue_path(issue, "notes"), query):
             record = cast("Mapping[str, Any]", note)
-            if record.get("system"):
+            if record.get("system") or record.get("internal"):
                 continue
             author_id, handle, name = _user(record.get("author"))
             notes.append(

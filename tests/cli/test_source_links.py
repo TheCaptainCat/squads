@@ -12,7 +12,7 @@ from tests import _tracker_harness as harness
 pytestmark = pytest.mark.anyio
 
 SECRET = "glpat-not-a-real-token"
-HEAD = 'connector = "gitlab"\nfilter = "squads"\n'
+HEAD = 'connector = "gitlab"\nproject = "platform/api"\n'
 MAPS = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
 THREE_DAYS_BEFORE_NOW = "2026-06-04T10:00:00Z"
 
@@ -36,7 +36,9 @@ def _issue_route(tracker: harness.Tracker, number: int) -> dict[str, Any]:
 
 
 def _listing(tracker: harness.Tracker) -> list[dict[str, Any]]:
-    return next(r for r in tracker.routes if r["path"] == "/api/v4/issues")["body"]
+    return next(r for r in tracker.routes if r["path"] == "/api/v4/projects/platform%2Fapi/issues")[
+        "body"
+    ]
 
 
 async def _pull(invoke) -> None:
@@ -150,7 +152,7 @@ async def test_source_list_shows_each_source_and_whether_a_credential_is_stored(
         await _declare(invoke, project, tracker.base_url)
         _declare_more(
             project,
-            '\n[sources.idle]\nconnector = "gitlab"\nfilter = "squads"\nbase_url = "http://127.0.0.1:9"\n'
+            '\n[sources.idle]\nconnector = "gitlab"\nproject = "platform/api"\nbase_url = "http://127.0.0.1:9"\n'
             "enabled = false\n"
             '\n[sources.idle.maps.types.type]\nissue = "task"\n',
         )
@@ -247,7 +249,7 @@ async def test_relink_refuses_an_item_that_still_holds_a_record_or_no_source_mad
         await _declare(invoke, project, tracker.base_url)
         _declare_more(
             project,
-            '\n[sources.other]\nconnector = "gitlab"\nfilter = "squads"\n'
+            '\n[sources.other]\nconnector = "gitlab"\nproject = "platform/api"\n'
             f'base_url = "{tracker.base_url}"\n'
             '\n[sources.other.maps.types.type]\nissue = "task"\n',
         )

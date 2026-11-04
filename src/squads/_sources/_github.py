@@ -10,6 +10,7 @@ from squads._sources._github_probes import BLOCKED_BY, BLOCKING, GitHubProbes
 from squads._sources._http import HttpClient, NotFoundError, UnexpectedAnswerError
 from squads._sources._probes import Expected, Family, ProbeResult
 from squads._sources._records import mapping, names, records, text
+from squads._sources._spec import SourceScope
 
 #: A reference to an issue: an optional ``owner/repo``, then ``#`` and the repository-local number.
 _REFERENCE_RE = re.compile(r"(?<![\w/&#.-])([\w.-]+/[\w.-]+)?#(\d+)\b")
@@ -59,9 +60,10 @@ class GitHubConnector(Connector):
 
     credential_fields = ("token",)
 
-    def __init__(self, base_url: str, source_filter: str, credential: Mapping[str, str]) -> None:
+    def __init__(self, base_url: str, scope: SourceScope, credential: Mapping[str, str]) -> None:
         self._web, self._api = _roots(base_url)
-        self._filter = source_filter
+        self._scope = scope
+        self._listing_path = f"/repos/{urllib.parse.quote(scope.value, safe='/')}/issues"
         self._http = HttpClient(
             self._api,
             {
@@ -81,13 +83,13 @@ class GitHubConnector(Connector):
                 listed = self.listing()
             return listed
 
-        return GitHubProbes(self._http, self._api, self._query(), listing).run(family, expected)
+        return GitHubProbes(
+            self._http, self._api, self._listing_path, self._query(), self._scope, listing
+        ).run(family, expected)
 
     def _query(self) -> dict[str, str]:
-        query = {"filter": "all", "state": "all"}
-        if self._filter:
-            query["labels"] = self._filter
-        return query
+        """The one parameter of a listing: every state, no other condition."""
+        return {"state": "all"}
 
     def _parse_issue(self, record: Mapping[str, object]) -> Issue | None:
         """The issue object as an ``Issue``; a pull request, or an object without an identity,
@@ -114,11 +116,10 @@ class GitHubConnector(Connector):
         )
 
     def listing(self) -> list[Issue]:
-        """Every issue the token can see in the filter, closed ones included; pull requests are
-        left out."""
+        """Every issue of the repository, closed ones included; pull requests are left out."""
         found = (
             self._parse_issue(r)
-            for r in records(list(self._http.link_pages("/issues", self._query())))
+            for r in records(list(self._http.link_pages(self._listing_path, self._query())))
         )
         return [issue for issue in found if issue is not None]
 
@@ -129,7 +130,7 @@ class GitHubConnector(Connector):
         return found if found is not None and found.id == issue_id else None
 
     def lookup(self, reference: str) -> Issue | None:
-        """The issue named by a key (``owner/repo#12``), or by its node ID when the filter lists
+        """The issue named by a key (``owner/repo#12``), or by its node ID when the scope lists
         it; ``None`` when GitHub returns neither."""
         wanted = reference.strip()
         if "#" in wanted:

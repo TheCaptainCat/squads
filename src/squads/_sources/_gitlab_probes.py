@@ -1,5 +1,5 @@
 """The checks of ``sq source check`` for GitLab: whether the host answers, the token works and
-reads the filter, whether every value a map names exists, and which tracker values nothing maps."""
+reads the scope, whether every value a map names exists, and which tracker values nothing maps."""
 
 import urllib.parse
 from collections.abc import Callable, Mapping
@@ -8,6 +8,7 @@ from squads._sources._connector import TYPE, Issue
 from squads._sources._http import HttpClient, MalformedAnswerError
 from squads._sources._probes import Expected
 from squads._sources._records import is_object, mapping, records, text
+from squads._sources._spec import SourceScope
 from squads._sources._tracker_probes import TrackerProbes
 
 #: GitLab v4's ``issue_type`` and issue link ``link_type`` values: tracker API names.
@@ -34,11 +35,15 @@ class GitLabProbes(TrackerProbes):
         self,
         http: HttpClient,
         base: str,
+        path: str,
         query: Mapping[str, str],
+        scope: SourceScope,
         listing: Callable[[], list[Issue]],
     ) -> None:
         super().__init__(http, base, listing)
+        self._path = path
         self._query = dict(query)
+        self._scope = scope
 
     def reach(self) -> None:
         """Ask for the instance's version."""
@@ -53,15 +58,13 @@ class GitLabProbes(TrackerProbes):
         return f"authenticated as {who.get('username')} (id {who.get('id')})"
 
     def read(self) -> bool:
-        """Whether the filter selects an issue."""
-        page: object = self._http.get(
-            "/api/v4/issues", {**self._query, "per_page": "1", "page": "1"}
-        )
+        """Whether the scope holds an issue."""
+        page: object = self._http.get(self._path, {**self._query, "per_page": "1", "page": "1"})
         return not (isinstance(page, list) and not page)
 
-    def filter_text(self) -> str:
-        """The label filter, quoted."""
-        return repr(self._query.get("labels", ""))
+    def scope_text(self) -> str:
+        """The scope, as a message quotes it."""
+        return f"{self._scope.key} {self._scope.value!r}"
 
     def credential_fix(self, expected: Expected) -> str:
         """Store a valid token."""

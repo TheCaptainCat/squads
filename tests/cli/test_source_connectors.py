@@ -40,7 +40,7 @@ async def _pull(invoke) -> dict[str, Any]:
 
 # ------------------------------------------------------------------------------------ GitHub
 GITHUB = (
-    '[sources.platform]\nconnector = "github"\nfilter = "squads"\nbase_url = "{base}"\n'
+    '[sources.platform]\nconnector = "github"\nrepository = "acme/api"\nbase_url = "{base}"\n'
     '\n[sources.platform.maps.types.labels]\nsquads = "task"\n'
     '\n[sources.platform.maps.fields.priority.labels]\n"priority: high" = "high"\n'
 )
@@ -99,7 +99,11 @@ async def test_a_transferred_github_issue_keeps_its_item_and_takes_the_new_key(
     with harness.serve(harness.load_routes("github/routes.json")) as tracker:
         await _declare(invoke, project, GITHUB.format(base=tracker.base_url), f"{SECRET}\n")
         await _pull(invoke)
-        first_page = next(r for r in tracker.routes if "labels" in r.get("query", {}))
+        first_page = next(
+            r
+            for r in tracker.routes
+            if r["path"] == "/api/v3/repos/acme/api/issues" and "query" not in r
+        )
         listing = first_page["body"]
         listing[0]["number"] = 40
         listing[0]["updated_at"] = "2026-11-05T08:00:00Z"
@@ -136,7 +140,7 @@ async def test_a_github_enterprise_base_url_passes_access(
                 CHECKED,
                 "  pass  http://tracker/api/v3 answers",
                 "  pass  authenticated as squads-bot (id 1001)",
-                "  pass  the token reads the issues the filter selects",
+                "  pass  the token reads the issues of the scope",
                 "  pass  every value the maps name exists on the tracker",
                 "  warn  author pchat (id 4567) of acme/api#12 is in no operator's identities",
                 "        fix: run `sq operator <slug> update --identities platform=4567`",
@@ -151,7 +155,7 @@ async def test_a_github_enterprise_base_url_passes_access(
 # ------------------------------------------------------------------------------------ Jira
 USER_FIELD = f"{EMAIL}\n{SECRET}\n"
 JIRA = (
-    '[sources.platform]\nconnector = "jira"\nversion = "{version}"\nfilter = "labels = squads"\n'
+    '[sources.platform]\nconnector = "jira"\nversion = "{version}"\njql = "labels = squads"\n'
     'base_url = "{base}"\n'
     '\n[sources.platform.maps.types.type]\nBug = "task"\nTask = "task"\n'
     '\n[sources.platform.maps.fields.priority.priority]\nHigh = "high"\nLow = "low"\n'
@@ -198,6 +202,23 @@ async def test_a_jira_cloud_pull_maps_type_priority_link_and_state_and_converts_
     ]
     assert (second["source"]["state"], second["discussion"], second["refs"]) == ("closed", [], [])
     assert second["badges"] == {"priority": "low"}
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_jira_issue_under_a_security_level_is_not_imported_and_the_report_counts_it(
+    project, invoke, credentials_home
+) -> None:
+    jira = JIRA.format(version="cloud-v3", base="{base}")
+    with harness.serve(harness.load_routes("jira-cloud/routes.json")) as tracker:
+        await _declare(invoke, project, jira.format(base=tracker.base_url), USER_FIELD)
+        first_page = next(
+            r for r in tracker.routes if r["path"] == "/rest/api/3/search/jql" and "query" not in r
+        )
+        first_page["body"]["issues"][0]["fields"]["security"] = {"id": "10000", "name": "Staff"}
+        pulled = await _pull(invoke)
+
+    [report] = pulled["sources"]
+    assert (report["created"], report["restricted"]) == (["TASK-2"], 1)
 
 
 @pytest.mark.covers("source pull", "source")
@@ -252,10 +273,10 @@ async def test_an_invalid_jql_filter_is_a_blocking_access_failure_with_jiras_own
                 "  pass  http://tracker answers",
                 "  pass  authenticated as Squads Bot "
                 "(id 712020:0a1b2c3d-3333-4444-8888-cccccccccccc)",
-                "  FAIL  the filter 'labels ===' is not accepted: http://tracker answered HTTP 400 "
-                "for http://tracker/rest/api/3/search/jql?jql=labels+%3D%3D%3D&fields=summary"
+                "  FAIL  the scope jql 'labels ===' is not accepted: http://tracker answered "
+                "HTTP 400 for http://tracker/rest/api/3/search/jql?jql=labels+%3D%3D%3D&fields=summary"
                 "&maxResults=1: Error in the JQL Query: The operator '===' is not supported.",
-                "        fix: correct `filter` of source 'platform' in sources.toml",
+                "        fix: correct the scope of source 'platform' in sources.toml",
                 "",
             ]
         ),
@@ -303,7 +324,7 @@ async def test_a_jira_data_center_personal_access_token_passes_access(
                 "platform (jira@dc-v2)",
                 "  pass  http://tracker answers",
                 "  pass  authenticated as squads-bot (id JIRAUSER10100)",
-                "  pass  the token reads the issues the filter selects",
+                "  pass  the token reads the issues of the scope",
                 "  pass  every value the maps name exists on the tracker",
                 "  warn  author asmith (id JIRAUSER10101) of PROJ-46 is in no operator's "
                 "identities",
@@ -335,7 +356,7 @@ async def test_a_jira_source_without_a_version_fails_at_load_listing_the_known_v
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_a_source_without_a_filter_or_with_a_badly_written_map_fails_at_load(
+async def test_a_source_without_a_scope_or_with_a_badly_written_map_fails_at_load(
     project, invoke, credentials_home
 ) -> None:
     path = project.squad_dir / ".overrides" / "sources.toml"
@@ -349,14 +370,14 @@ async def test_a_source_without_a_filter_or_with_a_badly_written_map_fails_at_lo
         "[sources.platform.maps.fields.priority.priority]",
     )
     results = []
-    for text in (declared.replace('filter = "squads"\n', ""), unsided, wrong_side):
+    for text in (declared.replace('repository = "acme/api"\n', ""), unsided, wrong_side):
         path.write_text(text)
         result = await invoke(["source", "list", "--json"])
         results.append((result.exit_code, result.output.replace(str(path), "sources.toml")))
 
     head = "error: sources.toml: invalid sources after merge:\n  source 'platform': "
     assert results == [
-        (1, head + "filter is required and must not be empty\n"),
+        (1, head + "no scope key; name exactly one of: repository\n"),
         (
             1,
             head + "maps.types.squads is a value, not a side: write it under "
@@ -374,7 +395,9 @@ async def test_a_source_without_a_filter_or_with_a_badly_written_map_fails_at_lo
 async def test_a_vanished_issue_costs_only_itself_and_a_failing_source_only_itself(
     project, invoke, credentials_home
 ) -> None:
-    other = '\n[sources.other]\nconnector = "github"\nfilter = "other"\nbase_url = "{base}"\n'
+    other = (
+        '\n[sources.other]\nconnector = "github"\nrepository = "acme/other"\nbase_url = "{base}"\n'
+    )
     other += '\n[sources.other.maps.types.labels]\nother = "task"\n'
     with harness.serve(harness.load_routes("github/routes.json")) as tracker:
         text = GITHUB.format(base=tracker.base_url) + other.format(base=tracker.base_url)
@@ -393,8 +416,8 @@ async def test_a_vanished_issue_costs_only_itself_and_a_failing_source_only_itse
     assert unnamed.exit_code == 1
     assert (reports["platform"]["failed"], reports["other"]["failed"]) == (True, False)
     assert reports["platform"]["left_out"].replace(tracker.base_url, "http://tracker") == (
-        "http://tracker/api/v3 answered HTTP 500 for http://tracker/api/v3/issues?filter=all"
-        "&state=all&labels=squads&per_page=100&page=2"
+        "http://tracker/api/v3 answered HTTP 500 for "
+        "http://tracker/api/v3/repos/acme/api/issues?state=all&per_page=100&page=2"
     )
 
 
@@ -405,7 +428,11 @@ async def test_a_listing_row_without_a_state_fails_the_source_and_leaves_the_ite
     with harness.serve(harness.load_routes("github/routes.json")) as tracker:
         await _declare(invoke, project, GITHUB.format(base=tracker.base_url), f"{SECRET}\n")
         await _pull(invoke)
-        first_page = next(r for r in tracker.routes if "labels" in r.get("query", {}))
+        first_page = next(
+            r
+            for r in tracker.routes
+            if r["path"] == "/api/v3/repos/acme/api/issues" and "query" not in r
+        )
         del first_page["body"][0]["state"]
         result = await invoke(["source", "pull", "--json"])
         shown = await _shown(invoke, tracker, 2)
@@ -469,7 +496,7 @@ async def test_a_rate_limit_and_an_unconfirmable_value_are_not_blamed_on_the_fil
         await _declare(invoke, project, unused.format(base=tracker.base_url), f"{SECRET}\n")
         confirmable = await invoke(["source", "check", "platform"])
         for route in tracker.routes:
-            if route["path"] == "/api/v3/issues":
+            if route["path"] == "/api/v3/repos/acme/api/issues":
                 route["status"], route["headers"] = 429, {"Retry-After": "0"}
         limited = await invoke(["source", "check", "platform"])
         base = tracker.base_url

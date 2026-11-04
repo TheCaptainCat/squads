@@ -25,7 +25,7 @@ async def _mirror(invoke, project) -> None:
     override.parent.mkdir(parents=True, exist_ok=True)
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         override.write_text(
-            f'[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
+            f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
             f'base_url = "{tracker.base_url}"\n{MAPS}',
             encoding="utf-8",
         )

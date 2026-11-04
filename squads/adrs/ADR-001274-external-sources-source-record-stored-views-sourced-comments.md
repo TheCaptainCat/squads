@@ -23,12 +23,12 @@ description: Source record and derived lookup, nested records, stored view bodie
   comment attributes, namespaced authors, server-side credentials, sources.toml, pull
   as import events, schema 0.20
 created_at: '2026-11-03T22:41:36Z'
-updated_at: '2026-11-04T08:14:43Z'
+updated_at: '2026-11-04T09:52:23Z'
 ---
 <!-- sq:body -->
 ## Context
 
-EPIC-1268 lets agents work on issues humans file on GitLab, GitHub and Jira. An issue opted in on its tracker becomes a squad item; the tracker owns its title, description, mapped fields and comments, and the squad owns everything else. Nothing is written back. The scope and the operator's rulings (op-pierre, 2026-11-03) are on EPIC-1268 and FEAT-1270 to FEAT-1273; this record turns them into rules and settles the design they leave to the architect. The operator ruled the remaining choices on this record (op-pierre, 2026-11-03, comment a7b791e, cited below as "ruling a7b791e"). Rulings are cited as such; everything else here is this record's own decision.
+EPIC-1268 lets agents work on issues humans file on GitLab, GitHub and Jira. An issue in a source's scope on its tracker, accepted by the source's filter and typed by its map, becomes a squad item; the tracker owns its title, description, mapped fields and comments, and the squad owns everything else. Nothing is written back. The scope and the operator's rulings (op-pierre, 2026-11-03) are on EPIC-1268 and FEAT-1270 to FEAT-1273; this record turns them into rules and settles the design they leave to the architect. The operator ruled the remaining choices on this record (op-pierre, 2026-11-03, comment a7b791e, cited below as "ruling a7b791e"). Rulings are cited as such; everything else here is this record's own decision.
 
 The epic collides with six accepted decisions, each amended below at the clause named:
 
@@ -72,9 +72,9 @@ source:
 - Being core, its shape is checked at the load boundary like every core key (ADR-1007 §5): a record with a missing or extra key, or a non-string value, refuses the item and names the file.
 - The item's core `author` is `source:<name>` (§6). Its `labels` and `assignee` stay squad-owned; the pull never writes them.
 
-**The lookup is derived, never persisted.** `SquadsDB` builds, on load, two in-memory maps from the items it holds: `(name, id) → sequence ids` for matching an issue to its item, and `(name, key) → sequence ids` for translating tracker references (§9). They are inversions like `backrefs`, so `.squads.json` gains no structure and `sq repair` rebuilds them by rebuilding the items. Two items under one `(name, id)` are both kept, both listed and both refreshed by the pull; `sq check` reports them (§12, §14).
+**The lookup is derived, never persisted.** `SquadsDB` builds, on load, two in-memory maps from the items it holds: `(name, id) → sequence ids` for matching an issue to its item, and `(name, key) → sequence ids` for translating tracker references (§9). They are inversions like `backrefs`, so `.squads.json` gains no structure and `sq repair` rebuilds them by rebuilding the items. Matching and translation consult them for every declared source on one tracker (§14, **Links across sources**). Two items holding one issue are both kept, both listed and both refreshed by the pull; `sq check` reports them (§12, §14).
 
-**No cursor.** A pull keeps no cursor, stored or derived. It compares each issue the filter lists with the `source.updated_at` of the items that hold it, and fetches details only where they differ or no item holds the issue (§14). A cursor derived from the newest `updated_at` loses data: a refresh of one issue moves it past another's change, and an issue held back once is never asked for again.
+**No cursor.** A pull keeps no cursor, stored or derived. It compares each issue the scope lists with the `source.updated_at` of the items that hold it, and fetches details only where they differ or no item holds the issue (§14). A cursor derived from the newest `updated_at` loses data: a refresh of one issue moves it past another's change, and an issue held back once is never asked for again.
 
 ### 2. Nested records in frontmatter (amends ADR-1007 §1 and §4)
 
@@ -200,14 +200,14 @@ token = "…"
 - `resolve_documents` resolves it lazily and memoised, like the role catalog (ruling a7b791e, point 7): a broken `sources.toml` fails every command that reads a source, and `sq check` reports it, while the rest of the squad keeps working.
 - **Top-level keys:** `connectors`, `sources`, `selected`.
 - **`[connectors.<name>.<version>]`** (bundled; the key form is in §14): per connector version, its default `converter` and default `maps`. A default map may name bundled vocabulary; it is validated only through a source that inherits it.
-- **`[sources.<name>]`** (override only; the bundled file declares none): `connector` (`gitlab`, `jira`, …), `version` (optional only when the connector has one registered version, §14), `base_url`, `filter` (required and non-empty, §14: a label, or JQL for Jira), `trusted` (default `false`), `enabled` (default `true`), optional `converter`, and `maps`. Declaring a source activates it; `enabled = false` pauses it.
+- **`[sources.<name>]`** (override only; the bundled file declares none): `connector` (`gitlab`, `jira`, …), `version` (optional only when the connector has one registered version, §14), `base_url`, exactly one scope key (`project` or `group` for GitLab, `repository` for GitHub, `jql` for Jira; required, §14), `filter` (optional, a table of one boolean expression per side, evaluated in squads, §14), `trusted` (default `false`), `enabled` (default `true`), optional `converter`, and `maps`. Declaring a source activates it; `enabled = false` pauses it.
 - **Maps.** `maps.types.<side>` (tracker value to item type), `maps.fields.<badge field>.<side>` (tracker value to badge value), `maps.links` (tracker link type to ref kind). A side names where the value is read on the tracker (§14). A source's map overlays its connector default key by key; an entry set to `""` unmaps the tracker value.
 - **Load-time validation**, collect-all, against the resolved workflow spec: every map target is a declared type, badge field and value, or ref kind; a source name follows the slug grammar; `connector`, `version` and `converter` exist in their registries. A failure names the source, the map and the value.
 - An edit to the override retires the daemon like any `.overrides/` edit (ADR-1052, point 13).
 
 ### 9. Connectors and converters
 
-- **Connector registry:** a literal `(name, version) → class` table with no registration side effect (ruling 4f4a607). The interface: the listing of every issue matching the filter, closed included, paged, each with the fields the pull compiles and its `updated_at` (§14); one issue by its immutable ID and last known key (§14); its comments and links; the URL of an issue from base URL and key, and of a user from a handle; handle to immutable user ID; the tracker references in a text, each qualified to a full key against the host issue's key (§14); its probes for `sq source check`; its default converter.
+- **Connector registry:** a literal `(name, version) → class` table with no registration side effect (ruling 4f4a607). The interface: the listing of every issue in the source's scope, closed included, paged, each with the fields the pull compiles and its `updated_at` (§14); one issue by its immutable ID and last known key (§14); its comments and links; the URL of an issue from base URL and key, and of a user from a handle; handle to immutable user ID; the tracker references in a text, each qualified to a full key against the host issue's key (§14); its probes for `sq source check`; its default converter.
 - **Converter registry:** a literal name → function table (`adf`, `jira-wiki`, `gitlab-md`, `github-md`), pure functions of the text, the base URL and the host issue's web URL (§14), with no network access.
 - **Vocabulary stays out of code.** A `tests/meta` guard keeps squad vocabulary literals (item types, badge fields and values, ref kinds, statuses) out of connector modules; tracker API names are allowed, and a fixed set of tracker API names that spells like squad vocabulary is exempted per constant (§14).
 - **Reference translation is read-time.** The `source_description` projection and the comment render translate a tracker reference to an item ID when the `(name, key)` lookup of §1 finds exactly one item (§14); the stored text keeps the raw reference.
@@ -217,7 +217,7 @@ token = "…"
 
 **One write path.** `sq source pull [<name>]` has three phases:
 
-1. **Fetch**, outside the index lock: the access probes, then for each source the full listing of the filter, a fetch of each linked item missing from it, and the comments and links of each listed issue that no item holds or whose listed `updated_at` differs from the stored one (rulings 8c0a817, 2980084; §14). It paginates and backs off on rate limits.
+1. **Fetch**, outside the index lock: the access probes, then for each source the full listing of its scope, a fetch of each linked item missing from it, and the comments and links of each listed issue that no item holds or whose listed `updated_at` differs from the stored one (rulings 8c0a817, 2980084; §14). It paginates and backs off on rate limits.
 2. **Compile**, inside one `IndexStore.transaction()`: diff the fetched data against the items as they stand under the lock and emit only the events that change something.
 3. **Apply** through the importer's validate-first pre-pass and apply pass, in the same transaction, as one import.
 
@@ -225,7 +225,7 @@ A second pull with nothing new compiles to no events and writes nothing. `--dry-
 
 **Timestamps** (ruling a7b791e, point 2). A sourced comment's header carries the tracker comment's creation time, so the discussion shows when it was written. Every other event carries the pull's time, so an item's `created_at` is when it entered the squad; the issue's age is shown from `source.updated_at`. An edit mark written by `comment-edit` carries the pull's time.
 
-**Events per issue.** A new in-filter issue: `create` with `type` from the map (applied at creation only, ruling fa6c47d), `title`, mapped `fields`, the `source` record, then `view-body` seeding `source_description`. A linked issue: `update` for the title and mapped fields that changed, `source` for the record (key, state, `updated_at`), `view-body` when the description changed, a `comment` per new tracker comment with its attributes, a `comment-edit` per edited one, a `ref` per new link whose both ends are linked.
+**Events per issue.** A new selected issue (§14, **Source selection**): `create` with `type` from the map (applied at creation only, ruling fa6c47d), `title`, mapped `fields`, the `source` record, then `view-body` seeding `source_description`. A linked issue: `update` for the title and mapped fields that changed, `source` for the record (key, state, `updated_at`), `view-body` when the description changed, a `comment` per new tracker comment with its attributes, a `comment-edit` per edited one, a `ref` per new link whose both ends are held, resolved and read from either end (§14, **Links across sources**).
 
 **ADR-622 gains:**
 
@@ -237,7 +237,7 @@ A second pull with nothing new compiles to no events and writes nothing. `--dry-
 
 **Identical tracker comments.** Attributes are not a hash input, and every sourced comment of one source has the same author, so two tracker comments with the same text in the same second share a hash and ADR-1013 §6 would refuse the second. The compiler skips the second and reports it, naming both tracker comment IDs (ruling a7b791e, point 3).
 
-**Reporting.** Closed issues become `closed`; a linked issue outside the filter becomes `out-of-filter`; one not found becomes `gone`, reported as "deleted or no longer readable" (ruling 8c0a817). A comment deleted on the tracker is reported, not removed. The item always stays.
+**Reporting.** Closed issues become `closed`; a linked issue the source no longer selects (outside its scope, or rejected by its filter; §14) becomes `out-of-filter`; one not found becomes `gone`, reported as "deleted or no longer readable" (ruling 8c0a817). A comment deleted on the tracker is reported, not removed. The item always stays.
 
 **Credentials and access.** With no name, a source with no stored credential is skipped with a warning; a named one is an error naming `sq source credential set <name>`. A source failing its access probes is handled as §14 says.
 
@@ -251,7 +251,7 @@ A second pull with nothing new compiles to no events and writes nothing. `--dry-
 
 ### 12. What `sq check` reports
 
-`sq check` never calls the network. It reports: two items sharing one `(source, id)`; a `source:<name>` author, on an item or a comment, naming no declared source; an item whose source is undeclared or disabled; an item whose `source.state` is `out-of-filter` or `gone`; an identity key naming no declared source; two operators holding one ID on one source; a malformed comment-attribute line; the paired-tag findings of §4; and a `sources.toml` that does not load.
+`sq check` never calls the network. It reports: two items holding one issue of one tracker, across sources (§14); a `source:<name>` author, on an item or a comment, naming no declared source; an item whose source is undeclared or disabled; an item whose `source.state` is `out-of-filter` or `gone`; an identity key naming no declared source; two operators holding one ID on one source; a malformed comment-attribute line; the paired-tag findings of §4; and a `sources.toml` that does not load.
 
 ### 13. Schema 0.20 and its migration
 
@@ -310,7 +310,7 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 **A source with no type map** (amendment, 2026-11-04; completes §8 and §10).
 
 - A source whose `maps.types`, after its connector's defaults are overlaid, holds no entry fails at load, naming the source and `maps.types`. No default type exists: a default would be a vocabulary name chosen in code, or one the adopter never declared.
-- At pull time, a new in-filter issue whose tracker type or labels map to no type, or to two different types, is not created. The pull reports it with the values it found, and `sq source check` lists it as an unmapped value. Entries that map to the same type do not conflict.
+- At pull time, a new selected issue whose tracker type or labels map to no type, or to two different types, is not created: one mapping to no type is counted, one mapping to two is named with the values it found (§14, **What becomes an item**). Entries that map to the same type do not conflict.
 - An item that already exists is never affected: the type is applied at creation only (ruling fa6c47d).
 
 **Connector keys are bare** (amendment, 2026-11-04; replaces §8's quoted key).
@@ -321,19 +321,19 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 
 **The pull diffs the listing; no cursor** (amendment, 2026-11-04; replaces §1's derived cursor and §10's incremental query).
 
-- The connector's listing returns every issue the filter matches, closed included (ruling 8c0a817), each with the fields the pull compiles (title, description, state, type and labels, author, key) and its tracker `updated_at`. It is paged, and it is complete on every pull: without stored state there is no incremental listing.
+- The connector's listing returns every issue in the source's scope, closed included (ruling 8c0a817), and the filter is evaluated on its rows (§14, **Source selection**), each with the fields the pull compiles (title, description, state, type and labels, author, key) and its tracker `updated_at`. It is paged, and it is complete on every pull: without stored state there is no incremental listing.
 - An issue the listing returns is fetched in detail (its comments and links) when no item holds its `(name, id)`, or when its listed `updated_at` differs from the `source.updated_at` of an item that holds it. "Differs" is not "newer", so a tracker clock moving backwards still refreshes. Any other listed issue costs nothing beyond its listing row.
 - A linked item missing from the listing is fetched once by ID, as before: `out-of-filter` or `gone`.
 - The record's `updated_at` advances only when every other event of that issue applied, links included. When a pull drops one (§10), the issue's `source` event keeps the stored `updated_at` on an existing item, and writes it empty on an item the same pull creates. An empty value differs from every listed one, so the next pull fetches, retries and reports the issue again, and stores the real value once everything applies. No new state is stored. A standing skip under ruling fa6c47d (a mapped field the item's new type lacks, or a tracker type that no longer matches the map) counts as applied, so it is reported without refetching forever.
-- An issue held back for want of a type map (§14) has no item, so every pull fetches and reports it until the map covers it, and then creates it.
-- Cost: one listing pass per pull, about the size of the filter divided by the tracker's page size, plus details for what changed. The listing of IDs already cost that pass, and the incremental query is gone. It grows with the closed issues the filter keeps; while pulls are manual this is accepted, and a narrower filter is the adopter's lever.
+- An issue held back for want of a type map (§14) has no item, so every pull counts it from its listing row until the map covers it, and then creates it.
+- Cost: one listing pass per pull, about the size of the scope divided by the tracker's page size, plus details for what changed. The listing of IDs already cost that pass, and the incremental query is gone. It grows with the closed issues the scope keeps; while pulls are manual this is accepted, and a narrower scope is the adopter's lever: the filter reduces what is written, not what is listed.
 - Limit: a comment edited or deleted on a tracker whose issue `updated_at` does not move with it is picked up at the issue's next change, or by `show --refresh`.
 
 **GitLab fetches one issue by project path and number** (amendment, 2026-11-04; completes §9).
 
 - GitLab's `GET /issues/:id` is for administrators only, so the interface's single-issue fetch takes the immutable ID and the last known key. GitLab fetches `/projects/<path>/issues/<iid>` from that key and accepts the answer only when its global ID equals the stored one.
-- A linked issue outside the filter whose project was renamed or transferred is therefore reported `gone`, since its last known key no longer leads to it. While the filter lists it, the listing still finds it under its new key.
-- `relink` by immutable ID resolves on GitLab only an issue the filter lists, found by scanning the listing. `relink` by key resolves any issue the credential can read.
+- A linked issue outside the scope whose project was renamed or transferred is therefore reported `gone`, since its last known key no longer leads to it. While the scope lists it, the listing still finds it under its new key.
+- `relink` by immutable ID resolves on GitLab only an issue the scope lists, found by scanning the listing. `relink` by key resolves any issue the credential can read.
 
 **Credential verbs carry an operation-level mark** (amendment, 2026-11-04; completes §7).
 
@@ -350,10 +350,10 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 
 **Unlink, then a pull** (amendment, 2026-11-04; completes §11).
 
-- `source unlink` removes the record and keeps nothing (§11). An issue the filter still lists is then held by no item, so the next pull imports it again as a new item, with the tracker's comments copied afresh. The unlinked item stays as it is: plain prose, the squad's own.
+- `source unlink` removes the record and keeps nothing (§11). An issue the source still selects is then held by no item, so the next pull imports it again as a new item, with the tracker's comments copied afresh. The unlinked item stays as it is: plain prose, the squad's own.
 - This is the rule, and squads does not try to prevent it. Recognising the unlinked item later would need its `(name, id)`, which is exactly what unlink drops. Matching on title or prose would be a guess.
-- `source unlink` says so when it runs. When the record's `state` was `open` or `closed` (the filter listed it), its output carries a warning: the issue still matches the filter of `<name>`, the next pull imports it as a new item, and removing it from the filter on the tracker (the label, or the JQL) prevents that. With `out-of-filter` or `gone`, no warning is shown.
-- To stop following an issue's text while keeping one item, the adopter takes the issue out of the filter on the tracker. To undo an unlink, the adopter runs `relink` (§14).
+- `source unlink` says so when it runs. When the record's `state` was `open` or `closed` (the source selected it), its output carries a warning: the issue is still selected by `<name>`, the next pull imports it as a new item, and changing the source's filter so it rejects the issue (for example `and not <label>` in its `labels` expression), or moving the issue out of the scope, prevents that. With `out-of-filter` or `gone`, no warning is shown.
+- To stop following an issue's text while keeping one item, the adopter makes the source stop selecting it. To undo an unlink, the adopter runs `relink` (§14).
 
 **A source failing access on an unnamed pull** (amendment, 2026-11-04; completes §10).
 
@@ -365,7 +365,7 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 
 - Some tracker API values are spelled like squad vocabulary, such as GitLab's issue type `task` and link type `blocks`. They are fixed per connector version, so a connector may hold them, and its probes check map keys against them.
 - The `tests/meta` guard keeps one reviewed table of `(module, constant name)` pairs, each with a one-line reason. A listed constant must be a module-level tuple or frozenset of string literals naming one fixed set of tracker API names: an enum's values (GitLab's link types), or an object's field names (Jira's `_ISSUE_FIELDS`). The guard skips the string literals inside a listed constant and nowhere else: the same word anywhere else in the module still fails.
-- The probes check `maps.links` keys against the connector's link-type enum, and a key outside it is a blocking vocabulary failure. They check each `maps.types` and `maps.fields` key against its own side (§14): a `type` key against the issue-type enum or the tracker's type list, a `labels` key against the tracker's labels, a `priority` key against the tracker's priorities. A key that a listable side does not hold is blocking. When the tracker cannot list a side (Jira Data Center's labels, GitHub's issue types), a key that no in-filter issue carries is a warning instead, since its absence cannot be proven (amendment, 2026-11-04).
+- The probes check `maps.links` keys against the connector's link-type enum, and a key outside it is a blocking vocabulary failure. They check each `maps.types` and `maps.fields` key against its own side (§14): a `type` key against the issue-type enum or the tracker's type list, a `labels` key against the tracker's labels, a `priority` key against the tracker's priorities. A key that a listable side does not hold is blocking. When the tracker cannot list a side (Jira Data Center's labels, GitHub's issue types), a key that no issue in the scope carries is a warning instead, since its absence cannot be proven (amendment, 2026-11-04).
 
 **Converters receive the host issue's web URL** (amendment, 2026-11-04; completes §9).
 
@@ -395,12 +395,12 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 
   - A side is a name the connector version declares. All of them expose `labels`. GitLab and GitHub expose `type` (the issue type). Jira exposes `type` (the issue type) and `priority`.
   - An undeclared side fails at load, listing the sides that version has. The connector carries each side as its own value on the fetched issue, never mixed into the labels.
-  - When the sides of one map yield different values, the value is not set: an issue is not created (§14, no type map), and a badge field is left alone. The pull reports the values it found. Values that agree do not conflict.
-- **Jira link keys are the directional phrase** (`blocks`, `is blocked by`). A link read from its inward side maps from that side, so `"is blocked by" = "depends-on"` gives the right direction. With the default `blocks = "blocks"`, the ref is made from the outward issue, and an inward link alone makes no reverse ref. That is by design, since both ends are pulled whenever the ref can exist. The phrases are edited by each instance's admins, so the probes check `maps.links` keys against that instance's `/issueLinkType`.
+  - When the sides of one map yield different values, the value is not set: an issue is not created and is named in the report with the values it found (§14, **What becomes an item**), and a badge field is left alone and reported the same way. Values that agree do not conflict.
+- **Jira link keys are the directional phrase** (`blocks`, `is blocked by`). A link read from its inward side maps from that side, so `"is blocked by" = "depends-on"` gives the right direction. A link gives the same refs whichever end it is read from (§14, **Links across sources**): with the default `blocks = "blocks"`, the inward issue's `is blocked by` makes the ref from the outward issue. The phrases are edited by each instance's admins, so the probes check `maps.links` keys against that instance's `/issueLinkType`.
 - **The Jira Cloud handle is the `accountId`.** Cloud has no username, and the `accountId` is the only stable public handle. The display name stays the readable part (§5). `@<accountId>` resolves to itself through an exact lookup, never through a search.
 - **Restricted comments are not pulled.** A comment with a `visibility` restriction is skipped on both Jira versions. So is an agent-only service desk comment: `jsdPublic = false` on Cloud, and on Data Center the comment property `sd.public.comment` with `internal: true`, read with `expand=properties`. Squad files are readable by everyone with the repository. A comment pulled and later restricted on the tracker reads as deleted under §10: it is reported, stays in the squad, and no command removes it (§6).
 - **The issue author is the immutable creator.** Jira's `author_id` and `author_handle` come from `creator`, never from the editable `reporter`, matching §1's "immutable user ID" and the other connectors. A request raised on someone's behalf is therefore attributed to whoever created it.
-- **Every source requires a `filter`.** An empty or missing `filter` fails at load, naming the source, for every connector. Without one, a GitHub token would list every issue in every repository and organisation it can see, private ones included, into a committed squad.
+- **Every source names one scope.** The required `filter` is replaced by a required scope key and an optional filter (§14, **Source selection**, ruling f6cbdfc).
 
 **Seams and the first connector.**
 
@@ -427,20 +427,20 @@ stored = true
 **Reference translation is the connector's job** (replaces §9's "reference pattern").
 
 - The interface method takes a text and the host issue's `key`, and returns each tracker reference in the text as its span and the full key it names, qualifying a short form (`#12`, `project#12`) against the host key. It is a pure function, with no network access.
-- The `source_description` record and the comment render look up each full key in `(name, key)` and replace the span with the item ID when exactly one item holds that key. Otherwise the reference stays as written.
+- The `source_description` record and the comment render look up each full key in `(name, key)` across every declared source on the host source's tracker, and replace the span with the item ID when exactly one item holds that key. Otherwise the reference stays as written.
 - A sourced comment on an item that carries no `source` record has no host key, and renders untranslated.
 
-**Two items under one `(name, id)`** (completes §1).
+**Two items holding one issue** (completes §1).
 
 - Both lookups map to lists of sequence ids.
 - The pull refreshes every item linked to a fetched issue, each through its own events, and reports the duplicate on every run.
-- An issue is new only when no item holds its `(name, id)`, so a pull never creates a third.
+- An issue is new only when no item on its tracker holds it (§14, **Links across sources**), so a pull never creates a third.
 
 **Unlink and relink** (replaces §11's relink bullet).
 
 - `source unlink` removes the record and nothing else of the authorship: the item's `author` stays `source:<name>`, and its imported comments stay authored by `source:<name>`. They are the item's history. No `--as` matches them (§6), so they can no longer be edited or removed. Unlink on an item with no record is refused.
-- `source relink <source> <issue>` is accepted only on an item that carries no `source` record and whose `author` is `source:<source>`: that author is what "the same source" is checked against. It is refused, each time naming why, on an item that still holds a record (naming `source unlink`), on an item no source created, on an item another source created (naming it), and for an issue whose `(name, id)` another item already holds (naming that item).
-- Relink resolves `<issue>`, a key or an immutable ID (for GitLab, an ID only when the filter lists the issue; §14), through the connector, then runs the three phases of §10 for that one issue, with the record as one more event: the record, the title, the mapped fields, the description view and the comments, matched by `source_id`, land in one transaction. The prose unlink left in the body stays the squad's. The type is not changed.
+- `source relink <source> <issue>` is accepted only on an item that carries no `source` record and whose `author` is `source:<source>`: that author is what "the same source" is checked against. It is refused, each time naming why, on an item that still holds a record (naming `source unlink`), on an item no source created, on an item another source created (naming it), and for an issue another item on the same tracker already holds (naming that item; §14, **Links across sources**).
+- Relink resolves `<issue>`, a key or an immutable ID (for GitLab, an ID only when the scope lists the issue; §14), through the connector, then runs the three phases of §10 for that one issue, with the record as one more event: the record, the title, the mapped fields, the description view and the comments, matched by `source_id`, land in one transaction. The prose unlink left in the body stays the squad's. The type is not changed.
 - Relink does not leave the description to the next pull: relink stores the issue's current `updated_at`, and a pull fetches details only for an issue whose listed `updated_at` differs from the stored one, so a pull would never restore the view.
 
 **Connector versions** (amendment, 2026-11-04; replaces §8's "default the newest registered").
@@ -468,6 +468,117 @@ stored = true
 - A matched line starts with a slug and an unmatched one with a quote (or with `via` when it has no name), so they never read alike, on a trusted source or not. A tracker user who sets their display name to `op-pierre Pierre Chat` reads `"op-pierre Pierre Chat" via gitlab-prod @mallory`.
 - `author` in a `--json` discussion entry is the same string; `identity` still carries the matched slug or `null`.
 
+**Source selection: a scope on the tracker, a filter in squads** (amendment, 2026-11-04; rulings f6cbdfc and ec3c412; replaces §8's `filter`, the required filter of **Connector decisions** and every connector's tracker-side filter).
+
+Measured on a self-hosted GitLab 19.5 (2026-11-04):
+
+- `GET /projects/<url-encoded path>/issues` and `GET /groups/<path>/issues` return only that project's or that group's issues, the group's subgroups included.
+- `labels=a,b` is an AND on the server. `or[labels]=a,b` is silently ignored on `/issues`, which then returns every issue on the instance.
+- The instance-wide `GET /issues?labels=<filter>` the connector used returned issues of any project carrying the label, and other projects on the same instance used the same scoped-label scheme.
+
+A label is therefore no selection a squad can rely on: it spans the instance, it cannot say "any of", and covering one project took one source per label, which lost the links between them (BUG-1284).
+
+**The scope.** A source names exactly one scope, under a key its connector version declares. The pull lists every issue of the scope, in every state, with no tracker-side condition.
+
+| connector | key | value | listing |
+|---|---|---|---|
+| `gitlab@v4` | `project` | a project's full path, `group/project` | `GET /projects/<url-encoded path>/issues` |
+| `gitlab@v4` | `group` | a group's full path, `group` or `group/subgroup` | `GET /groups/<url-encoded path>/issues`, subgroups included |
+| `github@v3` | `repository` | `owner/repo` | `GET /repos/<owner>/<repo>/issues`, pull requests skipped |
+| `jira@cloud-v3`, `jira@dc-v2` | `jql` | a JQL query | the version's JQL search |
+
+- The registry declares each version's scope keys beside its sides. No scope key, two of them, or an empty value fails at load, naming the source and listing the keys its version takes; another connector's scope key is an unknown key.
+- **GitHub has no organisation scope** (ruling ec3c412). `GET /orgs/<org>/issues` exists, but what it lists depends on its `filter` parameter and on the kind of token, and it has not run against a live instance; neither has the repository listing. Several repositories are several sources, which the link rule below keeps linked. An `organization` key can be added later without changing any source that loads today.
+- **For Jira the JQL is the scope.** JQL can express any selection, so squads does not parse it, and the filter applies to what it returns, with the same grammar as every other connector. A JQL that spans projects is the adopter's explicit choice.
+
+**The filter.** `filter` is an optional table, evaluated in squads on each listed issue. It is keyed by side, like the maps, and each side takes one boolean expression, a string:
+
+```toml
+[sources.platform]
+connector = "gitlab"
+base_url = "https://gitlab.example.com"
+project = "group/project"
+
+[sources.platform.filter]
+labels = '(type::epic or type::story) and not "help wanted"'
+type = 'issue or incident'
+```
+
+- A value in an expression is true when it is on the side: one of the issue's labels, or its type or priority. Values match exactly as the tracker spells them, case included, like map keys. A side the issue has no value on makes every value false.
+- An issue is **selected** when it is in the scope and every expression the filter names is true for it: the sides are ANDed. A source without `filter` selects every issue of its scope.
+- The expression is parsed when `sources.toml` loads, by a parser of its own in `_sources/_filter.py`. No existing parser fits: the `$(self)` splat-ref of `_specmerge.py` is a whole-string token, not an expression.
+
+**The expression grammar** (EBNF; whitespace, a space, a tab or a line break (LF or CRLF), may separate any two tokens and is required only between two words):
+
+```ebnf
+expression = disjunction ;
+disjunction = conjunction , { "or" , conjunction } ;
+conjunction = negation , { "and" , negation } ;
+negation   = "not" , negation | primary ;
+primary    = value | "(" , disjunction , ")" ;
+value      = bare | quoted ;
+bare       = bare char , { bare char } ;            (* not "or", "and" or "not" in any case *)
+bare char  = "A".."Z" | "a".."z" | "0".."9" | ":" | "-" | "_" | "." ;
+quoted     = '"' , quoted char , { quoted char } , '"' ;
+quoted char = any character but '"', "\" or a control character (a line break included)
+           | '\"' | '\\' ;
+```
+
+- `not` binds tightest, then `and`, then `or`; `and` and `or` group from the left. `a or b and not c` reads `a or (b and (not c))`.
+- A line break between tokens is whitespace, so a TOML multi-line literal string (`'''...'''`) loads; a long expression can be laid out over several lines.
+- The keywords are `or`, `and` and `not`, lowercase. A bare word that spells one in another case (`OR`, `Not`) is refused, so `a OR b` never reads as three labels; a label spelled like a keyword is written quoted (`"or"`).
+- A bare word is ASCII letters, digits, `:`, `-`, `_` and `.`, and ends at any other character. Any other label is quoted: one with a space, a `/`, a non-ASCII letter. Inside quotes `\"` is a `"` and `\\` is a `\`; every other character stands for itself. A quoted value is never empty.
+- TOML reads the string first. A literal string (`'...'`) passes the expression through unchanged, so the docs write every filter that way; in a basic string (`"..."`) each `"` and `\` of the expression needs its own TOML escape.
+
+**Refusals at load.** Each names the source and the side (`sources.platform.filter.labels`), and a parse error its 1-based line and column in the expression string, counted in characters:
+
+- `filter` that is not a table, or an empty one; a side value that is not a string.
+- A side the connector version does not have, listing its sides.
+- An empty expression, or one holding only whitespace.
+- A malformed expression: a character outside the grammar (outside quotes: anything but a bare char, a parenthesis or whitespace; a control character other than a tab or a line break, a lone CR included; a line break inside quotes), an unterminated quoted value, a backslash followed by anything but `"` or `\`, an empty quoted value, a keyword in another case, a value or `(` where `and`, `or` or `)` is expected (`help wanted` unquoted, `a b`), an operator or `)` where a value is expected (`a and`, `or b`, `()`), and an unbalanced parenthesis (an unclosed `(` is reported at its own column).
+
+**Room to grow.** What loads now keeps its meaning in every later release:
+
+- Every `filter` key that is not a side of the connector version is refused, and so is a `filter` that is not a table, so an OR across sides (one filter-wide expression) can come later as a new key or form without reinterpreting any filter that loads now.
+- A new operator uses characters refused today outside quotes (`*`, `=`, `,`, `!`, …), never a new word: every bare word that is not a keyword is a value today.
+- A `key` side naming single issues is a new side, declared by the registry like the others.
+
+**Why the filter is no longer required** (ruling ec3c412: the scope is required, `filter` optional). The required filter bounded what a token listed: without it, a GitHub token listed every issue of every repository it could read into a committed squad. The required scope now bounds it, and names exactly what the adopter chose to follow. The filter decides what is written among what the scope lists; a listed issue it rejects stays in memory for that command, and is never written, logged or named in a report. Exposure inside the scope is the next rule's concern.
+
+**Restricted issues are not pulled, with no opt-out** (ruling ec3c412; extends the restricted-comment rule of **Connector decisions** to issues, on the same ground: squad files are readable by everyone with the repository). A GitLab issue marked `confidential` and a Jira issue carrying a security level are treated as not returned, by the listing, by ID and by lookup; a GitLab internal note (`internal: true`) is skipped like a restricted Jira comment. An item whose issue becomes restricted reads as `gone`, is reported and stays. No source key pulls them. GitHub has no per-issue restriction: the repository's visibility is the scope's. None of these fields has been read from a live instance.
+
+**States under a full listing.**
+
+- The state a pull compares and stores for a listed issue is the one it would write: the tracker's `open` or `closed` when the filter accepts the issue, `out-of-filter` when it rejects it. An out-of-filter item is therefore not fetched again on every pull, and one the filter accepts again is.
+- Listed, accepted, held by no item: created when its type maps to one type; counted when it maps to none, named when it maps to two (below).
+- Listed, accepted, held: refreshed when its listed `updated_at` or state differs, as before.
+- Listed, rejected, held by no item: ignored, at the cost of its listing row. The pull counts them (`filtered out <n>` on the source's line, `filtered_out` in `--json`) and names none.
+- Listed, rejected, held: `out-of-filter`, refreshed like any held issue, so its title, description and comments still follow the tracker.
+- Held, not listed: the issue left the scope (moved, transferred, or no longer selected by the JQL). It is fetched once by ID, `out-of-filter` when the tracker returns it and `gone` when it does not. One state covers both ways out of the selection because the squad does the same for both; the report line says which ("rejected by the filter", "outside the scope"), decided at pull time and never stored.
+- A single-issue command (`show --refresh`, `relink`) decides selection without listing the scope: it evaluates the filter on the issue, and the connector says whether the issue is in the scope, from its key for GitLab (the project path equals `project`, or starts with `group/`) and GitHub (the repository equals `repository`, ignoring case), and with one search for Jira (`id = <id> AND (<jql>)`).
+
+**What becomes an item.** The scope and the filter select; the type map decides what becomes an item. A selected issue whose type and labels map to no type is not created and is not named: the pull counts it on the source's line (`skipped <n> (no type)`) and in `--json` (`skipped_no_type`), beside the `filtered out` count. Leaving a value out of the map is therefore how an adopter leaves those issues out, with no filter needed. A selected issue whose values map to two different types is a data error on the tracker: it is not created, and every pull names it on one report line with the values it found, until the tracker or the map is corrected (ruling af70274). Both are decided on the listing row, before any detail fetch, so such an issue costs its row and not its comments and links.
+
+The guard against a mistyped map is `sq source check`, not the pull: its probes verify that every `maps.types` and `maps.fields` key, and every value a filter expression names, exists on its side of the tracker (**Tracker API enums**). A misspelled key on a listable side fails there, and on a side the tracker cannot list it is a warning when no issue in the scope carries it.
+
+**Links across sources** (settles BUG-1284).
+
+- **One tracker.** Two sources are on the same tracker when their normalised base URLs are equal, the key of the credential store (§7). An immutable issue ID is unique on its tracker (GitLab's global ID, GitHub's node ID, Jira's issue ID), so an issue is its tracker and its ID, whichever source lists it.
+- **Resolution.** A link's other end, a tracker reference in text (§9) and relink's "already held" check look up `(name, id)` and `(name, key)` for every declared source on the host source's tracker, not for the host source alone. The lookups stay derived (§1): the union is formed from `sources.toml` when a command compiles, and nothing is stored. An item whose source is no longer declared has no tracker and matches nothing; `sq check` already reports it.
+- **One holder.** A pull creates an item only when no item on its tracker holds the issue. When scopes overlap (a group and a project inside it), a source whose scope lists an issue another source's item holds leaves it to that source and reports `held by <ID> of source <other>`; the holder refreshes it. `source_id_unique` reports two items holding one issue of one tracker, across sources.
+- **Either end.** A connector's link carries its type as read from the host and its inverse, as read from the other end: fixed for GitLab (`blocks` and `is_blocked_by`, `relates_to` both ways) and GitHub (`blocking` and `blocked_by`), and taken from the link type's `outward` and `inward` phrases for Jira. The compiler makes host → target from `maps.links[type]` and target → host from `maps.links[inverse]`, each when mapped. A link therefore gives the same refs whichever end is read, and every connector returns a link on both of its issues.
+- **When links are read.** Links are compiled for every issue fetched in detail, and an unchanged issue is not read again for them. That suffices: an issue enters the squad through a detail fetch, and its own links, read from its end, make every ref to the items already there. A ref therefore appears at the latest when the second of its issues is pulled, by whichever source and in whichever order. Reading every listed issue's links on every pull would cost one request per issue of the scope, per pull, to catch only the limit below.
+- **Limit.** A link added on the tracker between two issues already held appears at the next change of either issue, or with `show --refresh`, like an edited comment. Whether adding a link moves an issue's `updated_at` is unverified on every tracker.
+- **A dropped link is reported.** A mapped link whose other end no item on the tracker holds makes no ref and one line per host issue: `<key>: <n> link(s) not followed, no item holds <target key>, …`. The ref follows when that issue is pulled. A link type no map names is still skipped without a line, as a choice the map made.
+
+**Probes.** The access probe reads the scope: an unknown or unreadable project, group, repository or JQL fails, naming its key. An empty scope, and a filter that accepts no listed issue, are warnings, since a new project has no issues yet. The value checks of a filter expression are those of the map keys, above.
+
+**No migration.** Nothing of the sources feature is released, so the grammar changes in place, with no schema change and no migration step. A `sources.toml` written for development builds (`filter = "<label>"`) fails at load, saying that `filter` is a table and naming the scope keys its connector takes. This repository's squad declares no source. The delivered text owes:
+
+- `docs/sources.md`: the key table (scope keys, `filter` optional), the filter's expression grammar with its precedence, quoting and TOML literal-string advice, the "`filter` is required" paragraph replaced by the scope rule, each connector's `filter` bullet replaced by its scope key and listing, restricted issues and internal notes, the states, the `filtered out` and `skipped (no type)` counts, an unmapped type as the way to leave issues out, links resolved across one tracker's sources and from either end, the dropped-link line, the unlink warning's remedy, and the Jira link bullet.
+- `CHANGELOG.md`, in the unreleased section: the external-sources entry, each connector's "the filter is a label" or "a JQL query" (the scope key, and a filter expression per side), the no-type count replacing the per-issue report of an unmapped issue (an issue mapping to two types is still named), and the `sq source pull`, `source unlink` and `sq source check` entries ("the filter readable" becomes "the scope readable").
+- The `sq override scaffold sources` text and its worked example, and the `sources.toml` grammar in `docs/stability.md`, the filter expression grammar included.
+
 ## Rejected
 
 - **A locked item body for the description.** Ruled out (ruling ec05545): the description is a view's stored body, refreshed by an operation.
@@ -480,6 +591,11 @@ stored = true
 - **The OS keyring.** It is absent on a headless server and under WSL, and adds a dependency the store does not need.
 - **A test-only connector row** (§14). The pull would be tested against a connector whose behaviour its test author invented.
 - **The `self` view source for the description** (§14). Its resolver and a transform see neither the sources document nor the lookup.
+- **Selecting on the tracker by label** (§14, ruling f6cbdfc). A label listing spans the instance, and GitLab cannot OR labels; the scope selects on the tracker and the filter in squads.
+- **`any`, `all` and `none` lists per side** (§14, ruling ec3c412). Lists cannot nest, so `(a and b) or c` has no spelling, and each later combination would be one more operator key; three operators and parentheses say any combination of one side's values.
+- **Naming each issue that maps to no type on every pull** (§14, rulings ec3c412 and af70274). An unmapped type is the adopter's way to leave issues out, and a line per issue on every pull is noise; a mistyped map is caught by the probes. An issue mapping to two types stays named, as a tracker data error.
+- **A load-time satisfiability check on a one-value side** (§14, ruling af70274). An expression that can select nothing (`type = 'issue and incident'`) loads; the empty pull and the `sq source check` warning for a filter that accepts no listed issue already show it.
+- **Reading every listed issue's links on every pull** (§14). One request per issue of the scope, per pull, for a link added between two unchanged issues.
 - **A second write path for the pull.** The importer already has the transaction, the per-event clock and actor, the pre-pass and the reflog.
 
 ## Consequences
@@ -490,6 +606,7 @@ stored = true
 - A new `_sources` package holds the spec loader for `sources.toml`, both registries, the connectors and the pull's compiler; `tests/meta`'s import-edge table gains its rows.
 - `docs/stability.md` needs the nested-record rule, the `map` kind, the `source` record, the namespaced author grammar and the reserved `source` slug, the paired view tag and its escape, the `source` view source kind, the attribute line, the `sources.toml` grammar and the credential store's location; the adopter docs say that more author words may be reserved, and keep a source connector apart from the MCP connector of FEAT-319.
 - ADR-880 §2 and §4, ADR-776 §1, ADR-1007 §1 and §4, ADR-979 §2 and §2b, ADR-1261 §5 and ADR-622 are narrowed in place, each with a dated note pointing here.
+- A source names one scope key and an optional `filter` table of one expression per side, parsed by `_sources/_filter.py`; the connector registry declares each version's scope keys, a connector answers whether one issue is in its scope, and a link carries its inverse type. Issue identity, link and reference resolution and `source_id_unique` span every source of one tracker, derived from `sources.toml` (§14).
 - A pull does not block other served commands: the daemon serves commands concurrently, and a pull holds only the index lock, for its compile and apply (§14). Its network fetch runs outside every lock.
 <!-- sq:body:end -->
 
@@ -576,4 +693,38 @@ stored = true
   - Ruling on F4 (2026-11-04): one form for every sourced comment author, in this order: the operator slug if matched; then the name, quoted when unverified (the roster name when matched, the tracker name quoted when not); then "via <source>" and the tracker handle. Matched: op-pierre Pierre Chat via gitlab-prod @pchat. Unmatched: "John Doe" via gitlab-prod @jdoe. --json author follows the same rule.
 - [2026-11-04T08:14:43Z] `architect` Robert Architect:
   - Amended (2026-11-04) for REV-1281 F4 per ruling ad8aaba: §5 Display and a new §14 entry give one author form (slug if matched, roster name or quoted escaped tracker name, via <source> @handle); a spoof reads "op-pierre Pierre Chat" via gitlab-prod @mallory.
+- [2026-11-04T09:11:47Z] `op-pierre` Pierre Chat:
+  - Ruling (2026-11-04), source selection: a source names a scope on the tracker (for GitLab a project or a group) and the pull fetches every issue of that scope; which issues become items is decided by a filter evaluated in squads, with room for a richer filter grammar later. No label is required on the tracker. Found in a live GitLab run: a single-label filter is instance-wide, GitLab cannot OR labels (or[labels] is silently ignored), so covering a project took one source per label and lost the links between them (BUG-1284).
+- [2026-11-04T09:19:42Z] `architect` Robert Architect:
+  - - Amended (2026-11-04) per ruling f6cbdfc: new §14 entry **Source selection** and **Links across sources**, with pointer edits in §1, §8, §9, §10, §12 and the §14 entries that named the filter.
+      - Scope keys: gitlab `project` | `group` (subgroups included), github `repository`, jira `jql`; exactly one, required. The pull lists the whole scope, no tracker-side condition.
+      - `filter` is an optional table evaluated in squads, keyed by side like the maps, with `any`, `all`, `none`; unknown keys refused, so it can grow.
+      - Full listing: rejected and unheld issues are ignored (counted as `filtered out`); a held one the filter rejects or that left the scope is `out-of-filter`; unmapped types are reported but no longer fetched in detail.
+      - BUG-1284: issue identity, link targets, reference translation and `source_id_unique` span every source with the same normalised base URL; a link carries its inverse type so either end makes the same refs; a mapped link with no held target is reported.
+      - No migration (unreleased); the docs and CHANGELOG items owed are listed in the entry.
+    - @op-pierre three points are yours; my recommendation follows each:
+      - 1. `filter` optional, scope required. This reverses the required filter you acknowledged in 247d922; the scope now bounds what a token lists. Recommend: optional.
+      - 2. Restricted issues are not pulled: GitLab confidential issues and internal notes, Jira issues with a security level, like restricted Jira comments today. Dropping the opt-in label makes these reachable in a committed squad. Recommend: yes, with no opt-out.
+      - 3. GitHub org scope stays out: one repository per source, an `organization` key later once verified live. Recommend: out.
+- [2026-11-04T09:34:27Z] `op-pierre` Pierre Chat:
+  - Ruling (2026-11-04) on the questions of the source-selection amendment:
+    
+    - The scope is required; `filter` is optional.
+    - The type map decides what becomes an item. A selected issue that maps to no type is counted (for example `skipped 3 (no type)`), not reported on every pull; `sq source check` still verifies that every mapped value exists on the tracker.
+    - `filter` is a table of one boolean expression per side, replacing the any/all/none operators:
+    
+      ```toml
+      [sources.platform.filter]
+      labels = '(type::epic or type::story) and not "help wanted"'
+      ```
+    
+      Operators `or`, `and`, `not` and parentheses; `not` binds tightest, then `and`, then `or`. A value is a bare word (letters, digits, `:`, `-`, `_`, `.`) or a double-quoted string. The sides a filter names are ANDed. A malformed expression is refused at load with its position. An OR across sides (one filter-wide expression) is left for later, without changing what a file that loads now means.
+    - No existing parser to reuse (the `$(self)` splat-ref is a whole-string token, not an expression); the parser is new, kept in its own module under `_sources/`.
+    - Restricted issues are skipped with no opt-out, and GitHub has no organisation scope until verified live, as recommended.
+- [2026-11-04T09:38:22Z] `architect` Robert Architect:
+  - Amended §14 per ruling ec3c412: one boolean expression per filter side (EBNF, precedence, quoting, load refusals with column, room to grow; parser in `_sources/_filter.py`), unmapped types counted as `skipped <n> (no type)` with the probes as the map guard, restricted issues and the GitHub organisation scope recorded as ruled, and the unlink, docs, CHANGELOG, Rejected and Consequences references updated.
+- [2026-11-04T09:51:29Z] `op-pierre` Pierre Chat:
+  - Ruling (2026-11-04) on the filter grammar choices: bare words stay ASCII-only; an issue mapping to two types is named in the report (a tracker data error), only an issue mapping to no type is just counted; a line break in an expression counts as whitespace; drop the load-time satisfiability check on one-value sides (an empty pull and the source check probe already show it).
+- [2026-11-04T09:52:23Z] `architect` Robert Architect:
+  - Amended §14 per ruling af70274: bare words ASCII-only, an issue mapping to two types named on the report (only no-type counted), LF/CRLF as whitespace with line and column in parse errors, the one-value satisfiability refusal dropped (Rejected), and the Context wording aligned with the scope ruling.
 <!-- sq:discussion:end -->

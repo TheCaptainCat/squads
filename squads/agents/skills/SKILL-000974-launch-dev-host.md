@@ -13,7 +13,7 @@ refs:
 description: Open a VS Code Extension Development Host from WSL for the operator to
   see a client change.
 created_at: '2026-09-29T14:09:09Z'
-updated_at: '2026-09-29T14:09:27Z'
+updated_at: '2026-11-04T08:57:08Z'
 when_to_use: When the operator needs to see a VS Code client change in a dev host,
   or a dev-host launch fails.
 allowed_tools: ''
@@ -64,6 +64,12 @@ Each of these breaks the launch, and each has been confirmed by a wasted attempt
 - **Don't use the Linux VS Code under `.vscode-test/` through WSLg.** It renders badly and can't
   answer a visual question. The operator's Windows host is the authoritative visual check.
 
+**From a sandboxed agent shell, run the launch with the sandbox off.** Launched from inside the
+sandbox, the window opens but reports "unable to resolve workspace folder", even on a folder that
+exists. The same command run unsandboxed opened it (confirmed 2026-11-04). The first unsandboxed
+launch that day showed "Extension 'WSL' is required" although the extension was installed; the
+next identical launch worked, so launch once more before debugging the extension.
+
 To confirm a dev host is really up, look for `--extensionDevelopmentPath` in a live process's
 `/proc/<pid>/cmdline`. Avoid a broad `pkill -f extensionDevelopmentPath`: it also matches your own
 command line.
@@ -77,6 +83,8 @@ The operator's WSL machine settings set `squads.sqPath` to the released uv tool
 To see an engine change through the dev host:
 
 - Open a scratch squad instead of the repo, as the host's folder argument.
+  Keep it out of the agent's `/tmp/claude-*` scratchpad, which is private to the agent (mode 700):
+  use a folder under `~/.cache` instead.
 - Give that folder a `.vscode/settings.json` with
   `"squads.sqPath": "/home/pchat/projects/squads/.venv/bin/sq"`.
 - Never put a personal absolute path in the repo's committed `.vscode/settings.json`.

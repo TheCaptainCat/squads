@@ -17,24 +17,27 @@ class ConnectorEntry:
     default_converter: str
     #: The sides of an issue a map reads a value from, besides its labels.
     sides: tuple[str, ...]
+    #: The keys a source of this version names its scope with; a source names exactly one.
+    scope_keys: tuple[str, ...]
 
 
 #: The issue sides each tracker API exposes: tracker API names.
 _TYPE_SIDES = (LABELS, TYPE)
 _JIRA_SIDES = ("labels", "type", "priority")
+_JIRA_SCOPE = ("jql",)
 
 CONNECTORS: dict[tuple[str, str], ConnectorEntry] = {
     ("gitlab", "v4"): ConnectorEntry(
-        "squads._sources._gitlab", "GitLabConnector", "gitlab-md", _TYPE_SIDES
+        "squads._sources._gitlab", "GitLabConnector", "gitlab-md", _TYPE_SIDES, ("project", "group")
     ),
     ("github", "v3"): ConnectorEntry(
-        "squads._sources._github", "GitHubConnector", "github-md", _TYPE_SIDES
+        "squads._sources._github", "GitHubConnector", "github-md", _TYPE_SIDES, ("repository",)
     ),
     ("jira", "cloud-v3"): ConnectorEntry(
-        "squads._sources._jira_cloud", "JiraCloudConnector", "adf", _JIRA_SIDES
+        "squads._sources._jira_cloud", "JiraCloudConnector", "adf", _JIRA_SIDES, _JIRA_SCOPE
     ),
     ("jira", "dc-v2"): ConnectorEntry(
-        "squads._sources._jira_dc", "JiraDcConnector", "jira-wiki", _JIRA_SIDES
+        "squads._sources._jira_dc", "JiraDcConnector", "jira-wiki", _JIRA_SIDES, _JIRA_SCOPE
     ),
 }
 

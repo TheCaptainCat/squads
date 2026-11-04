@@ -25,7 +25,7 @@ async def test_a_description_and_a_comment_in_the_converters_format_show_as_mark
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         for route in tracker.routes:
             body: Any = route.get("body")
-            if route["path"] == "/api/v4/issues":
+            if route["path"] == "/api/v4/projects/platform%2Fapi/issues":
                 body[0]["description"] = written
             elif route["path"] == "/api/v4/projects/platform%2Fapi/issues/12":
                 body["description"] = written
@@ -34,7 +34,7 @@ async def test_a_description_and_a_comment_in_the_converters_format_show_as_mark
         path = project.squad_dir / ".overrides" / "sources.toml"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            f'[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
+            f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
             f'base_url = "{tracker.base_url}"\nconverter = "{converter}"\n{TYPES}',
             encoding="utf-8",
         )
@@ -62,12 +62,12 @@ async def test_a_hostile_description_drops_only_its_issue_and_the_report_names_i
     hostile = json.dumps({"type": "doc", "content": [nested]})
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         for route in tracker.routes:
-            if route["path"] == "/api/v4/issues":
+            if route["path"] == "/api/v4/projects/platform%2Fapi/issues":
                 route["body"][0]["description"] = hostile
         path = project.squad_dir / ".overrides" / "sources.toml"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
+            '[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
             f'base_url = "{tracker.base_url}"\nconverter = "adf"\n{TYPES}',
             encoding="utf-8",
         )

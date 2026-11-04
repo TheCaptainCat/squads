@@ -2,10 +2,15 @@
 supplies by default."""
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from squads._errors import SquadsError
+from squads._sources._filter import Expression
+
+if TYPE_CHECKING:
+    from squads._sources._connector import Issue
 
 
 class SourceMaps(BaseModel):
@@ -21,20 +26,36 @@ class SourceMaps(BaseModel):
     links: dict[str, str] = Field(default_factory=dict)
 
 
+class SourceScope(BaseModel):
+    """The part of a tracker a source follows: one scope key its connector version declares, and
+    the project, group, repository or query it names."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    key: str
+    value: str
+
+
 class SourceSpec(BaseModel):
     """A tracker a squad pulls issues from."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 
     name: str
     connector: str
     version: str
     base_url: str
-    filter: str = ""
+    scope: SourceScope
+    #: Tracker side to the parsed expression that side must satisfy; empty selects every issue.
+    filter: dict[str, Expression] = Field(default_factory=dict)
     trusted: bool = False
     enabled: bool = True
     converter: str = ""
     maps: SourceMaps = Field(default_factory=SourceMaps)
+
+    def accepts(self, issue: Issue) -> bool:
+        """Whether *issue* passes the filter: every side it names is satisfied."""
+        return all(expr.matches(issue.values(side)) for side, expr in self.filter.items())
 
 
 class ConnectorDefaults(BaseModel):

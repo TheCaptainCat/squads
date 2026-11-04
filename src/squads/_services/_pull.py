@@ -34,6 +34,9 @@ from squads._sources._maps import mapped_types, mapped_values
 from squads._sources._probes import missing_credential
 from squads._sources._spec import SourceSpec
 
+#: Why a held issue reads out-of-filter, as the report says it.
+REJECTED_BY_FILTER = "rejected by the filter"
+OUTSIDE_THE_SCOPE = "outside the scope"
 #: The stored view that holds an issue's description.
 DESCRIPTION_VIEW = "source_description"
 #: The comment attribute that holds the tracker's ID of the comment.
@@ -54,6 +57,9 @@ class Compiled:
     handle_of: dict[str, str] = field(default_factory=dict[str, str])
     refreshed: int = 0
     unchanged: int = 0
+    restricted: int = 0
+    filtered_out: int = 0
+    skipped_no_type: int = 0
     #: Keys of the issues whose events were dropped, with the reason.
     dropped: dict[str, str] = field(default_factory=dict[str, str])
 
@@ -108,14 +114,14 @@ class Compiler:
         except Exception as exc:  # a converter reads hostile text and must not stop the pull
             raise ConversionError(f"its text cannot be converted ({type(exc).__name__})") from exc
 
-    async def attempt(self, fetched: FetchedIssue, state: str) -> None:
+    async def attempt(self, fetched: FetchedIssue, state: str, why: str = "") -> None:
         """Compile one issue; when its text cannot be converted, undo what it emitted and report
         it."""
         events = len(self.out.events)
         created, handles = set(self.out.created), dict(self.out.handle_of)
         counts = (self.out.refreshed, self.out.unchanged)
         try:
-            await self.issue(fetched, state)
+            await self.issue(fetched, state, why)
         except ConversionError as exc:
             del self.out.events[events:]
             for line in [n for n in self.out.issue_of if n > events]:
@@ -146,11 +152,7 @@ class Compiler:
     # ------------------------------------------------------------------ mapping
     def mapped_type(self, issue: Issue) -> str | None:
         found = mapped_types(self.source.maps, issue)
-        if len(found) == 1:
-            return next(iter(found))
-        reason = "maps to no item type" if not found else f"maps to several types ({sorted(found)})"
-        self.say(f"{issue.key}: not created, the issue {reason}")
-        return None
+        return next(iter(found)) if len(found) == 1 else None
 
     def mapped_fields(self, issue: Issue) -> dict[str, str]:
         out: dict[str, str] = {}
@@ -174,7 +176,7 @@ class Compiler:
         }
 
     # ------------------------------------------------------------------ one issue
-    async def issue(self, fetched: FetchedIssue, state: str) -> None:
+    async def issue(self, fetched: FetchedIssue, state: str, why: str = "") -> None:
         issue = fetched.issue
         label = f"{self.source.name} {issue.key}"
         held = [self.db.items[n] for n in self.by_id.get((self.source.name, issue.id), [])]
@@ -183,7 +185,7 @@ class Compiler:
                 ids = ", ".join(it.id for it in held)
                 self.say(f"{issue.key}: held by {ids}; each is refreshed")
             for item in held:
-                await self.refresh(label, item, fetched, state)
+                await self.refresh(label, item, fetched, state, why)
             return
         await self.create(label, fetched, state)
 
@@ -215,7 +217,9 @@ class Compiler:
         self.out.created.add(handle)
         self.out.handle_of[label] = handle
 
-    async def refresh(self, label: str, item: Item, fetched: FetchedIssue, state: str) -> None:
+    async def refresh(
+        self, label: str, item: Item, fetched: FetchedIssue, state: str, why: str = ""
+    ) -> None:
         issue = fetched.issue
         before = len(self.out.events)
         title_changed = item.title != issue.title
@@ -236,7 +240,8 @@ class Compiler:
         record = self.record(issue, state)
         if item.source is None or item.source.model_dump() != record:
             if item.source is not None and item.source.state != state and state != "open":
-                self.say(f"{issue.key}: {state}; {item.id} stays")
+                reason = f" ({why})" if why else ""
+                self.say(f"{issue.key}: {state}{reason}; {item.id} stays")
             self.emit(label, SourceEvent(target=item.id, record=record))
         text = _lf(self.convert(issue.description, issue.key))
         if await self.service.stored_description(item, DESCRIPTION_VIEW) != text:
@@ -379,7 +384,9 @@ class PullMixin(ImportMixin):
             stored[record.id] = stored.get(record.id, frozenset()) | {
                 (record.updated_at, record.state)
             }
-        return await fetch_source(connector, stored, {record.id: record.key for record in held})
+        return await fetch_source(
+            connector, source, stored, {record.id: record.key for record in held}
+        )
 
     async def pull_sources(self, req: SourcePullRequest) -> Response[SourcePulled]:
         """Fetch the sources, compile their issues to events and apply them in one transaction."""
@@ -453,6 +460,9 @@ class PullMixin(ImportMixin):
                     created=created,
                     refreshed=compiled.refreshed,
                     unchanged=compiled.unchanged,
+                    restricted=compiled.restricted,
+                    filtered_out=compiled.filtered_out,
+                    skipped_no_type=compiled.skipped_no_type,
                     left_out=None,
                     lines=compiled.lines,
                 )
@@ -485,15 +495,21 @@ class PullMixin(ImportMixin):
         compiler = Compiler(self, db, entry.source, now)
         fetch = entry.fetch
         compiler.out.unchanged += fetch.untouched
+        compiler.out.restricted = fetch.restricted
+        compiler.out.filtered_out = fetch.filtered_out
+        compiler.out.skipped_no_type = fetch.skipped_no_type
         for line in fetch.skipped:
             compiler.say(line)
         by_id = {fi.issue.id: fi for fi in fetch.changed}
         for fi in fetch.changed:
-            await compiler.attempt(fi, fi.issue.state)
+            if entry.source.accepts(fi.issue):
+                await compiler.attempt(fi, fi.issue.state)
+            else:
+                await compiler.attempt(fi, OUT_OF_FILTER, REJECTED_BY_FILTER)
         for issue_id, found in sorted(fetch.linked.items()):
             if found is not None:
                 by_id[issue_id] = found
-                await compiler.attempt(found, OUT_OF_FILTER)
+                await compiler.attempt(found, OUT_OF_FILTER, OUTSIDE_THE_SCOPE)
                 continue
             for seq in compiler.by_id.get((entry.source.name, issue_id), []):
                 item = db.items[seq]

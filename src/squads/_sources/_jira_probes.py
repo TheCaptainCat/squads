@@ -1,5 +1,5 @@
 """The checks of ``sq source check`` for Jira, shared by the cloud and the Data Center versions:
-whether the host answers, the credential works and the JQL filter reads, whether every value a map
+whether the host answers, the credential works and the JQL scope reads, whether every value a map
 names exists, and which tracker values nothing maps."""
 
 from collections.abc import Callable, Mapping
@@ -17,7 +17,7 @@ _LISTS = ("issuetype", "priority")
 
 @dataclass(frozen=True)
 class JiraHooks:
-    """What differs between the Jira versions: how the filter is read, how the account and a user
+    """What differs between the Jira versions: how the scope is read, how the account and a user
     are asked for, and which labels exist beyond those on the in-filter issues."""
 
     select: Callable[[], bool]
@@ -59,12 +59,12 @@ class JiraProbes(TrackerProbes):
         return self._hooks.describe(mapping(user))
 
     def read(self) -> bool:
-        """Whether the JQL filter selects an issue."""
+        """Whether the JQL scope returns an issue."""
         return self._hooks.select()
 
-    def filter_text(self) -> str:
-        """The JQL filter, quoted."""
-        return repr(self._jql)
+    def scope_text(self) -> str:
+        """The JQL scope, as a message quotes it."""
+        return f"jql {self._jql!r}"
 
     def credential_fix(self, expected: Expected) -> str:
         """Store a valid credential."""
@@ -73,7 +73,7 @@ class JiraProbes(TrackerProbes):
     def read_fix(self, expected: Expected) -> str:
         """Store a credential whose account can browse the projects."""
         return (
-            "use an account with the Browse Projects permission on the filter's projects, then "
+            "use an account with the Browse Projects permission on the scope's projects, then "
             f"run `sq source credential set {expected.source}`"
         )
 

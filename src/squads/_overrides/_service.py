@@ -771,8 +771,12 @@ _SOURCES_SCAFFOLD_BODY = """\
 #   - Top-level keys are limited to: connectors, sources (plus [selected] below).
 #   - `connector` names a registered connector. `version` may be left out only when the
 #     connector has exactly one registered version.
-#   - `filter` is required: it selects the issues to pull (a label for gitlab and github, a JQL
-#     query for jira).
+#   - A source names its scope with exactly one key of its connector version: `project` or
+#     `group` (gitlab), `repository` (github), `jql` (jira). The pull lists every issue of it.
+#   - `filter` is optional: a [sources.<name>.filter] table with one boolean expression per side
+#     (the sides the maps read), evaluated in squads on the listed issues.
+#     Operators: `or`, `and`, `not`, parentheses; a value is a bare word (letters, digits and
+#     `:-_.`) or a double-quoted string. Sides are ANDed. Write it as a TOML literal string.
 #   - `trusted = true` removes the notice shown on text the tracker authored.
 #   - `maps.types.<side>`, `maps.fields.<field>.<side>` and `maps.links` send a tracker value to
 #     an item type, a badge value of a field, or a ref kind. A side is where the value is read on
@@ -789,7 +793,10 @@ _SOURCES_SCAFFOLD_BODY = """\
 # [sources.platform]
 # connector = "gitlab"
 # base_url = "https://gitlab.example.com"
-# filter = "squads"
+# project = "group/project"
+#
+# [sources.platform.filter]
+# labels = 'type::bug or (type::story and not "help wanted")'
 #
 # [sources.platform.maps.types.labels]
 # bug = "bug"

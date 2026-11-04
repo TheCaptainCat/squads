@@ -198,7 +198,7 @@ def _place_sources_shadowing(squad_dir: Path) -> None:
 def _place_sources_add_only(squad_dir: Path) -> None:
     path = _shadowing_path(squad_dir, SOURCES_OVERRIDE_FILENAME)
     path.write_text(
-        '[sources.uniformity-probe]\nconnector = "gitlab"\nfilter = "x"\nbase_url = "http://127.0.0.1:1"\n',
+        '[sources.uniformity-probe]\nconnector = "gitlab"\nproject = "x/y"\nbase_url = "http://127.0.0.1:1"\n',
         encoding="utf-8",
     )
 

@@ -66,7 +66,7 @@
       }
     },
     {
-      "path": "/api/v3/issues",
+      "path": "/api/v3/repos/acme/api/issues",
       "query": {
         "page": "2"
       },
@@ -94,12 +94,9 @@
       ]
     },
     {
-      "path": "/api/v3/issues",
-      "query": {
-        "labels": "squads"
-      },
+      "path": "/api/v3/repos/acme/api/issues",
       "headers": {
-        "Link": "<https://ghe.example.com/api/v3/issues?filter=all&state=all&labels=squads&per_page=100&page=2>; rel=\"next\", <https://ghe.example.com/api/v3/issues?filter=all&state=all&labels=squads&per_page=100&page=2>; rel=\"last\""
+        "Link": "<https://ghe.example.com/api/v3/repos/acme/api/issues?state=all&per_page=100&page=2>; rel=\"next\", <https://ghe.example.com/api/v3/repos/acme/api/issues?state=all&per_page=100&page=2>; rel=\"last\""
       },
       "body": [
         {
@@ -209,10 +206,7 @@
       "body": []
     },
     {
-      "path": "/api/v3/issues",
-      "query": {
-        "labels": "other"
-      },
+      "path": "/api/v3/repos/acme/other/issues",
       "body": []
     }
   ]

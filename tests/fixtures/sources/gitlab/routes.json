@@ -11,8 +11,8 @@
     {"path": "/api/v4/users/4567", "body": {"id": 4567, "username": "pchat", "name": "Pierre Chat"}},
     {"path": "/api/v4/users/4568", "body": {"id": 4568, "username": "asmith", "name": "Alice Smith"}},
     {
-      "path": "/api/v4/issues",
-      "query": {"labels": "squads", "page": "1"},
+      "path": "/api/v4/projects/platform%2Fapi/issues",
+      "query": {"page": "1"},
       "headers": {"X-Next-Page": ""},
       "body": [
         {

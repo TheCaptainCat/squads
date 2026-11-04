@@ -52,6 +52,9 @@ def render_pulled(pulled: SourcePulled, console: Console) -> None:
         console.print(
             f"[bold]{e(report.name)}[/bold]: {made}, refreshed {report.refreshed}, "
             f"unchanged {report.unchanged}"
+            + (f", restricted {report.restricted}" if report.restricted else "")
+            + (f", filtered out {report.filtered_out}" if report.filtered_out else "")
+            + (f", skipped {report.skipped_no_type} (no type)" if report.skipped_no_type else "")
         )
         for line in report.lines:
             console.print(f"  {e(line)}")
