@@ -148,7 +148,9 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
                 for name, user_id in (map_attribute(item, AttributeKey.IDENTITIES) or {}).items()
                 if name == source.name
             )
-            expected = Expected(source.name, source.maps, held, await self._commenters(source, db))
+            expected = Expected(
+                source.name, source.maps, source.filter, held, await self._commenters(source, db)
+            )
             results = await aio.to_thread(
                 lambda: run_probes(lambda family: connector.probes(family, expected))
             )
@@ -180,7 +182,7 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
         entry = Fetched(source, fetch)
         now = clock.now().astimezone(UTC).replace(microsecond=0)
 
-        async def compile_job(txn: SquadsDB) -> Compiled:
+        async def compile_job(txn: SquadsDB, before: frozenset[str]) -> Compiled:
             current = txn.get(item.id)
             if (
                 current is None
@@ -188,7 +190,7 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
                 or ((current.source.name, current.source.id) != (record.name, record.id))
             ):
                 raise SquadsError(f"{item.id} changed while the issue was fetched; run it again")
-            return await self._compile_source(txn, entry, now)
+            return await self._compile_source(txn, entry, now, before)
 
         compiled, written = await self._apply_jobs([(source, compile_job)])
         return Response(data=SourceRefreshed(id=item.id, changed=written, lines=compiled.lines))
@@ -217,9 +219,10 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
         await self._locked_section_edit(item.id, mutate)
         warnings = (
             [
-                f"{record.key} still matches the filter of source '{record.name}': the next "
-                "`sq source pull` imports it again as a new item; take it out of the filter on "
-                "the tracker to prevent that"
+                f"{record.key} is still in the scope of source '{record.name}' and accepted by "
+                "its filter: the next `sq source pull` imports it again as a new item; to "
+                "prevent that, narrow the scope or the filter in sources.toml, or change the "
+                "issue on the tracker so neither selects it"
             ]
             if record.state in ("open", "closed")
             else []
@@ -239,19 +242,22 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
         )
         fetched = fetch.changed[0] if fetch.changed else fetch.linked[issue_id]
         assert fetched is not None
-        state = fetched.issue.state if fetch.changed else OUT_OF_FILTER
+        accepted = bool(fetch.changed) and source.accepts(fetched.issue)
+        state = fetched.issue.state if accepted else OUT_OF_FILTER
         now = clock.now().astimezone(UTC).replace(microsecond=0)
 
-        async def compile_job(txn: SquadsDB) -> Compiled:
+        async def compile_job(txn: SquadsDB, before: frozenset[str]) -> Compiled:
             current = txn.get(item.id)
             if current is None or current.source is not None:
                 raise SquadsError(f"{item.id} changed while the issue was fetched; run it again")
-            for seq in txn.source_ids().get((source.name, issue_id), []):
-                raise SquadsError(
-                    f"issue {req.issue!r} of source {source.name!r} is already held by "
-                    f"{txn.items[seq].id}"
-                )
-            compiler = Compiler(self, txn, source, now)
+            held = txn.source_ids()
+            for name in sorted(self.sources().peers(source.name)):
+                for seq in held.get((name, issue_id), []):
+                    raise SquadsError(
+                        f"issue {req.issue!r} of source {source.name!r} is already held by "
+                        f"{txn.items[seq].id} of source {name!r}"
+                    )
+            compiler = Compiler(self, txn, source, now, before)
             compiler.by_id[(source.name, issue_id)] = [current.sequence_id]
             label = f"{source.name} {fetched.issue.key}"
             await compiler.refresh(label, current, fetched, state)

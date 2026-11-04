@@ -19,6 +19,7 @@ ACCESS = [
     "  pass  the token reads the issues of the scope",
 ]
 HEADER = "platform (gitlab@v4)"
+GITHUB_MAPS = '\n[sources.platform.maps.types.labels]\nsquads = "task"\n'
 
 
 async def _declare(invoke, project, base_url: str, maps: str = MAPS, head: str = HEAD) -> None:
@@ -64,7 +65,7 @@ async def test_a_source_that_passes_every_probe_prints_an_all_pass_checklist_and
                 HEADER,
                 *ACCESS,
                 "  pass  every value the maps name exists on the tracker",
-                "  pass  every in-filter value, author and identity is accounted for",
+                "  pass  every in-scope value, author and identity is accounted for",
                 "",
             ]
         ),
@@ -175,6 +176,55 @@ async def test_an_unmapped_label_and_an_unknown_author_are_warnings_and_exit_0(
             ]
         ),
     )
+
+
+@pytest.mark.covers("source check", "source")
+async def test_the_coverage_probes_read_only_the_issues_the_filter_selects(
+    project, invoke, credentials_home
+) -> None:
+    by_label = '\n[sources.platform.maps.types.labels]\nbug = "task"\n'
+    only_squads = '\n[sources.platform.filter]\nlabels = "squads"\n'
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        issues = _route(tracker, "/api/v4/projects/platform%2Fapi/issues")["body"]
+        issues.append(
+            {
+                **issues[1],
+                "iid": 14,
+                "labels": ["squads", "other"],
+                "references": {"full": "platform/api#14"},
+            }
+        )
+        issues.append(
+            {
+                **issues[1],
+                "iid": 15,
+                "labels": ["unrelated"],
+                "references": {"full": "platform/api#15"},
+                "author": {"id": 9999, "username": "zed", "name": "Zed"},
+            }
+        )
+        await _declare(invoke, project, tracker.base_url, by_label + only_squads)
+        await _operator(invoke, "Alice Tester", "4567")
+        code, output = await _checked(invoke, tracker, "platform")
+
+    assert code == 0, output
+    assert "  pass  2 selected issue(s) map to no type and are skipped by the pull" in output
+    assert "  warn  2 selected" not in output
+    assert "platform/api#13, platform/api#14" in output
+    assert "#15" not in output
+    assert "zed" not in output
+
+
+@pytest.mark.covers("source check", "source")
+async def test_an_issue_mapping_to_two_types_stays_a_coverage_warning(
+    project, invoke, credentials_home
+) -> None:
+    two = MAPS + '\n[sources.platform.maps.types.labels]\nbug = "bug"\n'
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, two)
+        _, output = await _checked(invoke, tracker, "platform")
+
+    assert "  warn  platform/api#12 maps to several types: bug, task" in output
 
 
 @pytest.mark.covers("source check", "--json")
@@ -340,17 +390,101 @@ async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
                 HEADER,
                 *ACCESS[:2],
                 "  warn  the scope project 'platform/api' holds no issue",
-                "        fix: create an issue in the scope, or correct the scope of source "
+                "        fix: create an issue in the scope, or correct `project` of source "
                 "'platform' in sources.toml",
-                "  warn  maps.fields.priority.labels: 'priority::high' is carried by no in-filter "
-                "issue, so it cannot be confirmed among the tracker's labels",
+                "  warn  maps.fields.priority.labels: 'priority::high' is carried by no issue in "
+                "the scope, so it cannot be confirmed among the tracker's labels",
                 "        fix: correct it in [sources.platform.maps.fields.priority.labels] in "
                 "sources.toml",
-                "  pass  every in-filter value, author and identity is accounted for",
+                "  pass  every in-scope value, author and identity is accounted for",
                 "",
             ]
         ),
     )
+
+
+@pytest.mark.covers("source check", "source")
+async def test_a_scope_the_tracker_does_not_know_is_a_blocking_access_failure_naming_its_key(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, head=HEAD.replace("api", "nope"))
+        gitlab = await _checked(invoke, tracker, "platform")
+    with harness.serve(harness.load_routes("github/routes.json")) as tracker:
+        github_head = '[sources.platform]\nconnector = "github"\nrepository = "acme/nope"\n'
+        await _declare(invoke, project, tracker.base_url, head=github_head)
+        github = await _checked(invoke, tracker, "platform")
+
+    assert [(code, output.splitlines()[-2:]) for code, output in (gitlab, github)] == [
+        (
+            1,
+            [
+                "  FAIL  the scope project 'platform/nope' does not exist or is not visible to "
+                "the token",
+                "        fix: correct `project` of source 'platform' in sources.toml",
+            ],
+        ),
+        (
+            1,
+            [
+                "  FAIL  the scope repository 'acme/nope' does not exist or is not visible to "
+                "the token",
+                "        fix: correct `repository` of source 'platform' in sources.toml",
+            ],
+        ),
+    ]
+
+
+@pytest.mark.covers("source check", "source")
+async def test_a_filter_accepting_no_listed_issue_is_a_warning_and_exits_0(
+    project, invoke, credentials_home
+) -> None:
+    only = '\n[sources.platform.filter]\nlabels = "priority::high and not priority::high"\n'
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, MAPS + only)
+        code, output = await _checked(invoke, tracker, "platform")
+
+    assert (code, output.splitlines()[4:6]) == (
+        0,
+        [
+            "  warn  the filter accepts none of the 2 issue(s) of the scope",
+            "        fix: correct it in [sources.platform.filter] in sources.toml",
+        ],
+    )
+
+
+@pytest.mark.covers("source check", "source")
+async def test_a_filter_value_missing_on_a_listable_side_fails_and_on_an_unlistable_side_warns(
+    project, invoke, credentials_home
+) -> None:
+    ghost = '\n[sources.platform.filter]\nlabels = "ghost"\n'
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, MAPS + ghost)
+        listable = await _checked(invoke, tracker, "platform")
+    github_head = '[sources.platform]\nconnector = "github"\nrepository = "acme/api"\n'
+    bug = '\n[sources.platform.filter]\ntype = "Ghost"\n'
+    with harness.serve(harness.load_routes("github/routes.json")) as tracker:
+        await _declare(invoke, project, tracker.base_url, GITHUB_MAPS + bug, head=github_head)
+        unlistable = await _checked(invoke, tracker, "platform")
+
+    assert [(code, output.splitlines()[4:6]) for code, output in (listable, unlistable)] == [
+        (
+            1,
+            [
+                "  FAIL  filter.labels: 'ghost' is not among the tracker's labels",
+                "        fix: correct it in [sources.platform.filter] in sources.toml, or create "
+                "it on the tracker",
+            ],
+        ),
+        (
+            0,
+            [
+                "  warn  filter.type: 'Ghost' is carried by no issue in the scope, so it cannot "
+                "be confirmed among the tracker's issue types",
+                "        fix: correct it in [sources.platform.filter] in sources.toml",
+            ],
+        ),
+    ]
 
 
 @pytest.mark.covers("source check", "source")

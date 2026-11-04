@@ -3,7 +3,7 @@ id: TASK-1286
 sequence_id: 1286
 type: task
 title: Scoped sources, filter expressions and cross-source links
-status: InProgress
+status: Done
 parent: FEAT-1285
 author: tech-lead
 assignee: python-dev
@@ -30,31 +30,31 @@ subentities:
   maps_to: US2
 - local_id: ST4
   title: Single-issue commands decide scope and filter
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US2
 - local_id: ST5
   title: Links carry their inverse type
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US3
 - local_id: ST6
   title: Links and holders resolve across one tracker
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US3
 - local_id: ST7
   title: Probes read the scope and the filter values
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US2
 - local_id: ST8
   title: Docs and changelog for scoped sources
-  status: Todo
+  status: Done
   assignee: tech-writer
   maps_to: US4
 created_at: '2026-11-04T09:58:37Z'
-updated_at: '2026-11-04T10:45:59Z'
+updated_at: '2026-11-04T16:45:44Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -211,7 +211,7 @@ Size: M.
 ## Scope
 
 - `_connector.py`: a connector method saying whether one issue is in the source's scope without listing it: GitLab from its key (project path equals `project`, or starts with `<group>/`), GitHub from its key (repository equals `repository`, ignoring case), Jira with one search `id = <id> AND (<jql>)`. Implemented in `_gitlab.py`, `_github.py`, `_jira.py`.
-- `_fetch.py`: the single-issue fetch (`fetch_issue`, used by `show --refresh` and `relink`) decides selection from that method and the filter evaluated on the issue, and no longer lists the whole scope.
+- `_fetch.py`: the single-issue fetch (`fetch_issue`, used by `show --refresh` and `relink`) decides selection from that method and the filter evaluated on the issue, and never lists the whole scope.
 - `_source_links.py`: `show --refresh` and `relink` apply the resulting state (`open`/`closed`, `out-of-filter`, `gone`) as a pull would. The unlink warning names the scope and the filter: an issue still in the scope and accepted by the filter is imported again by the next pull, and the remedy names both levers.
 - Relink by immutable ID on GitLab still resolves only an issue the scope lists (section 14, **GitLab fetches one issue by project path and number**); relink by key uses the in-scope check.
 - Fixtures: the Jira search route for the in-scope query, in both Jira route files.
@@ -275,7 +275,7 @@ Size: L.
 ## Scope
 
 - One tracker: two sources are on the same tracker when their normalised base URLs are equal (`normalise_base_url` in `_sources/_credentials.py`, the credential store key). Build the union of `(name, id)` and `(name, key)` lookups over every declared source on the host source's tracker when a command compiles, from `sources.toml`; nothing is stored. An item whose source is not declared matches nothing.
-- `_pull.py`, `Compiler`: link targets, items created earlier in the same run (today keyed `f"{source}:{id}"`) and the new-issue decision use the tracker-wide lookup.
+- `_pull.py`, `Compiler`: link targets, items created earlier in the same run and the new-issue decision use the tracker-wide lookup.
 - One holder: a pull creates an item only when no item on its tracker holds the issue; a source whose scope lists an issue another source's item holds leaves it and reports `held by <ID> of source <other>`.
 - Reference translation (`_source_view.py`, `_comment_view.py`) and relink's "already held" check (`_source_links.py`) use the same tracker-wide lookup.
 - `_source_checks.py`: `source_id_unique` reports two items holding one issue of one tracker, across sources.
@@ -391,4 +391,39 @@ Adopter-facing text for scoped sources, per the list owed in ADR-1274 section 14
     - Gates: pyright, ruff check and format clean; source CLI tests, tests/check and tests/meta: 981 passed.
 - [2026-11-04T10:45:59Z] `manager` Catherine Manager:
   - Paused after ST3 and the connector subpackage move (18251834): the codebase-wide re-export sweep op-pierre ruled on ADR-78 runs first, since ST4-ST7 touch the same imports.
+- [2026-11-04T14:15:59Z] `manager` Catherine Manager:
+  - Resumed after the re-export sweep (TASK-1289, fe524f16): ST4 onward follow ADR-1287 (import through package inits, new names added to the _sources re-exports) and use self.credentials for the credential store.
+- [2026-11-04T14:26:04Z] `python-dev` Elias Python:
+  - - ST4 done: `show --refresh` and `relink` decide scope without listing it. A connector method `in_scope` reads the issue's key (GitLab project or group path, GitHub repository ignoring case) or runs one search `id = <id> AND (<jql>)` on Jira. The filter is then applied as a pull would: an issue the filter rejects, or one outside the scope, is stored `out-of-filter`; relink links such an issue the same way. GitLab relink by immutable ID still resolves through the scope listing. The unlink warning now reads: "<key> is still in the scope of source '<name>' and accepted by its filter: the next `sq source pull` imports it again as a new item; to prevent that, narrow the scope or the filter in sources.toml, or change the issue on the tracker so neither selects it".
+    - ST5 done: a link carries its type as read from the issue and its inverse (GitLab blocks/is_blocked_by, relates_to both ways; GitHub blocking/blocked_by; Jira outward/inward phrases). A ref is made host to target from maps.links[type] and target to host from maps.links[inverse], each only when mapped, so a link gives the same refs whichever end is read and one ref when both are read. Pulling only the blocked end of a link now makes the ref on the held blocking item.
+    - For the tech writer: no new config keys or output fields; the only user-visible text is the unlink warning above. Fixtures: Jira in-scope search routes, GitLab link recorded on both issues.
+- [2026-11-04T14:36:51Z] `python-dev` Elias Python:
+  - - ST6 done: links, references and holders resolve across every source on one tracker (same normalised base URL).
+    - A link whose other end is held by another source's item now makes its ref, from either end and in either pull order.
+    - A pull creates no item for an issue another source's item holds; its line reads `<key>: held by <ID> of source '<other>'` (or names the source creating it in the same pull).
+    - A mapped link whose other end no item holds adds one line per host issue: `<key>: <n> link(s) not followed, no item holds <target key>, ...`. Existing reports that listed an issue next to an unheld link target now carry that line.
+    - A tracker reference in a description or comment reads as the item another source of the tracker holds; `relink` refuses an issue held by another source's item, naming it.
+    - `sq check` `source_id_unique` groups by tracker: the message reads `of sources 'a', 'b'` when the holders belong to different sources.
+    - For the tech writer: the held-by and not-followed lines above; nothing is stored, no config change.
+- [2026-11-04T14:45:47Z] `python-dev` Elias Python:
+  - - ST7 done: `sq source check` and the access probes read the scope and the filter values.
+    - An unknown or invisible scope fails access naming its key: `the scope project 'platform/nope' does not exist or is not visible to the token` (same for `repository`, `group`), fix `correct \`project\` of source '<name>' in sources.toml`. A scope the tracker rejects (Jira JQL, HTTP 4xx) reads `the scope jql '...' is not accepted: ...`, fix `correct \`jql\` of source '<name>' in sources.toml`. Both block every fetching command.
+    - Empty scope stays a warning: fix now `create an issue in the scope, or correct \`<key>\` of source '<name>' in sources.toml`.
+    - New vocabulary warning when the filter accepts no listed issue: `the filter accepts none of the <n> issue(s) of the scope`, fix `correct it in [sources.<name>.filter] in sources.toml`; exit 0.
+    - Every value a filter names is checked like a map key: `filter.<side>: '<value>' is not among the tracker's <labels|issue types|...>` fails on a listable side (fix `correct it in [sources.<name>.filter] in sources.toml, or create it on the tracker`); on an unlistable side it warns `... is carried by no issue in the scope, so it cannot be confirmed among the tracker's ...`.
+    - Wording: "in-filter issue" in the map-key warning becomes "issue in the scope"; the vocabulary pass line reads `every value the maps and the filter name exists on the tracker` when a filter is declared (unchanged otherwise). Coverage lines read "in-scope".
+- [2026-11-04T14:56:55Z] `tech-writer` Theo Writer:
+  - - ST8 done: docs and CHANGELOG for scoped sources, written from the code at bff7de64 and the tests' asserted wording.
+      - `docs/sources.md`: key table (one scope key, `filter` optional) and the scope rule with its load refusals; a new "Which issues become items" section (scope table per connector, filter semantics, grammar with precedence, quoting and the TOML literal-string advice, a multi-line example, load refusals with line/column, the type map and the no-type count, the two-type line, restricted issues and internal notes); the probe lines (scope failures, empty-scope and filter-accepts-none warnings, filter values checked like map keys); the pull report (`restricted`, `filtered out`, `skipped (no type)`, the held-state table with both out-of-filter reasons vs gone, `--json` counts); a "Links across sources" section (one tracker, one holder and `held by`, either end, links not followed); `show --refresh`/relink deciding scope without listing; the new unlink warning and its remedy; `source_id_unique` across sources; each connector's scope, restriction and link bullet (Jira inward/outward).
+      - `docs/stability.md`: the `sources.toml` grammar with the scope keys, the filter grammar (EBNF) and what stays stable; pull `--json` gains `restricted`, `filtered_out`, `skipped_no_type`. `docs/README.md` index line updated.
+      - `CHANGELOG.md` 0.20: external-sources entry reworded; new entries for scopes, filter expressions, the type map count, restricted issues and links across one tracker; connector, pull, check, unlink/relink and `sq check` entries updated. No label `filter` remains.
+      - Every TOML example loads in a scratch squad; `tests/meta` 748 passed.
+    - Scaffold starter (`_overrides/_service.py`), wording for @python-dev: say "ASCII letters" for a bare word; "The pull lists every issue of it" could read "every issue of the scope, open and closed"; the worked example filters on `type::bug`/`type::story` but maps `labels` `bug`, so those issues reach no type and are only counted. Suggest mapping `"type::bug" = "bug"` or aligning the filter.
+    - Message wording, optional: `the keyword 'or' is written in lowercase; quote the value ("OR") ...` reads as if `OR` were lowercase; "keywords are lowercase: write 'or', or quote the value ..." is clearer. The docs quote the current message.
+- [2026-11-04T14:59:18Z] `python-dev` Elias Python:
+  - Scaffold starter and filter message reworded per the writer: starter says "ASCII letters", the pull lists "every issue of the scope, open and closed", and the worked example maps "type::bug" = "bug" and "type::story" = "feature" to match its filter. Lowercase-keyword refusal now reads: keywords are lowercase: write 'or', or quote the value ("OR") to match it (line, column kept); test and docs/sources.md quotation updated.
+- [2026-11-04T15:31:03Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1292: changes requested, 13 findings (8 medium, 5 low). @tech-lead the medium ones are F1 to F8.
+- [2026-11-04T16:45:44Z] `manager` Catherine Manager:
+  - Done: REV-1292 approved. The live run against a real GitLab instance is the remaining check, tracked on TASK-1278.
 <!-- sq:discussion:end -->

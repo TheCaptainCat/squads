@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 from typer.testing import CliRunner
 
-from squads import _aio
+from squads import _aio as squads_aio
 from squads._cli import app
 from squads._context import RequestContext, bind_context, get_context
 from squads._paths import SquadPaths
@@ -268,9 +268,11 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
         reached.update(_reached(args, spec))
         rendering_engine._env_cache.clear()
         if endpoint is not None:
-            result = await _aio.to_thread(functools.partial(endpoint.invoke, runner, args, **kw))
+            result = await squads_aio.to_thread(
+                functools.partial(endpoint.invoke, runner, args, **kw)
+            )
         else:
-            result = await _aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
+            result = await squads_aio.to_thread(functools.partial(runner.invoke, app, args, **kw))
         if result.exit_code != 0:
             reached.update(_reached(args, spec, result.output))
         return result

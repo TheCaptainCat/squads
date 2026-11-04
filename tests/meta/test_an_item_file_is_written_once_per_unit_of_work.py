@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from squads import _aio
+from squads import _aio as squads_aio
 from squads._index import item_file
 from tests import _write_guard
 from tests._helpers import create_item
@@ -27,15 +27,15 @@ async def _run(svc: Any, ops: list[Op], *, fail: bool) -> None:
     async with svc.store.transaction():
         for op in ops:
             if op[0] == "atomic":
-                await _aio.atomic_write_text(folder / op[1], "x")
+                await squads_aio.atomic_write_text(folder / op[1], "x")
             elif op[0] == "plain":
-                await _aio.write_text(folder / op[1], "x")
+                await squads_aio.write_text(folder / op[1], "x")
             elif op[0] == "rename":
-                await _aio.path_rename(folder / op[1], folder / op[2])
+                await squads_aio.path_rename(folder / op[1], folder / op[2])
             elif op[0] == "exempt":
                 hidden = svc.paths.squad_dir / ".overrides"
                 hidden.mkdir(exist_ok=True)
-                await _aio.atomic_write_text(hidden / op[1], "x")
+                await squads_aio.atomic_write_text(hidden / op[1], "x")
         if fail:
             raise RuntimeError("injected")
 
@@ -102,7 +102,7 @@ async def test_an_item_file_written_after_the_index_commit_is_reported(svc, writ
     unit.index_written = True
     write_ledger.stacks.setdefault(_write_guard.squad_key(svc.paths.squad_dir), []).append(unit)
     try:
-        await _aio.atomic_write_text(folder / "a.md", "x")
+        await squads_aio.atomic_write_text(folder / "a.md", "x")
     finally:
         write_ledger.stacks[_write_guard.squad_key(svc.paths.squad_dir)].remove(unit)
     unit.committed = True
@@ -113,8 +113,8 @@ async def test_an_item_file_written_after_the_index_commit_is_reported(svc, writ
 
 async def test_the_index_and_regenerable_output_are_not_item_files(svc, write_ledger, tmp_path):
     async with svc.store.transaction():
-        await _aio.atomic_write_text(tmp_path / "CLAUDE.md", "x")
-        await _aio.atomic_write_text(tmp_path / "CLAUDE.md", "x")
+        await squads_aio.atomic_write_text(tmp_path / "CLAUDE.md", "x")
+        await squads_aio.atomic_write_text(tmp_path / "CLAUDE.md", "x")
 
     assert write_ledger.take_violations() == []
     assert not _write_guard.is_item_file(svc.paths.index_path)
@@ -128,7 +128,7 @@ async def test_the_repair_rebuild_is_watched_while_it_runs(svc, write_ledger, mo
 
     async def overwrite_then_write(db):
         await real_overwrite(db)
-        await _aio.atomic_write_text(svc.paths.squad_dir / "tasks" / "late.md", "x")
+        await squads_aio.atomic_write_text(svc.paths.squad_dir / "tasks" / "late.md", "x")
 
     monkeypatch.setattr(svc.store, "overwrite", overwrite_then_write)
     await svc.repair()

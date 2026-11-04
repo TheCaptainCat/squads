@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from squads import _aio
+from squads import _aio as squads_aio
 from squads._index import IndexStore
 from squads._services import _maintenance as services_maintenance
 
@@ -126,9 +126,9 @@ def install(monkeypatch: pytest.MonkeyPatch) -> WriteLedger:
     """Patch the write funnel and the unit openers for the current test; return the ledger."""
     ledger = WriteLedger()
 
-    real_replace: Callable[[Path, str], None] = _aio.atomic_replace_sync
-    real_write = _aio.write_text
-    real_rename = _aio.path_rename
+    real_replace: Callable[[Path, str], None] = squads_aio.atomic_replace_sync
+    real_write = squads_aio.write_text
+    real_rename = squads_aio.path_rename
     real_transaction = IndexStore.transaction
     real_rebuild = services_maintenance.MaintenanceMixin._rebuild_index_from_disk  # pyright: ignore[reportPrivateUsage]
 
@@ -159,9 +159,9 @@ def install(monkeypatch: pytest.MonkeyPatch) -> WriteLedger:
         ) as built:
             return built
 
-    monkeypatch.setattr(_aio, "atomic_replace_sync", replace)
-    monkeypatch.setattr(_aio, "write_text", write_text)
-    monkeypatch.setattr(_aio, "path_rename", path_rename)
+    monkeypatch.setattr(squads_aio, "atomic_replace_sync", replace)
+    monkeypatch.setattr(squads_aio, "write_text", write_text)
+    monkeypatch.setattr(squads_aio, "path_rename", path_rename)
     monkeypatch.setattr(IndexStore, "transaction", transaction)
     monkeypatch.setattr(services_maintenance.MaintenanceMixin, "_rebuild_index_from_disk", rebuild)
     return ledger

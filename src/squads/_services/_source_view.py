@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable
 
 from squads._errors import SquadsError
 from squads._models import Item
-from squads._services._comment_view import translate_references
+from squads._services._comment_view import peers_of, translate_references
 from squads._services._fetch import connector_for
 from squads._sources import SourceSpec, SourcesSpec
 from squads._views import SourceIssue, SourceProvider
@@ -41,7 +41,7 @@ def described_by(sources: Callable[[], SourcesSpec], items: Iterable[Item]) -> S
             author_handle=record.author_handle,
             url=url,
             trusted=declared.trusted if declared else False,
-            text=translate_references(body, record, declared, held),
+            text=translate_references(body, record, declared, held, peers_of(sources, record.name)),
         )
 
     return provide

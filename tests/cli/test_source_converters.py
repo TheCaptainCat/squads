@@ -79,5 +79,8 @@ async def test_a_hostile_description_drops_only_its_issue_and_the_report_names_i
     report = json.loads(pulled.stdout)["sources"][0]
     assert (report["created"], report["lines"]) == (
         ["TASK-2"],
-        ["platform/api#12: dropped, its text cannot be converted (ValueError)"],
+        [
+            "platform/api#12: dropped, its text cannot be converted (ValueError)",
+            "platform/api#13: 1 link(s) not followed, no item holds platform/api#12",
+        ],
     )

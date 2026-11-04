@@ -21,11 +21,11 @@ from tests.cross_process._sq import env, run, sq_command
 #: Runs the entry point with the endpoint resolved for a platform whose daemons listen on a port.
 PROBE = """\
 import sys
-import squads._shim as shim
-resolve = shim.endpoint_for
-shim.endpoint_for = lambda start: resolve(start, platform="win32")
+import squads._shim as squads_shim
+resolve = squads_shim.endpoint_for
+squads_shim.endpoint_for = lambda start: resolve(start, platform="win32")
 sys.argv = ["sq", *sys.argv[1:]]
-shim.main()
+squads_shim.main()
 """
 
 

@@ -7,7 +7,7 @@ through a module the rebuild imports.
 import ast
 from pathlib import Path
 
-import squads._index._reconcile as reconcile
+import squads._index._reconcile as index_reconcile
 
 _FORBIDDEN = (
     "squads._workflow",
@@ -63,5 +63,5 @@ def test_the_scan_sees_each_kind_of_violation() -> None:
 
 
 def test_the_rebuild_module_imports_no_vocabulary_and_takes_no_spec() -> None:
-    source = Path(reconcile.__file__).read_text(encoding="utf-8")
+    source = Path(index_reconcile.__file__).read_text(encoding="utf-8")
     assert _problems(source) == []

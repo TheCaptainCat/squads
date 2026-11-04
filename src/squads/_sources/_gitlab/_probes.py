@@ -40,10 +40,9 @@ class GitLabProbes(TrackerProbes):
         scope: SourceScope,
         listing: Callable[[], list[Issue]],
     ) -> None:
-        super().__init__(http, base, listing)
+        super().__init__(http, base, scope, listing)
         self._path = path
         self._query = dict(query)
-        self._scope = scope
 
     def reach(self) -> None:
         """Ask for the instance's version."""
@@ -62,10 +61,6 @@ class GitLabProbes(TrackerProbes):
         page: object = self._http.get(self._path, {**self._query, "per_page": "1", "page": "1"})
         return not (isinstance(page, list) and not page)
 
-    def scope_text(self) -> str:
-        """The scope, as a message quotes it."""
-        return f"{self._scope.key} {self._scope.value!r}"
-
     def credential_fix(self, expected: Expected) -> str:
         """Store a valid token."""
         return (
@@ -81,7 +76,7 @@ class GitLabProbes(TrackerProbes):
         )
 
     def known_values(self, side: str, issues: list[Issue]) -> tuple[frozenset[str], bool]:
-        """GitLab's issue types, or the labels of every project that holds an in-filter issue
+        """GitLab's issue types, or the labels of every project that holds an in-scope issue
         (group labels included)."""
         if side == TYPE:
             return frozenset(_ISSUE_TYPES), True

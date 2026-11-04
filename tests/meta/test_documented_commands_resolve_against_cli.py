@@ -8,7 +8,8 @@ from typing import Any
 
 import typer.main
 
-from squads import __version__, _docfiles
+from squads import __version__
+from squads import _docfiles as squads_docfiles
 from squads._cli import app
 
 #: A token standing in for the whole command shape rather than one concrete value.
@@ -46,7 +47,7 @@ _OVERRIDE_BASE_VERSION_RE = re.compile(r"override-base:(\d+)\.(\d+)\.(\d+)")
 
 
 def _repo_root() -> Path:
-    return Path(_docfiles.__file__).resolve().parents[2]
+    return Path(squads_docfiles.__file__).resolve().parents[2]
 
 
 def _own_option_arity(cmd: Any, token: str) -> int | None:

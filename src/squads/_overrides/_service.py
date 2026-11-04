@@ -774,11 +774,16 @@ _SOURCES_SCAFFOLD_BODY = """\
 #   - `connector` names a registered connector. `version` may be left out only when the
 #     connector has exactly one registered version.
 #   - A source names its scope with exactly one key of its connector version: `project` or
-#     `group` (gitlab), `repository` (github), `jql` (jira). The pull lists every issue of it.
+#     `group` (gitlab), `repository` (github), `jql` (jira). The pull lists every issue of the
+#     scope, open and closed. Paths are segments of ASCII letters, digits and `_-.` joined by
+#     `/`: `group/subgroup/project` (gitlab `project`, two or more segments; `group`, one or
+#     more) and `owner/repo` (github). A `jql` takes no `ORDER BY`: the pull lists the scope in
+#     no order.
 #   - `filter` is optional: a [sources.<name>.filter] table with one boolean expression per side
 #     (the sides the maps read), evaluated in squads on the listed issues.
-#     Operators: `or`, `and`, `not`, parentheses; a value is a bare word (letters, digits and
-#     `:-_.`) or a double-quoted string. Sides are ANDed. Write it as a TOML literal string.
+#     Operators: `or`, `and`, `not`, parentheses; a value is a bare word (ASCII letters, digits
+#     and `:-_.`) or a double-quoted string; a quoted value refuses only control characters and
+#     an unescaped `"` or `\\`. Sides are ANDed. Write it as a TOML literal string.
 #   - `trusted = true` removes the notice shown on text the tracker authored.
 #   - `maps.types.<side>`, `maps.fields.<field>.<side>` and `maps.links` send a tracker value to
 #     an item type, a badge value of a field, or a ref kind. A side is where the value is read on
@@ -801,7 +806,8 @@ _SOURCES_SCAFFOLD_BODY = """\
 # labels = 'type::bug or (type::story and not "help wanted")'
 #
 # [sources.platform.maps.types.labels]
-# bug = "bug"
+# "type::bug" = "bug"
+# "type::story" = "feature"
 # -----------------------------------------------------------------------------
 """
 

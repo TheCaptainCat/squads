@@ -123,6 +123,34 @@ async def test_a_transferred_github_issue_keeps_its_item_and_takes_the_new_key(
     )
 
 
+@pytest.mark.covers("<type> show", "--refresh")
+async def test_refresh_reads_a_github_issue_moved_to_another_repository_out_of_filter(
+    project, invoke, credentials_home
+) -> None:
+    with harness.serve(harness.load_routes("github/routes.json")) as tracker:
+        await _declare(invoke, project, GITHUB.format(base=tracker.base_url), f"{SECRET}\n")
+        await _pull(invoke)
+        listing = next(
+            r
+            for r in tracker.routes
+            if r["path"] == "/api/v3/repos/acme/api/issues" and "query" not in r
+        )["body"]
+        body: dict[str, Any] = dict(listing[0])
+        tracker.routes.append({"path": "/api/v3/repos/acme/api/issues/12", "body": body})
+        inside = await invoke(["task", "2", "show", "--refresh", "--json"])
+        first = (await _shown(invoke, tracker, 2))["source"]["state"]
+        body["repository_url"] = "https://ghe.example.com/api/v3/repos/acme/elsewhere"
+        tracker.routes += [
+            {"path": f"/api/v3/repos/acme/elsewhere/issues/12/{leaf}", "body": []}
+            for leaf in ("comments", "dependencies/blocking")
+        ]
+        outside = await invoke(["task", "2", "show", "--refresh", "--json"])
+        second = (await _shown(invoke, tracker, 2))["source"]["state"]
+
+    assert (inside.exit_code, outside.exit_code) == (0, 0), (inside.output, outside.output)
+    assert (first, second) == ("open", "out-of-filter")
+
+
 @pytest.mark.covers("source check", "source")
 async def test_a_github_enterprise_base_url_passes_access(
     project, invoke, credentials_home
@@ -221,6 +249,23 @@ async def test_a_jira_issue_under_a_security_level_is_not_imported_and_the_repor
     assert (report["created"], report["restricted"]) == (["TASK-2"], 1)
 
 
+@pytest.mark.covers("<type> show", "--refresh")
+async def test_refresh_reads_a_jira_issue_that_gains_a_security_level_gone_and_its_item_stays(
+    project, invoke, credentials_home
+) -> None:
+    jira = JIRA.format(version="cloud-v3", base="{base}")
+    with harness.serve(harness.load_routes("jira-cloud/routes.json")) as tracker:
+        await _declare(invoke, project, jira.format(base=tracker.base_url), USER_FIELD)
+        await _pull(invoke)
+        one = next(r for r in tracker.routes if r["path"] == "/rest/api/3/issue/10042")
+        one["body"]["fields"]["security"] = {"id": "10000", "name": "Staff"}
+        refreshed = await invoke(["task", "2", "show", "--refresh", "--json"])
+        shown = await _shown(invoke, tracker, 2)
+
+    assert refreshed.exit_code == 0, (refreshed.output, refreshed.stderr)
+    assert shown["source"]["state"] == "gone"
+
+
 @pytest.mark.covers("source pull", "source")
 async def test_a_jira_issue_moved_to_another_project_keeps_its_item_and_takes_the_new_key(
     project, invoke, credentials_home
@@ -276,7 +321,7 @@ async def test_an_invalid_jql_filter_is_a_blocking_access_failure_with_jiras_own
                 "  FAIL  the scope jql 'labels ===' is not accepted: http://tracker answered "
                 "HTTP 400 for http://tracker/rest/api/3/search/jql?jql=labels+%3D%3D%3D&fields=summary"
                 "&maxResults=1: Error in the JQL Query: The operator '===' is not supported.",
-                "        fix: correct the scope of source 'platform' in sources.toml",
+                "        fix: correct `jql` of source 'platform' in sources.toml",
                 "",
             ]
         ),
@@ -410,7 +455,13 @@ async def test_a_vanished_issue_costs_only_itself_and_a_failing_source_only_itse
         unnamed = await invoke(["source", "pull", "--json"])
 
     assert [(r["created"], r["lines"]) for r in named["sources"]] == [
-        (["TASK-2"], ["acme/api#12: skipped, the tracker stopped returning it while it was read"])
+        (
+            ["TASK-2"],
+            [
+                "acme/api#12: skipped, the tracker stopped returning it while it was read",
+                "acme/api#13: 1 link(s) not followed, no item holds acme/api#12",
+            ],
+        )
     ]
     reports = {r["name"]: r for r in json.loads(unnamed.stdout)["sources"]}
     assert unnamed.exit_code == 1
@@ -502,7 +553,7 @@ async def test_a_rate_limit_and_an_unconfirmable_value_are_not_blamed_on_the_fil
         base = tracker.base_url
 
     assert confirmable.output.replace(base, "http://tracker").splitlines()[4:6] == [
-        "  warn  maps.types.type: 'Bug' is carried by no in-filter issue, so it cannot be "
+        "  warn  maps.types.type: 'Bug' is carried by no issue in the scope, so it cannot be "
         "confirmed among the tracker's issue types",
         "        fix: correct it in [sources.platform.maps.types.type] in sources.toml",
     ]
@@ -510,3 +561,19 @@ async def test_a_rate_limit_and_an_unconfirmable_value_are_not_blamed_on_the_fil
         "  FAIL  http://tracker/api/v3 is rate limiting requests (HTTP 429); try again later",
         "        fix: wait until the tracker's limit resets, then run it again",
     ]
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_jira_is_blocked_by_link_read_from_the_inward_side_makes_the_ref_on_the_blocker(
+    project, invoke, credentials_home
+) -> None:
+    jira = JIRA.format(version="cloud-v3", base="{base}")
+    with harness.serve(harness.load_routes("jira-cloud/routes.json")) as tracker:
+        blocker = next(r for r in tracker.routes if r["path"] == "/rest/api/3/issue/10042")
+        blocker["body"]["fields"]["issuelinks"] = []
+        await _declare(invoke, project, jira.format(base=tracker.base_url), USER_FIELD)
+        await _pull(invoke)
+        first = await _shown(invoke, tracker, 2)
+        second = await _shown(invoke, tracker, 3)
+
+    assert (first["refs"], second["refs"]) == (["TASK-3:blocks"], [])

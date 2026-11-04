@@ -6,14 +6,14 @@ import pkgutil
 import subprocess
 import sys
 
-import squads._api as api_package
-from squads._api import Operation, _ops
+import squads._api as squads_api
+from squads._api import Operation, ops
 
 
 def _defined() -> dict[str, str]:
     """Each operation constant of each group module, with the group it is defined in."""
     found: dict[str, str] = {}
-    for info in pkgutil.iter_modules(api_package.__path__):
+    for info in pkgutil.iter_modules(squads_api.__path__):
         if not info.name.startswith("_ops_"):
             continue
         module = importlib.import_module(f"squads._api.{info.name}")
@@ -26,9 +26,9 @@ def _defined() -> dict[str, str]:
 
 def test_the_table_lists_each_defined_operation_once_in_its_group() -> None:
     defined = _defined()
-    assert sorted(_ops._ORDER) == sorted(defined), "the table order and the groups disagree"
-    assert len(set(_ops._ORDER)) == len(_ops._ORDER)
-    listed = {name: group for group, names in _ops._GROUPS for name in names}
+    assert sorted(ops._ORDER) == sorted(defined), "the table order and the groups disagree"
+    assert len(set(ops._ORDER)) == len(ops._ORDER)
+    listed = {name: group for group, names in ops._GROUPS for name in names}
     assert listed == defined
 
 

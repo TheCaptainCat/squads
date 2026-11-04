@@ -10,8 +10,9 @@ from typing import NoReturn
 
 import pytest
 
-from squads import _aio
-from squads._api import HttpApi, VocabularyHash, _client
+from squads import _aio as squads_aio
+from squads._api import HttpApi, VocabularyHash
+from squads._api import _client as api_client
 from squads._cli import _remote as cli_remote
 from squads._cli import app
 from squads._context import bind_context, get_context
@@ -42,7 +43,7 @@ def client_of(daemon: Served, vocabulary: VocabularyHash) -> HttpApi:
 
 async def run_list(runner, daemon: Served, vocabulary: VocabularyHash):
     bind_context(replace(get_context(), api=client_of(daemon, vocabulary)))
-    return await _aio.to_thread(functools.partial(runner.invoke, app, ["list"]))
+    return await squads_aio.to_thread(functools.partial(runner.invoke, app, ["list"]))
 
 
 def served_vocabulary(daemon: Served) -> VocabularyHash:
@@ -54,7 +55,7 @@ async def test_a_client_behind_the_squad_is_told_to_install_a_release(
     project: SquadPaths, serve, runner, monkeypatch
 ) -> None:
     daemon = serve(project)
-    monkeypatch.setattr(_client, "SCHEMA_VERSION", "0.1")
+    monkeypatch.setattr(api_client, "SCHEMA_VERSION", "0.1")
     result = await run_list(runner, daemon, served_vocabulary(daemon))
     assert (result.exit_code, result.stdout, result.stderr) == (
         1,
@@ -69,7 +70,7 @@ async def test_a_client_ahead_of_the_squad_is_told_to_upgrade_the_server(
     project: SquadPaths, serve, runner, monkeypatch
 ) -> None:
     daemon = serve(project)
-    monkeypatch.setattr(_client, "SCHEMA_VERSION", "9.9")
+    monkeypatch.setattr(api_client, "SCHEMA_VERSION", "9.9")
     result = await run_list(runner, daemon, served_vocabulary(daemon))
     assert (result.exit_code, result.stdout, result.stderr) == (
         1,

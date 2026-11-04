@@ -9,8 +9,8 @@ from typing import Any, Union, get_args, get_origin
 
 from pydantic import BaseModel, JsonValue
 
-import squads._api._dto as dto_package
-from squads._api._dto import _base
+import squads._api._dto as api_dto
+from squads._api._dto import _base as dto_base
 
 #: The DTOs whose model accepts extra keys: the item fields and the sub-entity row, and the rows and
 #: show documents built on them.
@@ -43,12 +43,12 @@ def json_native(annotation: Any) -> bool:
         return json_native(args[0])
     if origin is dict:
         return args[0] is str and json_native(args[1])
-    return isinstance(annotation, type) and issubclass(annotation, _base.DTO)
+    return isinstance(annotation, type) and issubclass(annotation, dto_base.DTO)
 
 
 def _dto_classes() -> list[type[BaseModel]]:
     found: list[type[BaseModel]] = []
-    for info in pkgutil.iter_modules(dto_package.__path__, f"{dto_package.__name__}."):
+    for info in pkgutil.iter_modules(api_dto.__path__, f"{api_dto.__name__}."):
         module = importlib.import_module(info.name)
         found += [
             value

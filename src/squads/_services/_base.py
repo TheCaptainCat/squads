@@ -724,7 +724,7 @@ class ServiceCore:
         # message, not a raw KeyError.
         if item_type not in self.spec.items:
             # `dropped_via_selected` is the shared "bundled type the active spec no longer
-            # declares" check (`_workflow/__init__.py`), also used by the loader and
+            # declares" check (`_workflow/_bundled.py`), also used by the loader and
             # `resolve_item_id_typed`.
             if dropped_via_selected(item_type, self.spec):
                 raise SquadsError(

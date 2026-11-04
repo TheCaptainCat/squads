@@ -160,8 +160,8 @@ async def test_a_badly_written_keyword_or_quoted_value_is_refused_with_its_line_
     declared = [
         (
             "labels = 'a OR b'",
-            "the keyword 'or' is written in lowercase; quote the value (\"OR\") to use it as a "
-            "label (line 1, column 3)",
+            "keywords are lowercase: write 'or', or quote the value (\"OR\") to match it "
+            "(line 1, column 3)",
         ),
         ("labels = '\"open'", "a quoted value is not closed (line 1, column 1)"),
         (
@@ -212,3 +212,110 @@ async def test_an_unbalanced_parenthesis_is_refused_at_the_column_it_stands_on(
     ]
 
     assert await _refusals(invoke, project, declared) == _refused(declared)
+
+
+@pytest.mark.covers("source list", "--json")
+async def test_a_deeply_nested_expression_is_refused_at_load_and_a_long_blank_run_loads(
+    project, invoke
+) -> None:
+    deep = "the nesting is too deep"
+    declared = [
+        (f"labels = '{'not ' * 65}a'", deep),
+        (f"labels = '{'(' * 65}a{')' * 65}'", deep),
+    ]
+    found = await _refusals(invoke, project, declared)
+    blanks = await _refusals(invoke, project, [(f'labels = "a and{"\\r\\n" * 1500}b"', "")])
+
+    assert [(code, text.split(FILTER)[-1]) for code, text in found] == [
+        (1, "nested more than 64 levels deep with 'not' or '(' (line 1, column 257)\n"),
+        (1, "nested more than 64 levels deep with 'not' or '(' (line 1, column 65)\n"),
+    ]
+    assert [code for code, _ in blanks] == [0]
+
+
+@pytest.mark.covers("check", "--json")
+async def test_sq_check_reports_a_too_deep_filter_as_a_failed_sources_load(project, invoke) -> None:
+    await _refusals(invoke, project, [(f"labels = '{'not ' * 65}a'", "")])
+
+    checked = await invoke(["check", "--json"])
+
+    assert "sources_loads" in checked.output
+    assert "Traceback" not in checked.output
+
+
+@pytest.mark.covers("source list", "--json")
+async def test_a_scope_value_of_the_wrong_shape_fails_at_load_naming_the_key_and_the_shape(
+    project, invoke
+) -> None:
+    github = '[sources.platform]\nconnector = "github"\nbase_url = "http://127.0.0.1:9"\n'
+    gitlab_shape = (
+        "a path of the shape group/subgroup/project (segments of letters, digits, _, - and . "
+        "joined by /, no empty, . or .. segment, no whitespace)"
+    )
+    cases = [
+        (f'{GITLAB}project = "platform"\n', "project", "platform", gitlab_shape),
+        (f'{GITLAB}project = "platform/../x"\n', "project", "platform/../x", gitlab_shape),
+        (f'{GITLAB}project = "platform/api/"\n', "project", "platform/api/", gitlab_shape),
+        (f'{GITLAB}project = "plat form/api"\n', "project", "plat form/api", gitlab_shape),
+        (
+            f'{GITLAB}group = "a//b"\n',
+            "group",
+            "a//b",
+            gitlab_shape.replace("group/subgroup/project", "group/subgroup"),
+        ),
+        (
+            f'{github}repository = "acme/../../orgs/acme"\n',
+            "repository",
+            "acme/../../orgs/acme",
+            gitlab_shape.replace("group/subgroup/project", "owner/repo"),
+        ),
+    ]
+
+    found = [await _listed(invoke, project, text + TYPES) for text, *_ in cases]
+
+    assert found == [
+        (1, f"{INVALID}scope key {key!r} is {value!r}, which is not {shape}\n")
+        for _, key, value, shape in cases
+    ]
+
+
+@pytest.mark.covers("source list", "--json")
+async def test_a_jira_jql_with_an_order_by_clause_fails_at_load_and_a_quoted_one_loads(
+    project, invoke
+) -> None:
+    jira = (
+        '[sources.platform]\nconnector = "jira"\nversion = "cloud-v3"\n'
+        'base_url = "http://127.0.0.1:9"\n'
+    )
+    maps = '\n[sources.platform.maps.types.type]\nStory = "task"\n'
+
+    refused = await _listed(
+        invoke, project, f"{jira}jql = 'labels = squads Order\tBy created'\n" + maps
+    )
+    loaded = await _listed(
+        invoke, project, f"{jira}jql = 'text ~ \"order by\" AND labels = x'\n" + maps
+    )
+
+    assert refused == (
+        1,
+        f"{INVALID}jql holds an ORDER BY clause; the pull lists the whole scope in no order, "
+        "so remove the clause\n",
+    )
+    assert loaded[0] == 0, loaded
+
+
+@pytest.mark.covers("source list", "--json")
+async def test_a_quoted_value_takes_any_character_but_a_control_one(project, invoke) -> None:
+    head = f'{GITLAB}project = "platform/api"\n\n[sources.platform.filter]\n'
+    quoted = head + 'labels = "\\"a\u00a0b\\""\n'
+    outside = [
+        (
+            'labels = "a\\u0001b"',
+            "the control character U+0001 is not allowed in an expression (line 1, column 2)",
+        )
+    ]
+
+    loaded = await _listed(invoke, project, quoted + TYPES)
+
+    assert loaded[0] == 0, loaded
+    assert await _refusals(invoke, project, outside) == _refused(outside)

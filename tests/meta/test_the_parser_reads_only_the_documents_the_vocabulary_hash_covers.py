@@ -8,7 +8,7 @@ from typing import NoReturn
 
 from typer.testing import CliRunner
 
-from squads._api import _vocabulary
+from squads._api import _vocabulary as api_vocabulary
 from squads._cli import _common as cli_common
 from squads._cli import app
 from squads._context import bind_context, get_context
@@ -73,7 +73,7 @@ def test_parsing_a_command_opens_no_override_document_the_hash_leaves_out(
             runner.invoke(app, args)
     finally:
         opens.on = False
-    assert opens.seen <= {_vocabulary.OVERRIDE_DOCUMENT.removeprefix(".overrides/")}, sorted(
+    assert opens.seen <= {api_vocabulary.OVERRIDE_DOCUMENT.removeprefix(".overrides/")}, sorted(
         opens.seen
     )
 

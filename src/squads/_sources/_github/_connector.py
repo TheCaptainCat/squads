@@ -129,6 +129,11 @@ class GitHubConnector(Connector):
         found = self._issue_by_key(key)
         return found if found is not None and found.id == issue_id else None
 
+    def in_scope(self, issue: Issue) -> bool:
+        """Whether the repository of *issue*'s key is the scope's, ignoring case."""
+        repository, _, _ = issue.key.rpartition("#")
+        return repository.casefold() == self._scope.value.casefold()
+
     def lookup(self, reference: str) -> Issue | None:
         """The issue named by a key (``owner/repo#12``), or by its node ID when the scope lists
         it; ``None`` when GitHub returns neither."""
@@ -184,7 +189,8 @@ class GitHubConnector(Connector):
             for record in records(linked):
                 target = self._parse_issue(record)
                 if target is not None:
-                    found.append(Link(link_type, target.id, target.key))
+                    inverse = BLOCKING if link_type == BLOCKED_BY else BLOCKED_BY
+                    found.append(Link(link_type, target.id, target.key, inverse))
         return found
 
     def issue_url(self, key: str) -> str:

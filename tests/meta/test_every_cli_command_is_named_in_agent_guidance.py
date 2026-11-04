@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 import typer.main
 
-from squads import _docfiles
-from squads._backends import _managed_region
+from squads import _docfiles as squads_docfiles
+from squads._backends import _managed_region as backends_managedregion
 from squads._cli import app
 from squads._interactions import (
     GREETING_SKILL,
@@ -83,7 +83,7 @@ _PROBE_SKILL_ITEM = Item(
 
 
 def _repo_root() -> Path:
-    return Path(_docfiles.__file__).resolve().parents[2]
+    return Path(squads_docfiles.__file__).resolve().parents[2]
 
 
 def _top_level_commands() -> frozenset[str]:
@@ -157,13 +157,13 @@ def _managed_claude_section() -> str:
     to be inferred from a passing run downstream.
     """
     text = (_repo_root() / "CLAUDE.md").read_text(encoding="utf-8")
-    start, end = text.find(_managed_region.START), text.find(_managed_region.END)
+    start, end = text.find(backends_managedregion.START), text.find(backends_managedregion.END)
     assert start != -1 and end > start, (
         "no managed region found in CLAUDE.md between "
-        f"{_managed_region.START!r} and {_managed_region.END!r} — the corpus is broken, "
-        "not the guidance"
+        f"{backends_managedregion.START!r} and {backends_managedregion.END!r} "
+        "— the corpus is broken, not the guidance"
     )
-    section = text[start + len(_managed_region.START) : end]
+    section = text[start + len(backends_managedregion.START) : end]
     assert section.strip(), "the CLAUDE.md managed region extracted empty — the corpus is broken"
     return section
 

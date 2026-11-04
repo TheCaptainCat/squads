@@ -9,6 +9,7 @@ from squads._sources._connector import LABELS, TYPE, Issue
 from squads._sources._http import HttpClient, MalformedAnswerError
 from squads._sources._probes import Expected
 from squads._sources._records import is_object, mapping, names, records, text
+from squads._sources._spec import SourceScope
 from squads._sources._tracker_probes import TrackerProbes
 
 #: The REST resources that list the issue types and the priorities: tracker API names.
@@ -18,7 +19,7 @@ _LISTS = ("issuetype", "priority")
 @dataclass(frozen=True)
 class JiraHooks:
     """What differs between the Jira versions: how the scope is read, how the account and a user
-    are asked for, and which labels exist beyond those on the in-filter issues."""
+    are asked for, and which labels exist beyond those on the in-scope issues."""
 
     select: Callable[[], bool]
     describe: Callable[[Mapping[str, object]], str]
@@ -37,13 +38,12 @@ class JiraProbes(TrackerProbes):
         http: HttpClient,
         base: str,
         api: str,
-        jql: str,
+        scope: SourceScope,
         listing: Callable[[], list[Issue]],
         hooks: JiraHooks,
     ) -> None:
-        super().__init__(http, base, listing)
+        super().__init__(http, base, scope, listing)
         self._api = api
-        self._jql = jql
         self._hooks = hooks
 
     def reach(self) -> None:
@@ -62,10 +62,6 @@ class JiraProbes(TrackerProbes):
         """Whether the JQL scope returns an issue."""
         return self._hooks.select()
 
-    def scope_text(self) -> str:
-        """The JQL scope, as a message quotes it."""
-        return f"jql {self._jql!r}"
-
     def credential_fix(self, expected: Expected) -> str:
         """Store a valid credential."""
         return f"run `sq source credential set {expected.source}` with a valid credential"
@@ -79,7 +75,7 @@ class JiraProbes(TrackerProbes):
 
     def known_values(self, side: str, issues: list[Issue]) -> tuple[frozenset[str], bool]:
         """The issue types, priorities or labels the instance has. Its labels are the ones on
-        the in-filter issues and every label the version lists."""
+        the in-scope issues and every label the version lists."""
         if side == LABELS:
             seen = {label for issue in issues for label in issue.labels}
             return frozenset(seen | self._hooks.extra_labels()), self._hooks.labels_complete

@@ -6,10 +6,10 @@ import ast
 import re
 from pathlib import Path
 
-import squads._migrations as migrations_pkg
+import squads._migrations as squads_migrations
 from squads._api import ops
 
-_DIR = Path(migrations_pkg.__file__).parent
+_DIR = Path(squads_migrations.__file__).parent
 _FORBIDDEN_NAMES = frozenset({"skew_message", "ensure_no_skew"})
 _WORD = r"(<[^>\s]+>|[a-z][\w-]*)"
 _COMMAND = re.compile(rf"\bsq {_WORD}(?: {_WORD})?")

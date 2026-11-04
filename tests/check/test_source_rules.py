@@ -145,7 +145,9 @@ async def test_an_item_whose_issue_the_pull_lost_is_a_warning(squad, invoke, che
                 "source_issue_reachable",
                 "warn",
                 moved,
-                "the tracker no longer lists platform/api#14 (out-of-filter); keep the item, or "
+                "platform/api#14 is out-of-filter: the filter rejects it or it left the scope; "
+                "keep the "
+                "item, or "
                 f"run `sq {' '.join(address(moved))} source unlink`",
             ),
         ],
@@ -278,4 +280,29 @@ async def test_a_comment_whose_attribute_line_is_not_a_json_object_of_strings_is
         r"the comment by `tech-lead` at \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ has an sq:attrs line "
         r"that is not one JSON object of strings; it reads as comment text",
         found[0]["message"],
+    )
+
+
+@pytest.mark.breaches("source_id_unique")
+async def test_two_items_of_two_sources_on_one_tracker_that_hold_one_issue_are_an_error(
+    squad, invoke, check_json
+) -> None:
+    write_override(squad, "sources.toml", SOURCES + "\n" + SOURCES.replace("platform", "mirror"))
+    first = await _mirror(invoke, squad, "First")
+    assert await check_json() == ([], 0)
+
+    second = await _mirror(invoke, squad, "Second", name="mirror")
+
+    assert await check_json() == (
+        [
+            issue(
+                "source_id_unique",
+                "error",
+                first,
+                f"{first}, {second} all hold issue platform/api#12 of sources 'mirror', "
+                "'platform'; the pull refreshes each, so keep one and run `source unlink` on "
+                "the others",
+            )
+        ],
+        3,
     )

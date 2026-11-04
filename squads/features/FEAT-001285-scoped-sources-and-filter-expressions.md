@@ -3,7 +3,7 @@ id: FEAT-1285
 sequence_id: 1285
 type: feature
 title: Scoped sources and filter expressions
-status: InProgress
+status: Done
 parent: EPIC-1268
 author: product-owner
 refs:
@@ -24,16 +24,16 @@ subentities:
   title: Docs and changelog for scoped sources
   status: Todo
 created_at: '2026-11-04T09:54:38Z'
-updated_at: '2026-11-04T09:59:29Z'
+updated_at: '2026-11-04T16:45:59Z'
 ---
 <!-- sq:body -->
 ## Outcome
 
-An adopter points a source at a scope on the tracker (a GitLab project or group, a GitHub repository, a Jira query) and the pull fetches every issue of that scope. No label has to be put on the tracker. Which issues become items is decided in squads: the type map says what is an item, and an optional filter expression narrows it further. Links between issues resolve across every source of one tracker, so covering a project with several sources no longer loses the epic-to-story links (BUG-1284). The grammar, report wording and edge cases are settled in ADR-1274 section 14 (the 2026-11-04 source-selection entries); this feature builds and documents that.
+An adopter points a source at a scope on the tracker (a GitLab project or group, a GitHub repository, a Jira query) and the pull fetches every issue of that scope. No label has to be put on the tracker. Which issues become items is decided in squads: the type map says what is an item, and an optional filter expression narrows it further. Links between issues resolve across every source of one tracker, so a project covered by several sources keeps the epic-to-story links between them (BUG-1284). The grammar, report wording and edge cases are settled in ADR-1274 section 14 (the 2026-11-04 source-selection entries); this feature builds and documents that.
 
 ## Acceptance criteria
 
-- Each source declares exactly one scope key, required: gitlab `project` or `group` (subgroups included), github `repository`, jira `jql`. A source with none, or more than one, is refused at load with a message naming the valid keys. The old single-label filter is gone from the spec, the docs and the sources shipped with the package.
+- Each source declares exactly one scope key, required: gitlab `project` or `group` (subgroups included), github `repository`, jira `jql`. A source with none, or more than one, is refused at load with a message naming the valid keys. No single-label filter remains in the spec, the docs or the sources shipped with the package.
 - `filter` is optional, a table of one boolean expression per side. Expressions use `or`, `and`, `not` and parentheses with the precedence ruled in section 14. A malformed expression is refused at load, with the line and column of the fault. The sides a filter names are ANDed.
 - A pull lists the whole scope and applies the filter in squads. The report counts what it did not turn into items: issues the filter rejects are counted as filtered out, issues that map to no type as `skipped <n> (no type)`, and an issue that maps to two types is named on its own line.
 - A held issue that the filter now rejects, or that left the scope, is reported as out-of-filter; one deleted on the tracker is reported as gone. The two read differently on the report.
@@ -55,7 +55,7 @@ _Add with `sq feature 1285 add-story "As a <role>, I want … so that …"`; tra
 As an adopter, I declare one scope per source and the pull fetches all of it, with no label on the tracker.
 
 - gitlab `project` or `group`, github `repository`, jira `jql`; exactly one, required, refused at load otherwise.
-- The old label filter is removed everywhere, including shipped defaults and docs.
+- No label filter remains anywhere, shipped defaults and docs included.
 - A pull with no filter turns every issue whose type maps into an item.
 <!-- sq:story:US1:body:end -->
 
@@ -90,7 +90,7 @@ As an adopter, I narrow what becomes an item with a filter expression per tracke
 As an adopter with several sources on one tracker, I keep the links between their issues.
 
 - Issue identity, link targets and reference translation span every source with the same base URL.
-- BUG-1284's scenario (epics source and stories source) yields the ref on the second pull, and a previously dropped link heals on a later pull without the host issue changing.
+- BUG-1284's scenario (epics source and stories source) yields the ref on the second pull, and a link dropped on an earlier pull heals on a later pull without the host issue changing.
 - A mapped link with no held target is named on the report.
 <!-- sq:story:US3:body:end -->
 
@@ -120,4 +120,8 @@ As an adopter, I find the new source selection explained, and I know what change
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-04T16:42:28Z] `tech-writer` Theo Writer:
+  - Narration sweep done for the scoped-sources and re-export increments. Docs and CHANGELOG were clean apart from F14 (fixed). I reworded history phrasing in the bodies of FEAT-1285 (outcome, US1, US3), TASK-1286 (ST4, ST6) and TASK-1289. The code comments to fix are listed in the handback to @manager.
+- [2026-11-04T16:45:59Z] `manager` Catherine Manager:
+  - Done: TASK-1286 delivered, REV-1292 approved, BUG-1284 verified. Live check against a real GitLab instance still to run (TASK-1278).
 <!-- sq:discussion:end -->

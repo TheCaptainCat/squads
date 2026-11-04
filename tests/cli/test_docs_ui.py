@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from squads import _docfiles
+from squads import _docfiles as squads_docfiles
 from tests._readable import lines
 
 if TYPE_CHECKING:
@@ -47,7 +47,7 @@ async def test_docs_lists_the_bundled_documents_by_name_and_title(invoke) -> Non
     assert _cells(out[2].strip("┃").replace("┃", "│")) == ["name", "title"]
     rows = [_cells(line) for line in out if line.startswith("│")]
     assert ["faq", "FAQ & troubleshooting"] in rows
-    assert [name for name, _ in rows] == [stem for stem, _ in _docfiles.available()]
+    assert [name for name, _ in rows] == [stem for stem, _ in squads_docfiles.available()]
 
 
 @pytest.mark.covers("docs", "name")
@@ -55,7 +55,7 @@ async def test_docs_name_prints_the_document_as_raw_markdown(invoke) -> None:
     result = await invoke(["docs", "faq"])
     assert result.exit_code == 0, result.output
     assert lines(result.output)[:4] == FAQ_HEAD
-    assert result.output == _docfiles.read("faq") + "\n"
+    assert result.output == squads_docfiles.read("faq") + "\n"
 
 
 @pytest.mark.covers("docs", "name")
@@ -65,7 +65,7 @@ async def test_docs_name_ignores_case_and_a_markdown_suffix(invoke) -> None:
 
 @pytest.mark.covers("docs", "name")
 async def test_docs_name_refuses_a_document_the_bundle_lacks(invoke) -> None:
-    names = ", ".join(stem for stem, _ in _docfiles.available())
+    names = ", ".join(stem for stem, _ in squads_docfiles.available())
     assert await _docs(invoke, "ghost") == (1, [f"error: unknown doc 'ghost' (one of: {names})"])
 
 
@@ -113,5 +113,5 @@ async def test_docs_json_prints_the_named_document_under_its_own_name(invoke) ->
     assert result.exit_code == 0, result.output
     assert (
         result.output
-        == json.dumps({"name": "faq", "markdown": _docfiles.read("faq")}, indent=2) + "\n"
+        == json.dumps({"name": "faq", "markdown": squads_docfiles.read("faq")}, indent=2) + "\n"
     )
