@@ -64,7 +64,7 @@ async def open_connector(source: SourceSpec, credential: Mapping[str, str]) -> C
     command here, with the line ``sq source check`` prints, before anything is fetched."""
     require_enabled(source)
     connector = connector_for(source, credential)
-    expected = Expected(source.name, source.maps)
+    expected = Expected(source.name, source.maps, source.filter)
     results = await aio.to_thread(
         lambda: run_probes(lambda family: connector.probes(family, expected), (ACCESS,))
     )
@@ -95,10 +95,14 @@ class _Triage:
 
 
 def _triage(
-    listing: list[Issue], source: SourceSpec, stored: Mapping[str, frozenset[tuple[str, str]]]
+    listing: list[Issue],
+    source: SourceSpec,
+    stored: Mapping[str, frozenset[tuple[str, str]]],
+    elsewhere: Mapping[str, str],
 ) -> _Triage:
-    """Sort the listing rows into those to read in detail, those that need nothing, and the
-    selected-but-unheld ones the filter or the type map leaves out."""
+    """Sort the listing rows into those to read in detail, those that need nothing, those the
+    filter rejects, those an item of another source of the tracker holds (*elsewhere*: ID to that
+    holder, reported and never read, selected issues only) and the ones the type map leaves out."""
     out = _Triage()
     for issue in listing:
         accepted = source.accepts(issue)
@@ -110,13 +114,16 @@ def _triage(
                 out.wanted.append(issue)
         elif not accepted:
             out.filtered_out += 1
+        elif issue.id in elsewhere:
+            out.lines.append(f"{issue.key}: held by {elsewhere[issue.id]}")
         else:
             types = mapped_types(source.maps, issue)
             if not types:
                 out.no_type += 1
             elif len(types) > 1:
                 out.lines.append(
-                    f"{issue.key}: not created, the issue maps to several types ({sorted(types)})"
+                    f"{issue.key}: not created, the issue maps to several types: "
+                    f"{', '.join(sorted(types))}"
                 )
             else:
                 out.wanted.append(issue)
@@ -128,10 +135,11 @@ def _fetch(
     source: SourceSpec,
     stored: Mapping[str, frozenset[tuple[str, str]]],
     linked: Mapping[str, str],
+    elsewhere: Mapping[str, str],
 ) -> SourceFetch:
     listing = connector.listing()
     listed = frozenset(issue.id for issue in listing)
-    triage = _triage(listing, source, stored)
+    triage = _triage(listing, source, stored, elsewhere)
     skipped = triage.lines
     untouched = triage.untouched
     found: dict[str, FetchedIssue | None] = {}
@@ -171,30 +179,32 @@ async def fetch_source(
     source: SourceSpec,
     stored: Mapping[str, frozenset[tuple[str, str]]],
     linked: Mapping[str, str],
+    elsewhere: Mapping[str, str],
 ) -> SourceFetch:
     """The issues of *source* to read in detail, through the *connector* :func:`open_connector`
     returned: a selected issue no item holds that maps to one type, and a held issue whose listed
     ``updated_at`` or state differs from the stored ones (*stored*: ID to the ``(updated_at,
     state)`` of each item holding it). Each held item of *linked* (ID to last known key) the
-    listing lacks is fetched by ID."""
-    return await aio.to_thread(lambda: _fetch(connector, source, stored, linked))
+    listing lacks is fetched by ID. An issue an item of another source of the tracker holds
+    (*elsewhere*: ID to how the report names that item) costs its listing row only."""
+    return await aio.to_thread(lambda: _fetch(connector, source, stored, linked, elsewhere))
 
 
 def _fetch_one(connector: Connector, found: Issue | None, issue_id: str) -> SourceFetch:
-    """The fetch of the single issue *found* (wanted as *issue_id*): in ``changed`` when the
-    filter lists it, else in ``linked``, where ``None`` means the tracker no longer returns it."""
-    listed = frozenset(issue.id for issue in connector.listing())
+    """The fetch of the single issue *found* (wanted as *issue_id*): in ``changed`` when it is in
+    the scope, else in ``linked``, where ``None`` means the tracker no longer returns it. The
+    scope is never listed; the filter is applied when the result is compiled."""
     detailed = None if found is None else _with_details(connector, found)
-    if detailed is not None and issue_id in listed:
-        return SourceFetch(changed=(detailed,), listed=listed)
-    return SourceFetch(listed=listed, linked={issue_id: detailed})
+    if detailed is not None and connector.in_scope(detailed.issue):
+        return SourceFetch(changed=(detailed,))
+    return SourceFetch(linked={issue_id: detailed})
 
 
 async def fetch_issue(
     source: SourceSpec, credential: Mapping[str, str], issue_id: str, key: str
 ) -> SourceFetch:
     """The one issue *issue_id* (last known as *key*) of *source*, with its comments and links,
-    and the IDs in the filter, so the caller can tell whether it is still in it."""
+    in ``changed`` when it is in the scope and in ``linked`` when it is not."""
     connector = await open_connector(source, credential)
     return await aio.to_thread(
         lambda: _fetch_one(connector, connector.issue(issue_id, key), issue_id)
@@ -212,6 +222,12 @@ async def fetch_referenced_issue(
     def run() -> tuple[str, SourceFetch]:
         found = connector.lookup(reference)
         if found is None:
+            if source.connector == "gitlab" and "#" not in reference:
+                raise SquadsError(
+                    f"source {source.name!r} lists no issue {reference!r} in its scope; GitLab "
+                    "resolves an ID only through the scope's listing, so relink it by its key "
+                    "(group/project#12)"
+                )
             raise SquadsError(
                 f"source {source.name!r} has no issue {reference!r} that its credential can read"
             )

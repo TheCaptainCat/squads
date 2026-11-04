@@ -3,7 +3,7 @@ id: FEAT-1288
 sequence_id: 1288
 type: feature
 title: Re-exporting private packages
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - ADR-1287:implements
@@ -17,7 +17,7 @@ subentities:
   title: Documentation corrected
   status: Todo
 created_at: '2026-11-04T11:05:52Z'
-updated_at: '2026-11-04T11:08:37Z'
+updated_at: '2026-11-04T15:17:34Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -87,4 +87,6 @@ Correct every document that states the old no-re-export rule, as listed in ADR-1
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-04T15:17:34Z] `manager` Catherine Manager:
+  - Done: TASK-1289 delivered, REV-1291 approved.
 <!-- sq:discussion:end -->

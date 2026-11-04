@@ -1,4 +1,4 @@
-"""Private subpackage — import members from its underscore modules."""
+"""Private package: re-exports of the names other packages import."""
 
 from squads._roles._catalog import PREDEFINED as PREDEFINED
 from squads._roles._catalog import RoleDef as RoleDef

@@ -21,7 +21,7 @@ description: 'A standalone-readable map of how squads is built: the cli to servi
   the marker mechanism — pointing at sq docs internals for depth and citing the standing
   ADRs.'
 created_at: '2026-06-12T14:25:59Z'
-updated_at: '2026-11-04T14:11:54Z'
+updated_at: '2026-11-04T16:43:39Z'
 tech: python
 tags:
 - architecture
@@ -33,9 +33,11 @@ squads is a Typer CLI that tracks a team of AI agents and their work as identifi
 
 The code is a strict stack: each layer depends only on the ones below it, and `_models` sits at the bottom with no internal dependencies. The import direction is always downward, which keeps the graph acyclic.
 
-**CLI (`src/squads/_cli`).** The top layer is the Typer app: one module per command group (`task`, `feature`, `decision`, `guide`, `migrate`, …), a root `-C` option that sets the directory the active squad is resolved from (as if `sq` were started there), and shared console/error/parse helpers in `_common.py`. Its only job is to parse arguments, call the service, and render results. It owns no business logic.
+**CLI (`src/squads/_cli`).** The top layer is the Typer app: one module per command group (`task`, `feature`, `decision`, `guide`, `migrate`, …), a root `-C` option that sets the directory the active squad is resolved from (as if `sq` were started there), and shared console/error/parse helpers in `_common.py`. Its only job is to parse arguments, build one request DTO, call one operation through the `Api`, and render the response DTO it answers with. It owns no business logic, and it imports `_services` in one place only: the `local_api()` factory in `_cli/_calls.py`.
 
-**Services (`src/squads/_services`).** The orchestration layer — the logic behind every command. A shared `ServiceCore` (create/get/list, backend and role/skill lookups, the roster) is composed with one concern mixin per file (items, collaboration, sub-entities, refs, roster, maintenance) into a flat `Service` façade. The CLI talks to this façade; the façade coordinates the layers below.
+**API (`src/squads/_api`).** The contract between the CLI and the services: the literal operation table (each `Operation` names its request and response DTOs), the frozen, JSON-native DTOs, the `Response` envelope, and the one-method `Api` protocol. It imports nothing above `_models`, so a client never needs the service layer. `LocalApi` (in `_services`) implements it: it checks the operation's grant against the squad's schema, composes the service and runs the bound handler. A command reaches it either in its own process or through the daemon, which runs the command against its own long-lived `LocalApi`.
+
+**Services (`src/squads/_services`).** The orchestration layer — the logic behind every command. A shared `ServiceCore` (create/get/list, backend and role/skill lookups, the roster) is composed with one concern mixin per file (items, collaboration, sub-entities, refs, roster, maintenance) into a flat `Service` façade. Each operation is bound to one `Service` handler, which answers with a DTO; the façade coordinates the layers below.
 
 **Index store (`src/squads/_index`).** The integrity core. It owns `.squads.json`: a filelock'd, atomic read-modify-write of the index, plus the single global ID counter allocated inside a transaction. Everything that must be durable and consistent funnels through here.
 
@@ -59,7 +61,7 @@ The code is a strict stack: each layer depends only on the ones below it, and `_
 
 squads and the agents working through it share the same files: the tool writes frontmatter, headings, status badges, and summary tables, while agents author prose. The boundary is drawn with invisible HTML-comment anchors that delimit each region the tool owns (a sq:body region, a sq:discussion region, the sub-entity block regions).
 
-All file content is mutated through the sections layer (`_sections.py`) and only there; agents never touch the `.md` directly — they author through commands like `sq body` and `sq comment`, which route to that layer. Everything between an agent's anchors is preserved verbatim, never regenerated. The marker regex is deliberately strict so that prose mentioning anchor syntax in backticks is not mistaken for a real marker (ADR-74).
+All file content is mutated through the sections layer (`_sections.py`) and only there; agents never touch the `.md` directly — they author through commands like `sq body` and `sq comment`, which route to that layer. Everything between an agent's anchors is preserved verbatim, never regenerated. The marker regex matches every well-formed tag wherever it sits: backticks and code fences neutralise nothing, so a quoted real tag is still a marker. What keeps authored content free of live markers is `reject_markers` (`_services/_base.py`), which every prose input entering a marker region passes through before a write (ADR-74).
 
 **Backends and pointers.** Harnesses sit behind the `AgentBackend` ABC; the real role and skill definitions live under the squad folder, and `.claude/` holds only thin pointers to them (ADR-75).
 
@@ -81,4 +83,6 @@ This guide is the shape; the depth lives elsewhere.
 <!-- sq:discussion -->
 - [2026-11-04T11:06:45Z] `architect` Robert Architect:
   - @tech-writer Cross-cutting conventions still says every module is private 'with package inits that don't re-export' (ADR-78). Per ADR-1287 and ADR-78's 2026-11-04 amendment, only the top-level squads/__init__ and public packages don't re-export; private package inits re-export the names other packages import. Please reword and cite ADR-1287 alongside ADR-78.
+- [2026-11-04T16:43:39Z] `architect` Robert Architect:
+  - Corrected two factual errors the tech writer found, verified against src/: the layering section now has the CLI build a request DTO and call one operation through the `Api` (new API paragraph; `_cli` reaches `_services` only in `local_api()`), and the marker section no longer claims backticks neutralise a tag: `find_markers` matches every well-formed tag, and `reject_markers` keeps authored prose free of live markers. No other passage changed. @tech-writer
 <!-- sq:discussion:end -->

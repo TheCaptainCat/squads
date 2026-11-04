@@ -1,4 +1,4 @@
-"""Private subpackage — import members from the package."""
+"""Private package: re-exports of the names other packages import."""
 
 from squads._models import _attributes as attrs  # noqa: F401  # pyright: ignore[reportUnusedImport]
 from squads._models import _markers as markers  # noqa: F401  # pyright: ignore[reportUnusedImport]

@@ -5,6 +5,7 @@ workflow spec the squad resolved: every failure is collected and reported togeth
 the source, the map and the value.
 """
 
+import re
 from pathlib import Path
 from typing import Any, cast
 
@@ -201,6 +202,61 @@ def _map_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSp
     return problems
 
 
+_SEGMENT_RE = re.compile(r"[A-Za-z0-9_.-]+")
+_ORDER_BY_RE = re.compile(r"\border\s+by\b", re.IGNORECASE)
+
+
+def _path_shape(key: str) -> tuple[int, int | None, str]:
+    """The fewest and most segments a path scope key takes, and an example of its shape."""
+    if key == "project":
+        return 2, None, "group/subgroup/project"
+    if key == "group":
+        return 1, None, "group/subgroup"
+    return 2, 2, "owner/repo"
+
+
+def _unquoted_jql(jql: str) -> str:
+    """*jql* with each quoted string (double or single quotes) reduced to ``""``."""
+    kept: list[str] = []
+    quote = ""
+    escaped = False
+    for char in jql:
+        if not quote:
+            if char in "\"'":
+                quote = char
+                kept.append('""')
+            else:
+                kept.append(char)
+        elif escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif char == quote:
+            quote = ""
+    return "".join(kept)
+
+
+def _scope_value_problem(name: str, key: str, value: str) -> str | None:
+    """What is wrong with the shape of scope *value*, or ``None``."""
+    if key == "jql":
+        if _ORDER_BY_RE.search(_unquoted_jql(value)):
+            return (
+                f"source {name!r}: jql holds an ORDER BY clause; the pull lists the whole scope "
+                "in no order, so remove the clause"
+            )
+        return None
+    fewest, most, example = _path_shape(key)
+    segments = value.split("/")
+    fits = fewest <= len(segments) and (most is None or len(segments) <= most)
+    if fits and all(_SEGMENT_RE.fullmatch(part) and part not in (".", "..") for part in segments):
+        return None
+    return (
+        f"source {name!r}: scope key {key!r} is {value!r}, which is not a path of the shape "
+        f"{example} (segments of letters, digits, _, - and . joined by /, no empty, . or .. "
+        f"segment, no whitespace)"
+    )
+
+
 def _scope_of(
     name: str, given: dict[str, Any], connector: str, version: str
 ) -> tuple[SourceScope | None, list[str]]:
@@ -220,6 +276,9 @@ def _scope_of(
     ((key, value),) = given.items()
     if not isinstance(value, str) or not value.strip():
         return None, [f"source {name!r}: scope key {key!r} must be a non-empty string"]
+    shape = _scope_value_problem(name, key, value)
+    if shape is not None:
+        return None, [shape]
     return SourceScope(key=key, value=value), []
 
 

@@ -111,6 +111,7 @@ class _Walker(ast.NodeVisitor):
                         f"{self._path}:{node.lineno}: relative import_module is not allowed"
                     )
                 self._add(arg.value, node.lineno)
+                self._bind(arg.value, None, node.lineno)
         self.generic_visit(node)
 
     def _enter(self, node: ast.AST, kind: str) -> None:
@@ -241,20 +242,6 @@ def components(edges: Iterable[tuple[str, str]]) -> list[frozenset[str]]:
         if v not in index:
             visit(v)
     return found
-
-
-def inits_with_code(src: Path) -> frozenset[str]:
-    """Package ``__init__`` files whose body is more than a docstring."""
-    holding = set[str]()
-    for path in src.rglob("__init__.py"):
-        body = ast.parse(path.read_text(encoding="utf-8")).body
-        if body and not (
-            len(body) == 1
-            and isinstance(body[0], ast.Expr)
-            and isinstance(body[0].value, ast.Constant)
-        ):
-            holding.add(path.relative_to(src.parent).as_posix())
-    return frozenset(holding)
 
 
 # --- the recorded tables -------------------------------------------------------------------------
@@ -661,6 +648,12 @@ def init_shape(src: Path, packages: frozenset[str], modules: frozenset[str]) -> 
                 else:
                     ok = alias.asname == alias.name and _parent(node.module) == package
                     ok = ok and node.module in modules
+                    if ok and alias.name.startswith("_"):
+                        found.append(
+                            f"{where}:{node.lineno} re-exports the underscore name {alias.name}; "
+                            "an init re-exports public names only"
+                        )
+                        continue
                 if not ok:
                     found.append(
                         f"{where}:{node.lineno} re-exports {alias.name} in a form other than "
@@ -1005,13 +998,27 @@ def test_the_init_shape_rule_accepts_re_exports_and_refuses_code(tmp_path: Path)
             "p/_a.py": "X = 1\n",
             "r/__init__.py": "from squads.r._a import X\nY = 1\nimport os\n",
             "r/_a.py": "X = 1\n",
+            "s/__init__.py": (
+                "from squads.s._a import _hidden as _hidden\n"
+                "from squads.s._a import _inner as _inner\n"
+            ),
+            "s/_a.py": "_hidden = 1\n_inner = 2\n",
         },
     )
     modules = _module_names(src)
     packages = _packages(src)
 
     found = init_shape(src, packages, modules)
-    assert len(found) == 3 and all("r/__init__.py" in f for f in found)
+    assert len([f for f in found if "r/__init__.py" in f]) == 3
+    assert len([f for f in found if "s/__init__.py" in f and "underscore name" in f]) == 2
+    assert len(found) == 5
+
+
+def test_reach_in_finds_a_literal_import_module_call_from_outside() -> None:
+    walker = _Walker("squads.o", "src/squads/o.py", _SYNTH_MODULES)
+    walker.visit(ast.parse('importlib.import_module("squads.p.n")\n'))
+
+    assert len(reach_in(walker.statements, _SYNTH_PACKAGES)) == 1
 
 
 def test_the_exact_surface_rule_finds_an_unused_re_export_and_a_by_name_child(

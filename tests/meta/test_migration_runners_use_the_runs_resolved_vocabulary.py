@@ -6,7 +6,7 @@ fetches a spec or playbook for itself."""
 import ast
 from pathlib import Path
 
-import squads._migrations as migrations_pkg
+import squads._migrations as squads_migrations
 
 _BANNED = frozenset(
     {
@@ -22,7 +22,7 @@ _BANNED = frozenset(
     }
 )
 
-_MIGRATIONS_DIR = Path(migrations_pkg.__file__).parent
+_MIGRATIONS_DIR = Path(squads_migrations.__file__).parent
 
 #: Frozen legacy-format reader behind the two oldest file-walking runners (which take paths):
 #: it answers one question from the bundled vocabulary on purpose.

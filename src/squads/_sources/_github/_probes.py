@@ -31,10 +31,9 @@ class GitHubProbes(TrackerProbes):
         scope: SourceScope,
         listing: Callable[[], list[Issue]],
     ) -> None:
-        super().__init__(http, base, listing)
+        super().__init__(http, base, scope, listing)
         self._path = path
         self._query = query
-        self._scope = scope
 
     def reach(self) -> None:
         """Ask for the instance's public metadata."""
@@ -55,10 +54,6 @@ class GitHubProbes(TrackerProbes):
             raise MalformedAnswerError(self._path)
         return page != []
 
-    def scope_text(self) -> str:
-        """The scope, as a message quotes it."""
-        return f"{self._scope.key} {self._scope.value!r}"
-
     def credential_fix(self, expected: Expected) -> str:
         """Store a valid token."""
         return (
@@ -73,8 +68,8 @@ class GitHubProbes(TrackerProbes):
         )
 
     def known_values(self, side: str, issues: list[Issue]) -> tuple[frozenset[str], bool]:
-        """The issue types in use on the in-filter issues (the full list is the organisation's,
-        which is not read), or the labels of every repository that holds an in-filter issue."""
+        """The issue types in use on the in-scope issues (the full list is the organisation's,
+        which is not read), or the labels of every repository that holds an in-scope issue."""
         if side == TYPE:
             return frozenset(v for i in issues for v in i.values(TYPE)), False
         repos = sorted({dict(i.locator).get("repo", "") for i in issues} - {""})

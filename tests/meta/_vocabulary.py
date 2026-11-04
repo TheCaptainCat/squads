@@ -92,6 +92,11 @@ EXEMPT_TRACKER_ENUMS: tuple[tuple[str, str, str], ...] = (
         "the values of GitLab API v4's link_type",
     ),
     (
+        "src/squads/_sources/_gitlab/_connector.py",
+        "_BLOCK_LINKS",
+        "the values of GitLab API v4's link_type that read differently from each end",
+    ),
+    (
         "src/squads/_sources/_jira/_connector.py",
         "_ISSUE_FIELDS",
         "the field names of Jira's issue object, one of which spells like a squad badge field",

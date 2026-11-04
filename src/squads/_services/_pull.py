@@ -64,6 +64,12 @@ class Compiled:
     skipped_no_type: int = 0
     #: Keys of the issues whose events were dropped, with the reason.
     dropped: dict[str, str] = field(default_factory=dict[str, str])
+    #: Per host issue key, the (ID, key) of each link target no item held when the source compiled.
+    unfollowed: list[tuple[str, list[tuple[str, str]]]] = field(
+        default_factory=list[tuple[str, list[tuple[str, str]]]]
+    )
+    #: The sources on the tracker, whose items may hold a link's target.
+    peers: frozenset[str] = frozenset()
 
 
 @dataclass
@@ -74,7 +80,8 @@ class Fetched:
 
 #: One source's compile step: the source and the function that compiles its fetch against the
 #: index inside the pull's transaction.
-type CompileJob = tuple[SourceSpec, Callable[[SquadsDB], Awaitable[Compiled]]]
+#: It also receives the handles of the items the sources compiled before it in the run create.
+type CompileJob = tuple[SourceSpec, Callable[[SquadsDB, frozenset[str]], Awaitable[Compiled]]]
 
 
 def _second(text: str, fallback: datetime) -> datetime:
@@ -97,14 +104,25 @@ class ConversionError(SquadsError):
 class Compiler:
     """Compiles the fetch of one source into events, against the index *db* and the pull's time."""
 
-    def __init__(self, service: PullMixin, db: SquadsDB, source: SourceSpec, now: datetime):
+    def __init__(
+        self,
+        service: PullMixin,
+        db: SquadsDB,
+        source: SourceSpec,
+        now: datetime,
+        created_before: frozenset[str] = frozenset(),
+    ):
         self.service = service
         self.db = db
         self.source = source
         self.now = now
         self.actor = f"{SOURCE_AUTHOR_PREFIX}{source.name}"
         self.out = Compiled()
+        self._emitted_refs: set[tuple[str, str, str]] = set()
         self.by_id = db.source_ids()
+        #: The sources on this source's tracker, whose items may hold the same issues.
+        self.peers = service.sources().peers(source.name) or frozenset({source.name})
+        self.created_before = created_before
         self.converter = load_converter(source.converter)
         self.issue_url = connector_for(source, {}).issue_url
 
@@ -163,7 +181,9 @@ class Compiler:
             if len(values) == 1:
                 out[code] = next(iter(values))
             elif values:
-                self.say(f"{issue.key}: {code} left alone, its values map to {sorted(values)}")
+                self.say(
+                    f"{issue.key}: {code} left alone, its values map to {', '.join(sorted(values))}"
+                )
         return out
 
     def record(self, issue: Issue, state: str) -> dict[str, str]:
@@ -189,7 +209,28 @@ class Compiler:
             for item in held:
                 await self.refresh(label, item, fetched, state, why)
             return
+        if holder := self.other_holder(issue.id):
+            self.say(f"{issue.key}: held by {holder}")
+            return
         await self.create(label, fetched, state)
+
+    def other_holder(self, issue_id: str) -> str:
+        """How the report names the item of another source on this tracker that holds the issue,
+        or an empty string when none does."""
+        for name in sorted(self.peers - {self.source.name}):
+            if seqs := self.by_id.get((name, issue_id)):
+                return f"{self.db.items[seqs[0]].id} of source {name!r}"
+            if f"{name}:{issue_id}" in self.created_before:
+                return f"the item source {name!r} creates in this pull"
+        return ""
+
+    def holders(self, issue_id: str) -> list[str]:
+        """The IDs, or the handles of the items this pull creates, of every item on the tracker
+        that holds the issue."""
+        seqs = sorted({n for name in self.peers for n in self.by_id.get((name, issue_id), [])})
+        found = [self.db.items[n].id for n in seqs]
+        created = self.out.created | self.created_before
+        return found or [h for name in sorted(self.peers) if (h := f"{name}:{issue_id}") in created]
 
     def handle(self, issue: Issue) -> str:
         return f"{self.source.name}:{issue.id}"
@@ -325,29 +366,39 @@ class Compiler:
 
     # ------------------------------------------------------------------ links
     def links(self, fetched: Mapping[str, FetchedIssue]) -> None:
+        """Emit the refs the links of *fetched* make: from the item holding the issue read to the
+        item holding the other end by the link type, and the other way by its inverse, each only
+        when the source maps that name, so a link gives the same refs whichever end is read."""
         for fi in fetched.values():
             label = f"{self.source.name} {fi.issue.key}"
-            hosts = self.by_id.get((self.source.name, fi.issue.id), [])
-            host_ids = [self.db.items[n].id for n in hosts] or (
-                [self.handle(fi.issue)] if self.handle(fi.issue) in self.out.created else []
-            )
+            host_ids = self.holders(fi.issue.id)
+            unheld: list[tuple[str, str]] = []
             for link in fi.links:
-                kind = self.source.maps.links.get(link.link_type)
-                if kind is None:
-                    continue
-                targets = [
-                    self.db.items[n].id
-                    for n in self.by_id.get((self.source.name, link.target_id), [])
-                ]
-                if (
-                    not targets
-                    and (h := f"{self.source.name}:{link.target_id}") in self.out.created
+                targets = self.holders(link.target_id)
+                maps = self.source.maps.links
+                if host_ids and not targets and (link.link_type in maps or link.inverse in maps):
+                    unheld.append((link.target_id, link.target_key))
+                for name, holders, others in (
+                    (link.link_type, host_ids, targets),
+                    (link.inverse, targets, host_ids),
                 ):
-                    targets = [h]
-                for host in host_ids:
-                    for target in targets:
-                        if not self.has_ref(host, target, kind):
-                            self.emit(label, RefEvent(target=host, to=target, kind=kind))
+                    kind = maps.get(name)
+                    if kind is None:
+                        continue
+                    for holder in holders:
+                        for other in others:
+                            if self._new_ref(holder, other, kind):
+                                self.emit(label, RefEvent(target=holder, to=other, kind=kind))
+            if unheld:
+                self.out.unfollowed.append((fi.issue.key, unheld))
+
+    def _new_ref(self, holder: str, other: str, kind: str) -> bool:
+        """Whether the ref *holder* to *other* of *kind* is neither held nor emitted yet."""
+        wanted = (holder, other, kind)
+        if wanted in self._emitted_refs or self.has_ref(holder, other, kind):
+            return False
+        self._emitted_refs.add(wanted)
+        return True
 
     def has_ref(self, host: str, target: str, kind: str) -> bool:
         item = self.db.get(host)
@@ -372,7 +423,7 @@ class PullMixin(ImportMixin):
 
     @staticmethod
     async def _fetch_one_source(
-        db: SquadsDB, source: SourceSpec, connector: Connector
+        db: SquadsDB, source: SourceSpec, connector: Connector, peers: frozenset[str]
     ) -> SourceFetch:
         """The fetch of *source*: what the items already hold of it decides what is read in
         detail."""
@@ -386,8 +437,13 @@ class PullMixin(ImportMixin):
             stored[record.id] = stored.get(record.id, frozenset()) | {
                 (record.updated_at, record.state)
             }
+        elsewhere: dict[str, str] = {}
+        for seq in sorted(db.items):
+            record = db.items[seq].source
+            if record is not None and record.name in peers - {source.name}:
+                elsewhere.setdefault(record.id, f"{db.items[seq].id} of source {record.name!r}")
         return await fetch_source(
-            connector, source, stored, {record.id: record.key for record in held}
+            connector, source, stored, {record.id: record.key for record in held}, elsewhere
         )
 
     async def pull_sources(self, req: SourcePullRequest) -> Response[SourcePulled]:
@@ -424,7 +480,10 @@ class PullMixin(ImportMixin):
                 failed.add(source.name)
         for source, connector in ready:
             try:
-                fetched.append(Fetched(source, await self._fetch_one_source(db, source, connector)))
+                peers = declared.peers(source.name)
+                fetched.append(
+                    Fetched(source, await self._fetch_one_source(db, source, connector, peers))
+                )
             except SquadsError as exc:
                 if req.name is not None:
                     raise
@@ -432,7 +491,10 @@ class PullMixin(ImportMixin):
                 failed.add(source.name)
         now = clock.now().astimezone(UTC).replace(microsecond=0)
         jobs: list[CompileJob] = [
-            (entry.source, lambda db, entry=entry: self._compile_source(db, entry, now))
+            (
+                entry.source,
+                lambda db, before, entry=entry: self._compile_source(db, entry, now, before),
+            )
             for entry in fetched
         ]
         reports, applied = await self._compile_and_apply(jobs, dry_run=req.dry_run)
@@ -478,13 +540,17 @@ class PullMixin(ImportMixin):
             reports: list[tuple[SourceSpec, Compiled]] = []
             events: list[ResolvedEvent] = []
             issue_of: dict[int, str] = {}
+            created: frozenset[str] = frozenset()
             for source, compile_job in jobs:
-                compiled = await compile_job(db)
+                compiled = await compile_job(db, created)
+                created |= compiled.created
                 shift = len(events)
                 events.extend(renumbered(ev, ev.line + shift) for ev in compiled.events)
                 for line, label in compiled.issue_of.items():
                     issue_of[line + shift] = label
                 reports.append((source, compiled))
+            for _source, compiled in reports:
+                self._report_unfollowed(compiled, created)
             live = await self._without_failing_issues(db, events, issue_of, reports)
             applied = None
             if live and not dry_run:
@@ -493,8 +559,25 @@ class PullMixin(ImportMixin):
             applied = await self._with_findings(applied)
         return reports, applied
 
-    async def _compile_source(self, db: SquadsDB, entry: Fetched, now: datetime) -> Compiled:
-        compiler = Compiler(self, db, entry.source, now)
+    @staticmethod
+    def _report_unfollowed(compiled: Compiled, created: frozenset[str]) -> None:
+        """Say which links stay unfollowed once every source of the pull has compiled: a target
+        a later source created is no longer one."""
+        for key, targets in compiled.unfollowed:
+            left = [
+                target_key
+                for target_id, target_key in targets
+                if not any(f"{name}:{target_id}" in created for name in compiled.peers)
+            ]
+            if left:
+                compiled.lines.append(
+                    f"{key}: {len(left)} link(s) not followed, no item holds {', '.join(left)}"
+                )
+
+    async def _compile_source(
+        self, db: SquadsDB, entry: Fetched, now: datetime, before: frozenset[str] = frozenset()
+    ) -> Compiled:
+        compiler = Compiler(self, db, entry.source, now, before)
         fetch = entry.fetch
         compiler.out.unchanged += fetch.untouched
         compiler.out.restricted = fetch.restricted
@@ -526,6 +609,7 @@ class PullMixin(ImportMixin):
                         SourceEvent(target=item.id, record=record),
                     )
         compiler.links(by_id)
+        compiler.out.peers = compiler.peers
         return compiler.out
 
     @staticmethod

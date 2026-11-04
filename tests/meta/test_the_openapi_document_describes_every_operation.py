@@ -65,11 +65,12 @@ def test_every_conditional_write_is_an_operation_of_the_table() -> None:
 
 def test_no_literal_segment_sits_beside_a_parameter_unless_its_slugs_are_refused() -> None:
     """A literal beside a parameter is reachable only if the parameter refuses it as a value."""
-    from squads._models import ROLE_GROUP_VERBS, _participants
+    from squads._models import ROLE_GROUP_VERBS
+    from squads._models import _participants as models_participants
 
     refused: dict[tuple[str, ...], frozenset[str]] = {
         ("v1", "roles"): ROLE_GROUP_VERBS,
-        ("v1", "skills"): _participants.SKILL_GROUP_VERBS,
+        ("v1", "skills"): models_participants.SKILL_GROUP_VERBS,
     }
     shapes = {tuple(op.route[1].strip("/").split("/")) for op in ops.ROUTED_OPERATIONS}
     problems: list[str] = []

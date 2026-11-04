@@ -3,7 +3,7 @@ id: TASK-1289
 sequence_id: 1289
 type: task
 title: Sweep private packages to re-exporting inits
-status: InProgress
+status: Done
 parent: FEAT-1288
 author: tech-lead
 refs:
@@ -52,7 +52,7 @@ subentities:
   assignee: tech-writer
   maps_to: US2
 created_at: '2026-11-04T11:07:46Z'
-updated_at: '2026-11-04T14:13:23Z'
+updated_at: '2026-11-04T16:41:31Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -63,7 +63,7 @@ Bring every private package under `src/squads` to the ADR-1287 rule: each packag
 - `ops` (`_api/_ops`) and `markers` are the only namespace re-exports; every other cross-package module-object import becomes a name import.
 - Inits hold only re-export statements and an optional docstring: `_cli/__init__` code moves to `_cli/_app.py`, `_workflow/__init__` code to `_workflow/_bundled.py`.
 - `_models/_config.py` moves to `squads/_config.py`; the edge table gains the `_config` node.
-- ADR-78 is related, not superseded; its no-re-export sentence is already narrowed in place.
+- ADR-78 is related, not superseded; its no-re-export sentence is narrowed in place.
 
 ## Sweep mechanics
 
@@ -78,7 +78,7 @@ ST1 lands the guard with every package in a transitional `PENDING` set that rule
 
 ## Interaction with TASK-1286
 
-TASK-1286 (scoped sources) is paused until this task lands. Its in-flight code in the `_sources` package (and the `_services` source modules, the source DTOs and renderers) follows the rule: ST5 sweeps `_sources` as committed, and when TASK-1286 resumes, its new and changed modules import through package inits and add their outside-used names to the `_sources` re-exports, held by the guard.
+TASK-1286 (scoped sources) lands after this task, and its code in the `_sources` package (and the `_services` source modules, the source DTOs and renderers) follows the rule: ST5 sweeps `_sources` as committed, and TASK-1286's new and changed modules import through package inits and add their outside-used names to the `_sources` re-exports, held by the guard.
 <!-- sq:body:end -->
 
 ## Subtasks
@@ -383,4 +383,8 @@ _Add with `sq task 1289 add-subtask "<title>"`; track with `sq task 1289 subtask
   - Follow-up docs: GUIDE-79 sub-entities paragraph says badges and the roll-up table are computed on read and a write re-renders only the heading; docs/internals.md section 11 says squads.__main__:main runs squads._shim:main (daemon, else squads._cli:main); CLAUDE.md and CONTRIBUTING.md state the test module-object alias rule (one alias, <package>_<module>, per the op-pierre ruling). tests/meta 747 passed; sq check clean.
 - [2026-11-04T14:13:23Z] `python-dev` Elias Python:
   - Test module aliases renamed to one per module, <package>_<module> with underscores dropped (37 modules, 29 test files, incl. two fixture strings). Also dropped "swept" from three guard test names in the import-edges table test. Gates green: pyright 0 errors, ruff check and format clean, pytest -n 4 2163 passed 2 skipped, 0 failed.
+- [2026-11-04T14:15:44Z] `manager` Catherine Manager:
+  - All eight subtasks Done; full suite 2163 passed at fe524f16; bench against the pre-sweep build 0.87-0.95x. To review.
+- [2026-11-04T15:17:33Z] `manager` Catherine Manager:
+  - Done: REV-1291 approved.
 <!-- sq:discussion:end -->

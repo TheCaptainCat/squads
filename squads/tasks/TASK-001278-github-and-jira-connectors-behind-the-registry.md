@@ -36,7 +36,7 @@ subentities:
   status: Done
   maps_to: US5
 created_at: '2026-11-03T23:02:46Z'
-updated_at: '2026-11-04T08:42:49Z'
+updated_at: '2026-11-04T18:31:04Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -251,4 +251,8 @@ Tests (2): pull from recorded responses creates an item with a wiki-markup descr
   - Live run (2026-11-04) on a private self-hosted GitLab 19.5 instance, from throwaway squads: source check, dry-run, pull, second pull (all unchanged), show --refresh, the title ownership refusal and sq repair (equal index) all behave as documented. Live shapes confirmed: /version, /user, labels, the instance-wide /issues listing by label, issue links, /users?username handle resolution, global issue IDs.
   - Gap found: a link becomes a ref only when both issues belong to the same source (_services/_pull.py links(), keyed on source name + issue ID). With one source per label (epics, stories), every epic-to-story link was dropped silently; one source covering both kept them.
   - Not exercised live: comments (the issues had none), closed, out-of-filter and gone issues, the type side, rate limits.
+- [2026-11-04T16:47:42Z] `manager` Catherine Manager:
+  - Live run (2026-11-04) on the private self-hosted GitLab 19.5 instance, scoped-sources build (8d874a6c): a project scope with no filter pulled all 7 issues with every link as a ref in both directions and priorities mapped; a second pull left all 7 unchanged; source check passed. The original epics/stories split (two sources, one tracker, label filters) now keeps every epic-story link after the second source pulls, with no held-by noise and filtered-out counts on each line. GitHub and Jira remain unverified against a live tracker.
+- [2026-11-04T18:31:03Z] `manager` Catherine Manager:
+  - Live GitHub run (2026-11-04) on the public repository bolinette/bolinette, scoped-sources build: source check passed (api.github.com from base_url https://github.com, /user, handle @TheCaptainCat resolved to its ID, the type side read); the pull created 15 items and skipped 1 with no type, 16 = the repository's non-PR issues, so all 15 pull requests were skipped; the issue type object (Feature) and labels mapped; closed state, node IDs and keys stored; a comment came in with the matched author form (op-pierre Pierre Chat via bolinette @TheCaptainCat); a second pull left 15 unchanged. Not exercised: issue dependencies (the repository has none), Enterprise hosts. Jira remains unverified live.
 <!-- sq:discussion:end -->

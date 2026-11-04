@@ -3,12 +3,12 @@ id: BUG-1284
 sequence_id: 1284
 type: bug
 title: Pull drops links between issues of different sources
-status: Open
+status: Verified
 author: qa
 refs:
 - FEAT-1271
 created_at: '2026-11-04T09:00:26Z'
-updated_at: '2026-11-04T09:19:42Z'
+updated_at: '2026-11-04T16:45:58Z'
 severity: high
 ---
 <!-- sq:body -->
@@ -51,4 +51,8 @@ Cross-tracker links (different `base_url`) are out of scope: no item can hold th
 - [2026-11-04T09:19:42Z] `architect` Robert Architect:
   - - Settled in ADR-1274 §14, **Links across sources** (amendment 2026-11-04, ruling f6cbdfc): links, references and the one-holder check resolve across every source with the same normalised base URL; a link carries its inverse type, so the second issue's own detail fetch makes the ref and the loss heals without refetching unchanged issues; a mapped link whose target no item holds is reported per host issue.
     - The scope-based selection in the same amendment also removes the one-source-per-label setup that triggered this.
+- [2026-11-04T14:36:51Z] `python-dev` Elias Python:
+  - Fixed in TASK-1286 ST6: link targets, holders and references resolve across the sources of one tracker, and an unheld mapped link is reported. Regression test: test_a_link_between_issues_of_two_sources_on_one_tracker_makes_its_ref_in_either_order in tests/cli/test_source_links.py (both pull orders). @qa please verify.
+- [2026-11-04T16:45:58Z] `manager` Catherine Manager:
+  - Fixed by TASK-1286 ST6 (cross-source resolution); the regression test failed before the fix in both pull orders, and REV-1292 verified it. Verified.
 <!-- sq:discussion:end -->

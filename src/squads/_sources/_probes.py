@@ -1,10 +1,11 @@
 """The probe framework behind ``sq source check``: results a connector yields in three families,
 and the runner that orders them. It names no tracker."""
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import Literal
 
+from squads._sources._filter import Expression
 from squads._sources._spec import SourceMaps
 
 type Family = Literal["access", "vocabulary", "coverage"]
@@ -48,6 +49,8 @@ class Expected:
 
     source: str
     maps: SourceMaps
+    #: Tracker side to the expression that side must satisfy; empty selects every issue.
+    filter: Mapping[str, Expression]
     #: ``(operator slug, tracker user ID)`` for each identity an operator holds on this source.
     identities: tuple[tuple[str, str], ...] = field(default_factory=tuple)
     #: ``(tracker user ID, handle, where)`` for each comment author already imported, ``where``

@@ -18,19 +18,31 @@ def _items_of(db: SquadsDB) -> list[Item]:
     return sorted(db.items.values(), key=lambda it: it.sequence_id)
 
 
-def _holders(db: SquadsDB) -> list[CheckIssue]:
-    """Every pair of items that hold one tracker issue."""
+def _holders(db: SquadsDB, declared: SourcesSpec | None) -> list[CheckIssue]:
+    """Every group of items that hold one tracker issue, across the sources of one tracker; an
+    undeclared source, or no readable document, groups by source name."""
+    groups: dict[tuple[str, str], list[int]] = defaultdict(list)
+    for (name, issue_id), seqs in db.source_ids().items():
+        peers: frozenset[str] = declared.peers(name) if declared is not None else frozenset[str]()
+        tracker = min(peers) if peers else name
+        groups[(tracker, issue_id)].extend(seqs)
     issues: list[CheckIssue] = []
-    for (name, issue_id), seqs in sorted(db.source_ids().items()):
+    for (_tracker, issue_id), seqs in sorted(groups.items()):
         if len(seqs) > 1:
             held = [db.items[n] for n in sorted(seqs)]
             ids = ", ".join(it.id for it in held)
+            names = sorted({it.source.name for it in held if it.source is not None})
+            of = (
+                f"source {names[0]!r}"
+                if len(names) == 1
+                else f"sources {', '.join(map(repr, names))}"
+            )
             issues.append(
                 CheckIssue(
                     "error",
                     held[0].id,
                     f"{ids} all hold issue {held[0].source.key if held[0].source else issue_id} "
-                    f"of source {name!r}; the pull refreshes each, so keep one and run "
+                    f"of {of}; the pull refreshes each, so keep one and run "
                     "`source unlink` on the others",
                     "source_id_unique",
                 )
@@ -68,12 +80,16 @@ def _records(db: SquadsDB, declared: SourcesSpec) -> list[CheckIssue]:
                 )
             )
         if record.state in LOST_STATES:
-            why = "no longer answers for" if record.state == GONE else "no longer lists"
+            why = (
+                f"the tracker no longer answers for {record.key} ({record.state})"
+                if record.state == GONE
+                else f"{record.key} is {record.state}: the filter rejects it or it left the scope"
+            )
             issues.append(
                 CheckIssue(
                     "warn",
                     item.id,
-                    f"the tracker {why} {record.key} ({record.state}); keep the item, or run "
+                    f"{why}; keep the item, or run "
                     f"`sq {item.type} {number_for_id(item.id)} source unlink`",
                     "source_issue_reachable",
                 )
@@ -156,15 +172,20 @@ def source_issues(
 ) -> list[CheckIssue]:
     """Every source finding of the corpus. The rules that judge a name against ``sources.toml``
     run only when it loads; when it does not, that is the one finding about it."""
-    issues = _holders(db) + _attribute_lines(db, texts)
+    issues = _attribute_lines(db, texts)
     try:
         declared = sources()
     except SquadsError as exc:
+        issues = _holders(db, None) + issues
         reason = " ".join(str(exc).split())
         issues.append(
             CheckIssue("error", "sources", f"sources config invalid: {reason}", "sources_loads")
         )
         return issues
     return (
-        issues + _records(db, declared) + _authors(db, declared, texts) + _identities(db, declared)
+        _holders(db, declared)
+        + issues
+        + _records(db, declared)
+        + _authors(db, declared, texts)
+        + _identities(db, declared)
     )

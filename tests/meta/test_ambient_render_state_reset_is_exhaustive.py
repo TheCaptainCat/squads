@@ -15,7 +15,7 @@ CONTEXTVAR_EXEMPTIONS: dict[str, frozenset[str]] = {
         {
             # RequestContext's own var. main_callback binds one freshly-computed instance every
             # invocation (every field recomputed, not merged from what's ambient) — see
-            # _context.py's and _cli/__init__.py's own docstrings. Safe by construction.
+            # _context.py's and _cli/_app.py's own docstrings. Safe by construction.
             "_context_var",
         }
     ),

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, ConfigDict, Field
 
 from squads._errors import SquadsError
+from squads._sources._credentials import normalise_base_url
 from squads._sources._filter import Expression
 
 if TYPE_CHECKING:
@@ -82,6 +83,17 @@ class SourcesSpec(BaseModel):
             declared = ", ".join(sorted(self.sources)) or "none"
             raise SquadsError(f"no source {name!r} is declared (declared: {declared})")
         return found
+
+    def peers(self, name: str) -> frozenset[str]:
+        """The declared sources on the same tracker as *name* (its normalised base URL), itself
+        included; empty when *name* is not declared."""
+        own = self.sources.get(name)
+        if own is None:
+            return frozenset()
+        url = normalise_base_url(own.base_url)
+        return frozenset(
+            n for n, s in self.sources.items() if normalise_base_url(s.base_url) == url
+        )
 
 
 type SourcesSource = Callable[[], SourcesSpec]

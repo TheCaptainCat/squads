@@ -128,6 +128,36 @@
     {
       "path": "/rest/api/3/search/jql",
       "query": {
+        "jql": "id = 10042 AND (labels = squads)"
+      },
+      "body": {
+        "issues": [
+          {
+            "id": "10042",
+            "key": "PROJ-45"
+          }
+        ],
+        "isLast": true
+      }
+    },
+    {
+      "path": "/rest/api/3/search/jql",
+      "query": {
+        "jql": "id = 10043 AND (labels = squads)"
+      },
+      "body": {
+        "issues": [
+          {
+            "id": "10043",
+            "key": "PROJ-46"
+          }
+        ],
+        "isLast": true
+      }
+    },
+    {
+      "path": "/rest/api/3/search/jql",
+      "query": {
         "nextPageToken": "page-2-token"
       },
       "body": {

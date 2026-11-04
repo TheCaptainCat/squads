@@ -70,11 +70,13 @@ class Comment:
 
 @dataclass(frozen=True)
 class Link:
-    """One link from an issue to another, with the tracker's own name for the link type."""
+    """One link from an issue to another, with the tracker's own name for the link type as read
+    from this issue and the name the other issue reads it by (empty when the tracker names none)."""
 
     link_type: str
     target_id: str
     target_key: str
+    inverse: str = ""
 
 
 @dataclass(frozen=True)
@@ -134,6 +136,11 @@ class Connector(ABC):
     def issue(self, issue_id: str, key: str) -> Issue | None:
         """One issue, found by the connector from its immutable ID and last known *key*, or
         ``None`` when the tracker does not return it to this credential."""
+
+    @abstractmethod
+    def in_scope(self, issue: Issue) -> bool:
+        """Whether *issue* belongs to the scope, decided without listing it: from its key where
+        the key names its container, with one search where it does not."""
 
     @abstractmethod
     def lookup(self, reference: str) -> Issue | None:

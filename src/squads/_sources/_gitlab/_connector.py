@@ -24,6 +24,9 @@ from squads._sources._spec import SourceScope
 #: A reference to an issue: an optional project path, then ``#`` and the project-local number.
 _REFERENCE_RE = re.compile(r"(?<![\w/&#.-])((?:[\w.-]+/)*[\w.-]+)?#(\d+)\b")
 _GLOBAL_ID = "gid://gitlab/Issue/"
+#: GitLab's two link types that read differently from each end, each the other's inverse.
+_BLOCK_LINKS = ("blocks", "is_blocked_by")
+_SYMMETRIC_LINK = "relates_to"
 _STATE_OPEN = "opened"
 _STATE_CLOSED = "closed"
 
@@ -34,6 +37,13 @@ def _user(record: object) -> tuple[str, str, str]:
         cast("Mapping[str, Any]", record) if isinstance(record, Mapping) else {}
     )
     return text(user, "id"), text(user, "username"), text(user, "name")
+
+
+def _inverse_link(kind: str) -> str:
+    """The name the other end of a GitLab link of type *kind* reads it by; empty when unknown."""
+    if kind == _SYMMETRIC_LINK:
+        return kind
+    return _BLOCK_LINKS[1 - _BLOCK_LINKS.index(kind)] if kind in _BLOCK_LINKS else ""
 
 
 def _split_key(key: str) -> tuple[str, str]:
@@ -120,6 +130,15 @@ class GitLabConnector(Connector):
         found = self._issue_by_key(path, number)
         return found if found is not None and found.id == issue_id else None
 
+    def in_scope(self, issue: Issue) -> bool:
+        """Whether the project path of *issue*'s key is the scope's project, or lies under its
+        group, ignoring case."""
+        path = _split_key(issue.key)[0].casefold()
+        scope = self._scope.value.casefold()
+        if self._scope.key == "group":
+            return path.startswith(f"{scope}/")
+        return path == scope
+
     def lookup(self, reference: str) -> Issue | None:
         """The issue named by a key (``group/project#12``), or by its global ID when the scope
         lists it; ``None`` when GitLab returns neither."""
@@ -175,13 +194,16 @@ class GitLabConnector(Connector):
         found: list[Link] = []
         for linked in self._http.pages(self._issue_path(issue, "links")):
             record = cast("Mapping[str, Any]", linked)
+            if record.get("confidential"):
+                continue
             references = record.get("references")
             full = (
                 text(cast("Mapping[str, Any]", references), "full")
                 if isinstance(references, Mapping)
                 else ""
             )
-            found.append(Link(text(record, "link_type"), f"{_GLOBAL_ID}{text(record, 'id')}", full))
+            kind = text(record, "link_type")
+            found.append(Link(kind, f"{_GLOBAL_ID}{text(record, 'id')}", full, _inverse_link(kind)))
         return found
 
     def issue_url(self, key: str) -> str:

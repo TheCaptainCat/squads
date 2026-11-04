@@ -365,9 +365,16 @@ folder in the squad directory. The frozen surfaces are:
   `sq workflow lint` import it, which runs its top-level code. There is no approval step; see
   [overrides.md § "Giving a view a transform"](overrides.md#giving-a-view-a-transform).
 - **`sources.toml`:** its top-level keys are `connectors` and `sources`. A
-  `[sources.<name>]` table, `<name>` a slug, takes `connector`, `base_url` and `filter`
-  (required, `filter` not empty), `version`, `trusted` (default `false`), `enabled` (default
-  `true`), `converter` and `maps`. `maps.types.<side>` and `maps.fields.<field>.<side>` map a
+  `[sources.<name>]` table, `<name>` a slug, takes `connector`, `base_url`, exactly one scope key,
+  `version`, `trusted` (default `false`), `enabled` (default `true`), `converter`, `filter` and
+  `maps`. The scope keys are fixed per connector version: `project` or `group` on `gitlab@v4`,
+  `repository` on `github@v3`, `jql` on `jira@cloud-v3` and `jira@dc-v2`; no scope key, two, an
+  empty value or another version's key fails at load. A path scope value is checked for its shape:
+  segments of one or more ASCII letters, digits, `_`, `-` or `.`, none of them `.` or `..`, joined
+  by single `/` with none leading or trailing and no whitespace; two or more segments for
+  `project`, one or more for `group`, exactly two for `repository`. Another shape fails at load,
+  naming the source, the key and the shape. A `jql` holding the words `order by` (any case) outside
+  a JQL quoted string fails at load; any other `jql` is sent as written. `maps.types.<side>` and `maps.fields.<field>.<side>` map a
   tracker value on one side of the issue to an item type or a badge value, and `maps.links` maps a
   link type to a ref kind. The sides are fixed per connector version: `labels` on every one,
   `type` on `gitlab@v4` and `github@v3`, `type` and `priority` on `jira@cloud-v3` and
@@ -376,6 +383,36 @@ folder in the squad directory. The frozen surfaces are:
   `converter` and `maps`, which a source's maps overlay key by key; an entry set to `""` unmaps a
   value. Every map target must exist in the workflow spec, and `maps.types` must not be empty
   once overlaid. See [sources.md § "Declaring a source"](sources.md#declaring-a-source).
+- **The source filter:** `filter` is optional; when present it is a non-empty table whose keys
+  are sides of the connector version and whose values are each one boolean expression, a string.
+  An issue is selected when every expression is true for its values on that side. The expression
+  grammar:
+
+  ```ebnf
+  expression  = disjunction ;
+  disjunction = conjunction , { "or" , conjunction } ;
+  conjunction = negation , { "and" , negation } ;
+  negation    = "not" , negation | primary ;
+  primary     = value | "(" , disjunction , ")" ;
+  value       = bare | quoted ;
+  bare        = bare char , { bare char } ;     (* not "or", "and" or "not" in any case *)
+  bare char   = "A".."Z" | "a".."z" | "0".."9" | ":" | "-" | "_" | "." ;
+  quoted      = '"' , quoted char , { quoted char } , '"' ;
+  quoted char = any character but '"', "\" or a control character
+              | '\"' | '\\' ;
+  (* a control character is one of Unicode category Cc: U+0000 to U+001F and
+     U+007F to U+009F, the tab, LF and CR among them *)
+  ```
+
+  A space, a tab or a line break (LF or CRLF) may separate any two tokens and is required only
+  between two words. Parentheses and `not` nest at most 64 levels deep. `not` binds tightest,
+  then `and`, then `or`; `and` and `or` group from the left. The keywords are lowercase, and a bare word spelling one in another case is refused. A
+  value matches an issue's value on the side exactly, case included. Anything outside the grammar
+  fails at load, with the 1-based line and column of the fault. What loads keeps its meaning in
+  later releases: a new operator will use a character refused outside quotes today (such as `*`,
+  `=`, `,` or `!`), never a new word, and an expression across sides, or a new side, will come as
+  a new key, never as a new reading of a filter that loads now. See
+  [sources.md § "The filter"](sources.md#the-filter).
 - **Precedence:** per-file, project → bundled. Presence of a file is the override. Templates
   override whole-file; a role resolves its base (a catalog entry or a role template, bundled then
   `roles.toml`, or its own item), then its per-slug file, merging field-wise, then the values its
@@ -1376,7 +1413,7 @@ The frozen surface includes:
 - **Sources:** `sq source list --json` is `{sources}`, each
   `{name, connector, version, enabled, credential, items, newest_updated_at}`; `sq source pull
   --json` is `{dry_run, sources}`, each `{name, created, refreshed, unchanged, left_out, lines,
-  failed}`;
+  failed, restricted, filtered_out, skipped_no_type}`;
   `sq source check --json` is `{ok, sources}`, each `{name, connector, version, enabled, ok,
   lines}` with lines `{family, verdict, text, fix}`; `credential set --json` is
   `{source, base_url, fields, path}`; `source unlink --json` is `{id, source, key}` and

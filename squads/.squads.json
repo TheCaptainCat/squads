@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1290,
+  "counter": 1293,
   "padding": 6,
   "items": {
     "12": {
@@ -65627,7 +65627,7 @@
       "subentities": [],
       "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
       "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-11-04T14:11:54Z",
+      "updated_at": "2026-11-04T16:43:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -66270,7 +66270,7 @@
       "type": "epic",
       "title": "External sources: work tracked elsewhere",
       "slug": "external-sources-work-tracked-elsewhere",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
       "parent": null,
       "author": "product-owner",
@@ -66280,7 +66280,7 @@
       "subentities": [],
       "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
       "created_at": "2026-11-03T15:57:06Z",
-      "updated_at": "2026-11-04T09:54:29Z",
+      "updated_at": "2026-11-04T18:38:00Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66625,7 +66625,7 @@
       "subentities": [],
       "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
       "created_at": "2026-11-03T22:41:36Z",
-      "updated_at": "2026-11-04T09:52:23Z",
+      "updated_at": "2026-11-04T15:34:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66937,7 +66937,7 @@
       ],
       "path": "tasks/TASK-001278-github-and-jira-connectors-behind-the-registry.md",
       "created_at": "2026-11-03T23:02:46Z",
-      "updated_at": "2026-11-04T08:42:49Z",
+      "updated_at": "2026-11-04T18:31:04Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67585,7 +67585,7 @@
       "type": "bug",
       "title": "Pull drops links between issues of different sources",
       "slug": "pull-drops-links-between-issues-of-different-sources",
-      "status": "Open",
+      "status": "Verified",
       "description": "",
       "parent": null,
       "author": "qa",
@@ -67597,7 +67597,7 @@
       "subentities": [],
       "path": "bugs/BUG-001284-pull-drops-links-between-issues-of-different-sources.md",
       "created_at": "2026-11-04T09:00:26Z",
-      "updated_at": "2026-11-04T09:19:42Z",
+      "updated_at": "2026-11-04T16:45:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67611,7 +67611,7 @@
       "type": "feature",
       "title": "Scoped sources and filter expressions",
       "slug": "scoped-sources-and-filter-expressions",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Sources name a scope; squads filters; links span a tracker's sources",
       "parent": "EPIC-1268",
       "author": "product-owner",
@@ -67661,7 +67661,7 @@
       ],
       "path": "features/FEAT-001285-scoped-sources-and-filter-expressions.md",
       "created_at": "2026-11-04T09:54:38Z",
-      "updated_at": "2026-11-04T09:59:29Z",
+      "updated_at": "2026-11-04T16:45:59Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -67673,7 +67673,7 @@
       "type": "task",
       "title": "Scoped sources, filter expressions and cross-source links",
       "slug": "scoped-sources-filter-expressions-and-cross-source-links",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Scope keys, a filter evaluated in squads, pull report counts, restricted issues, links across a tracker's sources",
       "parent": "FEAT-1285",
       "author": "tech-lead",
@@ -67714,7 +67714,7 @@
         {
           "local_id": "ST4",
           "title": "Single-issue commands decide scope and filter",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": "US2",
           "deferred_to": null,
@@ -67723,7 +67723,7 @@
         {
           "local_id": "ST5",
           "title": "Links carry their inverse type",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": "US3",
           "deferred_to": null,
@@ -67732,7 +67732,7 @@
         {
           "local_id": "ST6",
           "title": "Links and holders resolve across one tracker",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": "US3",
           "deferred_to": null,
@@ -67741,7 +67741,7 @@
         {
           "local_id": "ST7",
           "title": "Probes read the scope and the filter values",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": "US2",
           "deferred_to": null,
@@ -67750,7 +67750,7 @@
         {
           "local_id": "ST8",
           "title": "Docs and changelog for scoped sources",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "maps_to": "US4",
           "deferred_to": null,
@@ -67759,7 +67759,7 @@
       ],
       "path": "tasks/TASK-001286-scoped-sources-filter-expressions-and-cross-source-links.md",
       "created_at": "2026-11-04T09:58:37Z",
-      "updated_at": "2026-11-04T10:45:59Z",
+      "updated_at": "2026-11-04T16:45:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67798,7 +67798,7 @@
       "type": "feature",
       "title": "Re-exporting private packages",
       "slug": "re-exporting-private-packages",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Every private package's init re-exports the names other packages import, per ADR-1287; codebase swept, docs corrected.",
       "parent": null,
       "author": "product-owner",
@@ -67829,7 +67829,7 @@
       ],
       "path": "features/FEAT-001288-re-exporting-private-packages.md",
       "created_at": "2026-11-04T11:05:52Z",
-      "updated_at": "2026-11-04T11:08:37Z",
+      "updated_at": "2026-11-04T15:17:34Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67843,7 +67843,7 @@
       "type": "task",
       "title": "Sweep private packages to re-exporting inits",
       "slug": "sweep-private-packages-to-re-exporting-inits",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Guard, three moves and a leaf-first sweep of every private package to the ADR-1287 re-export rule; docs corrected",
       "parent": "FEAT-1288",
       "author": "tech-lead",
@@ -67928,7 +67928,7 @@
       ],
       "path": "tasks/TASK-001289-sweep-private-packages-to-re-exporting-inits.md",
       "created_at": "2026-11-04T11:07:46Z",
-      "updated_at": "2026-11-04T14:13:23Z",
+      "updated_at": "2026-11-04T16:41:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -67948,7 +67948,9 @@
       "author": "product-owner",
       "assignee": null,
       "labels": [],
-      "refs": [],
+      "refs": [
+        "MILE-1269:targets"
+      ],
       "subentities": [
         {
           "local_id": "US1",
@@ -67998,12 +68000,304 @@
       ],
       "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
       "created_at": "2026-11-04T13:32:39Z",
-      "updated_at": "2026-11-04T13:33:57Z",
+      "updated_at": "2026-11-04T14:33:44Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "FEAT-1290"
+    },
+    "1291": {
+      "sequence_id": 1291,
+      "type": "review",
+      "title": "Review of the private-package re-export sweep",
+      "slug": "review-of-the-private-package-re-export-sweep",
+      "status": "Approved",
+      "description": "Guard, resolver, stores, behaviour, startup and docs of the re-export sweep",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1288",
+        "TASK-1289"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Guard accepts an underscore name re-exported by an init",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "No-reach-in rule misses a literal import_module call",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "Some test module-object imports skip the one-alias naming ruling",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F4",
+          "title": "Dead inits_with_code helper left in the import-edge guard",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "Two comments still point to code moved out of the cli and workflow inits",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        }
+      ],
+      "path": "reviews/REV-001291-review-of-the-private-package-re-export-sweep.md",
+      "created_at": "2026-11-04T14:33:48Z",
+      "updated_at": "2026-11-04T15:17:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "target_ref": "b0c9ecaa..fe524f16"
+      },
+      "slug_in_file": false,
+      "id": "REV-1291"
+    },
+    "1292": {
+      "sequence_id": 1292,
+      "type": "review",
+      "title": "Review of scoped sources and filter expressions",
+      "slug": "review-of-scoped-sources-and-filter-expressions",
+      "status": "Approved",
+      "description": "Filter grammar, scopes, report counts, restricted issues, cross-source links, probes and docs",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1285",
+        "TASK-1286",
+        "ADR-1274",
+        "BUG-1284"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "An issue another source holds is read in detail on every pull",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "Jira in-scope search breaks on a JQL ending in ORDER BY",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "GitLab in-scope check is case-sensitive, GitLab paths are not",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F4",
+          "title": "Coverage probe ignores the filter and names unmapped issues",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "A link to a restricted issue is named on every report",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F6",
+          "title": "Filter precedence, or, not-scope and escapes are untested",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F7",
+          "title": "Cross-source and scope decisions leave mutants alive",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F8",
+          "title": "Internal-note test cannot fail; Jira by-ID restriction untested",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F9",
+          "title": "Unnamed pull reports a link not followed that it then makes",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F10",
+          "title": "Deep nesting or long CRLF runs crash the parser",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F11",
+          "title": "Quoted values refuse non-control characters like NBSP",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F12",
+          "title": "Scope values are not shape-checked at load",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F13",
+          "title": "Report and check wording out of step with the new model",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F14",
+          "title": "Docs say a held issue is never read; an unnamed first pull reads it twice",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        }
+      ],
+      "path": "reviews/REV-001292-review-of-scoped-sources-and-filter-expressions.md",
+      "created_at": "2026-11-04T15:28:54Z",
+      "updated_at": "2026-11-04T16:45:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1292"
+    },
+    "1293": {
+      "sequence_id": 1293,
+      "type": "task",
+      "title": "Run the Jira connectors against a live Jira",
+      "slug": "run-the-jira-connectors-against-a-live-jira",
+      "status": "Draft",
+      "description": "Live run of jira@cloud-v3 and jira@dc-v2 to confirm the API shapes and scoped-sources behaviour",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "TASK-1278",
+        "ADR-1274"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-001293-run-the-jira-connectors-against-a-live-jira.md",
+      "created_at": "2026-11-04T18:38:36Z",
+      "updated_at": "2026-11-04T18:39:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "low"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1293"
     }
   }
 }

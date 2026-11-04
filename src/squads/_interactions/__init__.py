@@ -1,4 +1,4 @@
-"""Private packages: re-exports of the names other packages import."""
+"""Private package: re-exports of the names other packages import."""
 
 from squads._interactions._cheatsheet import ReviewGate as ReviewGate
 from squads._interactions._cheatsheet import cheatsheet_alias_example as cheatsheet_alias_example

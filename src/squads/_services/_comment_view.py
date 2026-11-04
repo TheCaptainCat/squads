@@ -34,14 +34,25 @@ def _unknown(name: str) -> dict[str, Any]:
     return {"source": name, "trusted": False}
 
 
+def peers_of(sources: Callable[[], SourcesSpec], name: str) -> frozenset[str]:
+    """The sources declared on the tracker of source *name*; empty when it is undeclared or the
+    document fails to load."""
+    try:
+        return sources().peers(name)
+    except SquadsError:
+        return frozenset()
+
+
 def translate_references(
     text: str,
     record: SourceRecord | None,
     declared: SourceSpec | None,
     items: Sequence[Item] | Iterable[Item],
+    peers: frozenset[str],
 ) -> str:
     """*text* with each tracker reference to a pulled item replaced by that item's ID, when the
-    host holds a *record* of a *declared* source and exactly one item holds the key named."""
+    host holds a *record* of a *declared* source and exactly one item of a source in *peers*
+    (those on its tracker) holds the key named."""
     if record is None or declared is None:
         return text
     held_items = list(items)
@@ -51,7 +62,7 @@ def translate_references(
         held = [
             it.id
             for it in held_items
-            if it.source is not None and (it.source.name, it.source.key) == (record.name, ref.key)
+            if it.source is not None and it.source.name in peers and it.source.key == ref.key
         ]
         if len(held) == 1:
             out = out[: ref.start] + held[0] + out[ref.end :]
@@ -98,7 +109,8 @@ class CommentView:
 
     def _translated(self, text: str, declared: SourceSpec | None) -> str:
         record = self._host.source if self._host is not None else None
-        return translate_references(text, record, declared, self._items)
+        peers = peers_of(self._sources, record.name) if record is not None else frozenset[str]()
+        return translate_references(text, record, declared, self._items, peers)
 
     def _derived(self, cmt: discussion.Comment, name: str) -> dict[str, Any]:
         declared = self._declared(name)

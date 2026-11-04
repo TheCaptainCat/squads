@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterator
 
 from squads._errors import SquadsError
 from squads._sources._connector import LABELS, TYPE, Issue
+from squads._sources._filter import words
 from squads._sources._http import (
     HttpClient,
     MalformedAnswerError,
@@ -28,6 +29,7 @@ from squads._sources._probes import (
     Family,
     ProbeResult,
 )
+from squads._sources._spec import SourceScope
 
 _SERVER_ERROR = 500
 
@@ -35,6 +37,11 @@ _SERVER_ERROR = 500
 def sources_toml(expected: Expected, table: str) -> str:
     """Where *table* of *expected*'s source is edited, for a fix line."""
     return f"[sources.{expected.source}.maps.{table}] in sources.toml"
+
+
+def filter_toml(expected: Expected) -> str:
+    """Where the filter of *expected*'s source is edited, for a fix line."""
+    return f"[sources.{expected.source}.filter] in sources.toml"
 
 
 class TrackerProbes(ABC):
@@ -45,9 +52,12 @@ class TrackerProbes(ABC):
     #: The separator of a scoped label (``scope::value``), or empty when the tracker has none.
     label_scope: str = ""
 
-    def __init__(self, http: HttpClient, base: str, listing: Callable[[], list[Issue]]) -> None:
+    def __init__(
+        self, http: HttpClient, base: str, scope: SourceScope, listing: Callable[[], list[Issue]]
+    ) -> None:
         self._http = http
         self._base = base
+        self._scope = scope
         self._listing = listing
 
     @abstractmethod
@@ -64,10 +74,6 @@ class TrackerProbes(ABC):
         """Whether the scope holds at least one issue; raises when the tracker refuses it."""
 
     @abstractmethod
-    def scope_text(self) -> str:
-        """The source's scope as a message quotes it."""
-
-    @abstractmethod
     def credential_fix(self, expected: Expected) -> str:
         """The fix for a rejected token."""
 
@@ -78,7 +84,7 @@ class TrackerProbes(ABC):
     @abstractmethod
     def known_values(self, side: str, issues: list[Issue]) -> tuple[frozenset[str], bool]:
         """The values the tracker has on *side* of an issue, and whether that list is complete.
-        An incomplete one holds only what the in-filter *issues* carry."""
+        An incomplete one holds only what the in-scope *issues* carry."""
 
     @abstractmethod
     def link_types(self) -> tuple[str, ...]:
@@ -104,6 +110,10 @@ class TrackerProbes(ABC):
             yield from results
             if any(r.blocking for r in results):
                 return
+
+    def scope_text(self) -> str:
+        """The source's scope as a message quotes it."""
+        return f"{self._scope.key} {self._scope.value!r}"
 
     def _host_fix(self, expected: Expected) -> str:
         return (
@@ -170,7 +180,14 @@ class TrackerProbes(ABC):
                 ACCESS,
                 FAIL,
                 f"the scope {self.scope_text()} is not accepted: {exc}",
-                f"correct the scope of source {expected.source!r} in sources.toml",
+                f"correct `{self._scope.key}` of source {expected.source!r} in sources.toml",
+            )
+        if isinstance(exc, NotFoundError):
+            return ProbeResult(
+                ACCESS,
+                FAIL,
+                f"the scope {self.scope_text()} does not exist or is not visible to the token",
+                f"correct `{self._scope.key}` of source {expected.source!r} in sources.toml",
             )
         return ProbeResult(ACCESS, FAIL, str(exc), self._host_fix(expected))
 
@@ -194,8 +211,8 @@ class TrackerProbes(ABC):
                 ACCESS,
                 WARN,
                 f"the scope {self.scope_text()} holds no issue",
-                f"create an issue in the scope, or correct the scope of source {name!r} "
-                "in sources.toml",
+                f"create an issue in the scope, or correct `{self._scope.key}` of source "
+                f"{name!r} in sources.toml",
             )
             return
         yield ProbeResult(ACCESS, PASS, "the token reads the issues of the scope")
@@ -203,14 +220,26 @@ class TrackerProbes(ABC):
     # -------------------------------------------------------------- vocabulary
     def _vocabulary(self, expected: Expected) -> Iterator[ProbeResult]:
         maps = expected.maps
-        tables = [
-            (f"maps.types.{side}", f"types.{side}", side, table)
-            for side, table in sorted(maps.types.items())
-        ] + [
-            (f"maps.fields.{code}.{side}", f"fields.{code}.{side}", side, table)
-            for code, sides in sorted(maps.fields.items())
-            for side, table in sorted(sides.items())
-        ]
+        tables = (
+            [
+                (f"maps.types.{side}", sources_toml(expected, f"types.{side}"), side, table)
+                for side, table in sorted(maps.types.items())
+            ]
+            + [
+                (
+                    f"maps.fields.{code}.{side}",
+                    sources_toml(expected, f"fields.{code}.{side}"),
+                    side,
+                    table,
+                )
+                for code, sides in sorted(maps.fields.items())
+                for side, table in sorted(sides.items())
+            ]
+            + [
+                (f"filter.{side}", filter_toml(expected), side, dict.fromkeys(words(expression)))
+                for side, expression in sorted(expected.filter.items())
+            ]
+        )
         try:
             issues = self._listing()
             links = self.link_types()
@@ -219,11 +248,19 @@ class TrackerProbes(ABC):
             yield ProbeResult(VOCABULARY, FAIL, f"cannot read the tracker's vocabulary: {exc}")
             return
         clean = True
-        for label, path, side, table in tables:
+        for label, where, side, table in tables:
             values, complete = known[side]
             for key in sorted(set(table) - values):
                 clean = False
-                yield self._missing(expected, label, path, side, key, complete and bool(issues))
+                yield self._missing(label, where, side, key, complete and bool(issues))
+        if issues and expected.filter and not any(self._accepts(expected, i) for i in issues):
+            clean = False
+            yield ProbeResult(
+                VOCABULARY,
+                WARN,
+                f"the filter accepts none of the {len(issues)} issue(s) of the scope",
+                f"correct it in {filter_toml(expected)}",
+            )
         for link in sorted(set(maps.links) - set(links)):
             clean = False
             yield ProbeResult(
@@ -233,15 +270,21 @@ class TrackerProbes(ABC):
                 f"use one of {', '.join(links)} in {sources_toml(expected, 'links')}",
             )
         if clean:
-            yield ProbeResult(VOCABULARY, PASS, "every value the maps name exists on the tracker")
+            names = "maps and the filter" if expected.filter else "maps"
+            yield ProbeResult(
+                VOCABULARY, PASS, f"every value the {names} name exists on the tracker"
+            )
 
-    def _missing(
-        self, expected: Expected, label: str, path: str, side: str, key: str, certain: bool
-    ) -> ProbeResult:
-        """The result for a map *key* that *side* of the tracker was not found to hold: a
-        failure when the list of values is complete, else a warning."""
+    @staticmethod
+    def _accepts(expected: Expected, issue: Issue) -> bool:
+        return all(expr.matches(issue.values(side)) for side, expr in expected.filter.items())
+
+    @staticmethod
+    def _missing(label: str, where: str, side: str, key: str, certain: bool) -> ProbeResult:
+        """The result for a map or filter *key* that *side* of the tracker was not found to hold:
+        a failure when the list of values is complete, else a warning."""
         noun = {LABELS: "labels", TYPE: "issue types"}.get(side, f"{side} values")
-        fix = f"correct it in {sources_toml(expected, path)}"
+        fix = f"correct it in {where}"
         if certain:
             return ProbeResult(
                 VOCABULARY,
@@ -252,7 +295,7 @@ class TrackerProbes(ABC):
         return ProbeResult(
             VOCABULARY,
             WARN,
-            f"{label}: {key!r} is carried by no in-filter issue, so it cannot be confirmed "
+            f"{label}: {key!r} is carried by no issue in the scope, so it cannot be confirmed "
             f"among the tracker's {noun}",
             fix,
         )
@@ -260,10 +303,12 @@ class TrackerProbes(ABC):
     # ---------------------------------------------------------------- coverage
     def _coverage(self, expected: Expected) -> Iterator[ProbeResult]:
         try:
-            issues = self._listing()
+            issues = [i for i in self._listing() if self._accepts(expected, i)]
         except SquadsError as exc:
             yield ProbeResult(COVERAGE, WARN, f"cannot list the issues: {exc}")
             return
+        unmapped = sum(1 for i in issues if not mapped_types(expected.maps, i))
+        note = f"{unmapped} selected issue(s) map to no type and are skipped by the pull"
         warned = False
         for result in (
             *self._unmapped_types(expected, issues),
@@ -274,21 +319,25 @@ class TrackerProbes(ABC):
             warned = True
             yield result
         if not warned:
+            counted = f"; {note}" if unmapped else ""
             yield ProbeResult(
-                COVERAGE, PASS, "every in-filter value, author and identity is accounted for"
+                COVERAGE,
+                PASS,
+                f"every in-scope value, author and identity is accounted for{counted}",
             )
+        elif unmapped:
+            yield ProbeResult(COVERAGE, PASS, note)
 
     @staticmethod
     def _unmapped_types(expected: Expected, issues: list[Issue]) -> Iterator[ProbeResult]:
-        unmapped = [i for i in issues if len(mapped_types(expected.maps, i)) != 1]
-        if unmapped:
-            keys = ", ".join(i.key for i in unmapped)
-            yield ProbeResult(
-                COVERAGE,
-                WARN,
-                f"{len(unmapped)} in-filter issue(s) map to no single type: {keys}",
-                f"map their type or a label in {sources_toml(expected, 'types')}",
-            )
+        for issue in issues:
+            if len(types := mapped_types(expected.maps, issue)) > 1:
+                yield ProbeResult(
+                    COVERAGE,
+                    WARN,
+                    f"{issue.key} maps to several types: {', '.join(sorted(types))}",
+                    f"make the maps in {sources_toml(expected, 'types')} choose one",
+                )
 
     def _unmapped_labels(self, expected: Expected, issues: list[Issue]) -> Iterator[ProbeResult]:
         scope = self.label_scope

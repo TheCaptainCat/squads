@@ -109,6 +109,7 @@ class JiraConnector(Connector):
 
     def __init__(self, base_url: str, scope: SourceScope, credential: Mapping[str, str]) -> None:
         self._base = base_url.rstrip("/")
+        self._scope = scope
         self._jql = scope.value
         self._http = HttpClient(self._base, self._headers(credential))
 
@@ -158,7 +159,7 @@ class JiraConnector(Connector):
 
     @abstractmethod
     def _extra_labels(self) -> set[str]:
-        """The labels the version can list beyond those on the in-filter issues."""
+        """The labels the version can list beyond those on the in-scope issues."""
 
     def _first_page_selects(self) -> bool:
         return any(True for _ in self._search(self._filter(), _SUMMARY, "1"))
@@ -183,7 +184,7 @@ class JiraConnector(Connector):
             self._extra_labels,
             self._labels_complete,
         )
-        return JiraProbes(self._http, self._base, self.api, self._jql, listing, hooks).run(
+        return JiraProbes(self._http, self._base, self.api, self._scope, listing, hooks).run(
             family, expected
         )
 
@@ -245,6 +246,11 @@ class JiraConnector(Connector):
         found = self._issue_by(issue_id)
         return found if found is not None and found.id == issue_id else None
 
+    def in_scope(self, issue: Issue) -> bool:
+        """Whether one search for *issue* inside the scope's JQL finds it."""
+        selected = self._search(f"id = {issue.id} AND ({self._filter()})", _SUMMARY, "1")
+        return any(True for _ in selected)
+
     def lookup(self, reference: str) -> Issue | None:
         """The issue named by a key (``PROJ-12``) or an ID; ``None`` when Jira returns none."""
         return self._issue_by(reference.strip())
@@ -291,10 +297,20 @@ class JiraConnector(Connector):
         found: list[Link] = []
         for link in records(mapping(record.get("fields")).get("issuelinks")):
             kind = mapping(link.get("type"))
-            for side, target in (("outward", "outwardIssue"), ("inward", "inwardIssue")):
+            for side, other, target in (
+                ("outward", "inward", "outwardIssue"),
+                ("inward", "outward", "inwardIssue"),
+            ):
                 linked = mapping(link.get(target))
                 if linked:
-                    found.append(Link(text(kind, side), text(linked, "id"), text(linked, "key")))
+                    found.append(
+                        Link(
+                            text(kind, side),
+                            text(linked, "id"),
+                            text(linked, "key"),
+                            text(kind, other),
+                        )
+                    )
         return found
 
     def issue_url(self, key: str) -> str:

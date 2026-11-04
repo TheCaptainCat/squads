@@ -10,10 +10,13 @@ from abc import ABC, abstractmethod
 from collections.abc import Collection
 from dataclasses import dataclass
 from enum import Enum, auto
+from unicodedata import category
 
 _BARE = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:-_.")
 _KEYWORDS = ("or", "and", "not")
 _BLANKS = " \t\n"
+#: How deep parentheses and ``not`` may nest; deeper is refused at load.
+MAX_DEPTH = 64
 
 
 class FilterSyntaxError(ValueError):
@@ -78,6 +81,17 @@ class Disjunction(Expression):
         return any(operand.matches(values) for operand in self.operands)
 
 
+def words(expression: Expression) -> tuple[str, ...]:
+    """Every value *expression* names, in the order it names them."""
+    if isinstance(expression, Word):
+        return (expression.value,)
+    if isinstance(expression, Negation):
+        return words(expression.operand)
+    if isinstance(expression, Conjunction | Disjunction):
+        return tuple(w for operand in expression.operands for w in words(operand))
+    return ()
+
+
 class _Kind(Enum):
     VALUE = auto()
     OR = auto()
@@ -102,6 +116,11 @@ class _Token:
         if self.kind is _Kind.VALUE:
             return f"the value {self.text!r}"
         return f"{self.text!r}"
+
+
+def _is_control(char: str) -> bool:
+    """Whether *char* is a Unicode control character (category Cc)."""
+    return category(char) == "Cc"
 
 
 class _Lexer:
@@ -136,15 +155,16 @@ class _Lexer:
             found.append(self._next())
 
     def _skip_blanks(self) -> None:
-        while self._peek() in _BLANKS and self._peek() != "":
-            self._step()
-        if self._peek() == "\r":
+        while True:
+            while self._peek() in _BLANKS and self._peek() != "":
+                self._step()
+            if self._peek() != "\r":
+                return
             if self._peek(1) != "\n":
                 raise FilterSyntaxError(
                     "a carriage return outside a CRLF line break", self._line, self._column
                 )
             self._step()
-            self._skip_blanks()
 
     def _next(self) -> _Token:
         char = self._peek()
@@ -156,6 +176,12 @@ class _Lexer:
             return _Token(_Kind.VALUE, self._quoted(), line, column)
         if char in _BARE:
             return self._bare(line, column)
+        if _is_control(char):
+            raise FilterSyntaxError(
+                f"the control character U+{ord(char):04X} is not allowed in an expression",
+                line,
+                column,
+            )
         shown = f"U+{ord(char):04X}" if not char.isprintable() else repr(char)
         raise FilterSyntaxError(
             f"the character {shown} is not allowed outside quotes; quote the value", line, column
@@ -170,8 +196,8 @@ class _Lexer:
             return _Token(_Kind[word.upper()], word, line, column)
         if word.lower() in _KEYWORDS:
             raise FilterSyntaxError(
-                f"the keyword {word.lower()!r} is written in lowercase; quote the value "
-                f'("{word}") to use it as a label',
+                f"keywords are lowercase: write {word.lower()!r}, or quote the value "
+                f'("{word}") to match it',
                 line,
                 column,
             )
@@ -197,7 +223,7 @@ class _Lexer:
                     )
                 self._step()
                 chars.append(following)
-            elif not char.isprintable():
+            elif _is_control(char):
                 raise FilterSyntaxError(
                     "a control character or line break inside a quoted value",
                     self._line,
@@ -221,6 +247,17 @@ class _Parser:
     def __init__(self, tokens: list[_Token]) -> None:
         self._tokens = tokens
         self._at = 0
+        self._depth = 0
+
+    def _nested(self, token: _Token) -> None:
+        """Count one more level of nesting at *token*, refusing past :data:`MAX_DEPTH`."""
+        self._depth += 1
+        if self._depth > MAX_DEPTH:
+            raise FilterSyntaxError(
+                f"nested more than {MAX_DEPTH} levels deep with 'not' or '('",
+                token.line,
+                token.column,
+            )
 
     def _current(self) -> _Token:
         return self._tokens[self._at]
@@ -261,8 +298,10 @@ class _Parser:
 
     def _negation(self) -> Expression:
         if self._current().kind is _Kind.NOT:
-            self._advance()
-            return Negation(self._negation())
+            self._nested(self._advance())
+            operand = self._negation()
+            self._depth -= 1
+            return Negation(operand)
         return self._primary()
 
     def _primary(self) -> Expression:
@@ -270,7 +309,9 @@ class _Parser:
         if token.kind is _Kind.VALUE:
             return Word(token.text)
         if token.kind is _Kind.OPEN:
+            self._nested(token)
             inner = self._disjunction()
+            self._depth -= 1
             closing = self._current()
             if closing.kind is _Kind.CLOSE:
                 self._advance()

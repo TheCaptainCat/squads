@@ -3,12 +3,12 @@ id: EPIC-1268
 sequence_id: 1268
 type: epic
 title: 'External sources: work tracked elsewhere'
-status: InProgress
+status: Done
 author: product-owner
 description: Agents work on issues humans file on GitLab, GitHub and Jira, pulled
   into the squad
 created_at: '2026-11-03T15:57:06Z'
-updated_at: '2026-11-04T09:54:29Z'
+updated_at: '2026-11-04T18:38:00Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -74,4 +74,8 @@ Agents in a squad work on issues that humans file in the tools they already use:
   - Done: every outcome delivered by FEAT-1270..1273, all four reviews approved, full suite 2122 passed at 33d40d14. Open before release: a live pull against GitHub and Jira (shapes listed on TASK-1278).
 - [2026-11-04T09:54:29Z] `product-owner` Nina Product:
   - Reopened: a live GitLab run found follow-up work on source selection (ADR-1274 section 14, BUG-1284).
+- [2026-11-04T18:37:59Z] `op-pierre` Pierre Chat:
+  - I have no Jira instance, so the Jira connectors will not get a live run now: close the epic, and track the live Jira check as a small standalone task for later.
+- [2026-11-04T18:38:00Z] `manager` Catherine Manager:
+  - Done: FEAT-1270 to FEAT-1273 and FEAT-1285 delivered and reviewed; GitLab and GitHub run live (TASK-1278); the live Jira check is a standalone task.
 <!-- sq:discussion:end -->
