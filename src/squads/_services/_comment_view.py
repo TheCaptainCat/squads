@@ -2,6 +2,7 @@
 composed author, author URL, matching operator and trust) and its tracker references translated
 to item IDs."""
 
+import unicodedata
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
@@ -60,6 +61,20 @@ def translate_references(
     return out
 
 
+def _quoted(text: str) -> str:
+    """*text* in double quotes, with the quote, the backslash and control or format characters
+    escaped, so a tracker name can never pass for the slug or the roster name before it."""
+    out: list[str] = []
+    for ch in text:
+        if ch in '"\\':
+            out.append("\\" + ch)
+        elif unicodedata.category(ch) in ("Cc", "Cf", "Zl", "Zp"):
+            out.append(f"\\u{ord(ch):04x}")
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
+
+
 class CommentView:
     """Reads the sources document, the operators' identities and the references between sourced
     items once, for the comments of one host item."""
@@ -93,13 +108,16 @@ class CommentView:
         attrs = cmt.attributes
         handle = attrs.get(AUTHOR_HANDLE, "")
         operator = self._operator(name, attrs.get(AUTHOR_ID, ""))
-        who = f"{operator.slug} {operator.title}" if operator else attrs.get(AUTHOR_NAME) or handle
-        via = f"via {name} @{handle}" if handle else f"via {name}"
+        tracker_name = attrs.get(AUTHOR_NAME, "")
+        parts = [f"{operator.slug} {operator.title}"] if operator else []
+        if not operator and tracker_name:
+            parts.append(_quoted(tracker_name))
+        parts.append(f"via {name} @{handle}" if handle else f"via {name}")
         record = self._host.source if self._host is not None else None
         host_declared = self._declared(record.name) if record is not None else None
         url = connector_for(declared, {}).user_url(handle) if declared and handle else None
         return {
-            "author": f"{who} {via}" if who else via if handle else name,
+            "author": " ".join(parts),
             "source": name,
             "author_url": url,
             "identity": operator.slug if operator else None,

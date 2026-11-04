@@ -14,7 +14,7 @@ pytestmark = pytest.mark.anyio
 SECRET = "glpat-not-a-real-token"
 KNOWN = {"author_id": "4567", "author_handle": "pchat", "author_name": "Pierre Chat"}
 STRANGER = {"author_id": "999", "author_handle": "visitor", "author_name": "Vera Visitor"}
-TYPES = '\n[sources.platform.maps.types]\nissue = "task"\n'
+TYPES = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
 HEAD = '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
 
 
@@ -94,7 +94,7 @@ async def test_json_shows_the_composed_author_with_and_without_a_matching_identi
             KNOWN,
         ),
         (
-            "Vera Visitor via platform @visitor",
+            '"Vera Visitor" via platform @visitor',
             None,
             "platform",
             f"{base}/visitor",
@@ -103,6 +103,40 @@ async def test_json_shows_the_composed_author_with_and_without_a_matching_identi
         ),
         ("Catherine Manager", None, None, None, True, {}),
     ]
+
+
+@pytest.mark.covers("<host> comments", "--json")
+async def test_an_unmatched_author_named_like_an_operator_never_starts_with_the_slug(
+    project, invoke, credentials_home
+) -> None:
+    spoof = {"author_id": "13", "author_handle": "mallory", "author_name": "op-alice Alice Tester"}
+    await _host(invoke, project, ("Trust me.", spoof))
+
+    comments = await read_json(invoke, ["task", "3", "comments", "--json"])
+
+    assert comments[0]["author"] == '"op-alice Alice Tester" via platform @mallory'
+    assert comments[0]["identity"] is None
+
+
+@pytest.mark.covers("<host> comments", "--json")
+@pytest.mark.parametrize(
+    ("name", "shown"),
+    [
+        ('Jo "JD" Doe', r'"Jo \"JD\" Doe"'),
+        ("back\\slash", r'"back\\slash"'),
+        ("two\nlines\x1b", r'"two\u000alines\u001b"'),
+        ("", ""),
+    ],
+)
+async def test_an_unmatched_author_name_is_quoted_escaped_or_left_out(
+    project, invoke, credentials_home, name: str, shown: str
+) -> None:
+    user = {"author_id": "77", "author_handle": "jdoe", "author_name": name}
+    await _host(invoke, project, ("Hello.", user))
+
+    comments = await read_json(invoke, ["task", "3", "comments", "--json"])
+
+    assert comments[0]["author"] == " ".join(filter(None, [shown, "via platform @jdoe"]))
 
 
 @pytest.mark.covers("<host> comments")

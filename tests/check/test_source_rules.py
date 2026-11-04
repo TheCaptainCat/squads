@@ -26,7 +26,7 @@ pytestmark = pytest.mark.anyio
 
 SOURCES = (
     '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
-    'base_url = "https://tracker.example"\n\n[sources.platform.maps.types]\nissue = "task"\n'
+    'base_url = "https://tracker.example"\n\n[sources.platform.maps.types.type]\nissue = "task"\n'
 )
 
 
@@ -168,7 +168,7 @@ async def test_a_sources_document_that_does_not_load_is_an_error(squad, invoke, 
                 "error",
                 "sources",
                 f"sources config invalid: {path}: invalid sources after merge: source "
-                "'platform': maps.types: 'issue' -> 'nowhere' is not an item type",
+                "'platform': maps.types.type: 'issue' -> 'nowhere' is not an item type",
             )
         ],
         3,

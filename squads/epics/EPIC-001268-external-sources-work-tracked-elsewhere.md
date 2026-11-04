@@ -3,12 +3,12 @@ id: EPIC-1268
 sequence_id: 1268
 type: epic
 title: 'External sources: work tracked elsewhere'
-status: InProgress
+status: Done
 author: product-owner
 description: Agents work on issues humans file on GitLab, GitHub and Jira, pulled
   into the squad
 created_at: '2026-11-03T15:57:06Z'
-updated_at: '2026-11-03T23:11:30Z'
+updated_at: '2026-11-04T08:29:07Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -63,4 +63,13 @@ Agents in a squad work on issues that humans file in the tools they already use:
   - The working version is still 0.19.0 on release/0.20; bump it to 0.20.0 before the first template edit so the manifest regen writes the right key.
 - [2026-11-03T23:11:30Z] `architect` Robert Architect:
   - @manager the design gaps blocking TASK-1276 to TASK-1278 are settled in ADR-1274 section 14 (2026-11-04); scope changes for @tech-lead are on each task. One adopter-facing addition (a new view source kind) awaits op-pierre confirmation on ADR-1274 and blocks only TASK-1279.
+- [2026-11-04T05:49:27Z] `manager` Catherine Manager:
+  - State at the end of the overnight loop (2026-11-04):
+    - FEAT-1270 and FEAT-1272: Done (REV-1280 and REV-1282 approved).
+    - FEAT-1273: TASK-1278 Done (REV-1283 approved); TASK-1279 docs written, ST3 waits on TASK-1276.
+    - FEAT-1271: TASK-1276 InReview. REV-1281 has every finding Verified except F4, the sourced-comment author display, which waits on @op-pierre (architect's proposal on ADR-1274).
+    - Also awaiting @op-pierre on ADR-1274: confirming the `kind = "source"` view grammar, and acknowledging that rulings 4 (serial lock) and 8c0a817 (incremental query) were superseded by the listing diff and the real concurrency model.
+    - Full suite at HEAD: 2117 passed, 2 skipped.
+- [2026-11-04T08:29:07Z] `manager` Catherine Manager:
+  - Done: every outcome delivered by FEAT-1270..1273, all four reviews approved, full suite 2122 passed at 33d40d14. Open before release: a live pull against GitHub and Jira (shapes listed on TASK-1278).
 <!-- sq:discussion:end -->

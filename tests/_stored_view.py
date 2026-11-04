@@ -1,5 +1,5 @@
-"""A view declared stored through an override, for the cases that need a paired view tag: no
-bundled view is stored."""
+"""A view declared stored through an override, for the cases that need a paired view tag that
+no pull writes."""
 
 from pathlib import Path
 

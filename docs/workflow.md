@@ -441,17 +441,20 @@ so a status of your own gets it by naming a role that sets the flag (see "Status
 
 A **derived view** is a declared, read-only source over relationships an item already has: every
 item pointing here with a given ref kind, this item's own sub-entities, its descendants of some
-type, its own merged role definition, a type's playbook lane, or the item itself. A view's
-*declaration* is a source, plus two optional keys:
+type, its own merged role definition, a type's playbook lane, the item itself, or the tracker
+issue the item is pulled from. A view's *declaration* is a source, plus three optional keys:
 
 - **source** — where the data comes from. `ref` (every item carrying a forward ref of the named
   kind to this item, recovered by inverting stored edges), `subentity` (this item's own
   sub-entities of the named kind), `subtree` (this item's descendants of the named type), `role`
-  (this item's own merged role definition), `playbook` (a type's playbook lane), or `self` (this
-  item, with no join at all).
+  (this item's own merged role definition), `playbook` (a type's playbook lane), `self` (this
+  item, with no join at all), or `source` (the tracker issue this item is pulled from, nothing
+  when it holds no `source` record).
 - **position** — where the view's tag sits in a body.
 - **transform** — a Python function that turns the resolved source into plain data, which the
   template reads and `show --json` returns (see [§ "View transforms"](#view-transforms)).
+- **stored** — whether the view keeps text between its tags in the body (see
+  [§ "Stored views"](#stored-views)).
 
 Resolving it has one further step, presentation: a template rendered against the source's own
 resolved shape, resolved by the view's own name. For a relation source (`ref`/`subentity`/
@@ -479,7 +482,8 @@ source's kind already has a shape for — a `ref`/`subtree` source matches `sq t
 per-node rows, a `subentity` source matches the per-kind list `--json`, `role` matches `sq role
 <slug> show --json`, `self` matches the host item's `sq show <id> --json` plus a `spec` key
 (`schema_version`, `override`, and a `digest` to compare for equality only — see
-[stability.md](stability.md)), and `playbook` carries its lane plus the live roster — and skips
+[stability.md](stability.md)), `playbook` carries its lane plus the live roster, and `source`
+carries the item's tracker issue record (or `null` when it holds none) — and skips
 the view's template entirely. Each row carries the `display` object its command's `--json` carries
 (labels and rendered badges as text), never the view's rendered output. A view that declares a transform, and every stored view, has a second
 machine-readable form: the item's `show --json` carries the transform's output under
@@ -752,7 +756,7 @@ one this guide ships with; your reflog is not corrupt.
 | `ref` | `sq <type> <n> ref add` / `ref rm`, and refs severed by a forced `remove` |
 | `link` | An item's parent set or cleared through the service's own link path. **No CLI verb writes it** — from the CLI, a parent change arrives as `update` |
 | `retype` | `sq <type> <n> retype …` |
-| `source` | `sq source pull`, when it sets or changes an item's `source` record. `delta.source` is the record as written |
+| `source` | `sq source pull`, `show --refresh` or `source relink`, when it sets or changes an item's `source` record, and `source unlink`, which removes it. `delta.source` is the record as written, or `null` |
 | `default_role` | `sq role <addr> set-default` |
 | `remove` | `sq <type> <n> remove …` (the `delta` carries the gone-item snapshot) |
 | `repair` | `sq repair`, with or without `--renumber` — and the rebuild inside `sq adopt`, `sq migrate up` and `sq migrate repad`. `delta.stripped` names every item whose file the rebuild rewrote, `delta.canonicalized` every item whose refs it re-encoded |
@@ -1134,6 +1138,17 @@ and `name`:
 - `kind = "playbook"` — the playbook lane of type `name`, or the resolved item's own type when
   `name` is absent.
 - `kind = "self"` — the resolved item itself, with no join at all. Takes no `name`.
+- `kind = "source"` — the tracker issue the resolved item is pulled from (see
+  [sources.md](sources.md)). Takes no `name` and applies to every type. It resolves to nothing on
+  an item that holds no `source` record, and otherwise to one record: the item's `source` keys
+  (`name`, `id`, `key`, `state`, `updated_at`, `author_id`, `author_handle`), plus `url` (the
+  issue's web address, empty when the source is not declared), `trusted` (the source's `trusted`
+  flag, `false` when the source is not declared) and `text` (the view's stored body, unescaped,
+  with each reference to another pulled issue written as that item's ID when exactly one item
+  holds it). It is the one kind whose view can be declared `stored`
+  ([§ "Stored views"](#stored-views)). The source commands fill the stored body of the bundled
+  `source_description` view only, so on a view of your own of this kind `text` is empty: read the
+  description through `source_description`, or override its template.
 
 `position` says where the view's tag sits inside a document's `sq:body` region:
 
@@ -1183,7 +1198,8 @@ sq override update views/milestone_rollup.md.j2     # re-stamp once you have rec
 
 The template receives `source` — the resolved value in its own native shape, unflattened: a plain
 list of real `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own value
-for `role`/`playbook`/`self` — plus `item` (the host the view resolved against), `spec` (the
+for `role`/`playbook`/`self`/`source` (`none` for a `source` view on an item with no record) —
+plus `item` (the host the view resolved against), `spec` (the
 active workflow spec), `body` (a stored view's stored body, `""` for any other view), and `data`
 when the view declares a transform. There is no separate
 field/grouping grammar to declare: a template groups and orders the list itself with Jinja's
@@ -1343,26 +1359,41 @@ sq workflow views --json   # machine-readable, with each view's transform
 #### Stored views
 
 A view declared `stored = true` keeps text that the squad cannot compute, such as a description
-fetched from outside it, in the item file, and renders it through its template on every read
-like any other view. The one bundled stored view is `source_description`, which holds the
-description of an item `sq source pull` feeds (see [sources.md](sources.md)). You declare your own
-in `.overrides/workflow.toml`:
+fetched from a tracker, in the item file, and renders it through its template on every read like
+any other view. The bundled `source_description` view is stored: it holds the description of an
+item `sq source pull` feeds, at the top of its body (see [sources.md](sources.md)).
+
+`stored = true` is accepted only on a view whose source has a writer that fills the body. The
+source commands (`sq source pull`, `show --refresh`, `source relink` and `source unlink`) are
+the only writer, for the `source` kind, and they write the body of `source_description`, so
+`stored = true` on a view of any other source kind fails at load, naming the view:
+
+```
+view 'notes': `stored = true` needs a source kind whose writer fills the body; only `source` has one
+```
+
+The bundled declaration:
 
 ```toml
-[views.imported_description]
-source = { kind = "self" }
+[views.source_description]
+source = { kind = "source" }
 position = "top"
 stored = true
 ```
+
+A stored view is otherwise declared, placed and overridden like any view: its template is
+`templates/views/<name>.md.j2`. The bundled `source_description` template renders the source,
+key, address and age of the issue, the untrusted notice unless the source is trusted, then
+`source.text`; on an item with no record it renders the stored body alone.
 
 **The pair.** A stored view's tag is a pair inside `sq:body`: the opening tag, the stored body,
 and an end tag that names the view, each tag on its own line. An empty pair is a stored view with
 no body yet:
 
 ```
-<!-- sq:view:imported_description -->
+<!-- sq:view:source_description -->
 …stored body…
-<!-- sq:view:imported_description:end -->
+<!-- sq:view:source_description:end -->
 ```
 
 A view that is not stored keeps its single tag and never has an end tag. `view add <name>` on a
@@ -1391,9 +1422,10 @@ holds changes nothing, the file and the reflog included. A body write, a file pa
 - A new body that carries the pair exactly as stored is accepted, so the `body` of `show --json`
   can be written back with `body --force --file`.
 - A new body that carries the pair with any other text is refused with exit `1`, and nothing is
-  written. The message names the view and says to leave the pair out of the body or send it back
-  unchanged; on a pulled item it names the source, the issue and `source unlink` (see
-  [sources.md](sources.md#what-the-squad-cannot-change-on-a-pulled-item)).
+  written. On a pulled item the message names the source, the issue and `source unlink` (see
+  [sources.md](sources.md#what-the-squad-cannot-change-on-a-pulled-item)); on an item with no
+  `source` record it says that nothing in the squad writes the view until the item is linked to an
+  issue.
 - A file that holds two pairs of one view with different bodies is refused by a body write and by
   `view add`, rather than one body being dropped; delete the pair you do not want from the file.
   Two identical pairs collapse into one.
@@ -1408,9 +1440,9 @@ unescaped body inside the view's entry under `views`:
 ```json
 {
   "views": {
-    "imported_description": {"body": "See <!-- the note --> for more.", "data": null}
+    "source_description": {"body": "See <!-- the note --> for more.", "data": null}
   },
-  "body": "<!-- sq:view:imported_description -->\nSee <!!-- the note --> for more.\n<!-- sq:view:imported_description:end -->\n\nThe squad's own prose."
+  "body": "<!-- sq:view:source_description -->\nSee <!!-- the note --> for more.\n<!-- sq:view:source_description:end -->\n\nThe squad's own prose."
 }
 ```
 
@@ -1423,7 +1455,7 @@ tag of a stored view with no end tag, an end tag with no opening tag, a pair for
 not declared stored, and a pair outside `sq:body`:
 
 ```
-error TASK-NNNNNN-probe.md: stored view 'imported_description' has a tag <!-- sq:view:imported_description --> with no end tag <!-- sq:view:imported_description:end -->; complete it with `sq task <n> view add imported_description`
+error TASK-NNNNNN-probe.md: stored view 'source_description' has a tag <!-- sq:view:source_description --> with no end tag <!-- sq:view:source_description:end -->; complete it with `sq task <n> view add source_description`
 error TASK-NNNNNN-probe.md: close without open <!-- sq:view:ghost:end --> for view 'ghost'
 error TASK-NNNNNN-probe.md: view 'other' has a tag pair <!-- sq:view:other -->, but is not declared stored; declare `stored = true` on the view or remove the pair
 ```
@@ -1492,7 +1524,8 @@ first read that renders the view. Bundled transforms are not checked here.
 
 - `source` — the view's resolved source, the same value the template receives as `source`: a list
   of items for `ref` and `subtree`, a list of sub-entities for `subentity`, the merged role
-  definition for `role`, the playbook lane and roster for `playbook`, the item itself for `self`.
+  definition for `role`, the playbook lane and roster for `playbook`, the item itself for `self`,
+  the tracker issue record (or `None`) for `source`.
   `sq workflow view <name> <id> --json` prints it, so it is the way to see what the function gets.
 - `item` — the item whose body places the view.
 - `spec` — the active workflow spec, with the same methods a template uses, such as

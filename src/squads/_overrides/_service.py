@@ -771,11 +771,14 @@ _SOURCES_SCAFFOLD_BODY = """\
 #   - Top-level keys are limited to: connectors, sources (plus [selected] below).
 #   - `connector` names a registered connector. `version` may be left out only when the
 #     connector has exactly one registered version.
-#   - `filter` selects the issues to pull (a label for gitlab).
+#   - `filter` is required: it selects the issues to pull (a label for gitlab and github, a JQL
+#     query for jira).
 #   - `trusted = true` removes the notice shown on text the tracker authored.
-#   - `maps.types`, `maps.fields.<field>` and `maps.links` send a tracker value to an item type,
-#     a badge value of a field, or a ref kind. A source's entries overlay the connector's
-#     defaults in the bundled document key by key; an entry set to "" unmaps the tracker value.
+#   - `maps.types.<side>`, `maps.fields.<field>.<side>` and `maps.links` send a tracker value to
+#     an item type, a badge value of a field, or a ref kind. A side is where the value is read on
+#     the issue: `labels`, `type`, and for jira its priority field. A source's entries overlay
+#     the connector's defaults in the bundled document key by key; an entry set to "" unmaps the
+#     tracker value.
 #   - Every map target must exist in the squad's workflow spec.
 #
 # See state after editing: sq override diff sources
@@ -788,7 +791,7 @@ _SOURCES_SCAFFOLD_BODY = """\
 # base_url = "https://gitlab.example.com"
 # filter = "squads"
 #
-# [sources.platform.maps.types]
+# [sources.platform.maps.types.labels]
 # bug = "bug"
 # -----------------------------------------------------------------------------
 """

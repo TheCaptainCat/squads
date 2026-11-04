@@ -30,6 +30,7 @@ from squads._services._import_model import (
 from squads._sources import _credentials as credentials
 from squads._sources._connector import Comment, Connector, FetchedIssue, Issue, SourceFetch
 from squads._sources._converters import load_converter
+from squads._sources._maps import mapped_types, mapped_values
 from squads._sources._probes import missing_credential
 from squads._sources._spec import SourceSpec
 
@@ -144,8 +145,7 @@ class Compiler:
 
     # ------------------------------------------------------------------ mapping
     def mapped_type(self, issue: Issue) -> str | None:
-        types = self.source.maps.types
-        found = {types[k] for k in (*issue.labels, issue.tracker_type) if k in types}
+        found = mapped_types(self.source.maps, issue)
         if len(found) == 1:
             return next(iter(found))
         reason = "maps to no item type" if not found else f"maps to several types ({sorted(found)})"
@@ -154,12 +154,12 @@ class Compiler:
 
     def mapped_fields(self, issue: Issue) -> dict[str, str]:
         out: dict[str, str] = {}
-        for code, table in self.source.maps.fields.items():
-            values = {table[label] for label in issue.labels if label in table}
+        for code in self.source.maps.fields:
+            values = mapped_values(self.source.maps, code, issue)
             if len(values) == 1:
                 out[code] = next(iter(values))
             elif values:
-                self.say(f"{issue.key}: {code} left alone, its labels map to {sorted(values)}")
+                self.say(f"{issue.key}: {code} left alone, its values map to {sorted(values)}")
         return out
 
     def record(self, issue: Issue, state: str) -> dict[str, str]:
@@ -363,6 +363,24 @@ class PullMixin(ImportMixin):
         """The unescaped stored body of *view* on *item*."""
         return await self._stored_view_body(item, view)
 
+    @staticmethod
+    async def _fetch_one_source(
+        db: SquadsDB, source: SourceSpec, connector: Connector
+    ) -> SourceFetch:
+        """The fetch of *source*: what the items already hold of it decides what is read in
+        detail."""
+        held = [
+            it.source
+            for it in db.items.values()
+            if it.source is not None and it.source.name == source.name
+        ]
+        stored: dict[str, frozenset[tuple[str, str]]] = {}
+        for record in held:
+            stored[record.id] = stored.get(record.id, frozenset()) | {
+                (record.updated_at, record.state)
+            }
+        return await fetch_source(connector, stored, {record.id: record.key for record in held})
+
     async def pull_sources(self, req: SourcePullRequest) -> Response[SourcePulled]:
         """Fetch the sources, compile their issues to events and apply them in one transaction."""
         declared = self.sources()
@@ -396,19 +414,13 @@ class PullMixin(ImportMixin):
                 skipped[source.name] = str(exc)
                 failed.add(source.name)
         for source, connector in ready:
-            held = [
-                it.source
-                for it in db.items.values()
-                if it.source is not None and it.source.name == source.name
-            ]
-            linked = {record.id: record.key for record in held}
-            stored: dict[str, frozenset[tuple[str, str]]] = {}
-            for record in held:
-                stored[record.id] = stored.get(record.id, frozenset()) | {
-                    (record.updated_at, record.state)
-                }
-            result = await fetch_source(connector, stored, linked)
-            fetched.append(Fetched(source, result))
+            try:
+                fetched.append(Fetched(source, await self._fetch_one_source(db, source, connector)))
+            except SquadsError as exc:
+                if req.name is not None:
+                    raise
+                skipped[source.name] = str(exc)
+                failed.add(source.name)
         now = clock.now().astimezone(UTC).replace(microsecond=0)
         jobs: list[CompileJob] = [
             (entry.source, lambda db, entry=entry: self._compile_source(db, entry, now))
@@ -473,6 +485,8 @@ class PullMixin(ImportMixin):
         compiler = Compiler(self, db, entry.source, now)
         fetch = entry.fetch
         compiler.out.unchanged += fetch.untouched
+        for line in fetch.skipped:
+            compiler.say(line)
         by_id = {fi.issue.id: fi for fi in fetch.changed}
         for fi in fetch.changed:
             await compiler.attempt(fi, fi.issue.state)

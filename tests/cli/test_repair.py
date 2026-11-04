@@ -304,7 +304,7 @@ async def test_repair_leaves_the_pair_of_a_stored_view_named_head_alone(
     assert added.exit_code == 0, added.output
     path = populated_project.squad_dir / TASK_FILE
     pair = stored.pair().replace(stored.VIEW, "head")
-    # no verb writes a stored body yet: put the text between the tags in the file
+    # no verb writes this view's stored body: put the text between the tags in the file
     path.write_text(
         path.read_text(encoding="utf-8").replace(
             stored.pair("").replace(stored.VIEW, "head"), pair

@@ -3,7 +3,7 @@ id: REV-1281
 sequence_id: 1281
 type: review
 title: Sources spec and pull (FEAT-1271, TASK-1276)
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - FEAT-1271
@@ -29,7 +29,7 @@ subentities:
   severity: medium
 - local_id: F4
   title: A tracker display name can impersonate an operator in the comment header
-  status: Open
+  status: Verified
   assignee: architect
   severity: medium
 - local_id: F5
@@ -73,7 +73,7 @@ subentities:
   assignee: python-dev
   severity: low
 created_at: '2026-11-04T02:22:04Z'
-updated_at: '2026-11-04T02:58:25Z'
+updated_at: '2026-11-04T08:21:09Z'
 ---
 <!-- sq:body -->
 Batch review of FEAT-1271 (sources spec and pull) as delivered by TASK-1276, against ADR-1274 (§14 included), its rulings and the dated notes on the amended ADRs, board notice 22 and ADR-1172. The change reviewed is `4cfb4d58..HEAD` on `release/0.20` (src, tests, CLAUDE.md).
@@ -252,6 +252,13 @@ Only the handle differs, and `author` in `--json` matches the same way; only `id
 <!-- sq:finding:F4:discussion -->
 - [2026-11-04T02:27:12Z] `architect` Robert Architect:
   - Escalated to @op-pierre on ADR-1274: the fix changes the unmatched form his ruling 2980084 spells out. Recommendation there: a slug-first matched form with the roster name, a handle-first unmatched form with the tracker name quoted. Open until he rules; then a code change.
+- [2026-11-04T08:12:51Z] `op-pierre` Pierre Chat:
+  - Ruled on ADR-1274: slug if matched, then the name (quoted when unverified), then via <source> @handle.
+- [2026-11-04T08:17:08Z] `python-dev` Elias Python:
+  - Fixed: every sourced comment author now reads [slug roster-name | "tracker name"] via <source> @<handle> (_comment_view.py). Tracker name is double-quoted with " and \ and control/format characters escaped; omitted when the tracker gave none. --json author follows it, identity unchanged. Tests: spoof, escaping, no-name; docs/sources.md documents the form.
+- [2026-11-04T08:20:41Z] `reviewer` Paul Reviewer:
+  - Verified against 33d40d1: the harness probe (_host, gitlab routes) prints matched, spoof "op-alice Alice Tester", a quote-breakout name, empty, blank, bidi (U+202E/2066), zero-width/LS/PS/DEL/NEL, CR-LF fake header, Rich markup and a reused handle. No unmatched author starts with a slug in show --comments, comments text or --json author; identity is null; all escapes follow the ADR-1274 §14 amendment. The 29 tests in the touched modules pass.
+  - Minor, outside F4: the handle is not escaped. It sits after via, so it cannot take the slug slot.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -435,4 +442,6 @@ The escape itself works: a pulled note carrying a forged comment header, an `sq:
     - `--author source:x` is already refused as an unknown slug on create, update and import, so relink authorship cannot be forged through the CLI.
 - [2026-11-04T02:52:24Z] `reviewer` Paul Reviewer:
   - Fix verification of e1a50c24: F1, F2 and F5 to F11 are Verified. F3 is reopened: when a pull creates the host, a link dropped for a failing target is never retried (reproduced; @architect picks the fix, then @python-dev). F4 stays Open pending op-pierre. The review stays ChangesRequested.
+- [2026-11-04T08:21:09Z] `manager` Catherine Manager:
+  - All 11 findings Verified; F4 fixed in 33d40d14 per op-pierre ruling on ADR-1274, verified by the reviewer. Approved.
 <!-- sq:discussion:end -->

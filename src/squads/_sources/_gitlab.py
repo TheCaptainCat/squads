@@ -6,20 +6,17 @@ from collections.abc import Iterator, Mapping
 from typing import Any, cast
 
 from squads._errors import SquadsError
-from squads._sources._connector import Comment, Connector, Issue, Link, Reference
+from squads._sources._connector import TYPE, Comment, Connector, Issue, Link, Reference
 from squads._sources._gitlab_probes import GitLabProbes
-from squads._sources._http import HttpClient, NotFoundError
+from squads._sources._http import HttpClient, NotFoundError, UnexpectedAnswerError
 from squads._sources._probes import Expected, Family, ProbeResult
+from squads._sources._records import text
 
 #: A reference to an issue: an optional project path, then ``#`` and the project-local number.
 _REFERENCE_RE = re.compile(r"(?<![\w/&#.-])((?:[\w.-]+/)*[\w.-]+)?#(\d+)\b")
 _GLOBAL_ID = "gid://gitlab/Issue/"
 _STATE_OPEN = "opened"
-
-
-def _text(record: Mapping[str, Any], key: str) -> str:
-    value = record.get(key)
-    return "" if value is None else str(value)
+_STATE_CLOSED = "closed"
 
 
 def _user(record: object) -> tuple[str, str, str]:
@@ -27,7 +24,7 @@ def _user(record: object) -> tuple[str, str, str]:
     user: Mapping[str, Any] = (
         cast("Mapping[str, Any]", record) if isinstance(record, Mapping) else {}
     )
-    return _text(user, "id"), _text(user, "username"), _text(user, "name")
+    return text(user, "id"), text(user, "username"), text(user, "name")
 
 
 def _split_key(key: str) -> tuple[str, str]:
@@ -68,25 +65,28 @@ class GitLabConnector(Connector):
         author_id, author_handle, _ = _user(record.get("author"))
         references = record.get("references")
         full = (
-            _text(cast("Mapping[str, Any]", references), "full")
+            text(cast("Mapping[str, Any]", references), "full")
             if isinstance(references, Mapping)
             else ""
         )
         labels = record.get("labels")
+        state = record.get("state")
+        if state not in (_STATE_OPEN, _STATE_CLOSED) or not (full and text(record, "id")):
+            raise UnexpectedAnswerError("an issue without an identity or a known state")
         return Issue(
-            id=f"{_GLOBAL_ID}{_text(record, 'id')}",
+            id=f"{_GLOBAL_ID}{text(record, 'id')}",
             key=full,
-            title=_text(record, "title"),
-            description=_text(record, "description"),
-            state="open" if record.get("state") == _STATE_OPEN else "closed",
-            updated_at=_text(record, "updated_at"),
+            title=text(record, "title"),
+            description=text(record, "description"),
+            state="open" if state == _STATE_OPEN else "closed",
+            updated_at=text(record, "updated_at"),
             author_id=author_id,
             author_handle=author_handle,
-            tracker_type=_text(record, "issue_type"),
+            sides=((TYPE, text(record, "issue_type")),),
             labels=tuple(str(label) for label in cast("list[Any]", labels))
             if isinstance(labels, list)
             else (),
-            locator=(("project_id", _text(record, "project_id")), ("iid", _text(record, "iid"))),
+            locator=(("project_id", text(record, "project_id")), ("iid", text(record, "iid"))),
         )
 
     def listing(self) -> list[Issue]:
@@ -106,11 +106,11 @@ class GitLabConnector(Connector):
     def lookup(self, reference: str) -> Issue | None:
         """The issue named by a key (``group/project#12``), or by its global ID when the filter
         lists it; ``None`` when GitLab returns neither."""
-        text = reference.strip()
-        if "#" in text:
-            path, number = _split_key(text)
+        wanted = reference.strip()
+        if "#" in wanted:
+            path, number = _split_key(wanted)
             return self._issue_by_key(path, number)
-        return next((i for i in self.listing() if i.id == text), None)
+        return next((i for i in self.listing() if i.id == wanted), None)
 
     def _issue_by_key(self, path: str, number: str) -> Issue | None:
         if not path or not number.isascii() or not number.isdigit():
@@ -139,13 +139,13 @@ class GitLabConnector(Connector):
             author_id, handle, name = _user(record.get("author"))
             notes.append(
                 Comment(
-                    id=_text(record, "id"),
-                    body=_text(record, "body"),
+                    id=text(record, "id"),
+                    body=text(record, "body"),
                     author_id=author_id,
                     author_handle=handle,
                     author_name=name,
-                    created_at=_text(record, "created_at"),
-                    updated_at=_text(record, "updated_at"),
+                    created_at=text(record, "created_at"),
+                    updated_at=text(record, "updated_at"),
                 )
             )
         return notes
@@ -157,13 +157,11 @@ class GitLabConnector(Connector):
             record = cast("Mapping[str, Any]", linked)
             references = record.get("references")
             full = (
-                _text(cast("Mapping[str, Any]", references), "full")
+                text(cast("Mapping[str, Any]", references), "full")
                 if isinstance(references, Mapping)
                 else ""
             )
-            found.append(
-                Link(_text(record, "link_type"), f"{_GLOBAL_ID}{_text(record, 'id')}", full)
-            )
+            found.append(Link(text(record, "link_type"), f"{_GLOBAL_ID}{text(record, 'id')}", full))
         return found
 
     def issue_url(self, key: str) -> str:
@@ -179,7 +177,7 @@ class GitLabConnector(Connector):
         """The user ID behind *handle*, or ``None`` when GitLab knows no such user."""
         users = self._http.get("/api/v4/users", {"username": handle.removeprefix("@")})
         if isinstance(users, list) and users:
-            return _text(cast("Mapping[str, Any]", users[0]), "id") or None
+            return text(cast("Mapping[str, Any]", users[0]), "id") or None
         return None
 
     def references(self, text: str, host_key: str) -> list[Reference]:

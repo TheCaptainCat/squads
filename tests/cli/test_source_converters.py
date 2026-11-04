@@ -12,7 +12,7 @@ pytestmark = pytest.mark.anyio
 
 SECRET = "glpat-not-a-real-token"
 SAMPLES = Path(__file__).parents[1] / "fixtures" / "converters"
-TYPES = '\n[sources.platform.maps.types]\nissue = "task"\n'
+TYPES = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
 
 
 @pytest.mark.covers("source pull", "source")

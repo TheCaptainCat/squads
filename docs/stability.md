@@ -291,7 +291,10 @@ of a view that is not declared `stored` is a single line, `<!-- sq:view:<name> -
 `<!-- sq:view:<name>:disabled -->`, with no end tag and nothing written under it.
 
 The tag of a view declared `stored = true` is a pair, each tag on its own line, with the view's
-stored body between them:
+stored body between them. `stored = true` is accepted only on a view whose source has a writer
+that fills the body, which is the `source` kind (`source = { kind = "source" }`, written by the
+source commands) alone; the bundled `source_description` view, which holds a pulled item's
+description, is the one such view:
 
 ```
 <!-- sq:view:<name> -->
@@ -362,11 +365,14 @@ folder in the squad directory. The frozen surfaces are:
   `sq workflow lint` import it, which runs its top-level code. There is no approval step; see
   [overrides.md § "Giving a view a transform"](overrides.md#giving-a-view-a-transform).
 - **`sources.toml`:** its top-level keys are `connectors` and `sources`. A
-  `[sources.<name>]` table, `<name>` a slug, takes `connector` and `base_url` (required),
-  `version`, `filter`, `trusted` (default `false`), `enabled` (default `true`), `converter` and
-  `maps`, whose `types`, `fields.<field>` and `links` tables map tracker values to item types,
-  badge values and ref kinds. `version` may be omitted only when its connector has exactly one
-  registered version. A `[connectors.<name>.<version>]` table gives a connector version's
+  `[sources.<name>]` table, `<name>` a slug, takes `connector`, `base_url` and `filter`
+  (required, `filter` not empty), `version`, `trusted` (default `false`), `enabled` (default
+  `true`), `converter` and `maps`. `maps.types.<side>` and `maps.fields.<field>.<side>` map a
+  tracker value on one side of the issue to an item type or a badge value, and `maps.links` maps a
+  link type to a ref kind. The sides are fixed per connector version: `labels` on every one,
+  `type` on `gitlab@v4` and `github@v3`, `type` and `priority` on `jira@cloud-v3` and
+  `jira@dc-v2`; an undeclared side fails at load. `version` may be omitted only when its
+  connector has exactly one registered version. A `[connectors.<name>.<version>]` table gives a connector version's
   `converter` and `maps`, which a source's maps overlay key by key; an entry set to `""` unmaps a
   value. Every map target must exist in the workflow spec, and `maps.types` must not be empty
   once overlaid. See [sources.md § "Declaring a source"](sources.md#declaring-a-source).
@@ -523,7 +529,7 @@ The line schema (frozen field set):
   | `ref` | a ref is added, removed, or severed |
   | `link` | an item's parent is set or cleared |
   | `retype` | an item is retyped |
-  | `source` | `sq source pull` sets or changes an item's `source` record (`delta.source`: the record as written) |
+  | `source` | `sq source pull`, `show --refresh` or `source relink` sets or changes an item's `source` record, or `source unlink` removes it (`delta.source`: the record as written, or `null`) |
   | `default_role` | the default-role designation moves |
   | `remove` | an item is hard-removed (carries the gone-item snapshot) |
   | `repair` | `sq repair` rebuilds the index (including `--renumber`) |
@@ -1249,7 +1255,7 @@ The frozen surface includes:
   | `sq workflow statuses --json` | status | `status`, `role`, `badge`, `display` |
   | `sq workflow roles --json` | status role | `role`, `settled`, `hidden`, `color`, `live`, `blocked`, `deferred` |
   | `sq workflow lifecycles --json` | lifecycle | `lifecycle`, `initial`, `states`, `transitions` |
-  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `stored`, `transform` |
+  | `sq workflow views --json` | derived view | `view`, `source_kind`, `source_name`, `transform`, `stored` |
   | `sq workflow ref-kinds --json` | ref kind | `kind` (vocabulary), `label` (display), `hint` (display), `role` (open set), `direction` |
 
   Each emits a bare JSON array, one row per declared entry in a documented order, with **every key
@@ -1282,7 +1288,11 @@ The frozen surface includes:
   --json`); `role` matches `sq role <slug> show --json`; `self` matches the host item's own `show
   --json` plus a `spec` key, `{schema_version, override, digest}`; `playbook` has no existing
   counterpart, so its own shape is `{type, lane, roster}` (`lane` is `null` for a type outside
-  every guide's lane domain). Each row carries the `display` object of the command it matches. No
+  every guide's lane domain); `source` is `null` on an item with no `source` record, and otherwise
+  `{name, id, key, state, updated_at, author_id, author_handle, url, trusted, text}`: the item's
+  record, the issue's web address (`""` when the source is not declared), the source's `trusted`
+  flag (`false` when it is not declared) and the stored description with references translated.
+  Each row carries the `display` object of the command it matches. No
   shape carries a `fields`/`group_by`/`groups` key. Because `self`
   is the host's `show --json`, it carries that payload's stored `body` and its `views` key. The
   payload is the source whether or not the view declares a transform: it is the transform's input,
@@ -1365,7 +1375,8 @@ The frozen surface includes:
   `identities`, an object of source name to tracker user ID (`{}` when none is set)
 - **Sources:** `sq source list --json` is `{sources}`, each
   `{name, connector, version, enabled, credential, items, newest_updated_at}`; `sq source pull
-  --json` is `{dry_run, sources}`, each `{name, created, refreshed, unchanged, left_out, lines}`;
+  --json` is `{dry_run, sources}`, each `{name, created, refreshed, unchanged, left_out, lines,
+  failed}`;
   `sq source check --json` is `{ok, sources}`, each `{name, connector, version, enabled, ok,
   lines}` with lines `{family, verdict, text, fix}`; `credential set --json` is
   `{source, base_url, fields, path}`; `source unlink --json` is `{id, source, key}` and

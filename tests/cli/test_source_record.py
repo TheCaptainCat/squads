@@ -103,5 +103,5 @@ async def test_a_comment_header_may_name_a_sourced_author(project, invoke) -> No
     comments = json.loads((await invoke(["task", "2", "comments", "--json"])).output)
 
     assert [(c["author_slug"], c["author"], c["body"]) for c in comments] == [
-        ("source:platform", "platform", "- Seen on the tracker")
+        ("source:platform", "via platform", "- Seen on the tracker")
     ]

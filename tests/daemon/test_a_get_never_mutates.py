@@ -81,7 +81,7 @@ def test_every_get_operation_leaves_every_file_of_the_squad_as_it_found_it(
     stored.declare_stored_view(seeded_project.squad_dir)
     daemon = serve(seeded_project)
     values = seed(daemon)
-    # no operation writes a stored body: put a pair in the task's file, as a pull would leave it
+    # only a pull writes a stored body: put a pair in the task's file, as a pull would leave it
     task_file = next(seeded_project.squad_dir.glob("tasks/TASK-*.md"))
     task_file.write_text(
         task_file.read_text(encoding="utf-8").replace(

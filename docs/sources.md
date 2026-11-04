@@ -32,11 +32,14 @@ connector = "gitlab"
 base_url = "https://gitlab.example.com"
 filter = "squads"
 
-[sources.platform.maps.types]
+[sources.platform.maps.types.type]
 issue = "task"
-bug = "bug"
+incident = "bug"
 
-[sources.platform.maps.fields.priority]
+[sources.platform.maps.types.labels]
+needs-design = "feature"
+
+[sources.platform.maps.fields.priority.labels]
 "priority::high" = "high"
 "priority::low" = "low"
 ```
@@ -45,28 +48,43 @@ The table key is the source's name, a slug (lowercase letters, digits and `-`). 
 
 | Key | Default | Meaning |
 |---|---|---|
-| `connector` | required | the connector that reads the tracker: `gitlab` |
-| `version` | see below | the connector version: `v4` for `gitlab` |
+| `connector` | required | the connector that reads the tracker: `gitlab`, `github` or `jira` |
+| `version` | see below | the connector version: `v4` for `gitlab`, `v3` for `github`, `cloud-v3` or `dc-v2` for `jira` |
 | `base_url` | required | the tracker's `http://` or `https://` address |
-| `filter` | `""` | which issues the source selects, in the connector's own terms (a label for `gitlab`) |
+| `filter` | required | which issues the source selects, in the connector's own terms (a label, or a JQL query for `jira`); it must not be empty |
 | `trusted` | `false` | `true` drops the untrusted notice on the text the tracker wrote |
 | `enabled` | `true` | `false` pauses the source: nothing is fetched from it |
 | `converter` | the connector's | how the tracker's text becomes markdown (see [Converters](#converters)) |
-| `maps.types` | the connector's | tracker value to item type |
-| `maps.fields.<field>` | the connector's | tracker value to a badge value of `<field>` |
+| `maps.types.<side>` | the connector's | a tracker value on one side of the issue to an item type |
+| `maps.fields.<field>.<side>` | the connector's | a tracker value on one side of the issue to a badge value of `<field>` |
 | `maps.links` | the connector's | tracker link type to ref kind |
 
+**`filter` is required.** A source without one, or with an empty one, fails to load, naming the
+source. Without a filter, a token would list every issue it can see, private ones included, into
+a squad that is committed to a repository.
+
+**Maps read one side at a time.** An issue offers its values on **sides**, and each map table
+names the side it reads, so a label anyone can type never stands in for a tracker field. Every
+connector has `labels`; `gitlab` and `github` add `type` (the issue type), and `jira` adds `type`
+(the issue type) and `priority`. A side the connector version does not have fails at load,
+listing the sides it has, and so does a map written as a value where a side is due (a
+`[sources.<name>.maps.types]` table holding `issue = "task"` directly). When the sides of one map
+give different values for an issue, nothing is set: the issue is not created, or the badge field
+is left alone, and the pull reports the values it found. Values that agree do not conflict.
+
 **The version rule.** `version` may be left out only when its connector has exactly one registered
-version, which the source then uses. A connector with several versions names an API or a
-deployment each, and squads never picks one for you: a source without `version` then fails to
-load, listing the known versions. An unknown version fails the same way:
+version, which the source then uses. `jira` has two, `cloud-v3` and `dc-v2`, and squads never picks
+one for you: a `jira` source without `version` fails to load, listing them. An unknown version
+fails the same way:
 
 ```
+source 'jira-prod': connector 'jira' has several versions, so `version` is required (known: cloud-v3, dc-v2)
 source 'platform': connector 'gitlab' has no version 'v3' (known: v4)
 ```
 
 **Connector defaults.** The bundled document gives each connector version its defaults in a
-`[connectors.<name>.<version>]` table: its converter and its maps. The bundled `gitlab` defaults are:
+`[connectors.<name>.<version>]` table: its converter and its maps. The bundled defaults map links
+only:
 
 ```toml
 [connectors.gitlab.v4]
@@ -75,10 +93,29 @@ converter = "gitlab-md"
 [connectors.gitlab.v4.maps.links]
 relates_to = "related"
 blocks = "blocks"
+
+[connectors.github.v3]
+converter = "github-md"
+
+[connectors.github.v3.maps.links]
+blocking = "blocks"
+
+[connectors.jira.cloud-v3]
+converter = "adf"
+
+[connectors.jira.cloud-v3.maps.links]
+blocks = "blocks"
+
+[connectors.jira.dc-v2]
+converter = "jira-wiki"
+
+[connectors.jira.dc-v2.maps.links]
+blocks = "blocks"
 ```
 
-A source's own maps overlay these key by key, and an entry set to `""` unmaps a tracker value the
-defaults map. Messages spell a connector version `<name>@<version>` (`gitlab@v4`).
+A source's own maps overlay these side by side and key by key, and an entry set to `""` unmaps a
+tracker value the defaults map. Messages spell a connector version `<name>@<version>`
+(`gitlab@v4`, `jira@cloud-v3`).
 
 **What is checked at load.** Every map target must exist in the squad's workflow: a type in
 `maps.types`, a declared badge field and one of its badge codes in `maps.fields`, a ref kind in
@@ -88,7 +125,14 @@ entry the source inherited from the connector's defaults:
 
 ```
 error: …/squads/.overrides/sources.toml: invalid sources after merge:
-  source 'platform': maps.types: 'issue' -> 'nonesuch' is not an item type
+  source 'platform': filter is required and must not be empty
+  source 'platform': maps name the side 'priority', which the connector does not have (known: labels, type)
+```
+
+A map written without its side is reported before anything else about that source:
+
+```
+  source 'platform': maps.types.issue is a value, not a side: write it under maps.types.<side>, one of: labels, type
 ```
 
 A `sources.toml` that does not load fails the commands that need it, such as the `sq source`
@@ -97,7 +141,7 @@ commands. Every other command keeps working, and `sq check` reports it under `so
 ## Credentials
 
 A credential is never stored in the squad. `sq source credential set <source>` asks for each value
-the connector needs (a `token` for `gitlab`) without echo, or reads one line per value from
+the connector needs (see [Connectors](#connectors)) without echo, or reads one line per value from
 standard input when that is not a terminal, and stores it for the user who serves the squad:
 
 ```bash
@@ -179,21 +223,25 @@ same line and its fix, before anything is fetched or written.
 sq source pull [<source>] [--dry-run] [--json]
 ```
 
-Without a name, every enabled source is pulled; a source with no stored credential is skipped with
-a warning. A named source that is disabled is refused, naming `enabled = false`. Every source is
-checked for access before any is fetched.
+Every source is checked for access before any is fetched. A named source stops at its first
+blocking access failure, prints that line and writes nothing, and a named source that is disabled
+is refused, naming `enabled = false`. Without a name, every enabled source is pulled: a source
+with no stored credential is skipped with a warning, and a source that fails its access probes is
+reported with the probe's line and left out while the others are pulled; the command then exits
+`1`.
 
 ```
 platform: created 2 (TASK-<n>, TASK-<m>), refreshed 0, unchanged 0
 ```
 
 **What an issue becomes.** An issue the filter selects and no item holds becomes an item of the
-type `maps.types` gives it, read from the issue's labels and its tracker type. An issue that maps
-to no type, or to two different types, is not created, and the report says which. The item is
+type `maps.types` gives it, read from every side the map names. An issue that maps to no type, or
+to two different types, is not created, and the report says which; every pull reports it again
+until the map covers it, and then creates it. The type is applied at creation only. The item is
 authored by `source:<name>` and carries:
 
-- the issue's title, and each badge field `maps.fields` maps from its labels (a field whose labels
-  map to two values is left alone and reported);
+- the issue's title, and each badge field `maps.fields` maps from the sides it names (a field
+  whose sides give two values is left alone and reported);
 - a `source` record in its frontmatter: the source's `name`, the issue's immutable `id`, its
   readable `key` (`group/project#12`), its `state`, its `updated_at`, and its author's `author_id`
   and `author_handle`;
@@ -202,7 +250,8 @@ authored by `source:<name>` and carries:
 - the issue's comments, each authored by `source:<name>`, with the tracker's comment ID, the
   author's ID, handle and name and the comment's update time on an attribute line under its
   header;
-- a ref for each link whose type `maps.links` maps, when the linked issue is held by an item too.
+- a ref for each link whose type `maps.links` maps, when the linked issue is held by an item too;
+  a link type no map names is skipped.
 
 **What a later pull does.** The pull reads the source's whole listing, closed issues included, and
 compares each issue's `updated_at` and state with the record the squad holds. Only an issue no
@@ -223,7 +272,14 @@ pull reports it on every run.
 
 **`--dry-run`** runs every check and writes nothing. **`--json`** prints `{dry_run, sources}`, each
 source with `name`, `created` (the new item IDs), `refreshed`, `unchanged`, `left_out` (why the
-source was skipped, or `null`) and `lines` (the report).
+source was skipped, or `null`), `lines` (the report) and `failed` (`true` when it was left out for
+failing its access probes).
+
+**Running beside other commands.** A pull fetches outside every lock, then compiles and applies
+under the index lock, against the index as it stands then, so other commands wait only for that
+last part. Two pulls of one source at once cannot both create an issue: the second finds the
+first's item and refreshes it. A comment edited or deleted on a tracker that does not move the
+issue's `updated_at` is picked up at the issue's next change, or by `show --refresh`.
 
 Each change a pull makes is in the reflog under the actor `source:<name>`, and a change of an
 item's record under the `source` op.
@@ -245,6 +301,33 @@ A reference to another issue that exactly one item holds reads as that item's ID
 reference stays as written. `show --json` keeps the stored text in `body`, and the view's entry
 under `views` holds it unescaped (see
 [workflow.md § "Stored views"](workflow.md#stored-views)).
+
+`source_description` reads its data from the view source kind `source`
+(`source = { kind = "source" }`), which resolves to the item's `source` record plus the issue's
+web address, the source's `trusted` flag and the translated description, and to nothing on an item
+with no record. `sq workflow view source_description <id> --json` prints that record, or `null`.
+To change how the description renders, override its template,
+`templates/views/source_description.md.j2`. A view of your own can read the same kind for the
+record, the address and the trust flag, but its `text` stays empty, since the source commands fill
+only `source_description` (see
+[workflow.md § "Derived views: field reference"](workflow.md#derived-views-field-reference)).
+
+A tracker comment's author reads, in this order: the operator's slug, only when an operator's
+`identities` hold the author; the name, which is that operator's name from the roster when matched,
+and otherwise the tracker's display name in double quotes, left out when the tracker gave none;
+then `via <source>` and `@<handle>`. Inside the quotes, `"` and `\` take a backslash and control,
+format and line or paragraph separator characters are written `\uXXXX`, so the tracker's name
+stays on one line and cannot pass for a slug:
+
+```
+op-pierre Pierre Chat via gitlab-prod @pchat
+"John Doe" via gitlab-prod @jdoe
+via gitlab-prod @jdoe
+```
+
+A tracker user whose display name is `op-pierre Pierre Chat` reads
+`"op-pierre Pierre Chat" via gitlab-prod @mallory`. The `author` of a `--json` discussion entry is
+the same string.
 
 A comment the tracker wrote carries the same notice on `show --comments`, on the terminal browser's
 reader and on its inbox line. In `--json`, a discussion entry carries five more keys: `attributes`
@@ -304,8 +387,15 @@ After unlinking, the title, fields and description are the squad's to edit. Unli
 disabled source, and is refused on an item with no record.
 
 ```
-unlinked TASK-<n> from platform platform/api#13; its description is now body prose
+warning: platform/api#12 still matches the filter of source 'platform': the next `sq source pull` imports it again as a new item; take it out of the filter on the tracker to prevent that
+unlinked TASK-<n> from platform platform/api#12; its description is now body prose
 ```
+
+Unlink keeps nothing that ties the item to its issue, so an issue the filter still lists is
+imported again by the next pull, as a new item with the tracker's comments copied afresh, and the
+unlinked item stays as it is. The warning shows when the issue was `open` or `closed`. To stop
+following an issue while keeping one item, take the issue out of the filter on the tracker; to
+undo an unlink, relink.
 
 `sq <type> <n> source relink <source> <issue>` follows an issue again, given its key or its
 immutable ID. It refreshes the record, title, mapped fields, description and comments at once;
@@ -366,38 +456,113 @@ These checks always run, read no network, and cannot be selected or dropped:
 warn TASK-<n>: source 'platform' is disabled (enabled = false); no pull refreshes platform/api#12
 ```
 
-## The GitLab connector
+## Connectors
 
-`connector = "gitlab"`, version `v4`, reads GitLab's REST API v4 on gitlab.com or a self-hosted
-instance.
+A **connector** is the part of squads that reads one tracker's API for the source commands. It is
+not an MCP server and is not loaded by an agent host: agents read a pulled item through `sq`, like
+any other item. Four connector versions are available:
+
+| `connector` | `version` | Tracker | Credential fields | Default converter |
+|---|---|---|---|---|
+| `gitlab` | `v4` (the only one) | GitLab REST API v4, gitlab.com or self-hosted | `token` | `gitlab-md` |
+| `github` | `v3` (the only one) | GitHub REST API, github.com or Enterprise | `token` | `github-md` |
+| `jira` | `cloud-v3` | Jira Cloud, REST API v3 | `user`, `token` | `adf` |
+| `jira` | `dc-v2` | Jira Data Center, REST API v2 | `token` | `jira-wiki` |
+
+Every connector reads the issue's title, description, state, type and labels, its author, its
+comments oldest first and its links. The `source` record's `id` is the tracker's immutable issue
+ID, so an issue moved or transferred keeps its item and its `key` follows it.
+
+### GitLab (`gitlab@v4`)
 
 - **`base_url`** is the instance's address (`https://gitlab.com`, `https://gitlab.example.com`).
 - **Credential:** `token`, a personal or project access token that can read the issues.
-- **`filter`** is a label, passed to GitLab's issue listing as its `labels` parameter; the listing
-  covers every issue the token can see, open and closed. An empty filter selects every issue the
-  token can see.
-- **Types and fields** map from labels, scoped labels included (`"priority::high"`), and types
-  also from GitLab's issue type (`issue`, `incident`).
-- **Links** map from GitLab's link types; the defaults send `relates_to` to `related` and `blocks`
-  to `blocks`. A link type no map names is skipped.
+- **`filter`** is a label, passed to GitLab's issue listing as its `labels` parameter. The listing
+  covers every issue with that label the token can see, open and closed.
+- **Sides:** `labels` (scoped labels included, such as `"priority::high"`) and `type`, GitLab's
+  issue type (`issue`, `incident`, `task`).
+- **Links:** GitLab's link types (`relates_to`, `blocks`, `is_blocked_by`); the defaults send
+  `relates_to` to `related` and `blocks` to `blocks`.
 - **Open or closed:** an issue in GitLab's `opened` state is `open`; any other is `closed`.
-- **Comments** are the issue's notes, oldest first; GitLab's system notes are left out.
-- **IDs:** an item's record holds the issue's global ID (`gid://gitlab/Issue/<n>`), so an issue
-  moved to another project keeps its item, and its `key` follows the move.
+- **Comments** are the issue's notes; GitLab's system notes are left out.
+- **IDs:** the global issue ID (`gid://gitlab/Issue/<n>`); keys read `group/project#12`.
 - **References** `#12`, `project#12` and `group/project#12` are read relative to the issue's own
   project.
-- **Converter:** `gitlab-md` by default.
+
+### GitHub (`github@v3`)
+
+- **`base_url`** is `https://github.com`, a GitHub Enterprise Server's web address
+  (`https://github.example.com`) or its API root (`https://github.example.com/api/v3`), or an
+  Enterprise Cloud data-residency host (`https://<name>.ghe.com`).
+- **Credential:** `token`, a token that can read the repositories' issues.
+- **`filter`** is a label. The listing covers every issue with that label the token can see,
+  across its repositories, open and closed.
+- **Pull requests are skipped.** GitHub's issue listing returns pull requests too; a source never
+  pulls one.
+- **Sides:** `labels` and `type`, the issue's GitHub issue type.
+- **Links:** `blocked_by` and `blocking`, GitHub's issue dependencies; the default sends
+  `blocking` to `blocks`. An instance without issue dependencies gives no links.
+- **Open or closed:** GitHub's own `state`.
+- **IDs:** the issue's node ID; keys read `owner/repo#12`. References `#12` and `owner/repo#12`
+  are read relative to the issue's repository.
+
+### Jira (`jira@cloud-v3` and `jira@dc-v2`)
+
+`jira` has two versions, so a `jira` source must name one.
+
+- **`base_url`** is the Jira site (`https://example.atlassian.net`) for Cloud, or the Data Center
+  address, its context path included (`https://jira.example.com/jira`).
+- **Credential:** Cloud takes `user`, the account's email, and `token`, an API token. Data Center
+  takes `token`, a personal access token.
+- **`filter`** is a JQL query, such as `filter = "project = PROJ AND labels = squads"`.
+- **Sides:** `labels`, `type` (the issue type's name) and `priority` (the priority's name):
+
+  ```toml
+  [sources.jira-prod.maps.types.type]
+  Bug = "bug"
+
+  [sources.jira-prod.maps.fields.priority.priority]
+  High = "high"
+  Low = "low"
+  ```
+
+- **Links** are keyed by the link type's directional phrase, as each instance's administrators
+  name it: `blocks` on the outward side, `is blocked by` on the inward side. A link read from its
+  inward side maps from that phrase, so `"is blocked by" = "depends-on"` gives the right direction.
+  The default sends `blocks` to `blocks`, so the ref is made from the outward issue and an inward
+  link alone makes no reverse ref.
+- **Open or closed:** an issue whose status is in Jira's `done` category is `closed`; any other is
+  `open`, so a custom workflow needs no map.
+- **The author** is the issue's creator, never its editable reporter, so a request raised on
+  someone's behalf is attributed to whoever created it.
+- **Restricted comments are not pulled:** a comment with a visibility restriction, and a service
+  desk comment only agents may read. A comment pulled and later restricted on the tracker reads as
+  deleted: it is reported and stays in the squad.
+- **Handles:** on Cloud a user is named by their `accountId`, the only stable public handle.
+  `--identities jira-prod=@<accountId>` looks the account up exactly; a display name or email that
+  matches exactly one user resolves too, and an inexact match is refused, listing the candidates.
+  On Data Center a handle is the username.
+- **IDs:** the issue ID; keys read `PROJ-45`, which is also how references read.
+
+### What the probes can confirm
+
+`sq source check` checks each map key against its own side: a `labels` key against the tracker's
+labels, a `type` key against its issue types, a `priority` key against its priorities, and a
+`maps.links` key against its link types. A key the tracker does not hold is a blocking failure.
+When the tracker cannot list a side (Jira Data Center's labels, GitHub's issue types), a key that
+no issue in the filter carries is a warning instead, since its absence cannot be proven.
 
 ## Converters
 
-A converter turns the tracker's text into markdown. It is a pure function of the text and the
-source's base URL, with no network access, and nothing is downloaded. A source picks one with
+A converter turns the tracker's text into markdown. It is a pure function of the text, the
+source's base URL and the web address of the issue the text belongs to, with no network access,
+and nothing is downloaded. A source picks one with
 `converter`; an unknown name fails the load, listing the known ones.
 
 | Converter | Reads | Does |
 |---|---|---|
-| `gitlab-md` | GitLab markdown | makes each relative link and image target absolute against `base_url` |
-| `github-md` | GitHub markdown | makes each relative link, image, link reference definition and `src`/`href` attribute absolute against `base_url` |
+| `gitlab-md` | GitLab markdown | makes each relative link and image target absolute: an `/uploads/…` link against the issue's project, any other against `base_url` |
+| `github-md` | GitHub markdown | resolves each relative link, image, link reference definition and `src`/`href` attribute against the issue's web address, as a browser on the issue page would |
 | `adf` | Atlassian Document Format (JSON) | writes the document as markdown; text that is not such a document is kept as it is |
 | `jira-wiki` | Jira wiki markup | writes headings, lists, quotes, code blocks, links, mentions, images and inline marks as markdown |
 
@@ -411,8 +576,10 @@ the credential is not sent there:
 error: <url> redirected to <other url>, which is not the tracker's own address; the credential is not sent there. Set the source's base_url to the final address
 ```
 
-Rate limits and transient failures (`429`, `502`, `503`, `504`) are retried with a wait, and
-squads uses no third-party HTTP library.
+A rate limit (`429`, or a `403` that says the limit is spent) and a transient failure (`502`,
+`503`, `504`) are retried with a wait. A rate limit that outlasts the retries stops the command
+with a line that says to wait, rather than blaming the filter or the token. squads uses no
+third-party HTTP library.
 
 ## Where source commands run
 

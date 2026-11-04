@@ -23,7 +23,7 @@ description: Source record and derived lookup, nested records, stored view bodie
   comment attributes, namespaced authors, server-side credentials, sources.toml, pull
   as import events, schema 0.20
 created_at: '2026-11-03T22:41:36Z'
-updated_at: '2026-11-04T03:33:17Z'
+updated_at: '2026-11-04T08:14:43Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -148,7 +148,7 @@ Any comment can carry a flat mapping of string keys to string values (rulings 26
 
 **A sourced comment** stores `source_id`, `author_id`, `author_handle`, `author_name` and `source_updated_at`. `source` is derived from the header's `source:<name>` and the author URL from the base URL and the handle; neither is stored (ruling 2980084).
 
-**Display** is composed at read time: the local slug and name when an identity matches, then `via <source> @<handle>`: `op-pierre Pierre Chat via gitlab-prod @pchat`, or `Pierre Chat via gitlab-prod @pchat` with no match. `--json` discussion entries gain `attributes` (the stored mapping) and the derived `source`, `author_url`, `identity` (the matched slug or `null`) and `trusted`.
+**Display** is composed at read time, in one form for every sourced author (§14): the operator slug when an identity matches; then the name, the roster name unquoted when matched and the tracker's display name in double quotes when not; then `via <source>` and `@<handle>`. Matched: `op-pierre Pierre Chat via gitlab-prod @pchat`; unmatched: `"John Doe" via gitlab-prod @jdoe`. `--json` discussion entries gain `attributes` (the stored mapping) and the derived `source`, `author_url`, `identity` (the matched slug or `null`) and `trusted`; their `author` is the same form.
 
 **The untrusted notice** is derived from the `source:<name>` author and that source's `trusted` flag, never stored; it shows on the comment and on its inbox line. Mentions in sourced comments reach the inbox as written (ruling 8577dca).
 
@@ -200,8 +200,8 @@ token = "…"
 - `resolve_documents` resolves it lazily and memoised, like the role catalog (ruling a7b791e, point 7): a broken `sources.toml` fails every command that reads a source, and `sq check` reports it, while the rest of the squad keeps working.
 - **Top-level keys:** `connectors`, `sources`, `selected`.
 - **`[connectors.<name>.<version>]`** (bundled; the key form is in §14): per connector version, its default `converter` and default `maps`. A default map may name bundled vocabulary; it is validated only through a source that inherits it.
-- **`[sources.<name>]`** (override only; the bundled file declares none): `connector` (`gitlab`, `jira`, …), `version` (optional only when the connector has one registered version, §14), `base_url`, `filter` (a label, or JQL for Jira), `trusted` (default `false`), `enabled` (default `true`), optional `converter`, and `maps`. Declaring a source activates it; `enabled = false` pauses it.
-- **Maps.** `maps.types` (tracker type or label to item type), `maps.fields.<badge field>` (tracker value to badge value), `maps.links` (tracker link type to ref kind). A source's map overlays its connector default key by key; an entry set to `""` unmaps the tracker value.
+- **`[sources.<name>]`** (override only; the bundled file declares none): `connector` (`gitlab`, `jira`, …), `version` (optional only when the connector has one registered version, §14), `base_url`, `filter` (required and non-empty, §14: a label, or JQL for Jira), `trusted` (default `false`), `enabled` (default `true`), optional `converter`, and `maps`. Declaring a source activates it; `enabled = false` pauses it.
+- **Maps.** `maps.types.<side>` (tracker value to item type), `maps.fields.<badge field>.<side>` (tracker value to badge value), `maps.links` (tracker link type to ref kind). A side names where the value is read on the tracker (§14). A source's map overlays its connector default key by key; an entry set to `""` unmaps the tracker value.
 - **Load-time validation**, collect-all, against the resolved workflow spec: every map target is a declared type, badge field and value, or ref kind; a source name follows the slug grammar; `connector`, `version` and `converter` exist in their registries. A failure names the source, the map and the value.
 - An edit to the override retires the daemon like any `.overrides/` edit (ADR-1052, point 13).
 
@@ -209,7 +209,7 @@ token = "…"
 
 - **Connector registry:** a literal `(name, version) → class` table with no registration side effect (ruling 4f4a607). The interface: the listing of every issue matching the filter, closed included, paged, each with the fields the pull compiles and its `updated_at` (§14); one issue by its immutable ID and last known key (§14); its comments and links; the URL of an issue from base URL and key, and of a user from a handle; handle to immutable user ID; the tracker references in a text, each qualified to a full key against the host issue's key (§14); its probes for `sq source check`; its default converter.
 - **Converter registry:** a literal name → function table (`adf`, `jira-wiki`, `gitlab-md`, `github-md`), pure functions of the text, the base URL and the host issue's web URL (§14), with no network access.
-- **Vocabulary stays out of code.** A `tests/meta` guard keeps squad vocabulary literals (item types, badge fields and values, ref kinds, statuses) out of connector modules; tracker API names are allowed, and a tracker API enum that spells like squad vocabulary is exempted per constant (§14).
+- **Vocabulary stays out of code.** A `tests/meta` guard keeps squad vocabulary literals (item types, badge fields and values, ref kinds, statuses) out of connector modules; tracker API names are allowed, and a fixed set of tracker API names that spells like squad vocabulary is exempted per constant (§14).
 - **Reference translation is read-time.** The `source_description` projection and the comment render translate a tracker reference to an item ID when the `(name, key)` lookup of §1 finds exactly one item (§14); the stored text keeps the raw reference.
 - Connectors are reached only from `_services`; the shim imports none of them, and HTTP uses the standard library client.
 
@@ -364,8 +364,8 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 **Tracker API enums in connector modules** (amendment, 2026-11-04; narrows §9's guard).
 
 - Some tracker API values are spelled like squad vocabulary, such as GitLab's issue type `task` and link type `blocks`. They are fixed per connector version, so a connector may hold them, and its probes check map keys against them.
-- The `tests/meta` guard keeps one reviewed table of `(module, constant name)` pairs, each with a one-line reason. A listed constant must be a module-level tuple or frozenset of string literals naming one tracker API enum. The guard skips the string literals inside a listed constant and nowhere else: the same word anywhere else in the module still fails.
-- The probes check `maps.links` keys against the connector's link-type enum, and a key outside it is a blocking vocabulary failure. They check `maps.types` keys against the issue-type enum and the tracker's labels together, and a key in neither is blocking.
+- The `tests/meta` guard keeps one reviewed table of `(module, constant name)` pairs, each with a one-line reason. A listed constant must be a module-level tuple or frozenset of string literals naming one fixed set of tracker API names: an enum's values (GitLab's link types), or an object's field names (Jira's `_ISSUE_FIELDS`). The guard skips the string literals inside a listed constant and nowhere else: the same word anywhere else in the module still fails.
+- The probes check `maps.links` keys against the connector's link-type enum, and a key outside it is a blocking vocabulary failure. They check each `maps.types` and `maps.fields` key against its own side (§14): a `type` key against the issue-type enum or the tracker's type list, a `labels` key against the tracker's labels, a `priority` key against the tracker's priorities. A key that a listable side does not hold is blocking. When the tracker cannot list a side (Jira Data Center's labels, GitHub's issue types), a key that no in-filter issue carries is a warning instead, since its absence cannot be proven (amendment, 2026-11-04).
 
 **Converters receive the host issue's web URL** (amendment, 2026-11-04; completes §9).
 
@@ -377,6 +377,30 @@ Settled when the epic's tasks were planned, within the rulings above. Each point
 - `check_views` refuses `stored = true` on a view whose source kind has no writer. Only `source` has one today (the pull, `show --refresh`, `relink` and `unlink`), so an adopter's `stored = true` on a `self`, `role` or any other kind fails at load, naming the view. Otherwise the pair could only ever be empty, and no refusal could name a command that fills it.
 - The refusal of a body write that alters a stored pair names `show --refresh` when the item holds a `source` record. On an item without one, it says that nothing in the squad writes this view until the item is linked to an issue.
 - The stored-body mechanism stays generic (ruling ec05545). A future writer widens the rule by adding its kind.
+
+**Connector decisions for GitHub and Jira** (amendment, 2026-11-04; completes §1, §3, §8 and §9).
+
+- **Maps are keyed by tracker side.** A label anyone can type must never stand in for a tracker field, so each map reads one side at a time:
+
+  ```toml
+  [sources.jira-prod.maps.types.type]
+  Bug = "bug"
+  [sources.jira-prod.maps.types.labels]
+  needs-design = "feature"
+  [sources.jira-prod.maps.fields.priority.priority]
+  High = "high"
+  [sources.jira-prod.maps.fields.priority.labels]
+  urgent = "high"
+  ```
+
+  - A side is a name the connector version declares. All of them expose `labels`. GitLab and GitHub expose `type` (the issue type). Jira exposes `type` (the issue type) and `priority`.
+  - An undeclared side fails at load, listing the sides that version has. The connector carries each side as its own value on the fetched issue, never mixed into the labels.
+  - When the sides of one map yield different values, the value is not set: an issue is not created (§14, no type map), and a badge field is left alone. The pull reports the values it found. Values that agree do not conflict.
+- **Jira link keys are the directional phrase** (`blocks`, `is blocked by`). A link read from its inward side maps from that side, so `"is blocked by" = "depends-on"` gives the right direction. With the default `blocks = "blocks"`, the ref is made from the outward issue, and an inward link alone makes no reverse ref. That is by design, since both ends are pulled whenever the ref can exist. The phrases are edited by each instance's admins, so the probes check `maps.links` keys against that instance's `/issueLinkType`.
+- **The Jira Cloud handle is the `accountId`.** Cloud has no username, and the `accountId` is the only stable public handle. The display name stays the readable part (§5). `@<accountId>` resolves to itself through an exact lookup, never through a search.
+- **Restricted comments are not pulled.** A comment with a `visibility` restriction is skipped on both Jira versions. So is an agent-only service desk comment: `jsdPublic = false` on Cloud, and on Data Center the comment property `sd.public.comment` with `internal: true`, read with `expand=properties`. Squad files are readable by everyone with the repository. A comment pulled and later restricted on the tracker reads as deleted under §10: it is reported, stays in the squad, and no command removes it (§6).
+- **The issue author is the immutable creator.** Jira's `author_id` and `author_handle` come from `creator`, never from the editable `reporter`, matching §1's "immutable user ID" and the other connectors. A request raised on someone's behalf is therefore attributed to whoever created it.
+- **Every source requires a `filter`.** An empty or missing `filter` fails at load, naming the source, for every connector. Without one, a GitHub token would list every issue in every repository and organisation it can see, private ones included, into a committed squad.
 
 **Seams and the first connector.**
 
@@ -436,6 +460,13 @@ stored = true
 - A disabled source fetches nothing into the squad: a named pull, `show --refresh`, `relink` and handle resolution refuse it, naming `enabled = false`, and a pull with no name skips it. Every command that needs no tracker data works on it as on an enabled source: `source unlink`, `sq source credential set` and `remove`, `sq source list` and `sq check`. `sq source check` still probes it, so a source can be checked before it is enabled.
 - A handle (`@…`, §3) on a source with no stored credential is refused, naming `sq source credential set <source>`, and nothing is stored. A handle for an undeclared source is refused, naming the declared ones. A value without `@` needs no credential and no network, and is stored as given.
 - `trusted` in a `--json` discussion entry is a boolean, `false` exactly when the untrusted notice shows: `true` for a comment no source authored, the source's flag for a sourced comment, and `false` when that source is not declared. On a comment no source authored, `source`, `author_url` and `identity` are `null`.
+
+**One author form for sourced comments** (amendment, 2026-11-04; replaces §5's display; ruling ad8aaba).
+
+- The form is, in order: the operator slug, only when an identity matches (§3); the name; `via <source>`; `@<author_handle>`.
+- A matched author's name is the operator's name from the roster, unquoted; the tracker's `author_name` is not shown. An unmatched author's name is `author_name` in double quotes, inside which `"` and `\` take a backslash, and control, format and line or paragraph separator characters are written `\uXXXX`, so the name stays on one line, cannot close its own quotes and cannot reorder the text around it. An empty `author_name` is left out: `via gitlab-prod @jdoe`.
+- A matched line starts with a slug and an unmatched one with a quote (or with `via` when it has no name), so they never read alike, on a trusted source or not. A tracker user who sets their display name to `op-pierre Pierre Chat` reads `"op-pierre Pierre Chat" via gitlab-prod @mallory`.
+- `author` in a `--json` discussion entry is the same string; `identity` still carries the matched slug or `null`.
 
 ## Rejected
 
@@ -533,4 +564,16 @@ stored = true
   - Amended (2026-11-04): section 14 states that unlink keeps nothing, so a pull re-imports an issue the filter still lists as a new item; unlink warns when the record was open or closed. Brief for python-dev on TASK-1276.
 - [2026-11-04T03:33:17Z] `architect` Robert Architect:
   - Amended (2026-11-04) for REV-1282: unnamed pull with a source failing access (section 10, 14), the tracker-enum exemption in the vocabulary guard (sections 9, 14), the issue web URL handed to converters (sections 9, 14), and stored = true accepted only on a kind with a writer (sections 4, 14).
+- [2026-11-04T05:00:43Z] `architect` Robert Architect:
+  - Amended (2026-11-04) for REV-1283 F7: maps are keyed by tracker side (section 8), Jira link phrases, the Cloud accountId handle, restricted comments skipped, the creator as author, filter required for every source, and the guard exemption covers fixed sets of API names (sections 9, 14).
+- [2026-11-04T05:32:11Z] `architect` Robert Architect:
+  - Amended (2026-11-04) for REV-1283 F12: the vocabulary probe blocks only on a listable side; an unlistable side gives a warning for a key no in-filter issue carries.
+- [2026-11-04T08:04:30Z] `op-pierre` Pierre Chat:
+  - Ruling (2026-11-04): keep the source view kind (kind = "source") as built.
+  - Acknowledged: the pull diffs the full listing instead of the incremental query of ruling 8c0a817, and ruling 4 rested on a false premise (the daemon serialises only the index write); both corrections stand.
+  - Acknowledged: side-keyed maps and the required filter in sources.toml.
+- [2026-11-04T08:12:51Z] `op-pierre` Pierre Chat:
+  - Ruling on F4 (2026-11-04): one form for every sourced comment author, in this order: the operator slug if matched; then the name, quoted when unverified (the roster name when matched, the tracker name quoted when not); then "via <source>" and the tracker handle. Matched: op-pierre Pierre Chat via gitlab-prod @pchat. Unmatched: "John Doe" via gitlab-prod @jdoe. --json author follows the same rule.
+- [2026-11-04T08:14:43Z] `architect` Robert Architect:
+  - Amended (2026-11-04) for REV-1281 F4 per ruling ad8aaba: §5 Display and a new §14 entry give one author form (slug if matched, roster name or quoted escaped tracker name, via <source> @handle); a spoof reads "op-pierre Pierre Chat" via gitlab-prod @mallory.
 <!-- sq:discussion:end -->

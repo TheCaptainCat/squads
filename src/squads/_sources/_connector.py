@@ -10,6 +10,11 @@ if TYPE_CHECKING:
     from squads._sources._probes import Expected, Family, ProbeResult
 
 
+#: The side of an issue that holds its labels, and the side that holds its issue type.
+LABELS = "labels"
+TYPE = "type"
+
+
 @dataclass(frozen=True)
 class Reference:
     """One tracker reference found in a text: its character span and the full key it names."""
@@ -31,10 +36,17 @@ class Issue:
     updated_at: str
     author_id: str
     author_handle: str
-    tracker_type: str = ""
     labels: tuple[str, ...] = ()
+    #: ``(side, value)`` for each side besides the labels that the issue has a value on.
+    sides: tuple[tuple[str, str], ...] = ()
     #: Opaque values the connector needs again to fetch this issue's comments and links.
     locator: tuple[tuple[str, str], ...] = ()
+
+    def values(self, side: str) -> tuple[str, ...]:
+        """The values the issue has on *side*: its labels, or the one value of another side."""
+        if side == LABELS:
+            return self.labels
+        return tuple(value for name, value in self.sides if name == side and value)
 
 
 @dataclass(frozen=True)
@@ -85,6 +97,8 @@ class SourceFetch:
     linked: dict[str, FetchedIssue | None] = field(
         default_factory=lambda: dict[str, FetchedIssue | None]()
     )
+    #: One line for each listed issue the tracker stopped returning while it was read.
+    skipped: tuple[str, ...] = ()
 
 
 class Connector(ABC):

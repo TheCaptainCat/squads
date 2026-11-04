@@ -18,7 +18,7 @@ def _declare(project, base_url: str, extra: str = "") -> None:
     path.write_text(
         f'[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\n'
         f'base_url = "{base_url}"\n{extra}'
-        '\n[sources.platform.maps.types]\nbug = "task"\n',
+        '\n[sources.platform.maps.types.labels]\nbug = "task"\n',
         encoding="utf-8",
     )
 

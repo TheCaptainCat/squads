@@ -660,16 +660,11 @@ class ItemsMixin(ServiceCore):
             declared = self.spec.views.get(altered[0])
             if declared is not None and declared.source.kind == "source":
                 refuse_owned_write(item, f"the stored body of view {altered[0]!r}")
-            addr = item.slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
-            writer = (
-                f"is written only by `sq {item.type} {addr} show --refresh`"
-                if item.source is not None
-                else "is written by nothing in the squad until the item is linked to an issue"
-            )
             raise SquadsError(
                 f"the body carries a stored body for view {altered[0]!r} that differs from the one "
-                f"stored on {item.id}. A stored view body {writer}: leave the pair out of the "
-                "body, or send it back unchanged"
+                f"stored on {item.id}. A stored view body is written by nothing in the squad until "
+                "the item is linked to an issue: leave the pair out of the body, or send it back "
+                "unchanged"
             )
         if unplaced := view_tags.unplaced_view_tags(region, body):
             raise SquadsError(self._unplaced_view_tag_message(item, unplaced[0]))

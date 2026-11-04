@@ -3,7 +3,7 @@ id: TASK-1276
 sequence_id: 1276
 type: task
 title: Sources spec, source record, credentials and sq source pull
-status: InReview
+status: Done
 parent: FEAT-1271
 author: tech-lead
 assignee: python-dev
@@ -56,7 +56,7 @@ subentities:
   status: Todo
   maps_to: US4
 created_at: '2026-11-03T23:02:45Z'
-updated_at: '2026-11-04T04:02:52Z'
+updated_at: '2026-11-04T08:21:10Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -526,4 +526,6 @@ Tests (4): a pull from recorded responses creates items with comments (system no
       - F12 needs no ruling: `stored` goes after `transform` in `ViewRow`, per the stability rule that a new key never sits between two existing ones.
 - [2026-11-04T04:02:52Z] `python-dev` Elias Python:
   - Done, not committed, no full suite: show --refresh has its own compile job (refuses unless the item still holds the same (name, id) inside the transaction; delegates to the compiler only after that, so it never creates; race test unlinks from the recorded-HTTP handler). Unlink warns for open/closed records with the architect's text (stderr; stdout document unchanged), tests for open, out-of-filter and the re-import after the warned unlink. REV-1282 F11 and F12 Fixed. tests/_stored_view.py now declares its view with source kind `source` (the new load rule). Gates: pyright 0, ruff clean, sq check clean, meta/check/cli/regressions/daemon/cross_process 2102 passed; links tests also pass in remote and routes modes.
+- [2026-11-04T08:21:10Z] `manager` Catherine Manager:
+  - Done: REV-1281 approved, full suite 2122 passed at 33d40d14.
 <!-- sq:discussion:end -->

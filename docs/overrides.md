@@ -2023,7 +2023,8 @@ shows the load error and a worked conversion.
 Every view is **computed on every request**. No rendering is ever written into an item's file, so
 declaring, changing or dropping a view rewrites nothing on disk. A view declared `stored = true`
 is the one that keeps something in the file: text the squad cannot compute, held between a pair of
-tags in the body and rendered on every read. Its pair stays in each file that holds it when the
+tags in the body and rendered on every read. The bundled `source_description` is such a view, and
+`stored = true` is refused at load on a view whose source has no writer to fill it. A stored view's pair stays in each file that holds it when the
 view is dropped, and `sq check` reports it; see
 [workflow.md § "Stored views"](workflow.md#stored-views).
 
@@ -2034,7 +2035,8 @@ view is dropped, and `sq check` reports it; see
 source = { kind = "ref", name = "escalates" }
 ```
 
-`source.kind` is `"ref"`, `"subentity"`, `"subtree"`, `"role"`, `"playbook"` or `"self"`; for the
+`source.kind` is `"ref"`, `"subentity"`, `"subtree"`, `"role"`, `"playbook"`, `"self"` or
+`"source"` (the tracker issue a pulled item comes from, the one kind a `stored` view can read); for the
 first three, `source.name` must be a declared ref kind, sub-entity kind or item type respectively
 — a name your merged spec does not declare is refused at load, with the rest of the spec's
 cross-references. There is no field list, no grouping, no ordering to declare — a view is a
@@ -2094,7 +2096,7 @@ sq override list                                    # your override, with its ba
 
 The template receives `source` — the resolved value, unflattened: a plain list of real
 `Item`/sub-entity objects for `ref`/`subentity`/`subtree`, or the source's own native value for
-`role`/`playbook`/`self` — plus `item`, `spec`, `body` (a stored view's stored body, `""` for any
+`role`/`playbook`/`self`/`source` — plus `item`, `spec`, `body` (a stored view's stored body, `""` for any
 other view), and `data` when the view declares a transform.
 Without a transform, grouping and ordering are the template's own job, with Jinja's
 `groupby`/`sort`/`selectattr`:

@@ -13,8 +13,8 @@ from tests._endpoint_client import command_body, post_commands
 
 SECRET = "glpat-not-a-real-token"
 SOURCE = (
-    '[sources.platform]\nconnector = "gitlab"\nbase_url = "http://127.0.0.1:9"\n'
-    '[sources.platform.maps.types]\nbug = "task"\n'
+    '[sources.platform]\nconnector = "gitlab"\nfilter = "squads"\nbase_url = "http://127.0.0.1:9"\n'
+    '[sources.platform.maps.types.labels]\nbug = "task"\n'
 )
 SET = ["source", "credential", "set", "platform"]
 HEADERS = {"Content-Type": "application/json", "Squads-Client": "1"}

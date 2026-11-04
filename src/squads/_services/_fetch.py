@@ -8,6 +8,7 @@ from squads import _aio as aio
 from squads._errors import SquadsError
 from squads._sources import _credentials as credentials
 from squads._sources._connector import Connector, FetchedIssue, Issue, SourceFetch
+from squads._sources._http import NotFoundError
 from squads._sources._probes import ACCESS, Expected, missing_credential, run_probes
 from squads._sources._registry import load_connector
 from squads._sources._spec import SourceSpec, SourcesSpec
@@ -61,8 +62,13 @@ async def open_connector(source: SourceSpec, credential: Mapping[str, str]) -> C
     return connector
 
 
-def _with_details(connector: Connector, issue: Issue) -> FetchedIssue:
-    return FetchedIssue(issue, tuple(connector.comments(issue)), tuple(connector.links(issue)))
+def _with_details(connector: Connector, issue: Issue) -> FetchedIssue | None:
+    """*issue* with its comments and links, or ``None`` when the tracker stops returning it
+    between the listing and this request."""
+    try:
+        return FetchedIssue(issue, tuple(connector.comments(issue)), tuple(connector.links(issue)))
+    except NotFoundError:
+        return None
 
 
 def _fetch(
@@ -79,15 +85,22 @@ def _fetch(
         or stored[issue.id] != frozenset({(issue.updated_at, issue.state)})
     ]
     found: dict[str, FetchedIssue | None] = {}
+    changed: list[FetchedIssue] = []
+    skipped: list[str] = []
+    for issue in wanted:
+        details = _with_details(connector, issue)
+        if details is not None:
+            changed.append(details)
+        elif issue.id in stored and connector.issue(issue.id, issue.key) is None:
+            found[issue.id] = None
+        else:
+            skipped.append(
+                f"{issue.key}: skipped, the tracker stopped returning it while it was read"
+            )
     for issue_id in sorted(set(linked) - listed):
         issue = connector.issue(issue_id, linked[issue_id])
         found[issue_id] = None if issue is None else _with_details(connector, issue)
-    return SourceFetch(
-        tuple(_with_details(connector, issue) for issue in wanted),
-        len(listing) - len(wanted),
-        listed,
-        found,
-    )
+    return SourceFetch(tuple(changed), len(listing) - len(wanted), listed, found, tuple(skipped))
 
 
 async def fetch_source(
