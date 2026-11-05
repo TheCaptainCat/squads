@@ -270,6 +270,14 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
     return MigrationOutcome(count=changed, skipped=tuple(skipped))
 
 
+def _current_skill_slug(item_type: str, slug: str) -> str:
+    """The current slug of a skill this schema stores under the pre-rename slug of an always-on
+    skill; any other slug is returned as it is."""
+    if item_type == ROSTER_SKILL:
+        return {"squads": "sq-how-to", "greeting": "sq-greeting"}.get(slug, slug)
+    return slug
+
+
 async def _reclaim_legacy_roster_bodies(
     db: SquadsDB, spec: WorkflowSpec, paths: SquadPaths
 ) -> tuple[int, list[str]]:
@@ -289,7 +297,7 @@ async def _reclaim_legacy_roster_bodies(
     )
     for it in roster_items:
         slug = legacy_extra(it).get("slug", it.slug) if it.type == ROSTER_SKILL else it.slug
-        view_name = roster_body_view_name(it.type, slug, spec)
+        view_name = roster_body_view_name(it.type, _current_skill_slug(it.type, slug), spec)
         if view_name is None:
             continue
         path = paths.abspath(it.path)

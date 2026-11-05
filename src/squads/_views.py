@@ -36,7 +36,6 @@ from squads._interactions import (
     ItemPlaybookSpec,
     PlaybookSpec,
     developer_roles,
-    item_type_for_skill_slug,
 )
 from squads._language import WorkingLanguage
 from squads._models import (
@@ -107,10 +106,9 @@ class PlaybookSource:
 
     ``lane`` (overview, lifecycle line, commands, role guides) is ``None`` for a declared type
     with no playbook entry, a well-formed empty result rather than a failure (see
-    :func:`_playbook_source_applies`). The raw ingredients let ``templates/views/item_skill.md.j2``
-    derive its rendered values through the ``item_skill_role_sections``/
-    ``custom_item_skill_commands``/``label_for``/``linearize_lifecycle`` filters; the active spec
-    reaches the template separately as ``spec=``.
+    :func:`_playbook_source_applies`). The raw ingredients let a view template derive its rendered
+    values through the playbook filters; the active spec reaches the template separately as
+    ``spec=``.
 
     ``playbook`` is the whole merged document *lane* came from: ``squads_skill.md.j2``'s embedded
     cheatsheet loops every declared type's authoring lane (``authoring_owners``), which one type's
@@ -166,44 +164,22 @@ def _resolve_role_source(item: Item, squad_dir: Path | None, catalog: CatalogSou
     return resolve_role_for_item(item, squad_dir, catalog=catalog)
 
 
-def _playbook_subject(item: Item, spec: WorkflowSpec) -> str:
-    """The type *item* speaks for when a ``playbook`` source's ``name`` is unset.
-
-    That is its own type, except for the declared roster skill type (:data:`ROSTER_SKILL`), whose
-    per-type skill speaks for the type its slug documents (``sq-<type>`` to ``<type>``, via
-    :func:`item_type_for_skill_slug`, the same inversion :data:`active_skill_slugs` is built
-    from). A slug that documents no declared type falls back to the host's own type (``"skill"``):
-    the three permanent system skills, an author skill that happens to start with ``sq-``, and a
-    dropped or renamed type's stale slug all land there, and none has a playbook lane
-    (``[views.squads_skill]`` relies on this).
-
-    The gate is load-bearing: ``Item.slug`` is the filename slug of every item, so an ungated
-    inversion would resolve another type's lane for a work item whose title slugifies to
-    ``sq-<declared type>``.
-    """
-    if item.type != ROSTER_SKILL:
-        return item.type
-    slug = item.slug
-    return item_type_for_skill_slug(slug, spec) or item.type
-
-
 def _resolve_playbook_source(
     view: ViewSpec,
     item: Item,
     playbook: PlaybookSpec,
     roster: RosterProvider,
-    spec: WorkflowSpec,
     catalog: CatalogSource,
 ) -> PlaybookSource:
-    """The playbook lane of *view*'s named type, or of the type *item* speaks for.
+    """The playbook lane of *view*'s named type, or of *item*'s own type.
 
-    The type comes from :func:`_playbook_subject` when *view* names none, and the lane from
+    The type is *item*'s own when *view* names none, and the lane comes from
     *playbook*, the caller's active merged document, so a project override is what answers. Never
     raises: a resolved type with no entry is ``lane=None``, the empty case
     :func:`_playbook_source_applies` lets through. *roster* is called here, the one place in the
     dispatch that forces it (see :data:`RosterProvider`).
     """
-    target_type = view.source.name or _playbook_subject(item, spec)
+    target_type = view.source.name or item.type
     live = roster()
     return PlaybookSource(
         item_type=target_type,
@@ -446,7 +422,7 @@ def resolve_source(  # noqa: PLR0911, PLR0913 — one arm per kind, the squad co
     if kind == "role":
         return _resolve_role_source(item, squad_dir, catalog)
     if kind == "playbook":
-        return _resolve_playbook_source(view, item, playbook, roster, spec, catalog)
+        return _resolve_playbook_source(view, item, playbook, roster, catalog)
     if kind == "source":
         return described(item, body)
     return _resolve_self_source(item)  # "self"
@@ -622,19 +598,12 @@ def template_seeded_view_names(
 
 
 #: Slug to the view rendering each always-on skill's definition, seeded at creation
-#: (``_write_managed_skill``) and backfilled by ``sq repair``; per-type skills use
-#: :data:`ITEM_SKILL_VIEW_NAME`.
+#: (``_write_managed_skill``) and backfilled by ``sq repair``.
 SYSTEM_SKILL_VIEW_NAMES: dict[str, str] = {
     SQUADS_SKILL: "squads_skill",
     GREETING_SKILL: "greeting_skill",
     MEMORY_SKILL: "memory_skill",
 }
-
-
-#: The one view every per-type ``sq-<type>`` skill's tag names. A view named per type would
-#: put the type name in corpus bytes and dangle on a rename or drop; the ``playbook`` source
-#: resolves the type from the host's slug at read time (``_playbook_subject``).
-ITEM_SKILL_VIEW_NAME = "item_skill"
 
 
 #: The view a role's placement tag names, seeded at activation (``templates/agents/role.md.j2``,
@@ -658,8 +627,6 @@ def roster_body_view_name(item_type: str, slug: str, spec: WorkflowSpec) -> str 
         view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
         if view_name is not None:
             return view_name if view_name in spec.views else None
-        if item_type_for_skill_slug(slug, spec) is not None:
-            return ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in spec.views else None
         return None
     return None
 
@@ -672,11 +639,9 @@ def roster_companion_view_names(item_type: str, spec: WorkflowSpec) -> frozenset
     return frozenset()
 
 
-def skill_authoring_surface(
-    view_name: str, slug: str, spec: WorkflowSpec, playbook: PlaybookSpec
-) -> str:
+def skill_authoring_surface(view_name: str, spec: WorkflowSpec, playbook: PlaybookSpec) -> str:
     """The real surface a roster skill's *view_name* tag is authored through — resolved off
-    the view's own declared source, never off *slug* as a literal, so it stays correct under a
+    the view's own declared source, never off a slug as a literal, so it stays correct under a
     project override. A ``self`` source names its own template override; a ``playbook`` source
     names the resolved type's playbook lane, or the bare playbook file when there is none."""
     view = spec.views[view_name]
@@ -686,7 +651,7 @@ def skill_authoring_surface(
             f"its `{TEMPLATES_OVERRIDE_DIR}/{template}` view template override "
             f"(`sq override scaffold {template}` creates it)"
         )
-    target_type = view.source.name or item_type_for_skill_slug(slug, spec) or ROSTER_SKILL
+    target_type = view.source.name or ROSTER_SKILL
     if playbook.types.get(target_type) is not None:
         return f"the `[types.{target_type}]` lane in `{PLAYBOOK_OVERRIDE_FILENAME}`"
     return f"`{PLAYBOOK_OVERRIDE_FILENAME}`"

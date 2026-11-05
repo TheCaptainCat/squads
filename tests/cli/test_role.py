@@ -1,6 +1,7 @@
 """`sq role …`: the catalog, activating and adding roles, and the addressed verbs (show, update,
 status, set-default, regen, remove, body, views and the comment listing)."""
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -68,12 +69,9 @@ SCOUT_BODY = (
     "Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.\n"
     "The `.md` files are sq-managed — read them through `sq <type> <n> show`, never "
     "by opening the file.\n"
-    "For your part on each item type, follow your `sq-<type>` skill's **For Sam "
-    "Scout**\n"
-    "section — it tells you what to check, do, and hand off.\n"
     "When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> "
     "comment` for sub-entity-scoped\n"
-    "notes, `sq <type> <n> comment` for cross-cutting material — see the `squads` "
+    "notes, `sq <type> <n> comment` for cross-cutting material — see the `sq-how-to` "
     "skill's **comment-scoping\n"
     "convention** for the full rule and examples. Correct or withdraw your own "
     "comment by its hash:\n"
@@ -98,11 +96,9 @@ SCOUT_BODY = (
     "\n"
     "### Live with the operator\n"
     "\n"
-    "A human has opened a session directly with you. Follow the `greeting` skill, "
-    "then follow the\n"
-    "`squads` skill's **Working directly with the operator** section throughout. "
-    "Beyond those, apply the\n"
-    "shared principle:\n"
+    "A human has opened a session directly with you. For working live — anchoring to "
+    "an item, handing\n"
+    "back through `sq` — read `sq docs agents`. Apply the shared principle throughout:\n"
     "\n"
     "**Record what the next reader needs, when it becomes true.**\n"
     "\n"
@@ -128,7 +124,7 @@ SCOUT_POINTER = (
     "disallowedTools: Agent\n"
     "skills:\n"
     "  - sq-role-scout\n"
-    "  - squads\n"
+    "  - sq-how-to\n"
     "  - sq-memory\n"
     "---\n"
     "\n"
@@ -259,7 +255,7 @@ async def test_activate_adds_a_catalog_role_and_writes_its_pointer(project, invo
         "disallowedTools: Agent",
         "skills:",
         "  - sq-role-architect",
-        "  - squads",
+        "  - sq-how-to",
         "  - sq-memory",
     ]
 
@@ -424,7 +420,7 @@ async def test_add_creates_a_role_that_defines_itself(project, invoke) -> None:
         "capabilities": [],
         "create_lane": [],
         "responsibilities": [],
-        "skills": ["sq-role-scout", "squads", "sq-memory"],
+        "skills": ["sq-role-scout", "sq-how-to", "sq-memory"],
         "display": {
             "name": "Sam Scout",
             "pronouns": None,
@@ -945,9 +941,7 @@ async def test_set_default_moves_the_designation_and_names_the_role_it_cleared(
         "manager": False,
         "architect": True,
     }
-    assert "If no agent is named, default to **Robert Architect** (`architect`)," in _claude_md(
-        project
-    )
+    assert "If no agent is named" not in "\n".join(_claude_md(project))
 
 
 @pytest.mark.covers("role set-default")
@@ -1624,3 +1618,14 @@ async def test_body_prose_sits_beside_the_rendered_playbook_sections(project, in
     out = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
     assert out.index("# Olivia Lead") < out.index("## Epic items") < out.index("Our own rule.")
     assert out.endswith("Our own rule.\n")
+
+
+@pytest.mark.covers("role show", "--raw")
+async def test_show_raw_names_the_sq_how_to_skill_and_no_other_skill_or_role_read(
+    project, invoke
+) -> None:
+    out = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
+    assert "the `sq-how-to` skill's **comment-scoping" in out
+    assert re.findall(r"`sq-[a-z][a-z-]*`", out) == ["`sq-how-to`"]
+    assert "`greeting`" not in out
+    assert "sq role manager show" not in out

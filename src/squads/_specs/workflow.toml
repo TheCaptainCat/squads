@@ -523,7 +523,7 @@ fields = [{ code = "priority", label = "Priority", collection = "priority" }]
 target_date = { kind = "date", label = "target date" }
 # The roll-up is placed by a `sq:view:milestone_rollup` tag seeded into
 # `templates/items/milestone.md.j2`'s `sq:body` region, the same mechanism `role_definition`/
-# `squads_skill`/`greeting_skill`/`memory_skill`/`item_skill` use — see the `[views]` block
+# `squads_skill`/`greeting_skill`/`memory_skill` use — see the `[views]` block
 # below for the view's own declaration.
 # subentity_kind absent → None (membership rides `targets` refs on the work item, not sub-entities)
 # parent_required absent → None (a milestone relates to work through refs, never hierarchy)
@@ -597,10 +597,7 @@ parents = []
 aliases = []
 order = 90
 category = "roster"
-# a declared type's sq-<type> skill losing its generated guidance to an already-authored
-# body (the repair sweep leaves any non-empty region untouched) is reported, not guarded
-# against — see item_skill_shadowed's own docstring.
-validators = ["item_skill_shadowed"]
+validators = []
 ref_rules = []
 # subentity_kind absent → None
 # parent_required absent → None
@@ -747,7 +744,7 @@ position = "top"
 
 [views.squads_skill]
 # Source: the playbook lane of the projecting item's own type — `name` is deliberately unset,
-# so a `squads` skill item (roster type `skill`, no playbook lane of its own) resolves against
+# so a `sq-how-to` skill item (roster type `skill`, no playbook lane of its own) resolves against
 # itself rather than against some other named type; `PlaybookSource.roster` is populated
 # unconditionally regardless of whether a lane exists, and that live roster (plus the whole
 # active playbook, also carried) is all this view's template actually reads.
@@ -756,31 +753,16 @@ position = "top"
 source = { kind = "playbook" }
 
 [views.greeting_skill]
-# Source: the projecting item itself, plus the active spec and squad dir — this skill's
-# content names no relation and needs no roster, only where the squad lives.
+# Source: the playbook, as `squads_skill` has it: the template reads the live roster only to
+# name the squad's default role in the startup steps.
 # Seeded: same reasoning as `squads_skill` above.
-source = { kind = "self" }
+source = { kind = "playbook" }
 
 [views.memory_skill]
-# Source: the projecting item itself, plus the active spec and squad dir — same shape as
-# `greeting_skill`.
+# Source: the projecting item itself, plus the active spec and squad dir — this skill's content
+# names no relation and needs no roster, only where the squad lives.
 # Seeded: same reasoning as `squads_skill` above.
 source = { kind = "self" }
-
-[views.item_skill]
-# Source: the playbook lane of the type a per-item-type skill item documents — `name` is
-# deliberately unset, the same shape `squads_skill` above already ships. A per-item-type skill
-# is always of the roster `skill` type, never of the type it describes, so "the host's own
-# type" (what `name` unset means for every other kind) is corrected for this one family: the
-# subject is the type the host's own slug names (`sq-<type>` -> `<type>`), and falls back to
-# the host's bare type when the slug names none — the emptiness case, not a refusal (see
-# `squads._views._playbook_subject`). One declaration, one template
-# (`templates/views/item_skill.md.j2`), for every declared non-roster type, built-in or a
-# project's own — never a per-type entry, the same "declares nothing derivable" rule that
-# already governs the skill slug list itself.
-# Seeded: same reasoning as `squads_skill` above, for every skill this view classifies as
-# per-item-type-owned (`squads._views.roster_body_view_name`) rather than custom-authored.
-source = { kind = "playbook" }
 
 [views.source_description]
 # Source: the host's tracker issue (`source` kind, no `name`, every type) — the host's `source`

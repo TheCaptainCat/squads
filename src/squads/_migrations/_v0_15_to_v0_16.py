@@ -30,6 +30,7 @@ from squads._itemfile import read_frontmatter, write_text
 from squads._migrations._context import MigrationContext
 from squads._migrations._outcome import MigrationOutcome
 from squads._models import (
+    ORIGIN_SYSTEM,
     AttributeKey,
     Item,
     SquadsDB,
@@ -625,7 +626,11 @@ def _flat_report(tally: _FlatTally) -> tuple[str, ...]:
     return tuple(lines)
 
 
-def _origin_of(ctx: MigrationContext, flat: dict[str, Any], file_slug: str) -> str | None:
+#: The two always-on skills a squad of this schema stores under their pre-rename slugs.
+_RENAMED_SYSTEM_SKILLS = frozenset({"squads", "greeting"})
+
+
+def _origin_of(flat: dict[str, Any], file_slug: str) -> str | None:
     """The origin a role or skill file with flat frontmatter *flat* is to be stamped with, or
     ``None`` for another type or a file that already stores one (whatever its value)."""
     item_type = flat.get("type")
@@ -633,7 +638,7 @@ def _origin_of(ctx: MigrationContext, flat: dict[str, Any], file_slug: str) -> s
         return None
     slug = str(flat.get("slug") or file_slug)
     if item_type == ROSTER_SKILL:
-        return skill_origin(slug, ctx.spec)
+        return ORIGIN_SYSTEM if slug in _RENAMED_SYSTEM_SKILLS else skill_origin(slug)
     return role_origin(slug, template=DEV_TEMPLATE_NAME if flat.get(AttributeKey.TECH) else None)
 
 
@@ -655,7 +660,7 @@ async def _write_flat(ctx: MigrationContext, tally: _FlatTally, default_kind: st
             data, file_slug=tally.slugs[rel], default_kind=default_kind, source=rel
         )
         data = dict(flat.data)
-        if (origin := _origin_of(ctx, data, tally.slugs[rel])) is not None:
+        if (origin := _origin_of(data, tally.slugs[rel])) is not None:
             data[AttributeKey.ORIGIN] = origin
         await write_text(
             path, _skill_text(replace_frontmatter(text, data, source=rel), data.get("type"))
@@ -901,7 +906,7 @@ async def _plan_origin(ctx: MigrationContext, db: SquadsDB) -> Planned:
         flat = flatten_frontmatter(
             data, file_slug=file_slug, default_kind=default_kind, source=it.path
         )
-        origin = _origin_of(ctx, flat.data, file_slug)
+        origin = _origin_of(flat.data, file_slug)
         if origin is None:
             continue
         counts[(it.type, origin)] += 1

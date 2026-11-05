@@ -79,7 +79,7 @@ class ItemsMixin(ServiceCore):
                 db, item_id, status, force=force, unlink=unlink
             )
         if self.spec.item_is_roster(item.type):
-            await self.roster_projection.project_transition(item)
+            await self.roster_projection.project_transition(item, await self.role_bodies())
         # Post-commit partial resync for each severed preload edge, as unlink_role does: refresh
         # the previously-scoped role's cache and generated entry.
         preload_kind = self.spec.preload_ref_kind()
@@ -119,7 +119,6 @@ class ItemsMixin(ServiceCore):
                 active_backends=self.paths.config.active_backends,
                 unlink=unlink,
                 old_status=old_status,
-                playbook=self.playbook,
                 squad_dir=self.paths.squad_dir,
                 catalog=self.catalog,
             )
@@ -763,7 +762,7 @@ class ItemsMixin(ServiceCore):
         self, item_id: str, body: str, *, append: bool = False, force: bool = False
     ) -> Item:
         """Set (or ``--append`` to) an item's top-level ``:body`` region. A system skill's
-        and per-item-type skill's body is refused (:meth:`_reject_unwritable_body`), while a
+        body is refused (:meth:`_reject_unwritable_body`), while a
         role's, a custom skill's and an ordinary item's is admitted. Replacing authored prose is
         refused unless ``force`` (:func:`~squads._services._base.reject_body_overwrite`), which
         never lifts the skill refusal.
@@ -771,47 +770,6 @@ class ItemsMixin(ServiceCore):
         mutate = self._body_mutate(item_id, body, append=append, force=force)
         item, _changed = await self._locked_section_edit(item_id, mutate)
         return item
-
-    async def read_body(
-        self, item_id: str, *, keep_view: str | None = None
-    ) -> view_tags.ExpandedBody:
-        """The item's top-level ``:body`` content with any ``sq:view:<name>`` tag expanded but
-        *keep_view*'s, which stays as written, and a warning for each view that failed to render:
-        the one body-read boundary for rendered text
-        (:func:`~squads._view_tags.expand_view_tags`), while ``show --json`` reads
-        :meth:`read_stored_body` unexpanded. No writer may source its text from here, or expanded
-        view output would be persisted over the tag. A body with no tag returns without an index
-        load, as ``sq ui`` opts out of the read scope.
-        """
-        item = await self.get(item_id)
-        body = await self._stored_body(item)
-        if not views.has_view_tag(body):
-            return view_tags.ExpandedBody(body)
-        db = await self.store.load()
-        roster = cache(lambda: self.roster_from_db(db))
-        return view_tags.expand_view_tags(
-            body,
-            item,
-            db,
-            self.spec,
-            self.playbook,
-            roster,
-            self.paths.squad_dir,
-            self.catalog,
-            described_by(self.sources, db.items.values()),
-            self.paths.config.squad_dir,
-            self.working_language,
-            keep=keep_view,
-        )
-
-    async def _stored_body(self, item: Item) -> str:
-        text = await self._read_item_file(item, item_file(self.paths, item))
-        return (sections.get_section(text, markers.BODY) or "").strip("\n")
-
-    async def read_stored_body(self, item_id: str) -> str:
-        """The item's ``:body`` region exactly as stored, each ``sq:view:<name>`` tag left as a
-        tag. The text a client can write back; :meth:`read_body` is the one that expands tags."""
-        return await self._stored_body(await self.get(item_id))
 
     async def view_data(self, item_id: str) -> dict[str, TransformData]:
         """The transform output of each enabled, resolvable view tag in the item's stored body
@@ -874,7 +832,6 @@ class ItemsMixin(ServiceCore):
             active_backends=self.paths.config.active_backends,
             unlink=False,
             old_status=item.status,
-            playbook=self.playbook,
             squad_dir=self.paths.squad_dir,
             purge=purge,
             catalog=self.catalog,

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 from squads import __version__
 from squads._models import SCHEMA_VERSION
@@ -32,6 +33,7 @@ browser = false
 OLD_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_14"
 SCHEMA_17_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_17"
 SCHEMA_19_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_19"
+SCHEMA_19_SKILLS_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_19_skills"
 CHECK_HINT = "  run `sq check` to verify integrity\n"
 NO_SQUAD = "error: no .squads.toml found in this or any parent directory — run `sq init`\n"
 
@@ -304,6 +306,7 @@ async def test_up_stamps_a_clean_0_19_squad_and_adds_only_the_playbook_tag_to_ea
     assert f'schema_version = "{SCHEMA_VERSION}"' in _text(squad / ".squads.toml")
     after = _snapshot(squad)
     after.pop(".reflog.jsonl", None)
+    assert after.pop(".gitignore") == b".squads.toml.*.tmp\n"
     placed = b"\n<!-- sq:view:role_playbook -->\n"
     roles = [name for name in after if name.startswith("agents/roles/")]
     assert roles
@@ -348,6 +351,203 @@ async def test_up_lists_every_case_a_0_19_corpus_holds_and_stamps_nothing(
     )
     assert _snapshot(squad) == before
     assert 'schema_version = "0.19"' in _text(squad / ".squads.toml")
+
+
+def _skills_squad(tmp_path: Path, monkeypatch) -> Path:
+    """A copy of the 0.19 squad that holds the per-type and base skills, a project skill and the
+    Claude pointers for them, as the working directory."""
+    squad = shutil.copytree(SCHEMA_19_SKILLS_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    return squad
+
+
+def _skill_file(squad: Path, slug: str) -> Path:
+    (path,) = (squad / "squads/agents/skills").glob(f"SKILL-*-{slug}.md")
+    return path
+
+
+def _skill_data(path: Path) -> dict[str, Any]:
+    return yaml.safe_load(_text(path).removeprefix("---\n").split("\n---\n")[0])
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_retires_the_per_type_skills_and_renames_the_two_base_skills(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = _skills_squad(tmp_path, monkeypatch)
+    role = squad / "squads/agents/roles/ROLE-000001-manager.md"
+    _edit(role, "origin: system\n", "origin: system\nrefs:\n- SKILL-13\n")
+    how_to_before = _skill_data(_skill_file(squad, "squads"))
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in (squad / "squads/agents/skills").glob("*.md")) == [
+        "SKILL-000002-sq-greeting.md",
+        "SKILL-000009-sq-memory.md",
+        "SKILL-000013-sq-how-to.md",
+        "SKILL-000014-release-notes.md",
+    ]
+    how_to = _skill_data(_skill_file(squad, "sq-how-to"))
+    assert how_to == {
+        **how_to_before,
+        "title": "sq-how-to",
+        "slug": "sq-how-to",
+        "author": "sq-how-to",
+        "description": how_to["description"],
+    }
+    assert how_to["description"].startswith("How to track work on this project")
+    assert sorted(p.name for p in (squad / ".claude/skills").iterdir()) == [
+        "release-notes",
+        "sq-greeting",
+        "sq-how-to",
+        "sq-memory",
+        "sq-role-manager",
+    ]
+    shown = await _shown(invoke, "skill", 13)
+    assert (shown["id"], shown["slug"]) == ("SKILL-13", "sq-how-to")
+    inbound = await invoke(["skill", "13", "refs", "--in", "--json"])
+    assert json.loads(inbound.output) == {"in": [{"id": "ROLE-1", "kind": "related"}]}
+    assert _text(role).count("<!-- sq:view:role_playbook -->") == 1
+    allowed = json.loads(_text(squad / ".claude/settings.json"))["permissions"]["allow"]
+    assert {"Skill(sq-greeting)", "Skill(sq-how-to)"} <= set(allowed)
+    claude = _text(squad / "CLAUDE.md")
+    assert "invoke the `sq-greeting` skill" in claude
+    assert "`squads` skill" not in claude
+    checked = await invoke(["check", "--json"])
+    assert (checked.exit_code, checked.output) == (0, "[]\n")
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_lists_every_skill_it_refuses_and_what_the_skill_holds(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = _skills_squad(tmp_path, monkeypatch)
+    _edit(
+        _skill_file(squad, "sq-task"),
+        "<!-- sq:view:item_skill -->\n",
+        "<!-- sq:view:item_skill -->\nTeam notes on tasks.\n",
+    )
+    _edit(
+        _skill_file(squad, "sq-bug"),
+        "<!-- sq:discussion -->\n",
+        "<!-- sq:discussion -->\n- [2026-11-02T09:14:00Z] `manager` Catherine Manager:\n"
+        "  - Keep this skill.\n",
+    )
+    _edit(
+        squad / "squads/agents/roles/ROLE-000001-manager.md",
+        "origin: system\n",
+        "origin: system\nrefs:\n- SKILL-6\n",
+    )
+    role_skill = _skill_file(squad, "sq-review")
+    _edit(role_skill, "slug: sq-review\n", "slug: sq-role-manager\n")
+    project = _skill_file(squad, "release-notes")
+    _edit(project, "slug: release-notes\n", "slug: sq-how-to\n")
+    before = _snapshot(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: SKILL-3: per-type skill 'sq-bug' holds a discussion comment; move it first\n"
+        "SKILL-6: per-type skill 'sq-epic' holds a ref from ROLE-1; move it first\n"
+        "SKILL-11: skill 'sq-role-manager' is named like a role skill, a name 0.20 generates\n"
+        "SKILL-12: per-type skill 'sq-task' holds prose in its body; move it first\n"
+        "SKILL-14: project skill holds the name 'sq-how-to', which 0.20 gives to the 'squads' "
+        "skill\n"
+        "5 problem(s) found; fix them by hand (`sq migrate chlog v0.19.0..v0.20.0` lists the "
+        "steps).\n"
+        "This step wrote nothing and the schema stamp is unchanged.\n"
+        "The squad is still at schema v0.19: fix the cause, then re-run `sq migrate up`, "
+        "which rebuilds the index from the files first.\n",
+    )
+    assert _snapshot(squad) == before
+    assert 'schema_version = "0.19"' in _text(squad / ".squads.toml")
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_completes_once_the_refused_content_is_moved(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = _skills_squad(tmp_path, monkeypatch)
+    task_skill = _skill_file(squad, "sq-task")
+    original = _text(task_skill)
+    _edit(task_skill, "<!-- sq:view:item_skill -->\n", "<!-- sq:view:item_skill -->\nNotes.\n")
+    assert (await invoke(["migrate", "up"])).exit_code == 1
+
+    task_skill.write_text(original, encoding="utf-8")
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert not list((squad / "squads/agents/skills").glob("*-sq-task.md"))
+    assert 'schema_version = "0.20"' in _text(squad / ".squads.toml")
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_removes_a_per_type_skill_whatever_its_origin_or_type(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = _skills_squad(tmp_path, monkeypatch)
+    _edit(_skill_file(squad, "sq-task"), "origin: system\n", "origin: project\n")
+    dropped = _skill_file(squad, "sq-guide")
+    for old, new in (
+        ("title: sq-guide", "title: sq-widget"),
+        ("slug: sq-guide", "slug: sq-widget"),
+    ):
+        _edit(dropped, old, new)
+    _edit(dropped, "author: sq-guide", "author: sq-widget")
+    _edit(dropped, "<!-- sq:view:item_skill -->\n", "")
+    (squad / ".claude/skills/sq-guide").rename(squad / ".claude/skills/sq-widget")
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in (squad / "squads/agents/skills").glob("*.md")) == [
+        "SKILL-000002-sq-greeting.md",
+        "SKILL-000009-sq-memory.md",
+        "SKILL-000013-sq-how-to.md",
+        "SKILL-000014-release-notes.md",
+    ]
+    assert "sq-widget" not in {p.name for p in (squad / ".claude/skills").iterdir()}
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_leaves_base_skills_already_named_sq_greeting_and_sq_how_to(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = _skills_squad(tmp_path, monkeypatch)
+    for old, new in (("greeting", "sq-greeting"), ("squads", "sq-how-to")):
+        skill = _skill_file(squad, old)
+        for key in ("title", "slug", "author"):
+            _edit(skill, f"{key}: {old}\n", f"{key}: {new}\n")
+        skill.rename(skill.with_name(skill.name.replace(f"-{old}.md", f"-{new}.md")))
+        (squad / ".claude/skills" / old).rename(squad / ".claude/skills" / new)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert (_skill_data(_skill_file(squad, "sq-greeting"))["id"]) == "SKILL-2"
+    assert (_skill_data(_skill_file(squad, "sq-how-to"))["id"]) == "SKILL-13"
+    assert 'schema_version = "0.20"' in _text(squad / ".squads.toml")
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_writes_the_role_bodies_into_agents_md_for_an_agents_md_squad(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = _skills_squad(tmp_path, monkeypatch)
+    _edit(
+        squad / ".squads.toml",
+        'active_backends = ["claude_code"]',
+        'active_backends = ["agents_md"]',
+    )
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    shown = await invoke(["role", "manager", "show", "--raw", "--no-header"])
+    assert shown.exit_code == 0, shown.output
+    assert shown.output.rstrip("\n") in _text(squad / "AGENTS.md")
 
 
 @pytest.mark.covers("migrate up")
@@ -710,7 +910,7 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
             {
                 "schema_version": SCHEMA_VERSION,
                 "applied": [
-                    applied("0.15.0", 6, []),
+                    applied("0.15.0", 4, []),
                     applied(
                         "0.16.0",
                         5,
@@ -721,7 +921,8 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
                             "0 operator title(s) set from the stored full name",
                             "0 dropped skill description(s) differed from the one kept",
                             "1 role(s) stamped origin project",
-                            "4 skill(s) stamped origin system",
+                            "2 skill(s) stamped origin system",
+                            "2 skill(s) stamped origin project",
                             "4 skill(s) given a discussion region",
                         ],
                     ),
@@ -734,7 +935,16 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
                         ],
                     ),
                     applied("0.19.0", 1, []),
-                    applied("0.20.0", 0, []),
+                    applied(
+                        "0.20.0",
+                        4,
+                        [
+                            "removed skill SKILL-9 sq-contract",
+                            "removed skill SKILL-10 sq-milestone",
+                            "renamed skill SKILL-7 greeting to sq-greeting",
+                            "renamed skill SKILL-8 squads to sq-how-to",
+                        ],
+                    ),
                 ],
                 "reconciled": {"indexed": [], "missing": []},
                 "config_dropped": ["squads_version"],
@@ -821,7 +1031,7 @@ def _declare_impact_on_jobs(paths) -> None:
 
 async def _store_job_values_under_an_old_key(paths, invoke, value: str = "large") -> Path:
     """The job and its first action hold *value* under `weight`, a key the spec does not declare."""
-    job = _item_file(paths, "jobs", 9)
+    job = _item_file(paths, "jobs", 6)
     text = job.read_text(encoding="utf-8")
     assert "  impact: large\n" in text
     text = text.replace("  impact: large\n", f"  weight: {value}\n")
@@ -848,12 +1058,12 @@ async def test_rename_field_moves_the_value_on_the_item_and_on_its_entries(
         job.read_text(encoding="utf-8").split("---\n")[1],
     )
     assert frontmatter == (
-        "id: JOB-9\nsequence_id: 9\ntype: job\ntitle: Write the onboarding guide\n"
-        "status: Draft\nparent: INI-8\nauthor: manager\n"
+        "id: JOB-6\nsequence_id: 6\ntype: job\ntitle: Write the onboarding guide\n"
+        "status: Draft\nparent: INI-5\nauthor: manager\n"
         "subentities:\n- local_id: AC1\n  title: Draft the outline\n  status: Todo\n"
         "  impact: large\n"
         "- local_id: AC2\n  title: Record the walkthrough\n  status: Deferred\n"
-        "  deferred_to: REC-10\n"
+        "  deferred_to: REC-7\n"
         "stamp: T\nstamp: T\n"
         "owner_team: docs\nneeds_review: true\nwork_size: m\nimpact: large\n"
     )
@@ -873,8 +1083,8 @@ async def test_rename_field_refuses_a_key_the_holder_does_not_declare(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename field 'weight' to 'urgency': JOB-9: 'job' does not declare "
-        "'urgency'; AC1 of JOB-9: 'action' does not declare 'urgency' "
+        "error: cannot rename field 'weight' to 'urgency': JOB-6: 'job' does not declare "
+        "'urgency'; AC1 of JOB-6: 'action' does not declare 'urgency' "
         "(limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
@@ -895,7 +1105,7 @@ async def test_rename_field_refuses_a_holder_that_already_holds_the_new_key(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename field 'weight' to 'impact': AC1 of JOB-9 already holds 'impact' "
+        "error: cannot rename field 'weight' to 'impact': AC1 of JOB-6 already holds 'impact' "
         "(limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
@@ -913,8 +1123,8 @@ async def test_rename_field_refuses_a_value_the_new_field_does_not_accept(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename field 'weight' to 'impact': JOB-9: 'huge' is not a value of "
-        "'impact' (collection 'impact'); AC1 of JOB-9: 'huge' is not a value of 'impact' "
+        "error: cannot rename field 'weight' to 'impact': JOB-6: 'huge' is not a value of "
+        "'impact' (collection 'impact'); AC1 of JOB-6: 'huge' is not a value of 'impact' "
         "(collection 'impact') (limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
@@ -980,7 +1190,7 @@ async def test_rename_field_logs_one_line_and_one_system_comment_per_changed_ite
     await invoke(["migrate", "rename-field", "weight", "impact"])
 
     logged = await invoke(["reflog", "--json", "--op", "rename-field"])
-    shown = await invoke(["job", "9", "show", "--comments"])
+    shown = await invoke(["job", "6", "show", "--comments"])
 
     assert json.loads(logged.output) == [
         {
@@ -988,7 +1198,7 @@ async def test_rename_field_logs_one_line_and_one_system_comment_per_changed_ite
             "ts": "2026-06-07T10:00:00Z",
             "actor": "system",
             "op": "rename-field",
-            "target": "JOB-9",
+            "target": "JOB-6",
             "delta": {"old": "weight", "new": "impact"},
             "session_id": None,
             "parent_session_id": None,
@@ -1003,7 +1213,7 @@ async def test_rename_field_logs_one_line_and_one_system_comment_per_changed_ite
 async def test_rename_field_refuses_an_entry_on_a_type_that_hosts_no_kind(
     override_project, invoke
 ) -> None:
-    record = _item_file(override_project, "records", 10)
+    record = _item_file(override_project, "records", 7)
     text = record.read_text(encoding="utf-8")
     record.write_text(
         text.replace(
@@ -1020,7 +1230,7 @@ async def test_rename_field_refuses_an_entry_on_a_type_that_hosts_no_kind(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename field 'weight' to 'impact': X1 of REC-10: record hosts no "
+        "error: cannot rename field 'weight' to 'impact': X1 of REC-7: record hosts no "
         "sub-entity kind (limit the move with --type or --kind)\n",
     )
     assert _squad_bytes(override_project) == before
@@ -1044,7 +1254,7 @@ def _redeclare_outcome_as_goal(paths, *, prefix: str = "OC", plural: str = "outc
 
 
 async def _map_the_first_action_to_the_first_outcome(paths, invoke) -> None:
-    job = _item_file(paths, "jobs", 9)
+    job = _item_file(paths, "jobs", 6)
     job.write_text(
         job.read_text(encoding="utf-8").replace(
             "  status: Todo\n  impact: large\n", "  status: Todo\n  maps_to: OC1\n  impact: large\n"
@@ -1055,7 +1265,7 @@ async def _map_the_first_action_to_the_first_outcome(paths, invoke) -> None:
 
 
 RENAMED_INITIATIVE = (
-    "---\nid: INI-8\nsequence_id: 8\ntype: initiative\ntitle: Open the beta\nstatus: Draft\n"
+    "---\nid: INI-5\nsequence_id: 5\ntype: initiative\ntitle: Open the beta\nstatus: Draft\n"
     "author: manager\nsubentities:\n- local_id: GO1\n  title: Fifty active teams\n"
     "  status: Todo\n- local_id: GO2\n  title: A published roadmap\n  status: Todo\n"
     "created_at: '2026-06-07T10:00:00Z'\nupdated_at: '2026-06-07T10:00:00Z'\n"
@@ -1076,14 +1286,14 @@ RENAMED_INITIATIVE = (
 )
 RENAMED_INITIATIVE_SHOW = (
     "╭───────────────────────────────────────────────╮\n"
-    "│ INI-8  (initiative)                           │\n"
+    "│ INI-5  (initiative)                           │\n"
     "│ title: Open the beta                          │\n"
     "│ status: Draft                                 │\n"
     "│ urgency: 🔴 now                               │\n"
     "│ horizon: 2026-12-01                           │\n"
     "│ themes: growth                                │\n"
     "│ author: manager                               │\n"
-    "│ file: initiatives/INI-000008-open-the-beta.md │\n"
+    "│ file: initiatives/INI-000005-open-the-beta.md │\n"
     "╰───────────────────────────────────────────────╯\n\n"
     "## Description\n\n_TODO: describe this initiative._\n\n"
     "Desired outcome  Status  Assignee  Title              \n"
@@ -1106,7 +1316,7 @@ async def test_rename_kind_keeps_the_prefix_and_the_bodies_stay_reachable(
         0,
         "rename-kind done: outcome → goal, 1 item(s) rewritten\n" + CHECK_HINT,
     )
-    shown = await invoke(["initiative", "8", "goal", "1", "show"])
+    shown = await invoke(["initiative", "5", "goal", "1", "show"])
     assert shown.output.splitlines()[:5] == [
         "OC1 — Fifty active teams  (goal)",
         "  status: Todo",
@@ -1114,7 +1324,7 @@ async def test_rename_kind_keeps_the_prefix_and_the_bodies_stay_reachable(
         "Measured weekly.",
         "",
     ]
-    mapped = await invoke(["job", "9", "action", "1", "show"])
+    mapped = await invoke(["job", "6", "action", "1", "show"])
     assert mapped.output.splitlines()[1] == "  status: Todo   Impact: large   Desired outcome: OC1"
     checked = await invoke(["check", "--json"])
     assert (checked.exit_code, checked.output) == (0, "[]\n")
@@ -1133,18 +1343,18 @@ async def test_rename_kind_moves_the_prefix_the_plural_and_the_mappings(
         0,
         "rename-kind done: outcome → goal, 2 item(s) rewritten\n" + CHECK_HINT,
     )
-    initiative = _item_file(override_project, "initiatives", 8).read_text(encoding="utf-8")
+    initiative = _item_file(override_project, "initiatives", 5).read_text(encoding="utf-8")
     assert initiative == RENAMED_INITIATIVE
-    shown = await invoke(["initiative", "8", "goal", "1", "show"])
+    shown = await invoke(["initiative", "5", "goal", "1", "show"])
     assert shown.output.splitlines()[:4] == [
         "GO1 — Fifty active teams  (goal)",
         "  status: Todo",
         "",
         "Measured weekly.",
     ]
-    mapped = await invoke(["job", "9", "action", "1", "show"])
+    mapped = await invoke(["job", "6", "action", "1", "show"])
     assert mapped.output.splitlines()[1] == "  status: Todo   Impact: large   Desired outcome: GO1"
-    table = await invoke(["initiative", "8", "show"])
+    table = await invoke(["initiative", "5", "show"])
     assert table.output == RENAMED_INITIATIVE_SHOW
     checked = await invoke(["check", "--json"])
     assert (checked.exit_code, checked.output) == (0, "[]\n")
@@ -1175,7 +1385,7 @@ async def test_rename_kind_refuses_a_type_that_does_not_host_the_kind(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename kind 'outcome' to 'action': INI-8: initiative does not host "
+        "error: cannot rename kind 'outcome' to 'action': INI-5: initiative does not host "
         "'action'\n",
     )
     assert _squad_bytes(override_project) == before
@@ -1189,7 +1399,7 @@ def _rewrite_in(path: Path, old: str, new: str) -> None:
 async def test_rename_kind_refuses_two_ids_that_would_become_the_same_id(
     override_project, invoke
 ) -> None:
-    _rewrite_in(_item_file(override_project, "initiatives", 8), "OC2", "GO1")
+    _rewrite_in(_item_file(override_project, "initiatives", 5), "OC2", "GO1")
     await invoke(["repair"])
     _redeclare_outcome_as_goal(override_project, prefix="GO")
     before = _squad_bytes(override_project)
@@ -1198,7 +1408,7 @@ async def test_rename_kind_refuses_two_ids_that_would_become_the_same_id(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename kind 'outcome' to 'goal': INI-8: OC1 and GO1 would both become GO1\n",
+        "error: cannot rename kind 'outcome' to 'goal': INI-5: OC1 and GO1 would both become GO1\n",
     )
     assert _squad_bytes(override_project) == before
 
@@ -1207,11 +1417,11 @@ async def test_rename_kind_refuses_two_ids_that_would_become_the_same_id(
 async def test_rename_kind_brings_a_stray_prefix_among_declared_ones_to_the_declaration(
     override_project, invoke
 ) -> None:
-    _rewrite_in(_item_file(override_project, "initiatives", 8), "OC2", "XX2")
+    _rewrite_in(_item_file(override_project, "initiatives", 5), "OC2", "XX2")
     await invoke(["repair"])
     mismatch = {
         "level": "warn",
-        "item": "INI-8",
+        "item": "INI-5",
         "message": "XX2 does not start with prefix 'OC' of kind 'outcome'; "
         "`sq migrate rename-kind outcome outcome` brings it to the declaration",
         "rule": "subentity_kind_mismatch",
@@ -1227,7 +1437,7 @@ async def test_rename_kind_brings_a_stray_prefix_among_declared_ones_to_the_decl
     )
     fixed = await invoke(["check", "--json"])
     assert (fixed.exit_code, fixed.output) == (0, "[]\n")
-    shown = await invoke(["initiative", "8", "outcome", "2", "show"])
+    shown = await invoke(["initiative", "5", "outcome", "2", "show"])
     assert shown.output.splitlines()[0] == "OC2 — A published roadmap  (outcome)"
 
 
@@ -1236,22 +1446,22 @@ async def test_a_prefix_change_then_add_then_rename_gives_distinct_ids_and_a_cle
     override_project, invoke
 ) -> None:
     await invoke(["create", "initiative", "Second", "--author", "manager"])
-    await invoke(["initiative", "11", "add-outcome", "First", "-m", "One."])
+    await invoke(["initiative", "8", "add-outcome", "First", "-m", "One."])
     _rewrite_in(
         override_project.squad_dir / ".overrides" / "workflow.toml",
         'local_prefix = "OC"',
         'local_prefix = "GO"',
     )
-    added = await invoke(["initiative", "11", "add-outcome", "Next", "-m", "Two."])
+    added = await invoke(["initiative", "8", "add-outcome", "Next", "-m", "Two."])
     assert added.exit_code == 0, added.output
 
     reported = await invoke(["check", "--json"])
     assert sorted(
         (i["item"], i["message"].split(" does")[0]) for i in json.loads(reported.output)
     ) == [
-        ("INI-11", "OC1"),
+        ("INI-5", "OC1"),
+        ("INI-5", "OC2"),
         ("INI-8", "OC1"),
-        ("INI-8", "OC2"),
     ]
 
     result = await invoke(["migrate", "rename-kind", "outcome", "outcome"])
@@ -1262,7 +1472,7 @@ async def test_a_prefix_change_then_add_then_rename_gives_distinct_ids_and_a_cle
     )
     fixed = await invoke(["check", "--json"])
     assert (fixed.exit_code, fixed.output) == (0, "[]\n")
-    second = await invoke(["initiative", "11", "outcome", "2", "show"])
+    second = await invoke(["initiative", "8", "outcome", "2", "show"])
     assert second.output.splitlines()[0] == "GO2 — Next  (outcome)"
 
 
@@ -1270,7 +1480,7 @@ async def test_a_prefix_change_then_add_then_rename_gives_distinct_ids_and_a_cle
 async def test_rename_kind_refuses_an_item_with_a_missing_marker_pair(
     override_project, invoke
 ) -> None:
-    initiative = _item_file(override_project, "initiatives", 8)
+    initiative = _item_file(override_project, "initiatives", 5)
     initiative.write_text(
         initiative.read_text(encoding="utf-8").replace("<!-- sq:outcome:OC2:end -->\n", ""),
         encoding="utf-8",
@@ -1282,7 +1492,7 @@ async def test_rename_kind_refuses_an_item_with_a_missing_marker_pair(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename kind 'outcome' to 'goal': INI-8: no marker pair for OC2\n",
+        "error: cannot rename kind 'outcome' to 'goal': INI-5: no marker pair for OC2\n",
     )
     assert _squad_bytes(override_project) == before
 
@@ -1311,11 +1521,11 @@ async def test_rename_kind_logs_and_comments_on_each_item_it_rewrites(
     await invoke(["migrate", "rename-kind", "outcome", "goal"])
 
     logged = await invoke(["reflog", "--json", "--op", "rename-kind"])
-    shown = await invoke(["initiative", "8", "show", "--comments"])
+    shown = await invoke(["initiative", "5", "show", "--comments"])
 
     assert [(e["target"], e["delta"]) for e in json.loads(logged.output)] == [
-        ("INI-8", {"old": "outcome", "new": "goal"}),
-        ("JOB-9", {"old": "outcome", "new": "goal"}),
+        ("INI-5", {"old": "outcome", "new": "goal"}),
+        ("JOB-6", {"old": "outcome", "new": "goal"}),
     ]
     header, bullet = shown.output.strip().splitlines()[-2:]
     assert re.fullmatch(r"--- \w+ \[2026-06-07T10:00:00Z\] squads ---", header)
@@ -1323,12 +1533,12 @@ async def test_rename_kind_logs_and_comments_on_each_item_it_rewrites(
 
 
 JOB_FRONTMATTER = (
-    "id: JOB-9\nsequence_id: 9\ntype: job\ntitle: Write the onboarding guide\n"
-    "status: Draft\nparent: INI-8\nauthor: manager\n"
+    "id: JOB-6\nsequence_id: 6\ntype: job\ntitle: Write the onboarding guide\n"
+    "status: Draft\nparent: INI-5\nauthor: manager\n"
     "subentities:\n- local_id: AC1\n  title: Draft the outline\n  status: Todo\n"
     "  {entry_key}: large\n"
     "- local_id: AC2\n  title: Record the walkthrough\n  status: Deferred\n"
-    "  deferred_to: REC-10\n"
+    "  deferred_to: REC-7\n"
     "created_at: '2026-06-07T10:00:00Z'\nupdated_at: '2026-06-07T10:00:00Z'\n"
     "owner_team: docs\nneeds_review: true\nwork_size: m\n{item_tail}: large\n"
 )
@@ -1406,7 +1616,7 @@ async def test_check_reports_a_changed_local_prefix_without_any_selection(
         [
             {
                 "level": "warn",
-                "item": "INI-8",
+                "item": "INI-5",
                 "message": f"{local} does not start with prefix 'GO' of kind 'outcome'; {verb}",
                 "rule": "subentity_kind_mismatch",
             }
@@ -1429,7 +1639,7 @@ async def test_rename_field_refusal_under_a_scope_does_not_suggest_a_scope(
 
     assert (result.exit_code, result.output) == (
         1,
-        "error: cannot rename field 'weight' to 'urgency': JOB-9: 'job' does not declare "
+        "error: cannot rename field 'weight' to 'urgency': JOB-6: 'job' does not declare "
         "'urgency'\n",
     )
     assert _squad_bytes(override_project) == before

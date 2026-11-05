@@ -224,7 +224,7 @@ async def test_a_playbook_guide_for_a_retired_role_is_a_warning(
                 "warn",
                 "",
                 "playbook guide for role 'designer' on type 'task' names no live role, so its "
-                "guidance is dropped from the generated `sq-task` skill — reactivate the role "
+                "guidance is dropped from every generated role playbook — reactivate the role "
                 "(`sq role designer status Active`), or remove the guide from "
                 "`.overrides/playbook.toml` under `[types.task]`",
             )

@@ -33,7 +33,7 @@ subentities:
   assignee: tech-writer
   maps_to: US5
 created_at: '2026-11-04T21:46:38Z'
-updated_at: '2026-11-04T21:46:46Z'
+updated_at: '2026-11-05T00:50:03Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -123,4 +123,8 @@ Story US5.
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-05T00:30:42Z] `manager` Catherine Manager:
+  - From TASK-1295 round 4: docs/overrides.md (around 1242, 1431), docs/workflow.md (1228, 1309), docs/adoption.md (334), docs/README.md (70) and docs/faq.md (110) still describe the per-type sq-<type> skills and the removed skill_type_declared and item_skill_shadowed check rules.
+- [2026-11-05T00:50:03Z] `manager` Catherine Manager:
+  - From TASK-1295 round 5: sq-how-to moved two sections behind sq docs that the topics only partly cover. 'Working directly with the operator' (anchor live work to an item, keep status honest, hand back, stay in lane) belongs in sq docs agents; 'Finding things across the board' (search scope, --type/--status narrowing, hit regions, --json) belongs in sq docs recipes, which holds one search line today.
 <!-- sq:discussion:end -->

@@ -53,7 +53,6 @@ _SITES: dict[tuple[str, str], tuple[str, ...]] = {
     ("squads/_services/_check.py", "_missing_timestamp_issues"): ("timestamps_present",),
     ("squads/_services/_check.py", "_value_skew_issue"): ("frontmatter_matches_index",),
     ("squads/_services/_check.py", "check"): ("ids_unique", "numbers_unique"),
-    ("squads/_services/_check.py", "_orphaned_skill_issues"): ("skill_type_declared",),
     ("squads/_services/_check.py", "_scan_for_check"): (
         "file_readable",
         "markers_balanced",

@@ -87,7 +87,7 @@ async def _check_issues(invoke) -> list[dict[str, str]]:
 async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
     override_project, invoke
 ) -> None:
-    mapped = await invoke(["job", "9", "action", "1", "update", "--outcome", "1"])
+    mapped = await invoke(["job", "6", "action", "1", "update", "--outcome", "1"])
     assert mapped.exit_code == 0, mapped.output
     job = next((override_project.squad_dir / "jobs").glob("JOB-*.md"))
     job.write_text(job.read_text("utf-8").replace("maps_to: OC1", "maps_to: OC9"), "utf-8")
@@ -96,8 +96,8 @@ async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
     assert await _check_issues(invoke) == [
         {
             "level": "error",
-            "item": "JOB-9",
-            "message": "action AC1 maps to outcome OC9, missing from INI-8",
+            "item": "JOB-6",
+            "message": "action AC1 maps to outcome OC9, missing from INI-5",
             "rule": "subentity_mapping",
         }
     ]
@@ -108,13 +108,13 @@ async def test_a_mapping_to_a_missing_sub_entity_names_the_target_kind(
 async def test_a_superseded_record_names_the_declared_supersession_kind(
     override_project, invoke
 ) -> None:
-    moved = await invoke(["record", "10", "status", "Superseded", "--force"])
+    moved = await invoke(["record", "7", "status", "Superseded", "--force"])
     assert moved.exit_code == 0, moved.output
 
     assert await _check_issues(invoke) == [
         {
             "level": "warn",
-            "item": "REC-10",
+            "item": "REC-7",
             "message": "status is Superseded but no incoming replaces edge found",
             "rule": "supersedes_incoming",
         }

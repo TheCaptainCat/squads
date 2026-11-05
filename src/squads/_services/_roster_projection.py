@@ -12,8 +12,7 @@ from squads._errors import SquadsError
 from squads._index import IndexStore
 from squads._interactions import (
     PlaybookSpec,
-    active_skill_slugs,
-    orphaned_skill_item_type,
+    bundled_skill_slugs,
     resolve_operator_invocable,
     skills_for_role,
     slug_only_role,
@@ -43,16 +42,12 @@ from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, Workflo
 def is_live_roster_entry(item: Item, spec: WorkflowSpec) -> bool:
     """Whether *item* (a ``role`` or ``skill``) should have a materialised backend artifact: the one
     predicate behind ``project_item``, ``sq check``'s ``backend_reconciled`` and ``sync``'s
-    report. The status must carry the type's ``live`` flag and, for a ``SKILL``, the slug must still
-    name a type the active spec declares, so a dropped type's skill is withdrawn. ``False`` for any
-    other type. Pure: reads only *item* and *spec*.
+    report. The status must carry the type's ``live`` flag. ``False`` for any other type. Pure:
+    reads only *item* and *spec*.
     """
     if item.type not in (ROSTER_ROLE, ROSTER_SKILL):
         return False
-    live = item.status in spec.live_statuses(item.type)
-    if item.type == ROSTER_SKILL and live:
-        live = orphaned_skill_item_type(item.slug, spec) is None
-    return live
+    return item.status in spec.live_statuses(item.type)
 
 
 class RosterProjection:
@@ -200,7 +195,7 @@ class RosterProjection:
         backends so none re-derives the value."""
         live = self.spec.live_statuses(ROSTER_SKILL)
         return {
-            it.slug: resolve_operator_invocable(it.slug, it, self.spec)[0]
+            it.slug: resolve_operator_invocable(it.slug, it)[0]
             for it in await self._items_of(ROSTER_SKILL)
             if it.status in live
         }
@@ -216,7 +211,7 @@ class RosterProjection:
             if role is None
             else resolve_role_tolerantly(role, self.paths.squad_dir, catalog=self.catalog)
         )
-        system = skills_for_role(resolved, self.spec, self.playbook)
+        system = skills_for_role(resolved)
         if role is None:
             return system
         role_prefix = effective_prefix(role.prefix)
@@ -263,7 +258,7 @@ class RosterProjection:
             if it.type == ROSTER_ROLE and it.status in live
         }
 
-    async def refresh_managed(self) -> list[str]:
+    async def refresh_managed(self, role_bodies: dict[str, str]) -> list[str]:
         """(Re)write every active backend's roster/version-dependent files.
 
         Returns any WARN-only notices the writes surfaced (e.g. a pre-existing hand-written
@@ -277,6 +272,7 @@ class RosterProjection:
             skill_paths=skill_map,
             skill_invocable=await self.skill_invocable(),
             role_skills=role_skills,
+            role_bodies=role_bodies,
             spec=self.spec,
             playbook=self.playbook,
             catalog=self.catalog,
@@ -293,11 +289,10 @@ class RosterProjection:
         """WARN-only candidate-orphan pointer and skill files across every active backend: present
         on disk but managed by none, never deleted. Backends get the full roster
         (:meth:`roster_all`) and every SKILL slug regardless of status, since a withdrawn entry's
-        leftover file is this squad's own debt. The known-slug floor is :func:`active_skill_slugs`,
-        not the allocation-order union, which would exempt a dropped type's stale skill.
+        leftover file is this squad's own debt. The known-slug floor is :func:`bundled_skill_slugs`.
         """
         all_skills = await self._items_of(ROSTER_SKILL)
-        skill_slugs = {it.slug for it in all_skills} | active_skill_slugs(self.spec)
+        skill_slugs = {it.slug for it in all_skills} | set(bundled_skill_slugs())
         roster = await self.roster_all()
         ctx = BackendContext(
             paths=self.paths,
@@ -371,7 +366,7 @@ class RosterProjection:
                 await backend.remove_artifacts(ctx, item)
         return warnings
 
-    async def project_transition(self, item: Item) -> list[str]:
+    async def project_transition(self, item: Item, role_bodies: dict[str, str]) -> list[str]:
         """Materialise or withdraw *item*'s backend projection after a roster status transition
         commits, outside the transaction since a generated file is regenerable. It resolves the
         preload map in one read (:meth:`role_skills_map`) so a role's ``scopes``-derived skills
@@ -387,4 +382,4 @@ class RosterProjection:
             catalog=self.catalog,
         )
         warnings = await self.project_item(item, ctx)
-        return warnings + await self.refresh_managed()
+        return warnings + await self.refresh_managed(role_bodies)

@@ -52,10 +52,10 @@ def seed(daemon: Served) -> dict[str, str]:
         "item_hash": comment_hash(daemon, f"/v1/items/{task}/comments"),
         "sub_hash": comment_hash(daemon, f"/v1/items/{task}/subentities/ST1/comments"),
         "roles_hash": comment_hash(daemon, "/v1/roles/manager/comments"),
-        "skills_hash": comment_hash(daemon, "/v1/skills/greeting/comments"),
+        "skills_hash": comment_hash(daemon, "/v1/skills/sq-greeting/comments"),
         "operators_hash": comment_hash(daemon, "/v1/operators/op-op/comments"),
         "roles_addr": "manager",
-        "skills_addr": "greeting",
+        "skills_addr": "sq-greeting",
         "operators_addr": "op-op",
     }
 

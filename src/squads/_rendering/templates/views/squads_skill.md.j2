@@ -7,13 +7,7 @@
 {% set anchor_settled = _ac.anchor_settled %}
 {% set _priority_field = _ac.priority_field %}
 {% set _priority_values = _ac.priority_values %}
-# squads — working with the `sq` CLI
-
-**squads** is how this team coordinates — your shared structure for working alongside the other
-agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff protocol (comments,
-`@mentions`, an inbox). Here's your part of it. Work is tracked as identified markdown items under
-`{{ squad_dir }}/`, indexed in `{{ squad_dir }}/.squads.json`. Every item has a stable ID like
-`{{ anchor_prefix }}-<n>` (the prefix marks the type; the number is globally unique).
+# sq-how-to — working with the `sq` CLI
 
 {% set _kind_to_type = {} %}
 {% for _t, _tspec in spec.items.items() %}
@@ -59,77 +53,31 @@ agents: stable IDs, defined roles and skills, a status lifecycle, and a handoff 
   hash, so a hash that no longer resolves means the comment was edited or removed — read the
   discussion again. A hash quoted in prose pins the text its author read.
 - Reference related items by ID so others read the right context.
-- **Before acting on an item, open its `sq-<type>` skill and follow your role's _For …_ section** —
-  it lists exactly what you check first, what you do, and when/how to hand off.
-- Need detail? Run `sq docs` to list the full documentation and `sq docs <name>` (e.g.
-  `sq docs workflow`) to read it in-terminal — no fetch required.
 
-{% include "working_language.md.j2" %}
-
-## Working directly with the operator
-
-The operator sometimes talks to you directly — for live work or debugging. The team only sees
-`sq`, never the chat, so stay disciplined:
-
-- **Anchor to an item.** Confirm the item with `sq <type> <n> show --full --comments` (body +
-  sub-entities + discussion). Create the item first if it's genuinely new.
-- **Keep status honest.** Move it to its lifecycle's first working state (`sq <type> <n>
-  status <status>`) when you start; don't leave it stale.
-- **Hand back through `sq`.** Before you wrap up, leave a `sq <type> <n> comment --as <your-slug>
-  -m "…"` (or `--file` for anything with a backtick or a code block) summarising what changed —
-  that's how the coordinating agent's loop (and the next agent) picks up where you left off.
 {% set _hosted_plurals = [] %}
 {% for _kind in _kind_to_type %}
 {% set _ = _hosted_plurals.append(spec.subentity_plural(_kind)) %}
 {% endfor %}
-- **Scope your comment to the right discussion.** Sub-entities ({{ _hosted_plurals | join(', ') }})
-  each have their own discussion region alongside the parent item's main discussion. Use
-  `sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
-  `sq <type> <n> comment` for cross-cutting material that applies to the whole item.
+## Scope your comment to the right discussion
 
-  | Scope | Command | When to use |
-  |---|---|---|
+Sub-entities ({{ _hosted_plurals | join(', ') }})
+each have their own discussion region alongside the parent item's main discussion. Use
+`sq <type> <n> <kind> <k> comment` for anything scoped to that one sub-entity; use
+`sq <type> <n> comment` for cross-cutting material that applies to the whole item.
+
+| Scope | Command | When to use |
+|---|---|---|
 {% for _kind in _kind_to_type %}
-  | One {{ _kind }} | `sq {{ _kind_to_type[_kind] }} <n> {{ _kind }} <k> comment` | Notes scoped to this {{ _kind }}: a clarification, blocker or question local to it |
+| One {{ _kind }} | `sq {{ _kind_to_type[_kind] }} <n> {{ _kind }} <k> comment` | Notes scoped to this {{ _kind }}: a clarification, blocker or question local to it |
 {% endfor %}
-  | Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
+| Whole item | `sq <type> <n> comment` | Handoff @mentions, decisions spanning multiple sub-entities, item-level status summaries |
 
-  @mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
-  or the main one. Prefer the main discussion for @mentions that announce a transition or request
-  action from the next agent (they read as item-level handoffs); a sub-entity discussion is fine for
-  a scoped question (e.g. `sq {{ anchor or "<type>" }} N {{ anchor_kind or "<kind>" }} 1 comment
-  --as <your-slug> -m "@role does this look right?"`). This is guidance, not a hard rule — the
-  inbox never misses a mention.
-- **Stay in lane.** File anything you discover that's out of scope as its own item (e.g. a bug);
-  don't silently expand the work.
-
-Humans are tracked as **operators** (`op-<firstname>` slugs; see the roster in `CLAUDE.md`). Assign
-work to a person with `--assignee op-<slug>`, and attribute their words with `--as op-<slug>` (or
-`--author op-<slug>`). Register one with `sq operator add "<name>"`; list them with
-`sq list -t operator`.
-
-## Finding things across the board
-
-Use `sq search "<text>"` when you need to hunt a prior decision or check whether a topic is
-already tracked — not as a routine boot step.
-
-- It scans **everything**: titles, summaries, bodies, discussion comments, and sub-entity prose{% if _kind_to_type %}
-  ({{ _kind_to_type | list | join('/') }} blocks){% endif %} — case-insensitive substring match.
-- Narrow with `--type <type>` and/or `--status <status>` (the same vocabulary as `sq list`); both
-  AND-compose with the query.
-{# The region label is `<kind>:<local_prefix><n>`; both halves are spec-declared, so the
-   example is built from the first declared kind rather than the bundled story/US pair. #}
-{% set _ex_kind = (_kind_to_type | list | first) %}
-{% set _ex_region = (_ex_kind ~ ":" ~ spec.subentity_kinds[_ex_kind].local_prefix ~ "<n>") if _ex_kind else "<kind>:<k>" %}
-- Each result names **where** it matched: `body`, a `discussion` comment, or a named sub-entity
-  (e.g. `{{ _ex_region }}`, `{{ _ex_region }}:discussion#2`), alongside an in-context snippet — so you can jump
-  straight to the right region instead of re-reading the whole item.
-- `sq search "<text>" --json` emits the same result set machine-readably (id/type/status plus
-  each hit's region/location/snippet) for a script or an orchestrating agent to consume.
-
-{% set roles = source.roster %}
-{% set playbook = source.playbook %}
-{% include "workflow.md.j2" %}
+@mentions are surfaced by `sq inbox` wherever they live in the file — in a sub-entity discussion
+or the main one. Prefer the main discussion for @mentions that announce a transition or request
+action from the next agent (they read as item-level handoffs); a sub-entity discussion is fine for
+a scoped question (e.g. `sq {{ anchor or "<type>" }} N {{ anchor_kind or "<kind>" }} 1 comment
+--as <your-slug> -m "@role does this look right?"`). This is guidance, not a hard rule — the
+inbox never misses a mention.
 
 ## Common commands
 
@@ -154,3 +102,11 @@ Items whose status is hidden-by-default (typically the settled/closed ones) drop
 list`/`sq tree` — pass `--all` or an explicit `--status` to see them.{% if _priority_field %} Set importance with `--{{ _priority_field.code }} {{ _priority_values | join('|') }}`.{% endif +%}
 
 Run `sq --help`, `sq <type> --help`, or `sq <type> <n> --help` for the full surface.
+
+## More, when you need it
+
+- `sq docs agents` — working live with the operator: anchoring to an item, keeping status honest,
+  handing back through `sq`.
+- `sq docs recipes` — searching the board and prioritising work.
+- `sq docs workflow` — lifecycles, type-command aliases and sub-entities.
+- `sq workflow` — this squad's own vocabulary: types, statuses, hierarchy.

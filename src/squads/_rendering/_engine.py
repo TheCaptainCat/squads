@@ -30,10 +30,8 @@ from squads._interactions import (
     cheatsheet_anchor_context,
     cheatsheet_anchor_type,
     cheatsheet_review_gate,
-    custom_item_skill_commands,
     example_assignee_slug,
     get_playbook_spec,
-    item_skill_role_sections,
     live_roster_text,
     parent_chain,
     role_playbook_sections,
@@ -127,13 +125,10 @@ def _make_env(squad_dir: Path | None) -> Environment:
     # DEPRECATED alias kept for scaffolded overrides that call {{ linearize_lifecycle(x) }};
     # drop it only when the project decides such overrides are unsupported.
     env.globals["linearize_lifecycle"] = linearize_lifecycle  # pyright: ignore[reportArgumentType]
-    # per-item-type skill helpers — pure functions reachable from
-    # templates/views/item_skill.md.j2 (and any adopter override) as filters, never
-    # reimplemented in the template itself.
-    env.filters["item_skill_role_sections"] = item_skill_role_sections  # pyright: ignore[reportArgumentType]
+    # playbook view helpers — pure functions reachable from the view templates (and any adopter
+    # override) as filters, never reimplemented in the template itself.
     env.filters["role_playbook_sections"] = role_playbook_sections  # pyright: ignore[reportArgumentType]
     env.filters["live_roster_text"] = live_roster_text  # pyright: ignore[reportArgumentType]
-    env.filters["custom_item_skill_commands"] = custom_item_skill_commands  # pyright: ignore[reportArgumentType]
     env.filters["label_for"] = label_for  # pyright: ignore[reportArgumentType]
     # playbook helpers — the role->type authoring narrative in workflow.md.j2 renders from the
     # playbook's declared create-lanes + the role catalog + the spec's parent chain, not

@@ -2,7 +2,7 @@
 bundled spec declares and that squad drops, and no bundled role slug its roster lacks.
 
 The squad keeps the `minimal` roster and has every backend, so the `CLAUDE.md` and `AGENTS.md`
-sections, the squads skill, the per-type skills, the memory and greeting skills and the role
+sections, the sq-how-to skill, the memory and greeting skills and the role
 pointers are read from disk as written.
 """
 

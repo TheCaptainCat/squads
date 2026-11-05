@@ -20,7 +20,6 @@ from squads._interactions._models import ItemPlaybookSpec as ItemPlaybookSpec
 from squads._interactions._models import PlaybookSpec as PlaybookSpec
 from squads._interactions._playbook import authoring_owners as authoring_owners
 from squads._interactions._playbook import get_playbook_spec as get_playbook_spec
-from squads._interactions._playbook import managed_item_types as managed_item_types
 from squads._interactions._playbook import (
     orphaned_playbook_guide_message as orphaned_playbook_guide_message,
 )
@@ -42,8 +41,6 @@ from squads._interactions._role_guidance import developer_roles as developer_rol
 from squads._interactions._role_guidance import example_assignee_slug as example_assignee_slug
 from squads._interactions._role_guidance import in_lane_owner as in_lane_owner
 from squads._interactions._role_guidance import is_lane_exempt as is_lane_exempt
-from squads._interactions._role_guidance import item_skill_role_sections as item_skill_role_sections
-from squads._interactions._role_guidance import item_types_for_role as item_types_for_role
 from squads._interactions._role_guidance import laned_types as laned_types
 from squads._interactions._role_guidance import live_roster_text as live_roster_text
 from squads._interactions._role_guidance import role_playbook_sections as role_playbook_sections
@@ -52,19 +49,9 @@ from squads._interactions._role_guidance import slug_only_role as slug_only_role
 from squads._interactions._skills import GREETING_SKILL as GREETING_SKILL
 from squads._interactions._skills import MEMORY_SKILL as MEMORY_SKILL
 from squads._interactions._skills import SQUADS_SKILL as SQUADS_SKILL
-from squads._interactions._skills import active_skill_slugs as active_skill_slugs
 from squads._interactions._skills import bundled_skill_slugs as bundled_skill_slugs
-from squads._interactions._skills import custom_item_skill_commands as custom_item_skill_commands
-from squads._interactions._skills import (
-    custom_item_skill_description as custom_item_skill_description,
-)
-from squads._interactions._skills import custom_item_skill_name as custom_item_skill_name
-from squads._interactions._skills import custom_skill_slugs as custom_skill_slugs
 from squads._interactions._skills import is_system_skill as is_system_skill
 from squads._interactions._skills import item_origin as item_origin
-from squads._interactions._skills import item_skill_name as item_skill_name
-from squads._interactions._skills import item_type_for_skill_slug as item_type_for_skill_slug
-from squads._interactions._skills import orphaned_skill_item_type as orphaned_skill_item_type
 from squads._interactions._skills import resolve_operator_invocable as resolve_operator_invocable
 from squads._interactions._skills import role_origin as role_origin
 from squads._interactions._skills import role_skill_name as role_skill_name

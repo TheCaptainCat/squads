@@ -126,9 +126,9 @@ async def test_c_help_of_one_squad_does_not_change_the_next_squads_verbs(
 async def test_an_alias_of_a_dropped_type_runs_the_type_that_now_declares_it(
     override_project, invoke
 ) -> None:
-    result = await invoke(["f", "8", "show"])
+    result = await invoke(["f", "5", "show"])
     assert result.exit_code == 0, result.output
-    assert "INI-8  (initiative)" in result.output
+    assert "INI-5  (initiative)" in result.output
 
 
 @pytest.mark.covers("workflow lint", "--json")

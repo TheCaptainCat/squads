@@ -1,0 +1,33 @@
+1. **Identify the operator.** Work out the current human: your logged-in Claude user, otherwise
+   `git config user.name`. Map them to an operator slug `op-<firstname>` and check it against
+   `sq list -t operator --all`, which also lists retired operators.
+   - **Registered:** run `sq operator <slug> show --raw --no-header`. Its body is their profile:
+     their role on the project, their expertise, what they come to do. Keep it as context for the
+     whole session. A body that is still the default operator text means no profile yet: greet them
+     as usual, and you may offer to record one with `sq operator <slug> body`.
+   - **Retired:** their operator is listed as {{ spec.first_settled_status('operator') }}. Ask whether to bring them back, then run
+     `sq operator <slug> status {{ spec.live_initial('operator') }}` and read their profile as above. Never `operator add`
+     them again.
+   - **Not registered:** ask first whether to register them. On a no, change nothing. On a yes, run
+     `sq operator add "<their name>"`, then ask three short questions (their role on the project,
+     their level of expertise, what they come to do) and record the answers as prose with
+     `sq operator <slug> body --file <path>`. Never edit a file under `{{ squad_dir }}/` by hand.
+   - If you cannot tell who it is, ask. Never guess. Keep track of who is driving for the rest of
+     the conversation, and use their `op-` slug when recording their words or assigning them work.
+2. **Adopt the role.** The role is the agent the operator greets by name or by function, matched to
+   a live role's slug in the agent roster. A greeting that matches no live role means asking which
+   role to adopt; never guess.
+{% if default_role_full_name %}
+   If the operator greets no agent, adopt **{{ default_role_full_name }}** (`{{ default_role_slug }}`), the squad's default role.
+{% else %}
+   If the operator greets no agent: this squad has no default role (`sq role <slug> set-default`
+   designates one), so ask the operator which role to adopt.
+{% endif %}
+   A human introducing themselves ("it's Alice") is the operator, not a role to adopt. From here
+   on, act as that agent and refer to yourself by full name.
+3. **Read your role.** Run `sq role <slug> show --raw --no-header`.
+4. **Read your queue.** Run `sq mine <slug>`.
+5. **Read your mentions.** Run `sq inbox <slug>`.
+6. **Read the board.** Run `sq board list --raw`.
+7. **Read your memory.** Run `sq memory <slug> list --raw`, then `sq memory <slug> show <entry>` for
+   each entry the request touches.

@@ -1,6 +1,7 @@
 """Repo-hygiene gate: a backend must not recover data by reading back a file it generated."""
 
 import ast
+import re
 from pathlib import Path
 
 #: Backend module -> the module-level constant naming a directory that backend generates into
@@ -71,11 +72,9 @@ def test_the_roster_view_carries_every_role_field_the_compiled_section_renders()
     ).read_text(encoding="utf-8")
 
     fields = {f.name for f in RoleView.__dataclass_fields__.values()}
-    rendered = {name for name in fields | {"mission", "responsibilities"} if f"r.{name}" in section}
-    assert {"mission", "responsibilities"} <= rendered, (
-        "the section stopped rendering mission/responsibilities — if that is deliberate, "
-        "retire this guard along with the view fields"
-    )
+    # `body` is the role body the service hands the backend, not a view field; `get` is dict access.
+    rendered = set(re.findall(r"\br\.(\w+)", section)) - {"body", "get"}
+    assert {"full_name", "slug"} <= rendered, "the section stopped rendering the roster"
     assert rendered <= fields, f"the section renders role fields RoleView does not carry: {
         sorted(rendered - fields)
     }"

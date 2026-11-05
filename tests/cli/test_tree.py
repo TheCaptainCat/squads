@@ -473,7 +473,7 @@ async def test_a_derived_filter_means_exactly_its_generic_form(override_project,
     ):
         ids = await _roots(invoke, *derived)
         assert ids == await _roots(invoke, *generic)
-        assert ids == (["INI-11"] if "later" in derived else ["INI-8"])
+        assert ids == (["INI-8"] if "later" in derived else ["INI-5"])
     refused = await invoke(["tree", "--json", "--priority", "high"])
     assert (refused.exit_code, refused.output) == (
         2,
@@ -540,7 +540,7 @@ async def test_a_tree_node_carries_its_fields_in_badges_and_no_priority_key(
     override_project, invoke
 ) -> None:
     roots = json.loads((await invoke(["tree", "--json"])).output)
-    initiative = next(node for node in roots if node["id"] == "INI-8")
+    initiative = next(node for node in roots if node["id"] == "INI-5")
     assert list(initiative)[:9] == [
         "id",
         "type",

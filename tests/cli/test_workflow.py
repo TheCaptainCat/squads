@@ -248,8 +248,7 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
         0,
         [
             "View                Source kind  Source name",
-            "greeting_skill      self",
-            "item_skill          playbook",
+            "greeting_skill      playbook",
             "memory_skill        self",
             "milestone_rollup    ref          targets",
             "role_definition     role",
@@ -643,7 +642,7 @@ MANAGER_ROLE_SOURCE = {
         "Keep the backlog and statuses honest",
         "Summarise progress for the operator",
     ],
-    "skills": ["sq-role-manager", "squads", "sq-memory"],
+    "skills": ["sq-role-manager", "sq-how-to", "sq-memory"],
     "display": {
         "name": "Catherine Manager",
         "pronouns": None,
@@ -659,45 +658,46 @@ MANAGER_ROLE_SOURCE = {
         "discussion": [],
     },
 }
-#: The `greeting_skill` view's source on the seeded squad: the `greeting` skill, its own tag left
+#: The `memory_skill` view's source on the seeded squad: the `sq-memory` skill, its own tag left
 #: unexpanded in the body.
-GREETING_SKILL_SOURCE = {
-    "sequence_id": 2,
+MEMORY_SKILL_SOURCE = {
+    "sequence_id": 4,
     "type": "skill",
-    "title": "greeting",
-    "slug": "greeting",
+    "title": "sq-memory",
+    "slug": "sq-memory",
     "status": "Active",
-    "description": "Start of a conversation with a human: detect & register the operator, then "
-    "greet them — match their tone, say how you help, and give a quick read of the project. "
-    "Use when a person opens a session; skip it when spawned as a subagent for a job.",
+    "description": "Your role's committed memory notebook and the team bulletin board: jot one "
+    "fact per memory, prune what's stale or wrong, post/clear board notices, and the "
+    "memory-vs-board boundary. Use whenever you learn something worth remembering, or "
+    "need to announce something to the whole team.",
     "parent": None,
-    "author": "greeting",
+    "author": "sq-memory",
     "assignee": None,
     "labels": [],
     "refs": [],
     "subentities": [],
-    "path": "agents/skills/SKILL-000002-greeting.md",
+    "path": "agents/skills/SKILL-000004-sq-memory.md",
     "created_at": "2026-06-07T10:00:00Z",
     "updated_at": "2026-06-07T10:00:00Z",
     "created_session": None,
     "modified_session": None,
-    "id": "SKILL-2",
+    "id": "SKILL-4",
     "origin": "system",
-    "body": "<!-- sq:view:greeting_skill -->",
+    "body": "<!-- sq:view:memory_skill -->",
     "views": {},
     "discussion": [],
     "badges": {},
     "spec": {
         "schema_version": "0.20",
         "override": False,
-        "digest": "5d919e5adddb3f98b89e8ce4a201bbb56738a55e9a92fcc2961fb375a8ae397e",
+        "digest": "d54c339553587a881f49376e9959b2fdd1ff059353c14a418bd7059fbeeb032b",
     },
     "display": {
         "type": "Skill",
         "status": {"badge": "⚪ Active", "intent": "positive"},
         "badges": {},
         "assignee": None,
-        "body": "<!-- sq:view:greeting_skill -->",
+        "body": "<!-- sq:view:memory_skill -->",
         "summary": None,
         "attributes": [],
     },
@@ -717,9 +717,9 @@ async def test_view_json_leaves_the_views_own_tag_unexpanded_in_its_source(
 ) -> None:
     role = await printed(invoke, ["workflow", "view", "role_definition", "ROLE-1", "--json"])
     assert role == json_text(MANAGER_ROLE_SOURCE)
-    skill = await printed(invoke, ["workflow", "view", "greeting_skill", "SKILL-2", "--json"])
+    skill = await printed(invoke, ["workflow", "view", "memory_skill", "SKILL-4", "--json"])
     assert skill == json_text(
-        {**GREETING_SKILL_SOURCE, "etag": _etag(seeded_project, GREETING_SKILL_SOURCE)}
+        {**MEMORY_SKILL_SOURCE, "etag": _etag(seeded_project, MEMORY_SKILL_SOURCE)}
     )
 
 

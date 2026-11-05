@@ -1,12 +1,11 @@
 """The team playbook: the bundled document, who authors and interacts with each item type, and
 the checks that a project's guides still name live roles.
 
-It drives the per-item-type managed skills (one role-directed section per interacting role)
-and the reverse mapping (which skills each role's pointer preloads). A role that does not
-interact with an item type does not get that item's skill.
+It drives the role playbook view (one section per item type a role interacts with). A role that
+does not interact with an item type gets no section for it.
 
 Membership is spec-driven and checked (a type the active workflow spec does not declare has
-no entry and no skill); guide prose is not, so a surviving type's guidance can keep naming a
+no entry); guide prose is not, so a surviving type's guidance can keep naming a
 type a workflow override dropped or renamed. See ``_loader``'s module docstring for that
 limitation and its remedy.
 """
@@ -128,7 +127,7 @@ def orphaned_playbook_guides(
     live_roles: Iterable[RoleLike],
     override_guides: Container[tuple[str, str]],
 ) -> list[tuple[str, str]]:
-    """Every adopter guide ``(item_type, role_slug)`` the ``sq-<type>`` skill drops silently.
+    """Every adopter guide ``(item_type, role_slug)`` the generated role playbooks drop silently.
 
     A guide is dropped when *role_slug* names no live role. The loader's slug authority is
     permissive: the bundled catalog plus the ``.overrides/roles/*.toml`` stems, read by filename
@@ -157,11 +156,9 @@ def orphaned_playbook_guides(
     never-installed from retired, which are the same event for the adopter. Retiring a bundled
     role that the bundled playbook names (six do) would otherwise mint an unclearable warning.
 
-    A type *spec* no longer declares is skipped: its whole ``sq-<type>`` skill is withdrawn,
-    which :func:`orphaned_skill_item_type` reports, and reporting each guide would bury that line.
-    A merged playbook is already spec-filtered, so no caller reaches this branch; it holds
-    the property for a caller pairing the bundled playbook with an overridden spec, the defence
-    ``_write_item_skills`` also keeps. Pure, and returns sorted pairs.
+    A type *spec* no longer declares is skipped. A merged playbook is already spec-filtered, so no
+    caller reaches this branch; it holds the property for a caller pairing the bundled playbook
+    with an overridden spec. Pure, and returns sorted pairs.
     """
     out: list[tuple[str, str]] = []
     roles = list(live_roles)
@@ -200,7 +197,7 @@ def orphaned_playbook_guide_message(
     if slug.startswith(CAPABILITY_SUBJECT_PREFIX):
         return (
             f"playbook guide for capability {slug!r} on type {item_type!r} names no live role, so "
-            f"its guidance is dropped from the generated `sq-{item_type}` skill — declare "
+            f"its guidance is dropped from every generated role playbook — declare "
             f'`capabilities = ["{slug[1:]}"]` on a live role, or remove the guide from '
             f"`.overrides/playbook.toml` under `[types.{item_type}]`"
         )
@@ -216,7 +213,7 @@ def orphaned_playbook_guide_message(
     )
     return (
         f"playbook guide for role {slug!r} on type {item_type!r} names no live role, so its "
-        f"guidance is dropped from the generated `sq-{item_type}` skill — {revive}, or remove "
+        f"guidance is dropped from every generated role playbook — {revive}, or remove "
         f"the guide from `.overrides/playbook.toml` under `[types.{item_type}]`"
     )
 
@@ -231,7 +228,8 @@ def unheld_capability_tokens(
 ) -> list[tuple[str, str]]:
     """Every ``(item_type, capability)`` an adopter guide or command uses as an unheld ``@*<cap>``.
 
-    No live role holds it, so the generated skill renders ``*<capability>`` and mentions nobody.
+    No live role holds it, so the generated role playbook renders ``*<capability>`` and mentions
+    nobody.
     Only a guide *override_guides* carries and a command line *override_commands* carries are
     read: the same token in the bundled playbook degrades silently, as no adopter can edit it. A
     type *spec* no longer declares is skipped. Pure, and returns sorted, unique pairs.
@@ -259,7 +257,7 @@ def unheld_capability_token_message(item_type: str, capability: str) -> str:
     """The one wording for an unheld capability token, shared by ``sq check`` and ``sq sync``."""
     return (
         f"playbook text on type {item_type!r} mentions `@*{capability}`, but no live role holds "
-        f"the capability, so the generated `sq-{item_type}` skill renders it as `*{capability}` "
+        f"the capability, so the generated role playbook renders it as `*{capability}` "
         f'and mentions nobody — declare `capabilities = ["{capability}"]` on a live role, or edit '
         f"the line in `.overrides/playbook.toml` under `[types.{item_type}]`"
     )

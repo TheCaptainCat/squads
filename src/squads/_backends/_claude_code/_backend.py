@@ -23,13 +23,10 @@ from squads._backends._claude_code._pointer_lines import (
     skill_lines,
 )
 from squads._interactions import (
-    custom_item_skill_description,
-    custom_item_skill_name,
+    SQUADS_SKILL,
     delegate_example_slugs,
     developer_roles,
     is_system_skill,
-    item_skill_name,
-    managed_item_types,
     role_skill_name,
     skill_description,
 )
@@ -37,7 +34,7 @@ from squads._models import Item, markers
 from squads._rendering import render
 from squads._roles import OperatorView, RoleDef, RoleView
 from squads._view_tags import place_view_tags
-from squads._views import ITEM_SKILL_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
+from squads._views import SYSTEM_SKILL_VIEW_NAMES
 from squads._workflow import ROSTER_SKILL
 
 _AGENTS = "agents"
@@ -81,7 +78,7 @@ class ClaudeCodeBackend(AgentBackend):
     async def ensure_scaffold(self, ctx: BackendContext) -> list[Artifact]:
         cdir = ctx.root / _CLAUDE_DIR
         await _aio.mkdir(cdir / _AGENTS, parents=True, exist_ok=True)
-        await _aio.mkdir(cdir / _SKILLS / "squads", parents=True, exist_ok=True)
+        await _aio.mkdir(cdir / _SKILLS / SQUADS_SKILL, parents=True, exist_ok=True)
         settings = cdir / "settings.json"
         await self._merge_settings(ctx, settings)
         return [Artifact(ctx.rel(settings), "settings", self.name)]
@@ -169,7 +166,6 @@ class ClaudeCodeBackend(AgentBackend):
             else None
         )
         artifacts.append(Artifact(ctx.rel(claude_md_path), "claude_md", self.name, warning=warning))
-        artifacts.extend(await self._write_item_skills(ctx))
         return artifacts
 
     async def _write_managed_skill(
@@ -190,9 +186,9 @@ class ClaudeCodeBackend(AgentBackend):
         undeclared view, so a tag naming one is never minted. The pointer needs neither shape;
         ``claude/pointer_skill.md.j2`` renders from *name*, *description* and *invocable* alone.
 
-        What is owed is the file's shape: ``Service.seed_bundled_skills``/``seed_custom_skills``
-        stamp a ``SKILL`` id onto the slug-named file written here, so a managed skill with no file
-        is never seeded or indexed.
+        What is owed is the file's shape: ``Service.seed_bundled_skills`` stamps a ``SKILL`` id
+        onto the slug-named file written here, so a managed skill with no file is never seeded or
+        indexed.
 
         Body path: if the skill is already indexed, it is resolved from ``item.path``
         (``agents/skills/SKILL-<NNNNNN>-<slug>.md``), the normal sync path. On a first write (``sq
@@ -259,54 +255,6 @@ class ClaudeCodeBackend(AgentBackend):
         )
         return [Artifact(ctx.rel(pointer), "skill_pointer", self.name)]
 
-    async def _write_item_skills(self, ctx: BackendContext) -> list[Artifact]:
-        """One managed skill per item type: its ``.claude`` pointer and its body file's shape.
-
-        The definition renders on read off the ``sq:view:item_skill`` tag seeded into every
-        per-type skill's ``sq:body`` (``expand_view_tags``, via ``ItemsMixin.read_body``), like the
-        permanently-system skills above. What remains here is which per-type skills a squad
-        materialises, which needs no roster: the pointer renders from a slug and a description, and
-        the tag names a view and nothing else. A type with no active-playbook entry, built-in or
-        project-declared, still gets a skill, so the two loops below differ only in which vocabulary
-        names the slug and description.
-        """
-        spec = ctx.spec
-        playbook = ctx.playbook
-        out: list[Artifact] = []
-        # Gated like write_managed's body_tag and `_repair_body_tag`'s per-type branch: a dropped
-        # `item_skill` view must never seed a dangling tag on a new skill body.
-        item_skill_body_tag = ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in spec.views else None
-
-        # Types with a playbook entry, from the active playbook (ctx.playbook), not the bundled
-        # one. A type the active spec dropped or renamed is skipped outright, so no skill
-        # survives under the old name.
-        for item_type in managed_item_types(playbook):
-            if item_type not in spec.items:
-                continue
-            name = item_skill_name(item_type)
-            out += await self._write_managed_skill(
-                ctx,
-                name=name,
-                description=skill_description(name),
-                body_tag=item_skill_body_tag,
-                invocable=ctx.operator_invocable(name),
-            )
-
-        # Types with no active-playbook entry. This is the sole "custom vs built-in" line:
-        # any type absent from the active playbook falls back here, bundled or not.
-        for ctype, ctype_spec in ctx.spec.items.items():
-            if ctype in playbook.types or ctype_spec.category == "roster":
-                continue
-            custom_name = custom_item_skill_name(ctype)
-            out += await self._write_managed_skill(
-                ctx,
-                name=custom_name,
-                description=custom_item_skill_description(ctype),
-                body_tag=item_skill_body_tag,
-                invocable=ctx.operator_invocable(custom_name),
-            )
-        return out
-
     # ------------------------------------------------------------------ entries
     @staticmethod
     def _resolve_model(role: RoleDef) -> tuple[str | None, str | None]:
@@ -353,16 +301,12 @@ class ClaudeCodeBackend(AgentBackend):
     def _skill_pointer_description(self, ctx: BackendContext, item: Item, slug: str) -> str:
         """The description :meth:`generate_skill_entry` renders for *slug*.
 
-        For a system skill (bundled or per-type ``sq-<type>``, :func:`interactions.is_system_skill`)
-        the compiled-description call of :meth:`_write_managed_skill`/:meth:`_write_item_skills`
-        runs last in a full ``sync``, so it is the slug's real current content, not *item*'s
-        possibly seed-time-stale description. :meth:`render_skill_entry` (question 5) must answer
-        with whichever writer ran last, or a system skill whose bundled text moved since seeding
-        would read as permanently drifted. An author-defined skill has one writer
-        (:meth:`generate_skill_entry`), so its own description is right.
+        For a system skill (:func:`interactions.is_system_skill`) the description of
+        :meth:`_write_managed_skill` runs last in a full ``sync``, so it is the slug's real
+        current content, not *item*'s possibly seed-time-stale description. An author-defined
+        skill has one writer (:meth:`generate_skill_entry`), so its own description is right.
         """
-        spec = ctx.spec
-        if is_system_skill(slug, spec):
+        if is_system_skill(slug):
             return skill_description(slug)
         return item.description or item.title
 

@@ -127,7 +127,7 @@ def roles(s: Scenario) -> None:
 
 
 def skills(s: Scenario) -> None:
-    skill = {"addr": "greeting"}
+    skill = {"addr": "sq-greeting"}
     s.call("skills.show", skill)
     s.call("skills.refs", skill)
     s.call("skills.comments", skill)

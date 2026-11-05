@@ -1,7 +1,7 @@
 """agents_md backend: writes/refreshes a single AGENTS.md at the project root.
 
-``write_managed`` compiles the whole file (roster, workflow cheatsheet, per-role
-mission/responsibilities) from the ``RoleView``s/``OperatorView``s it is passed.
+``write_managed`` compiles the whole file (roster, startup steps, workflow cheatsheet, each role's
+body) from the ``RoleView``s/``OperatorView``s it is passed and the role bodies on the context.
 ``generate_role_entry``/``generate_skill_entry`` write nothing: they satisfy the
 ``AgentBackend`` ABC, and an external agent tool reads ``AGENTS.md`` itself, so there is no
 per-entry file to discover.
@@ -48,7 +48,7 @@ class AgentsMdBackend(AgentBackend):
 
     1. Command execution is not knowably available: ``AGENTS.md`` targets tools whose capability
        is declared by whoever builds a backend for them. So this backend keeps compiled roster
-       prose (full name, slug, title, mission, responsibilities) instead of a fetch command.
+       prose (roster, startup steps, each role's body) instead of a fetch command.
     2. The expressible set is identity plus prose only: no ``model``, ``color``, capability
        boundary or preload list, and no place for a skill's ``operator_invocable``, since the
        document has no per-entry frontmatter.
@@ -76,7 +76,7 @@ class AgentsMdBackend(AgentBackend):
     async def write_managed(
         self, ctx: BackendContext, roster: list[RoleView], operators: list[OperatorView]
     ) -> list[Artifact]:
-        """Compile roster, workflow cheatsheet, and role missions/responsibilities into AGENTS.md.
+        """Compile roster, startup steps, workflow cheatsheet and role bodies into AGENTS.md.
 
         Every role field comes from the ``RoleView`` the service passes in, never from text this
         backend rendered earlier: a declaration reaches this method as a view field or not at all
@@ -90,11 +90,12 @@ class AgentsMdBackend(AgentBackend):
                 "slug": r.slug,
                 "pronouns": r.pronouns,
                 "capabilities": list(r.capabilities),
-                "mission": r.mission,
-                "responsibilities": list(r.responsibilities),
+                "body": ctx.role_bodies[r.slug],
             }
             for r in roster
+            if r.slug in ctx.role_bodies
         ]
+        default = next((r for r in roster if r.is_default), None)
         from squads._interactions import cheatsheet_anchor_context
 
         spec = ctx.spec
@@ -105,6 +106,8 @@ class AgentsMdBackend(AgentBackend):
             squad_dir=squad_dir,
             working_language=ctx.working_language,
             roles=roles_data,
+            default_role_full_name=default.full_name if default else None,
+            default_role_slug=default.slug if default else None,
             developer_slugs=[r.slug for r in developer_roles(roster, ctx.catalog())],
             operators=[
                 {"full_name": o.full_name, "slug": o.slug, "pronouns": o.pronouns}

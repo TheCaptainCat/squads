@@ -351,28 +351,28 @@ async def test_add_kind_takes_each_field_and_the_target_kind_as_keys_and_a_comme
 ) -> None:
     output = await _import_ok(
         invoke,
-        {"op": "add-outcome", "target": "INI-8", "title": "A third outcome", "handle": "o3", **AS},
+        {"op": "add-outcome", "target": "INI-5", "title": "A third outcome", "handle": "o3", **AS},
         {
             "op": "add-action",
-            "target": "JOB-9",
+            "target": "JOB-6",
             "title": "Ship it",
             "impact": "small",
             "outcome": "OC1",
             "handle": "a3",
         },
-        {"op": "comment", "target": "INI-8", "outcome": "OC3", "message": "agreed"},
-        {"op": "comment", "target": "JOB-9", "action": "a3", "message": "shipped"},
+        {"op": "comment", "target": "INI-5", "outcome": "OC3", "message": "agreed"},
+        {"op": "comment", "target": "JOB-6", "action": "a3", "message": "shipped"},
     )
     assert output == (
         "  add-outcome: 1\n  add-action: 1\n  comment: 2\n"
-        "handles:\n  o3 -> INI-8 OC3\n  a3 -> JOB-9 AC3\n"
-        "warning: INI-8: OC3 body is unwritten (still the placeholder stub)\n"
-        "warning: JOB-9: AC3 body is unwritten (still the placeholder stub)\n"
+        "handles:\n  o3 -> INI-5 OC3\n  a3 -> JOB-6 AC3\n"
+        "warning: INI-5: OC3 body is unwritten (still the placeholder stub)\n"
+        "warning: JOB-6: AC3 body is unwritten (still the placeholder stub)\n"
         "imported 4 event(s)\n"
     )
-    action = await _shown(invoke, "job", "9", "action", "3")
+    action = await _shown(invoke, "job", "6", "action", "3")
     assert (action["badges"], action["maps_to"]) == ({"impact": "small"}, "OC1")
-    outcome = await _shown(invoke, "initiative", "8", "outcome", "3")
+    outcome = await _shown(invoke, "initiative", "5", "outcome", "3")
     assert [c["body"] for c in outcome["discussion"]] == ["- agreed"]
 
 
@@ -382,10 +382,10 @@ async def test_an_op_or_a_selector_for_a_kind_the_squad_does_not_declare_is_unkn
     override_project, invoke
 ) -> None:
     events = _events(
-        {"op": f"add-{P.target_kind}", "target": "INI-8", "title": "No such kind", **AS},
+        {"op": f"add-{P.target_kind}", "target": "INI-5", "title": "No such kind", **AS},
         {
             "op": "comment",
-            "target": "INI-8",
+            "target": "INI-5",
             P.target_kind: f"{P.target_prefix}1",
             "message": "x",
             **AS,
@@ -411,7 +411,7 @@ async def test_add_sub_takes_the_mapping_as_maps_to_and_the_fields_in_fields(
         invoke,
         {
             "op": "add-sub",
-            "target": "JOB-9",
+            "target": "JOB-6",
             "kind": "action",
             "title": "Verify",
             "maps_to": "OC2",
@@ -419,9 +419,9 @@ async def test_add_sub_takes_the_mapping_as_maps_to_and_the_fields_in_fields(
             **AS,
         },
     )
-    action = await _shown(invoke, "job", "9", "action", "3")
+    action = await _shown(invoke, "job", "6", "action", "3")
     assert (action["badges"], action["maps_to"]) == ({"impact": "large"}, "OC2")
-    named = {"op": "add-sub", "target": "JOB-9", "kind": "action", "title": "T", "outcome": "OC1"}
+    named = {"op": "add-sub", "target": "JOB-6", "kind": "action", "title": "T", "outcome": "OC1"}
     refused = await invoke(["import", _events(named | AS)])
     assert (refused.exit_code, refused.output) == (
         1,
@@ -434,7 +434,7 @@ async def test_add_sub_takes_the_mapping_as_maps_to_and_the_fields_in_fields(
 async def test_create_and_update_take_badge_fields_by_code_in_fields_and_unset_fields(
     override_project, invoke
 ) -> None:
-    sized = {"op": "create", "type": "job", "parent": "INI-8", "fields": {"work_size": "s"}}
+    sized = {"op": "create", "type": "job", "parent": "INI-5", "fields": {"work_size": "s"}}
     await _import_ok(
         invoke,
         {**sized, "title": "Sized", "handle": "j", **AS},
@@ -442,8 +442,8 @@ async def test_create_and_update_take_badge_fields_by_code_in_fields_and_unset_f
         {**sized, "title": "Unsized", "handle": "u"},
         {"op": "update", "target": "u", "unset_fields": ["work_size"]},
     )
-    assert (await _shown(invoke, "job", "11"))["badges"] == {"work_size": "l"}
-    assert (await _shown(invoke, "job", "12"))["badges"] == {}
+    assert (await _shown(invoke, "job", "8"))["badges"] == {"work_size": "l"}
+    assert (await _shown(invoke, "job", "9"))["badges"] == {}
     keyed = {"op": "create", "type": "initiative", "title": "Keyed", "urgency": "now"}
     refused = await invoke(["import", _events(keyed | AS)])
     assert (refused.exit_code, refused.output) == (
@@ -457,7 +457,7 @@ async def test_create_and_update_take_badge_fields_by_code_in_fields_and_unset_f
 async def test_a_stray_key_on_add_kind_is_reported_under_the_op_the_file_wrote(
     override_project, invoke
 ) -> None:
-    stray = {"op": "add-action", "target": "JOB-9", "title": "T", "severity": "high"}
+    stray = {"op": "add-action", "target": "JOB-6", "title": "T", "severity": "high"}
     refused = await invoke(["import", _events(stray | AS)])
     assert (refused.exit_code, refused.output) == (
         1,

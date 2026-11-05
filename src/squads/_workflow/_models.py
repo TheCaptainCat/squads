@@ -391,11 +391,10 @@ class ItemSpec(BaseModel):
     this type, and ``subentity_mapping`` reports the same as a ``sq check`` error. That
     resolution is why this is a single type name and not derivable from ``parents``, which is a
     multi-valued allowlist with no way to say which member owns the stories. **Generated agent
-    prose**: the ``--parent`` example in the per-type skills, and the anchor-type score behind
-    the "Common commands" block, both read it. **Requiredness**: declaring it does *not* on its
-    own make a parent mandatory at create — ``parents`` says which types are eligible,
-    ``no_parent`` forbids one outright, and neither expresses "there must be one". A type that
-    wants that names ``parent_present`` in its own ``validators``; without it,
+    prose**: the anchor-type score behind the "Common commands" block reads it. **Requiredness**:
+    declaring it does *not* on its own make a parent mandatory at create — ``parents`` says which
+    types are eligible, ``no_parent`` forbids one outright, and neither expresses "there must be
+    one". A type that wants that names ``parent_present`` in its own ``validators``; without it,
     ``sq create <type>`` with no parent is accepted, as it always has been.
 
     Must name a type its own ``parents`` allowlist admits (an empty allowlist admits any) —

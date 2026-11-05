@@ -37,10 +37,13 @@ class BackendContext:
     # service for the same layering reason as skill_paths. An absent entry falls back to the
     # pure `role_guidance.skills_for_role` in :meth:`resolved_skills_for`.
     role_skills: dict[str, list[str]]
-    # Active workflow spec — supplied by the Service so backends can enumerate custom types.
+    # Role slug → the body `sq role <slug> show --raw --no-header` prints, filled by the service
+    # for the same layering reason; only the AGENTS.md backend reads it.
+    role_bodies: dict[str, str]
+    # Active workflow spec — supplied by the Service.
     spec: WorkflowSpec
-    # Active (merged) playbook — supplied by the Service alongside ``spec`` so a per-type skill
-    # writer sees a project override's role guidance.
+    # Active (merged) playbook — supplied by the Service alongside ``spec`` so a writer sees a
+    # project override's role guidance.
     playbook: PlaybookSpec
     # The squad's role catalog, read on first use — supplied by the Service so a backend never
     # loads the project's roles override itself.
@@ -65,6 +68,7 @@ class BackendContext:
         live_role_slugs: frozenset[str] | None = None,
         live_skill_slugs: frozenset[str] | None = None,
         skill_invocable: dict[str, bool] | None = None,
+        role_bodies: dict[str, str] | None = None,
     ) -> None:
         self.paths = paths
         self.skill_paths = skill_paths if skill_paths is not None else {}
@@ -75,6 +79,7 @@ class BackendContext:
         self.live_role_slugs = live_role_slugs if live_role_slugs is not None else frozenset()
         self.live_skill_slugs = live_skill_slugs if live_skill_slugs is not None else frozenset()
         self.skill_invocable = skill_invocable if skill_invocable is not None else {}
+        self.role_bodies = role_bodies if role_bodies is not None else {}
 
     @property
     def root(self) -> Path:
@@ -98,7 +103,7 @@ class BackendContext:
         one is given, else from the service-supplied map, else the declared default."""
         if item is None and slug in self.skill_invocable:
             return self.skill_invocable[slug]
-        return resolve_operator_invocable(slug, item, self.spec)[0]
+        return resolve_operator_invocable(slug, item)[0]
 
     def resolved_skills_for(self, role: RoleDef) -> list[str]:
         """A role's resolved preload-skill list: ``role_skills[slug]`` when populated, else the
@@ -110,7 +115,7 @@ class BackendContext:
         """
         if role.slug in self.role_skills:
             return self.role_skills[role.slug]
-        return skills_for_role(role, self.spec, self.playbook)
+        return skills_for_role(role)
 
 
 class AgentBackend(ABC):
@@ -186,7 +191,7 @@ class AgentBackend(ABC):
         """Root-relative agent-pointer/skill files on disk that this backend does not manage.
 
         A file is a candidate when it names no slug in *roster* and none in *skill_slugs* (every
-        SKILL item plus every system or per-type skill the spec implies, whether or not this run
+        SKILL item plus every always-on skill, whether or not this run
         rewrote it). The caller (``sq init``/``sq adopt``) reports them as warnings. Read-only:
         never delete, move or rewrite anything. A matching slug is never reported, even if this
         invocation did not touch the file (``adopt`` regenerates only a newly activated role's

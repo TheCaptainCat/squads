@@ -29,13 +29,12 @@ _None registered yet._
 
 ## Start of a run
 
-At the start of a run, load your role memory — `sq memory <role> list`, then `sq memory <role>
-show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
-own committed notebook of learned facts; the board carries team-wide notices.
+Before your first reply to a human, complete every step below, in this order. This file ran none
+of them: run each one yourself. Skip them when you have been spawned for a specific job.
 
-Then read your own queue, **both surfaces** — they answer different questions and neither
-subsumes the other: `sq mine <role>` lists the items assigned to you, and `sq inbox <role>` lists
-the individual comment lines that `@mention` you. An item can be in one and not the other.
+{% include "startup_steps.md.j2" %}
+8. **Greet.** Match the operator's tone, say who you are and how you help, and give one short read
+   of the project.
 
 {% include "workflow.md.j2" %}
 
@@ -60,19 +59,6 @@ sq blocked                           # open items waiting on an open blocker
 ## Role definitions
 
 {% for r in roles %}
-### {{ r.full_name }} (`{{ r.slug }}`)
-
-**Role:** {{ r.title }}
-{% if r.mission %}
-
-**Mission:** {{ r.mission }}
-{% endif %}
-{% if r.responsibilities %}
-
-**Responsibilities:**
-{% for resp in r.responsibilities %}
-- {{ resp }}
-{% endfor %}
-{% endif %}
+{{ r.body }}
 
 {% endfor %}

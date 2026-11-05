@@ -1,6 +1,6 @@
 """The options a squad derives from its own declarations, and the verbs every squad has, run on
 whichever squad the run is on: a field option on a sub-entity kind, the generic JSON of the
-sub-entity verbs, the reference and discussion views of an item, and the squads skill.
+sub-entity verbs, the reference and discussion views of an item, and the sq-how-to skill.
 """
 
 import json
@@ -187,7 +187,7 @@ async def test_an_operator_shows_raw_and_with_its_discussion(
 
 @pytest.mark.covers("skill show")
 async def test_the_squads_skill_shows(seeded_project, invoke) -> None:
-    shown = await _ok(invoke, ["skill", "squads", "show"])
+    shown = await _ok(invoke, ["skill", "sq-how-to", "show"])
     assert f"sq {P.ref} " in shown
 
 

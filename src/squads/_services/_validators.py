@@ -22,7 +22,6 @@ from typing import Any, Protocol
 from squads import _clock as clock
 from squads import _discussion as discussion
 from squads import _sections as sections
-from squads import _view_remedies as view_remedies
 from squads import _view_tags as view_tags
 from squads._backends import AgentBackend, BackendContext
 from squads._config import CONFIG_FILENAME
@@ -33,7 +32,6 @@ from squads._interactions import (
     PlaybookSpec,
     create_lanes,
     in_lane_owner,
-    item_type_for_skill_slug,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
     playbook_override_command_lines,
@@ -74,7 +72,6 @@ from squads._services._results import CheckIssue
 from squads._services._roster_projection import is_live_roster_entry
 from squads._specload import OverrideFiles
 from squads._transform import check_view_transforms
-from squads._views import ITEM_SKILL_VIEW_NAME
 from squads._workflow import (
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
@@ -980,49 +977,6 @@ def _ref_rule_target_typed(ctx: ValidatorContext) -> list[CheckIssue]:
     return issues
 
 
-def _item_skill_shadowed(ctx: ValidatorContext) -> list[CheckIssue]:
-    """A live ``sq-<slug>`` skill whose body carries authored prose while its slug still names a
-    declared item type. Reports it rather than guessing whether the prose is a stale rendering
-    or an author's real runbook — either way the type's generated guidance has nowhere
-    supported to render, and the named remedy moves the prose to a new skill before clearing
-    anything, never a clear-first sequence that could destroy it."""
-    item = ctx.item
-    slug = item.slug
-    doc_type = item_type_for_skill_slug(slug, ctx.spec)
-    if doc_type is None:
-        return []
-    body = sections.get_section(ctx.raw_text, markers.BODY) if ctx.raw_text is not None else None
-    region = body or ""
-    tag_present = any(
-        (parts := markers.view_tag_parts(raw)) is not None and parts.name == ITEM_SKILL_VIEW_NAME
-        for raw in sections.find_markers(region)
-    )
-    prose = view_tags.strip_view_tags(region).strip()
-    if not prose:
-        return []
-    level = _resolved_level(ctx, "item_skill_shadowed")
-    clear_cmd = view_remedies.clear_roster_body_cmd(ROSTER_SKILL, slug)
-    remedy = (
-        f"move the prose first (`sq skill add <new-slug>`); take the type out of the active "
-        f"spec (drop it from `[selected]`, or remove a project type's own declaration); clear "
-        f"{slug} with `{clear_cmd}`; then restore the type"
-    )
-    if tag_present:
-        detail = (
-            f"documents declared type {doc_type!r} and carries prose beside its item_skill "
-            f"tag — {doc_type}'s generated guidance renders through the tag, but the prose "
-            f"beside it has no supported way to be removed once this slug documents a "
-            f"declared type; {remedy}"
-        )
-    else:
-        detail = (
-            f"documents declared type {doc_type!r} but carries authored content of its own "
-            f"with no item_skill tag — {doc_type}'s generated skill guidance has nowhere to "
-            f"render; {remedy}"
-        )
-    return [CheckIssue(level, item.id, detail, rule="item_skill_shadowed")]
-
-
 def _attribute_valid(ctx: ValidatorContext) -> list[CheckIssue]:
     """Every attribute the item's type declares holds a value of its declared kind, and every
     required one is present.
@@ -1223,7 +1177,6 @@ CATALOG: dict[str, Validator] = {
     "no_status_banner": _no_status_banner,
     "supersedes_incoming": _supersedes_incoming,
     "ref_rule_target_present": _ref_rule_target_present,
-    "item_skill_shadowed": _item_skill_shadowed,
     "item_title_max": _item_title_max,
     "ref_rule_target_typed": _ref_rule_target_typed,
     "body_written": _body_written,
@@ -1250,7 +1203,6 @@ VALIDATOR_CONTEXT: dict[str, frozenset[ContextRequirement]] = {
     "settled_requires_discussion": frozenset({ContextRequirement.RAW_TEXT}),
     "no_status_banner": frozenset({ContextRequirement.RAW_TEXT}),
     "ref_rule_target_present": frozenset({ContextRequirement.TYPE_PRESENT}),
-    "item_skill_shadowed": frozenset({ContextRequirement.RAW_TEXT}),
     "attribute_valid": frozenset({ContextRequirement.RAW_TEXT}),
     "subentity_kind_mismatch": frozenset({ContextRequirement.RAW_TEXT}),
     "pronouns_valid": frozenset({ContextRequirement.RAW_TEXT}),
@@ -1526,7 +1478,6 @@ def _roster_config_integrity(ctx: SquadGlobalContext) -> list[CheckIssue]:
         ctx.index,
         ctx.spec,
         ctx.paths.config.active_backends,
-        ctx.playbook,
         ctx.paths.squad_dir,
         ctx.catalog,
     )

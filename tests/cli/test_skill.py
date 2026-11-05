@@ -30,11 +30,10 @@ UNKNOWN_KIND = (
 )
 GENERATED_BODY_REFUSAL = (
     "error: SKILL-2's body renders through its declared sq:view:greeting_skill tag, and its "
-    "content already has one validated authoring surface: its "
-    "`.overrides/templates/views/greeting_skill.md.j2` view template override (`sq override "
-    "scaffold views/greeting_skill.md.j2` creates it). {refused} is refused — `--force` does not "
-    "lift this. Drop the view from `[selected]` to author this directly instead, then clear its "
-    "leftover tag with `sq skill greeting view disable greeting_skill`.\n"
+    "content already has one validated authoring surface: `.overrides/playbook.toml`. "
+    "{refused} is refused — `--force` does not lift this. Drop the view from `[selected]` to "
+    "author this directly instead, then clear its leftover tag with `sq skill sq-greeting view "
+    "disable greeting_skill`.\n"
 )
 NO_ITEM_99 = "error: no item with number 99 (use a full ID like TYPE-99 or bare 99)\n"
 
@@ -256,7 +255,7 @@ async def test_show_json_refuses_a_skill_that_does_not_exist(project, invoke) ->
 
 @pytest.mark.covers("skill show", "--json")
 async def test_show_json_of_a_system_skill_carries_its_view_data(seeded_project, invoke) -> None:
-    shown = await _skill(invoke, "greeting")
+    shown = await _skill(invoke, "sq-greeting")
     assert (shown["origin"], shown["body"]) == ("system", "<!-- sq:view:greeting_skill -->")
 
 
@@ -375,7 +374,7 @@ async def test_update_as_refuses_a_slug_that_is_not_registered(project, invoke) 
 
 @pytest.mark.covers("role body", "--force")
 async def test_body_refuses_a_system_skill_whose_body_is_generated(seeded_project, invoke) -> None:
-    result = await invoke(["skill", "greeting", "body", "-m", "Mine.", "--force"])
+    result = await invoke(["skill", "sq-greeting", "body", "-m", "Mine.", "--force"])
     assert (result.exit_code, result.output) == (
         1,
         GENERATED_BODY_REFUSAL.format(refused="A replace"),
@@ -782,7 +781,7 @@ async def test_view_disable_of_a_name_without_a_tag_places_it_disabled(project, 
 async def test_view_disable_is_refused_on_a_system_skill_whose_view_is_declared(
     seeded_project, invoke
 ) -> None:
-    result = await invoke(["skill", "greeting", "view", "disable", "greeting_skill"])
+    result = await invoke(["skill", "sq-greeting", "view", "disable", "greeting_skill"])
     assert (result.exit_code, result.output) == (
         1,
         GENERATED_BODY_REFUSAL.format(refused="A view edit"),
@@ -953,7 +952,7 @@ def _references(text: str, names: set[str]) -> list[str]:
 
 async def _generated_texts(project, invoke) -> dict[str, str]:
     return {
-        "the squads skill": await printed(invoke, ["skill", "squads", "show"]),
+        "the sq-how-to skill": await printed(invoke, ["skill", "sq-how-to", "show"]),
         "the CLAUDE.md section": (project.root / "CLAUDE.md").read_text(encoding="utf-8"),
     }
 
@@ -987,3 +986,68 @@ async def test_generated_agent_text_names_the_review_gate_the_spec_declares(
     assert f"every linked {P.third} resolved" in claude
     assert f"author items and {P.third} points" in claude
     assert f"the reviewer's {P.third_kind}" in claude
+
+
+@pytest.mark.covers("skill show", "--raw")
+async def test_the_sq_how_to_skill_names_no_per_type_skill_and_ends_with_its_docs_topics(
+    seeded_project, invoke
+) -> None:
+    out = await printed(invoke, ["skill", "sq-how-to", "show", "--raw", "--no-header"])
+    assert re.findall(r"`sq-[a-z][a-z-]*`", out) == []
+    assert out.rstrip("\n").splitlines()[-5:] == [
+        "- `sq docs agents` — working live with the operator: anchoring to an item, keeping status "
+        "honest,",
+        "  handing back through `sq`.",
+        "- `sq docs recipes` — searching the board and prioritising work.",
+        "- `sq docs workflow` — lifecycles, type-command aliases and sub-entities.",
+        "- `sq workflow` — this squad's own vocabulary: types, statuses, hierarchy.",
+    ]
+
+
+async def _greeting(invoke) -> str:
+    result = await invoke(["skill", "sq-greeting", "show", "--raw", "--no-header"])
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+@pytest.mark.covers("skill show", "--no-header")
+async def test_the_greeting_skill_states_the_eight_startup_steps_in_order(
+    seeded_project, invoke
+) -> None:
+    body = await _greeting(invoke)
+    marks = [
+        "1. **Identify the operator.**",
+        "2. **Adopt the role.**",
+        "3. **Read your role.** Run `sq role <slug> show --raw --no-header`.",
+        "4. **Read your queue.** Run `sq mine <slug>`.",
+        "5. **Read your mentions.** Run `sq inbox <slug>`.",
+        "6. **Read the board.** Run `sq board list --raw`.",
+        "7. **Read your memory.** Run `sq memory <slug> list --raw`, then `sq memory <slug> show",
+        "8. **Greet.**",
+    ]
+    positions = [body.index(mark) for mark in marks]
+    assert positions == sorted(positions)
+    assert "adopt **Catherine Manager** (`manager`), the squad's default role" in body
+    assert "no default role" not in body
+
+
+@pytest.mark.covers("skill show", "--no-header")
+async def test_the_greeting_skill_names_the_default_role_the_squad_designates(
+    seeded_project, invoke
+) -> None:
+    await invoke(["role", "activate", "architect"])
+    await invoke(["role", "architect", "set-default"])
+    body = await _greeting(invoke)
+    assert "adopt **Robert Architect** (`architect`), the squad's default role" in body
+    assert "Catherine Manager" not in body
+
+
+@pytest.mark.covers("skill show", "--no-header")
+async def test_the_greeting_skill_names_set_default_when_the_squad_has_no_default_role(
+    seeded_project, invoke
+) -> None:
+    await invoke(["role", "activate", "architect"])
+    await invoke(["role", "manager", "status", "Archived"])
+    body = await _greeting(invoke)
+    assert "this squad has no default role (`sq role <slug> set-default`" in body
+    assert "the squad's default role" not in body
