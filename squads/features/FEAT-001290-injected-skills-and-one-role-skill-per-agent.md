@@ -39,7 +39,7 @@ subentities:
   title: Startup size is measured before and after
   status: Done
 created_at: '2026-11-04T13:32:39Z'
-updated_at: '2026-11-05T02:59:02Z'
+updated_at: '2026-11-05T07:04:50Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -351,4 +351,6 @@ As the operator, I can see what the change did to the size of what each agent an
       - US8 pass. Each role body in AGENTS.md is byte-identical to `sq role <slug> show --raw --no-header`; no memory or board; steps 1 to 7 are identical to `sq-greeting`, step 8 is shorter.
       - US9 done: see the previous comment.
     - @tech-lead: BUG-1302 to BUG-1306 for triage.
+- [2026-11-05T07:04:50Z] `op-pierre` Pierre Chat:
+  - - Ruling (2026-11-05), memory and board entries: both a memory and a board notice have a one-line summary and a full body. `list` shows summaries only; the body is read with `show`. A summary that spans several lines raises an `sq check` warning. The migration takes each existing notice's whole body as its summary, which triggers the warning and encourages adopters to rewrite them.
 <!-- sq:discussion:end -->

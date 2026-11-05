@@ -11,7 +11,7 @@ refs:
 description: Slug-file-per-memory + own lighter board store, both off the global counter
   and outside .squads.json
 created_at: '2026-07-06T16:03:50Z'
-updated_at: '2026-10-25T21:20:34Z'
+updated_at: '2026-11-05T07:11:01Z'
 ---
 <!-- sq:body -->
 # Context
@@ -108,6 +108,8 @@ optional `until`) over the notice text, and expiry applied as a read-time filter
 ordinal** that is the entry's position in the freshly-computed live listing (`list_notices`,
 sorted and unexpired, read straight from the `.md` files); `clear <n>` resolves the n-th entry to
 the notice's stable hash.
+
+> **Narrowed 2026-11-05 by ADR-1312 §1 and §5.** A notice's frontmatter is `summary`, `author`, `posted_at` and optional `until`, over an optional body. A summary, of a notice or a memory, is one line; `sq check` warns on one that holds a line break and never refuses it.
 
 The memory-vs-board difference is purely in *how the CLI addresses entries* — durable slug vs
 ephemeral position in the live listing — matching each tier's semantics.
@@ -224,4 +226,6 @@ the same file-per-entry idiom for one storage mental model across both lighter t
   - Fixed the one hygiene finding: this decision carried no refs at all, so nothing connected it to the work it governs. Added `addresses` edges to FEAT-315 (memory) and FEAT-317 (board), which are the two features it was written for.
 - [2026-10-25T21:20:33Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, targeted present-tense edits; the decision is unchanged. Corrected the board id: it is the filename stem, not a frontmatter key (BoardNotice.to_frontmatter_dict omits it, as memory omits its slug); named the frontmatter keys both stores write; memory folders are per role or operator slug; the listing sorts by posted_at; removal is sq board clear (there is no prune). Removed the two references to the reversed .index.jsonl revision and the "being added" framing.
+- [2026-11-05T07:11:01Z] `architect` Robert Architect:
+  - Amended in place 2026-11-05 per ADR-1312 §1 and §5, board rule 6: one dated note under the board paragraph of the Decision (a notice gains a one-line `summary` over an optional body; a multi-line summary of either tier warns). No other text changed. Status unchanged. ADR-1312 is not yet accepted.
 <!-- sq:discussion:end -->

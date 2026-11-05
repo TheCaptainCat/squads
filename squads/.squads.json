@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1310,
+  "counter": 1316,
   "padding": 6,
   "items": {
     "12": {
@@ -8726,7 +8726,7 @@
       "type": "feature",
       "title": "CLI surface test suite",
       "slug": "cli-surface-test-suite",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Rebuild the tests as in-process CLI surface tests: every command and parameter of the bundled tree, guarded coverage.",
       "parent": null,
       "author": "product-owner",
@@ -8821,7 +8821,7 @@
       ],
       "path": "features/FEAT-001173-cli-surface-test-suite.md",
       "created_at": "2026-10-27T21:29:30Z",
-      "updated_at": "2026-11-04T23:38:31Z",
+      "updated_at": "2026-11-05T06:18:08Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -41038,7 +41038,7 @@
       "subentities": [],
       "path": "adrs/ADR-000314-storage-id-model-for-agent-memory-and-the-team-bulletin-boar.md",
       "created_at": "2026-07-06T16:03:50Z",
-      "updated_at": "2026-10-25T21:20:34Z",
+      "updated_at": "2026-11-05T07:11:01Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68037,7 +68037,7 @@
       ],
       "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
       "created_at": "2026-11-04T13:32:39Z",
-      "updated_at": "2026-11-05T02:59:02Z",
+      "updated_at": "2026-11-05T07:04:50Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68357,7 +68357,7 @@
       "subentities": [],
       "path": "adrs/ADR-001294-rendered-skill-pointers-and-one-role-skill-per-agent.md",
       "created_at": "2026-11-04T19:42:58Z",
-      "updated_at": "2026-11-05T02:11:07Z",
+      "updated_at": "2026-11-05T07:11:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68642,8 +68642,8 @@
       "type": "review",
       "title": "0.20 tests against the CLI surface test rules",
       "slug": "0-20-tests-against-the-cli-surface-test-rules",
-      "status": "ChangesRequested",
-      "description": "0.20 tests vs ADR-1172: F15, F17 reopened (one site each); rest verified",
+      "status": "Approved",
+      "description": "0.20 tests vs ADR-1172: all 19 findings verified",
       "parent": null,
       "author": "reviewer",
       "assignee": null,
@@ -68809,7 +68809,7 @@
         {
           "local_id": "F15",
           "title": "Pull report counts pinned from observed output contradict the report's own definition",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68853,7 +68853,7 @@
         {
           "local_id": "F19",
           "title": "Pull counts kept by per-path bookkeeping instead of one count after the pre-pass",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68864,7 +68864,7 @@
       ],
       "path": "reviews/REV-001299-0-20-tests-against-the-cli-surface-test-rules.md",
       "created_at": "2026-11-04T22:05:56Z",
-      "updated_at": "2026-11-05T06:12:37Z",
+      "updated_at": "2026-11-05T06:17:57Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -69537,7 +69537,7 @@
       ],
       "path": "tasks/TASK-001310-fix-rev-1299-findings-f13-to-f17.md",
       "created_at": "2026-11-05T04:27:13Z",
-      "updated_at": "2026-11-05T06:12:37Z",
+      "updated_at": "2026-11-05T06:17:57Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -69545,6 +69545,347 @@
       },
       "slug_in_file": false,
       "id": "TASK-1310"
+    },
+    "1311": {
+      "sequence_id": 1311,
+      "type": "feature",
+      "title": "Board notices with a summary and a body",
+      "slug": "board-notices-with-a-summary-and-a-body",
+      "status": "Ready",
+      "description": "A board notice gets a one-line summary and a body; list shows summaries, show reads the body",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1290"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Post, list and show a notice by summary and body",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Warn on a multi-line summary",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Migrate existing notices",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Startup text carries the board index",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Docs describe summary and body",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001311-board-notices-with-a-summary-and-a-body.md",
+      "created_at": "2026-11-05T07:05:50Z",
+      "updated_at": "2026-11-05T08:06:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1311"
+    },
+    "1312": {
+      "sequence_id": 1312,
+      "type": "decision",
+      "title": "Board notices and memories: a one-line summary over a body",
+      "slug": "board-notices-and-memories-a-one-line-summary-over-a-body",
+      "status": "Accepted",
+      "description": "A notice stores a summary in its frontmatter over an optional body; list shows summaries, show the body; a multi-line summary warns",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1311:implements",
+        "ADR-314",
+        "ADR-1294"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001312-board-notices-and-memories-a-one-line-summary-over-a-body.md",
+      "created_at": "2026-11-05T07:09:57Z",
+      "updated_at": "2026-11-05T07:14:48Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1312"
+    },
+    "1313": {
+      "sequence_id": 1313,
+      "type": "task",
+      "title": "Board notices: summary and body, show, warnings, migration",
+      "slug": "board-notices-summary-and-body-show-warnings-migration",
+      "status": "InProgress",
+      "description": "Python side of ADR-1312, in four dev rounds",
+      "parent": "FEAT-1311",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1312:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Stored summary over a body; post and list by summary",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "board show and the BOARD_SHOW operation; --json shapes",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Multi-line summary warnings in sq check and at write time",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "0.19 to 0.20 step copies each notice body into its summary",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "sq-memory skill board section; role skill board line",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Measure the board section before and after on a copy",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001313-board-notices-summary-and-body-show-warnings-migration.md",
+      "created_at": "2026-11-05T07:21:31Z",
+      "updated_at": "2026-11-05T08:24:41Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1313"
+    },
+    "1314": {
+      "sequence_id": 1314,
+      "type": "task",
+      "title": "VS Code board panel reads summaries and shows a body",
+      "slug": "vs-code-board-panel-reads-summaries-and-shows-a-body",
+      "status": "InReview",
+      "description": "Client side of ADR-1312: summaries in the board panel, body through board show",
+      "parent": "FEAT-1311",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1312:implements"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-001314-vs-code-board-panel-reads-summaries-and-shows-a-body.md",
+      "created_at": "2026-11-05T07:21:32Z",
+      "updated_at": "2026-11-05T07:41:22Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1314"
+    },
+    "1315": {
+      "sequence_id": 1315,
+      "type": "task",
+      "title": "Docs and changelog for board summaries and bodies",
+      "slug": "docs-and-changelog-for-board-summaries-and-bodies",
+      "status": "Done",
+      "description": "Docs pages and the 0.20.0 CHANGELOG for ADR-1312",
+      "parent": "FEAT-1311",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "labels": [],
+      "refs": [
+        "ADR-1312:implements"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-001315-docs-and-changelog-for-board-summaries-and-bodies.md",
+      "created_at": "2026-11-05T07:21:32Z",
+      "updated_at": "2026-11-05T08:10:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1315"
+    },
+    "1316": {
+      "sequence_id": 1316,
+      "type": "review",
+      "title": "Board notice and memory summaries",
+      "slug": "board-notice-and-memory-summaries",
+      "status": "ChangesRequested",
+      "description": "Review of FEAT-1311: board and memory summaries over a body, Python and VS Code client",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "TASK-1313",
+        "TASK-1314",
+        "ADR-1312"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Raw board and memory lists print a partial list before exit 4",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "memory list --raw breaks the bullet on a multi-line summary",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "Migration tests parse files with a src helper and assert substrings",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F4",
+          "title": "Migration rewrites non-mapping and frontmatter-less notice files",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "sq ui board screen: no test, bold breaks on multi-paragraph summaries",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F6",
+          "title": "The splitlines line-break boundary is not pinned by any test",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F7",
+          "title": "Three board and skill tests assert slices or substrings",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F8",
+          "title": "board post strips leading indentation from the body",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        }
+      ],
+      "path": "reviews/REV-001316-board-notice-and-memory-summaries.md",
+      "created_at": "2026-11-05T08:13:42Z",
+      "updated_at": "2026-11-05T08:24:38Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "target_ref": "FEAT-1311"
+      },
+      "slug_in_file": false,
+      "id": "REV-1316"
     }
   }
 }

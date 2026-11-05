@@ -15,7 +15,7 @@ description: Pointers render through never-failing commands with show --raw --no
   each role preloads sq-role-<slug>; sq-greeting states the main session's startup
   steps; per-type skills retire
 created_at: '2026-11-04T19:42:58Z'
-updated_at: '2026-11-05T02:11:07Z'
+updated_at: '2026-11-05T07:11:02Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -120,6 +120,8 @@ role skill (§2) is the one pointer with more than one `!` line.
   one-line summary would send the agent to another command for each. Raw output writes nothing to stdout
   unless the whole render succeeded; on failure it exits non-zero with sq's one-line error on
   stderr, which the agent receives above the echo line.
+
+  > **Narrowed 2026-11-05 by ADR-1312 §4.** The board prints one numbered item per notice with its summary, author and expiry, and a closing line naming `sq board show <n>`; no body. The sentence that a one-line summary would send the agent to another command no longer holds.
 - **Partial failure stays inside the text.** A view that cannot read its source renders one line
   saying so and naming the command, and the render still exits 0. Only a failure to resolve the
   item, the squad or the schema fails the command.
@@ -142,6 +144,8 @@ role skill (§2) is the one pointer with more than one `!` line.
   1. `sq role <slug> show --raw --no-header`: the role's body;
   2. `sq memory <slug> list --raw`: the role's memory index;
   3. `sq board list --raw`: the current board notices, content included.
+
+     > **Narrowed 2026-11-05 by ADR-1312 §4.** The command is unchanged; it prints the notices' summaries, not their content. So does `sq-greeting`'s step 6 (§4).
 
   Its `allowed-tools` names exactly those three commands, written as a YAML list, one
   `Bash(<command>)` entry per line. A failing line leaves one echo line in
@@ -435,4 +439,6 @@ bullets; a dated note there says so.
   - Amended for the raw-header ruling: §1 and the Amendment section now state the header as the panel's rows (one builder for both, badges without glyph, refs as `ID (kind)`, no session rows). An item keeps its heading first, then the list with a `type` row; roster shows print no H1 and open the list with the name row as a plain bullet. `frontmatter` leaves the DTOs and `--json`; the YAML header is a rejected alternative. ADR-427 is no longer narrowed (its §2 never fixed the dossier's shape), dated note rewritten in place.
 - [2026-11-05T02:10:46Z, edited 2026-11-05T02:11:07Z] `architect` Robert Architect:
   - 2026-11-05: ADR-226 narrowed in place. The playbook entry keys `lifecycle` and `commands` leave the format, since this decision retired their only renderer; an override that still sets them is refused at load by name, and the 0.19 → 0.20 migration leaves `.overrides/playbook.toml` untouched (REV-1301 F12).
+- [2026-11-05T07:11:02Z] `architect` Robert Architect:
+  - Amended in place 2026-11-05 per ADR-1312 §4, board rule 6: dated notes at §1 "Raw lists" and §2 item 3. `sq board list --raw` keeps its name and prints summaries only, with a closing line naming `sq board show <n>`; this also changes the output of `sq-greeting` step 6. No other text changed. Status unchanged. ADR-1312 is not yet accepted.
 <!-- sq:discussion:end -->

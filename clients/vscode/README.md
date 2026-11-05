@@ -18,19 +18,19 @@ core's toolchain; nothing under `clients/` is read by the Python gate, and vice 
 
 **Host layer** (`src/*.ts`) — everything allowed to import `vscode`:
 
-| Module                                                                   | Responsibility                                                                                                                                             |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `extension.ts`                                                           | activation: builds the providers, registers commands, wires the watcher                                                                                    |
-| `treeDataProvider.ts`                                                    | the **Work Items** tree (hierarchy, or a flat filtered/grouped view)                                                                                       |
-| `recordsTreeDataProvider.ts`                                             | the **Records** tree (one bucket per `records`-category type)                                                                                              |
-| `metaTreeDataProvider.ts`                                                | the **Roster** tree (fixed Roles / Skills / Operators buckets, memory entries under each role and operator)                                                |
-| `treeItemRendering.ts`                                                   | shared `DisplayNode` → `vscode.TreeItem` mapping (icons, colours, tooltips)                                                                                |
-| `itemPreviewManager.ts`                                                  | the owned `WebviewPanel`s: item dossiers with per-panel back/forward history, plus the single-slot workflow-cheatsheet, team-board and memory-entry panels |
-| `searchQuickPick.ts`                                                     | the full-text search QuickPick over `sq search --json`                                                                                                     |
-| `commands.ts`, `commandIds.ts`                                           | command registration and the contributed command ids                                                                                                       |
-| `squadWatcher.ts`                                                        | watches the squad index on disk and triggers one global refresh                                                                                            |
-| `discovery.ts`, `processRunner.ts`, `sqAdapter.ts`, `nodeEnvironment.ts` | finding `sq`, invoking it, and parsing its `--json` / `--raw` output                                                                                       |
-| `types.ts`                                                               | the trimmed shapes of the `sq --json` surfaces the client reads                                                                                            |
+| Module                                                                   | Responsibility                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `extension.ts`                                                           | activation: builds the providers, registers commands, wires the watcher                                                                                                                                                        |
+| `treeDataProvider.ts`                                                    | the **Work Items** tree (hierarchy, or a flat filtered/grouped view)                                                                                                                                                           |
+| `recordsTreeDataProvider.ts`                                             | the **Records** tree (one bucket per `records`-category type)                                                                                                                                                                  |
+| `metaTreeDataProvider.ts`                                                | the **Roster** tree (fixed Roles / Skills / Operators buckets, memory entries under each role and operator)                                                                                                                    |
+| `treeItemRendering.ts`                                                   | shared `DisplayNode` → `vscode.TreeItem` mapping (icons, colours, tooltips)                                                                                                                                                    |
+| `itemPreviewManager.ts`                                                  | the owned `WebviewPanel`s: item dossiers with per-panel back/forward history, plus the single-slot workflow-cheatsheet, team-board (summaries from `board list`, a body on click through `board show`) and memory-entry panels |
+| `searchQuickPick.ts`                                                     | the full-text search QuickPick over `sq search --json`                                                                                                                                                                         |
+| `commands.ts`, `commandIds.ts`                                           | command registration and the contributed command ids                                                                                                                                                                           |
+| `squadWatcher.ts`                                                        | watches the squad index on disk and triggers one global refresh                                                                                                                                                                |
+| `discovery.ts`, `processRunner.ts`, `sqAdapter.ts`, `nodeEnvironment.ts` | finding `sq`, invoking it, and parsing its `--json` / `--raw` output                                                                                                                                                           |
+| `types.ts`                                                               | the trimmed shapes of the `sq --json` surfaces the client reads                                                                                                                                                                |
 
 **Domain layer** (`src/domain/*.ts`) — pure, `vscode`-free, unit-tested directly with no host:
 
@@ -39,7 +39,7 @@ core's toolchain; nothing under `clients/` is read by the Python gate, and vice 
 - **view filters** — `metaFilter` (Roster), `recordsFilter` (Records)
 - **preview assembly** — `previewDocument`, `markdown`, `graphDiagrams`, `previewHistory`,
   `previewMessages`, `itemDirectory` (hover text for item ids in prose)
-- **board and memory** — `boardView` (the team-board panel), `memoryView` (memory entries under a
+- **board and memory** — `boardView` (the team-board panel: notice summaries, a body on demand), `memoryView` (memory entries under a
   Roster identity and the entry panel), `omissions` (shared wording for a partial listing)
 - **spec-driven vocabulary** — `typeCategory`, `typeLabels`, `typeOrder`, `statusRole`,
   `badgeCatalog`, `reservedTypes`, `roleDirectory`, `itemIdPattern`

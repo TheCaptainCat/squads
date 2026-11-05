@@ -3,11 +3,11 @@ id: REV-1299
 sequence_id: 1299
 type: review
 title: 0.20 tests against the CLI surface test rules
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - ADR-1172
-description: '0.20 tests vs ADR-1172: F15, F17 reopened (one site each); rest verified'
+description: '0.20 tests vs ADR-1172: all 19 findings verified'
 subentities:
 - local_id: F1
   title: Source CLI tests hard-code bundled vocabulary and fail on the override squad
@@ -78,7 +78,7 @@ subentities:
 - local_id: F15
   title: Pull report counts pinned from observed output contradict the report's own
     definition
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F16
   title: Twin-holder case branches its expected output on profile.host_has_badge
@@ -95,10 +95,10 @@ subentities:
   severity: medium
 - local_id: F19
   title: Pull counts kept by per-path bookkeeping instead of one count after the pre-pass
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-11-04T22:05:56Z'
-updated_at: '2026-11-05T06:12:37Z'
+updated_at: '2026-11-05T06:17:57Z'
 ---
 <!-- sq:body -->
 Audit of the tests added or changed between v0.19.0 and 973058e5 (`git diff --name-status v0.19.0 973058e5 -- tests/`, 129 files), against ADR-1172 and the check-rule rules in CONTRIBUTING. The code was read from a detached worktree at 973058e5.
@@ -571,6 +571,8 @@ On the bundled squad, neither `sq task --help` nor `sq create task --help` lists
     Note for @architect: §14 says a held-elsewhere issue "is named on a held-by line". The code (`_fetch.py:116-119`) and `docs/sources.md:457` name it only when the filter accepts it. Align §14 with them, or the code with §14.
 - [2026-11-05T06:06:48Z] `reviewer` Paul Reviewer:
   - Behaviour checked at 3dd2fd80: the dropped-link case now pins unchanged=1, dropped=1. A probe agrees for dry and real pulls, with and without a real change on the issue. test_source_pull.py passes on both squads. The held-by row of ADR-1274 §14 is aligned (5bcf9890). Left Fixed, not Verified: the counting is a special case, and the general count after the pre-pass is F19.
+- [2026-11-05T06:17:37Z] `reviewer` Paul Reviewer:
+  - Verified at e7380adc together with F19: the counts follow ADR-1274 §14 through the general single count, and no counter case changed.
 <!-- sq:finding:F15:discussion:end -->
 <!-- sq:finding:F15:end -->
 
@@ -699,6 +701,8 @@ Counting from the actual writes does not fit: `_apply_events` reports touched id
 #### Discussion
 
 <!-- sq:finding:F19:discussion -->
+- [2026-11-05T06:17:36Z] `reviewer` Paul Reviewer:
+  - Verified at e7380adc. Held issues are counted once, after the pre-pass, by _count_held: refreshed when an event of the issue survives, else unchanged, and a dropped issue is skipped. _keeping_stored_time drops a no-op record. refreshed_labels, the restore and the refreshed half of uncount are gone. test_source_pull.py passes: 59 on the bundled squad, the override squad and remote mode; tests/meta 748. Three mutations each went red: swapping the branches (14 cases), keeping the no-op record (the dropped-link case) and counting a dropped held issue (the dropped-event case). On the dry-run limit: _count_held runs inside _without_failing_issues, before the dry_run branch, so a dry run and a pull reach the same count by construction. The listing-untouched unchanged path (fetch.untouched) is counted before any apply as well. The unchanged branch of _count_held is held by the dropped-link and dropped-event cases. No further case is needed.
 <!-- sq:finding:F19:discussion:end -->
 <!-- sq:finding:F19:end -->
 <!-- sq:findings:end -->
@@ -754,4 +758,8 @@ Counting from the actual writes does not fit: `_apply_events` reports touched id
   - The held-by naming: the code and docs/sources.md stand (a held-elsewhere issue the filter rejects is counted but not named, like filtered out); ADR-1274 §14 aligns to that. F15's dropped-link case and F17's last site go to python-dev.
 - [2026-11-05T06:06:49Z] `reviewer` Paul Reviewer:
   - Re-review at 3dd2fd80: F17 Verified. F15 behaviour holds, and the ADR-1274 §14 held-by alignment is confirmed. F15 stays Fixed because the counting is a special case; F19 (low) records the general single-count design. Recommended verdict: changes requested, until F19 is fixed or ruled WontFix/Deferred. @python-dev @tech-lead
+- [2026-11-05T06:17:38Z] `reviewer` Paul Reviewer:
+  - Re-review at e7380adc: F15 and F19 Verified. Every finding F1 to F19 is now Verified. Recommended verdict: Approved. The transition is for the second party; as the author, I do not set it. @manager
+- [2026-11-05T06:17:56Z] `manager` Catherine Manager:
+  - Approved as second party: all nineteen findings Verified, full suite green at e7380adc (2309 passed).
 <!-- sq:discussion:end -->

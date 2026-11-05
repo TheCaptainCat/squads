@@ -13,6 +13,7 @@ import type { ProcessRunner } from './processRunner';
 import type {
   SqBadgeMap,
   SqBoardNotice,
+  SqBoardNoticeDetail,
   SqCollectionBadge,
   SqCollectionCatalogEntry,
   SqDiscussionEntry,
@@ -607,7 +608,9 @@ export function isSqMemoryDetail(value: unknown): value is SqMemoryDetail {
   );
 }
 
-/** Shape guard for one `sq board list --json` row. */
+/** Shape guard for one `sq board list --json` row. `summary` is required: unlike the memory
+ * list's `created_at`, a board row has nothing else to show in its place, and the `board show`
+ * the panel opens a notice with exists only in an `sq` that also emits it. */
 export function isSqBoardNotice(value: unknown): value is SqBoardNotice {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -616,11 +619,17 @@ export function isSqBoardNotice(value: unknown): value is SqBoardNotice {
   return (
     typeof notice.n === 'number' &&
     typeof notice.id === 'string' &&
+    typeof notice.summary === 'string' &&
     typeof notice.author === 'string' &&
     typeof notice.posted_at === 'string' &&
-    (typeof notice.until === 'string' || notice.until === null) &&
-    typeof notice.body === 'string'
+    (typeof notice.until === 'string' || notice.until === null)
   );
+}
+
+/** Shape guard for `sq board show <n> --json`'s single-object payload: a list row plus a
+ * required `body` string (`""` for a notice without one). */
+export function isSqBoardNoticeDetail(value: unknown): value is SqBoardNoticeDetail {
+  return isSqBoardNotice(value) && typeof (value as { body?: unknown }).body === 'string';
 }
 
 function parseJson(stdout: string): SqOutcome<unknown> {
@@ -989,4 +998,21 @@ export function getBoardList(
   workspaceRoot: string,
 ): Promise<SqOutcome<SqBoardNotice[]>> {
   return runSqJson(runner, invocation, workspaceRoot, ['board', 'list', '--json'], isSqBoardNotice);
+}
+
+/** `sq board show <n> --json` — one notice's full record, `n` being its position in the live
+ * listing, not an id: the caller compares the returned `id` with the row it clicked. */
+export function getBoardNotice(
+  runner: ProcessRunner,
+  invocation: SqInvocation,
+  workspaceRoot: string,
+  n: number,
+): Promise<SqOutcome<SqBoardNoticeDetail>> {
+  return runSqJsonObject(
+    runner,
+    invocation,
+    workspaceRoot,
+    ['board', 'show', String(n), '--json'],
+    isSqBoardNoticeDetail,
+  );
 }

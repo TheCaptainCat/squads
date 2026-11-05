@@ -190,12 +190,14 @@ def test_a_failure_that_is_not_a_squads_error_answers_500_and_logs_the_traceback
 
 def test_a_partial_read_answers_200_with_what_it_left_out(project: SquadPaths, serve) -> None:
     daemon = serve(project)
-    posted = daemon.request("POST", "/v1/board", {"body": "A notice"}, {"Squads-Actor": "manager"})
+    posted = daemon.request(
+        "POST", "/v1/board", {"summary": "A notice"}, {"Squads-Actor": "manager"}
+    )
     assert posted.status == 200, posted.body
     broken = BoardStore(project).folder / "BOARD-broken.md"
     broken.write_bytes(b"\xff\xfe not text")
     reply = daemon.get("/v1/board")
-    notice = posted.json()["data"]["entry"]
+    notice = {k: v for k, v in posted.json()["data"]["entry"].items() if k != "body"}
     assert whole(reply) == (
         200,
         JSON,

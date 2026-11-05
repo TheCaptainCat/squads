@@ -375,7 +375,8 @@ What it generates:
 - **Role skills** — `.claude/skills/sq-role-<slug>/SKILL.md`, one per live role, projected from the
   role with no skill item behind it, always `user-invocable: false`. Three render lines: the role's
   body (`sq role <slug> show --raw --no-header`: its definition and its `role_playbook` sections),
-  then its memory index under `## Memory` and the board's current notices under `## Board`.
+  then its memory index under `## Memory` and the board's current notices under `## Board`, one
+  summary line per notice.
 - **Managed skills** — `sq-how-to`, `sq-greeting` and `sq-memory`. Each gets a pointer at
   `.claude/skills/<name>/SKILL.md` whose one line renders `sq skill <name> show --raw --no-header`
   when the skill loads. The definition that command prints is rendered from templates when it is

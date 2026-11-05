@@ -1299,8 +1299,8 @@ sq check             # what do they find?
 Some checks look at the squad as a whole rather than at one item. They run once per `sq check`,
 never at the create/update gate, and they belong to no type's list.
 
-**Always on.** Eleven report a defect in any squad, so they run in every squad and cannot be selected,
-dropped or given another level:
+**Always on.** Fourteen report a defect in any squad, so they run in every squad and cannot be
+selected, dropped or given another level:
 
 | Check | Reports | Level |
 |---|---|---|
@@ -1313,6 +1313,8 @@ dropped or given another level:
 | `role_base_resolves` | a live role whose base does not resolve: a catalog role whose slug the catalog does not declare, a template role naming an undeclared template or missing (or carrying) the `tech` its template takes, a role that defines itself without a job title or description, or one storing both `template` and `mission` (see [roles.md § "Where a role's definition comes from"](roles.md#where-a-roles-definition-comes-from)) | `error` |
 | `role_definition_shadowed` | a per-slug role file that sets a field the role stores in its item, so `sq role <slug> update` of that field has no effect | `warn` |
 | `display_config_valid` | an unknown key or a non-boolean value in `.squads.toml`'s `[display]` table | `warn` |
+| `notice_summary_single_line` | a current board notice whose summary spans several lines, named by its number and id, with the post and `sq board clear` commands that write it again (see [workflow.md § "Memories and board notices"](workflow.md#memories-and-board-notices-a-summary-over-a-body)) | `warn` |
+| `memory_summary_single_line` | a memory whose summary spans several lines, named `<role>/<slug>`, with the `forget` and `add` commands that write it again | `warn` |
 | `daemon_config_valid` | an unknown key or an unusable value in `.squads.toml`'s `[daemon]` table, or a `SQUADS_DAEMON` that is not `on` or `off`; every command runs in local mode until an unusable value is fixed | `warn` |
 | `working_language_valid` | a `working_language` in `.squads.toml` that is not a language tag squads recognises; English applies | `warn` |
 | `view_transform_resolves` | an override view transform whose file is missing, leaves `.overrides/`, fails to import, or lacks a function sq can call; it imports the file, which runs its top-level code (see [Giving a view a transform](#giving-a-view-a-transform)) | `error` |
@@ -1472,8 +1474,8 @@ the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
 `subentity_mapping` for `work`; `no_parent` and `supersedes_incoming` for `records`;
 `pronouns_valid` for `roster`. A type's `validators` list can change their level, within each
 check's floor, but cannot drop them. Only the checks a type adds beyond them are selectable. The
-eleven always-on squad-wide checks in the table above (`index_reconciled` and the others) cannot be
-selected, dropped or relevelled at all.
+fourteen always-on squad-wide checks in the table above (`index_reconciled` and the others) cannot
+be selected, dropped or relevelled at all.
 
 **Every finding names its rule.** In `sq check --json`, each finding carries `rule`: the name of
 the check that produced it. For a validator, per-item or squad-wide, it is the validator's name,

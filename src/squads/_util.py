@@ -137,3 +137,8 @@ def version_tuple(version: str) -> VersionKey:
     post = int(m["post_n"] or 0) if has_post else -1
     dev = int(m["dev_n"] or 0) if has_dev else _NO_DEV
     return (release, pre, post, dev)
+
+
+def has_line_break(text: str) -> bool:
+    """Whether *text* holds a separator ``str.splitlines`` splits on; an empty text has none."""
+    return bool(text) and text.splitlines() != [text]

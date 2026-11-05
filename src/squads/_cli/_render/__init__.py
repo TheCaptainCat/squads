@@ -1,6 +1,7 @@
 """Renderers: each takes a response DTO and a console, one module per resource."""
 
 from squads._cli._render._board import render_cleared as render_cleared
+from squads._cli._render._board import render_notice as render_notice
 from squads._cli._render._board import render_notices as render_notices
 from squads._cli._render._board import render_posted as render_posted
 from squads._cli._render._check import render_check as render_check

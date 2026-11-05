@@ -480,7 +480,7 @@
     "_rendering/templates/subentities/head.md.j2": "05bd5270f84c846df5c22b970624bd1377b31427080d58c2c5de0fd747126c0c",
     "_rendering/templates/subentities/summary.md.j2": "8a025754bdfdda21747270a9f7fbee0420c17e6070b2a3bc5e38c2d8dd60f0e7",
     "_rendering/templates/views/greeting_skill.md.j2": "9b5fab6e35cf8d69cf6f7a8695eb37a8700d64685fd276d95c53826d167bdfca",
-    "_rendering/templates/views/memory_skill.md.j2": "773aa440807f76c3e06b220aa1b49eb895a93926a1d035a8a3231c1ff490a1d7",
+    "_rendering/templates/views/memory_skill.md.j2": "a79126f263be2419773faae2171c006c244540f4ab577d683be571b54a1321f4",
     "_rendering/templates/views/milestone_rollup.md.j2": "c4c4c4c6737650fedb126a81ad7c9429e55823a2d57bc5cc5fd3b59b09f20a8e",
     "_rendering/templates/views/role_definition.md.j2": "4f3f2d7c447020c7b5527b3c8d655def566a6a7a429ea5e29d389cce868a9335",
     "_rendering/templates/views/role_playbook.md.j2": "baa6bdba1224e38d8cbb16d5c338eae5e11fb6138e5a8f15c2053784a1c69fa2",

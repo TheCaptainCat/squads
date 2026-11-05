@@ -529,7 +529,9 @@ own heading:
 - **The role's body**: the role definition (mission, responsibilities, working agreements), then
   the role's playbook sections, then any text the squad wrote in the role's body.
 - **The role's memory index**: one line per memory, its slug and its summary.
-- **The board's current notices**, each with its full text, author, date and expiry.
+- **The board's current notices**: one line per notice, its summary, author and expiry, then the
+  line naming `sq board show <n>`, which prints a notice's body (see
+  [workflow.md § "Memories and board notices"](workflow.md#memories-and-board-notices-a-summary-over-a-body)).
 
 A line whose command fails leaves its echo in place of the output, and the other two still render.
 The skill names exactly those three commands in its `allowed-tools`, so the host runs them without

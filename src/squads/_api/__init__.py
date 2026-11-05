@@ -22,6 +22,7 @@ from squads._api._dto import Blocker as Blocker
 from squads._api._dto import BoardClearRequest as BoardClearRequest
 from squads._api._dto import BoardListRequest as BoardListRequest
 from squads._api._dto import BoardPostRequest as BoardPostRequest
+from squads._api._dto import BoardShowRequest as BoardShowRequest
 from squads._api._dto import CatalogRequest as CatalogRequest
 from squads._api._dto import Cheatsheet as Cheatsheet
 from squads._api._dto import CheatsheetRequest as CheatsheetRequest
@@ -128,6 +129,7 @@ from squads._api._dto import MineRow as MineRow
 from squads._api._dto import MovedFile as MovedFile
 from squads._api._dto import NameDisplay as NameDisplay
 from squads._api._dto import Notice as Notice
+from squads._api._dto import NoticeDetail as NoticeDetail
 from squads._api._dto import NoticeList as NoticeList
 from squads._api._dto import NoticeRow as NoticeRow
 from squads._api._dto import NoticeWrite as NoticeWrite

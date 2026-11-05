@@ -8,8 +8,9 @@ after a comment header already has the shape of a comment-attribute line, a per-
 prose, a comment or an inbound ref, a skill item is named ``sq-role-<slug>``, or a project skill
 already holds ``sq-greeting`` or ``sq-how-to``. A clean squad then has its per-type skill items,
 and their ``.claude/skills`` pointers, removed and its two skill items renamed; ``sq migrate up``
-closes with the backend refresh. It runs only through ``sq migrate up`` via
-``_migrations._registry``.
+closes with the backend refresh. A final step gives every board notice a ``summary`` copied from
+its body, and leaves the body, the file name and the other keys as they were. It runs only
+through ``sq migrate up`` via ``_migrations._registry``.
 """
 
 import re
@@ -19,6 +20,7 @@ from typing import Any
 
 from squads import _aio
 from squads._backends import BackendContext, get_backend
+from squads._errors import SquadsError
 from squads._index import IndexStore
 from squads._interactions import skill_description
 from squads._itemfile import read_frontmatter, write_text
@@ -34,7 +36,8 @@ SUMMARY = (
     "attribute under a comment header is read as one, and the per-type skills retire: their items "
     "and `.claude/skills` pointers are removed, `greeting` and `squads` become `sq-greeting` and "
     "`sq-how-to`, every role body gains the playbook tag and the run ends with the backend "
-    "refresh. The run refuses a squad that holds a case it cannot carry."
+    "refresh. Every board notice takes its body as its summary. The run refuses a squad that "
+    "holds a case it cannot carry."
 )
 MANUAL = (
     "Clear what `sq migrate up` refuses before running it again; it lists every case and writes "
@@ -96,12 +99,20 @@ MANUAL = (
     "custom type's entry, then run `sq migrate up`. A type's lifecycle line now comes from its "
     "workflow lifecycle; move any command you want an agent to see into the `do` list of the "
     "guide whose role runs it. "
+    "(9) Every board notice now lists its whole text as its summary, because the run copies "
+    "each body into the summary and keeps the body. `sq check` warns "
+    "(`notice_summary_single_line`) on each notice whose summary spans several lines. For each "
+    'one, post it again with a one-line summary: `sq board post "<summary>" --file <body> --as '
+    "<author>` (with `--until <until>` when it has one), then `sq board clear <n>`; the new "
+    "post lists after every existing notice, so `<n>` still names the old one. A notice file "
+    "that could not be read is named in the run's output and left as it was. "
     "After the run, commit `.claude/`: it removed the pointer directories of the per-type "
     "skills and of `greeting` and `squads`, wrote the pointers of `sq-greeting`, `sq-how-to` "
     "and of each role, and rewrote every agent pointer, the managed `CLAUDE.md` section and the "
     "`settings.json` allow rules."
 )
 
+_BOARD_FOLDER = "board"
 _SOURCE_KEY = "source"
 _RESERVED_SLUG = "source"
 #: A comment header line, then the line a comment attribute would occupy directly under it.
@@ -324,6 +335,40 @@ async def _apply(ctx: MigrationContext, plan: _Plan) -> tuple[str, ...]:
     )
 
 
+async def _summarise_notices(ctx: MigrationContext) -> tuple[list[str], list[str]]:
+    """Give each board notice that has no ``summary`` its stripped body as one, keeping the body,
+    the file name and every other key; returns the lines for notices summarised and for files left
+    untouched because they could not be read."""
+    folder = ctx.paths.abspath(_BOARD_FOLDER)
+    if not await _aio.path_exists(folder):
+        return [], []
+    files = await _aio.to_thread(lambda: sorted(folder.glob("*.md")))
+    done: list[str] = []
+    unread: list[str] = []
+    for path in files:
+        where = path.relative_to(ctx.paths.squad_dir).as_posix()
+        try:
+            text = await _aio.read_text(path)
+            data, body = split_frontmatter(text, source=str(path))
+        except (OSError, ValueError, SquadsError) as exc:  # fmt: skip
+            unread.append(f"left notice {where} as it was: {str(exc).splitlines()[0]}")
+            continue
+        if "summary" in data:
+            continue
+        if not data or not body.strip():
+            why = "no frontmatter mapping" if not data else "the body is empty"
+            unread.append(f"left notice {where} as it was: {why}")
+            continue
+        ordered = {"summary": body.strip()}
+        for key in ("author", "posted_at", "until"):
+            if key in data:
+                ordered[key] = data[key]
+        ordered.update({k: v for k, v in data.items() if k not in ordered})
+        await _aio.atomic_write_text(path, replace_frontmatter(text, ordered))
+        done.append(f"summarised notice {path.stem}")
+    return done, unread
+
+
 async def migrate(ctx: MigrationContext) -> MigrationOutcome:
     """Scan every item file and refuse on any case, else remove the per-type skills and rename the
     two legacy ones; ``sq migrate up`` repairs the index, refreshes the backends and stamps the
@@ -333,4 +378,7 @@ async def migrate(ctx: MigrationContext) -> MigrationOutcome:
     if plan.problems:
         raise _refusal(plan.problems)
     report = await _apply(ctx, plan)
-    return MigrationOutcome(count=len(report), report=report)
+    summarised, unread = await _summarise_notices(ctx)
+    return MigrationOutcome(
+        count=len(report) + len(summarised), report=(*report, *summarised, *unread)
+    )

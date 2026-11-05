@@ -312,9 +312,158 @@ async def test_up_stamps_a_clean_0_19_squad_and_adds_only_the_playbook_tag_to_ea
     roles = [name for name in after if name.startswith("agents/roles/")]
     assert roles
     assert all(placed in after[name] for name in roles)
-    assert {k: v.replace(placed, b"") for k, v in after.items() if k != ".squads.toml"} == {
-        k: v for k, v in before.items() if k != ".squads.toml"
+    unchanged = (".squads.toml", "board/")
+    assert {k: v.replace(placed, b"") for k, v in after.items() if not k.startswith(unchanged)} == {
+        k: v for k, v in before.items() if not k.startswith(unchanged)
     }
+
+
+MIGRATED_CONFIG = (
+    "# squads project configuration\n"
+    'schema_version = "0.20"\n'
+    'squad_dir = "."\n'
+    "active_backends = []\n"
+    'working_language = "en"\n'
+)
+SUMMARISED_NOTICES = {
+    "1111111111": (
+        "---\n"
+        "summary: Freeze the release branch on Friday.\n"
+        "author: manager\n"
+        "posted_at: '2026-10-01T09:00:00Z'\n"
+        "until: '2999-01-01T00:00:00Z'\n"
+        "---\n"
+        "Freeze the release branch on Friday.\n"
+    ),
+    "2222222222": (
+        "---\n"
+        "summary: 'Read the diff, not the summary.\n"
+        "\n"
+        "\n"
+        "  Then check the tests it adds.'\n"
+        "author: reviewer\n"
+        "posted_at: '2026-10-02T09:00:00Z'\n"
+        "---\n"
+        "Read the diff, not the summary.\n"
+        "\n"
+        "Then check the tests it adds.\n"
+    ),
+    "3333333333": (
+        "---\n"
+        "summary: An old notice that expired.\n"
+        "author: manager\n"
+        "posted_at: '2026-09-01T09:00:00Z'\n"
+        "until: '2000-01-01T00:00:00Z'\n"
+        "---\n"
+        "An old notice that expired.\n"
+    ),
+}
+
+
+def _report(output: str) -> list[str]:
+    """The indented lines a migration step adds under its own line."""
+    return [line for line in output.splitlines() if line.startswith("    ")]
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_copies_each_notice_body_into_its_summary_and_keeps_the_body(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert {n: _text(squad / "board" / f"{n}.md") for n in SUMMARISED_NOTICES} == (
+        SUMMARISED_NOTICES
+    )
+    assert _report(result.output) == [
+        "    summarised notice 1111111111",
+        "    summarised notice 2222222222",
+        "    summarised notice 3333333333",
+        f"    left notice board/5555555555.md as it was: malformed frontmatter in "
+        f"{squad / 'board/5555555555.md'}: while parsing a flow sequence",
+    ]
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_leaves_a_notice_with_a_summary_and_an_unreadable_one_as_they_are(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    kept = {n: (squad / "board" / f"{n}.md").read_bytes() for n in ("4444444444", "5555555555")}
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert {n: (squad / "board" / f"{n}.md").read_bytes() for n in kept} == kept
+    assert _text(squad / ".squads.toml") == MIGRATED_CONFIG
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_leaves_a_notice_file_that_is_no_notice_as_it_is_and_names_it(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    for n in ("5555555555", "4444444444", "3333333333", "2222222222", "1111111111"):
+        (squad / "board" / f"{n}.md").unlink()
+    odd = {
+        "6666666666": ("---\n- a list\n---\nA body.\n", "no frontmatter mapping"),
+        "7777777777": ("Plain text, no frontmatter.\n", "no frontmatter mapping"),
+        "8888888888": ("---\nauthor: manager\nposted_at: x\n---\n", "the body is empty"),
+    }
+    for notice_id, (text, _) in odd.items():
+        (squad / "board" / f"{notice_id}.md").write_text(text, encoding="utf-8")
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert {n: _text(squad / "board" / f"{n}.md") for n in odd} == {
+        n: t for n, (t, _) in odd.items()
+    }
+    assert _report(result.output) == [
+        f"    left notice board/{n}.md as it was: {why}" for n, (_, why) in odd.items()
+    ]
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_leaves_a_board_that_works_and_checks_only_the_multi_line_notice(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    (squad / "board/5555555555.md").unlink()
+    assert (await invoke(["migrate", "up"])).exit_code == 0
+
+    listed = await invoke(["board", "list", "--raw"])
+    assert (listed.exit_code, listed.output) == (
+        0,
+        "1. Freeze the release branch on Friday. \u2014 manager, until 2999-01-01T00:00:00Z\n"
+        "2. Read the diff, not the summary.\n"
+        "\n"
+        "   Then check the tests it adds. \u2014 reviewer\n"
+        "3. Already summarised \u2014 devops\n"
+        "\n"
+        "Read a notice in full with `sq board show <n>`.\n",
+    )
+    shown = await invoke(["board", "show", "1", "--json"])
+    assert (shown.exit_code, json.loads(shown.output)["id"]) == (0, "1111111111")
+    checked = json.loads((await invoke(["check", "--json"])).output)
+    assert [i for i in checked if i["rule"] == "notice_summary_single_line"] == [
+        {
+            "rule": "notice_summary_single_line",
+            "level": "warn",
+            "item": "2222222222",
+            "message": "notice 2 (2222222222) has a multi-line summary; post it again with a "
+            'one-line summary: `sq board post "<summary>" --file <body> --as reviewer`, then '
+            "`sq board clear 2`",
+        }
+    ]
+    cleared = await invoke(["board", "clear", "1"])
+    assert (cleared.exit_code, cleared.output) == (0, "cleared 1111111111\n")
 
 
 @pytest.mark.covers("migrate up")

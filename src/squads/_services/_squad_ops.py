@@ -9,6 +9,7 @@ from squads._api import (
     BoardClearRequest,
     BoardListRequest,
     BoardPostRequest,
+    BoardShowRequest,
     CatalogRequest,
     Cheatsheet,
     CheatsheetRequest,
@@ -33,6 +34,7 @@ from squads._api import (
     MemorySearchRequest,
     MemoryShowRequest,
     Notice,
+    NoticeDetail,
     NoticeList,
     NoticeRow,
     NoticeWrite,
@@ -63,9 +65,11 @@ from squads._api import (
     ViewResult,
 )
 from squads._board import BoardNotice
+from squads._board import multi_line_summary_message as board_summary_message
 from squads._errors import PlaybookConfigError, SquadsError
 from squads._interactions import get_playbook_spec
 from squads._memory import MemoryEntry
+from squads._memory import multi_line_summary_message as memory_summary_message
 from squads._overrides import (
     STATE_BROKEN,
     STATE_DRIFTED,
@@ -104,6 +108,7 @@ from squads._services._views import ViewsMixin
 from squads._spec_documents import resolve_workflow
 from squads._specload import override_present
 from squads._transform import check_view_transforms
+from squads._util import has_line_break
 from squads._workflow import (
     ROSTER_ROLE,
     WORKFLOW_OVERRIDE_FILENAME,
@@ -124,6 +129,7 @@ _BROKEN_REGION = (
 def _notice(notice: BoardNotice) -> Notice:
     return Notice(
         id=notice.id,
+        summary=notice.summary,
         author=notice.author,
         posted_at=notice.posted_at,
         until=notice.until,
@@ -177,7 +183,12 @@ class SquadStateOpsMixin(
         notices, unreadable = await self.board_list()
         rows = [
             NoticeRow(
-                n=i, id=n.id, author=n.author, posted_at=n.posted_at, until=n.until, body=n.body
+                n=i,
+                id=n.id,
+                summary=n.summary,
+                author=n.author,
+                posted_at=n.posted_at,
+                until=n.until,
             )
             for i, n in enumerate(notices, start=1)
         ]
@@ -186,8 +197,29 @@ class SquadStateOpsMixin(
     async def post_to_board(self, req: BoardPostRequest) -> Response[NoticeWrite]:
         """Post the notice as the declared actor, who must be on the live roster."""
         await self.adopt_declared_actor()
-        notice = await self.board_post(current_actor(), req.body, until=req.until)
-        return Response(data=NoticeWrite(entry=_notice(notice)))
+        notice = await self.board_post(current_actor(), req.summary, req.body, until=req.until)
+        warnings: list[str] = []
+        if has_line_break(notice.summary):
+            live, _unreadable = await self.board_list()
+            for n, listed in enumerate(live, start=1):
+                if listed.id == notice.id:
+                    warnings.append(board_summary_message(n, notice))
+        return Response(data=NoticeWrite(entry=_notice(notice)), warnings=warnings)
+
+    async def show_board_notice(self, req: BoardShowRequest) -> Response[NoticeDetail]:
+        """The notice at the requested position, with its body."""
+        n = await self.board_show(req.n)
+        return Response(
+            data=NoticeDetail(
+                n=req.n,
+                id=n.id,
+                summary=n.summary,
+                author=n.author,
+                posted_at=n.posted_at,
+                until=n.until,
+                body=n.body,
+            )
+        )
 
     async def clear_from_board(self, req: BoardClearRequest) -> Response[NoticeWrite]:
         """Take down the notice at the requested position."""
@@ -229,7 +261,10 @@ class SquadStateOpsMixin(
         """Write a memory into the role's notebook."""
         role = await self._memory_role(req.role)
         entry = await self.memory_add(role, req.summary, body=req.body, slug=req.slug)
-        return Response(data=MemoryAdded(entry=_memory(entry), role=role))
+        warnings = (
+            [memory_summary_message(role, entry.slug)] if has_line_break(entry.summary) else []
+        )
+        return Response(data=MemoryAdded(entry=_memory(entry), role=role), warnings=warnings)
 
     async def forget_memory(self, req: MemoryForgetRequest) -> Response[MemoryForgotten]:
         """Delete one memory of the role."""

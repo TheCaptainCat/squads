@@ -72,6 +72,8 @@ SQUAD_GLOBAL_VALIDATOR_NAMES: frozenset[str] = frozenset(
         "daemon_config_valid",
         "working_language_valid",
         "view_transform_resolves",
+        "notice_summary_single_line",
+        "memory_summary_single_line",
         "type_has_live_author",
         "children_settled_with_parent",
         "dependency_acyclic",
@@ -98,6 +100,8 @@ ALWAYS_ON_SQUAD_GLOBAL_NAMES: frozenset[str] = frozenset(
         "daemon_config_valid",
         "working_language_valid",
         "view_transform_resolves",
+        "notice_summary_single_line",
+        "memory_summary_single_line",
     }
 )
 
@@ -131,6 +135,8 @@ DEFAULT_SQUAD_GLOBAL_LEVEL: dict[str, str] = {
     "daemon_config_valid": "warn",
     "working_language_valid": "warn",
     "view_transform_resolves": "error",
+    "notice_summary_single_line": "warn",
+    "memory_summary_single_line": "warn",
     "type_has_live_author": "warn",
     "children_settled_with_parent": "warn",
     "dependency_acyclic": "warn",

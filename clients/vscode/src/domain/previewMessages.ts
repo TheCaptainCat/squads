@@ -37,6 +37,36 @@ export function parseOpenItemMessage(data: unknown): OpenItemMessage | null {
   return { command: OPEN_ITEM_COMMAND, id: record.id, newTab: record.newTab };
 }
 
+/** Posted by a click on a board notice's entry (`boardView.ts`): the row's `n` (its position in
+ * the listing it was rendered from) and `id`, which the host compares with the notice `board
+ * show <n>` returns. */
+export const OPEN_NOTICE_COMMAND = 'openNotice';
+
+export interface OpenNoticeMessage {
+  readonly command: typeof OPEN_NOTICE_COMMAND;
+  readonly n: number;
+  readonly id: string;
+}
+
+/** Shape guard for an `OpenNoticeMessage` — same untrusted-input treatment as
+ * `parseOpenItemMessage`; `n` must be a positive integer, as a listing position is. */
+export function parseOpenNoticeMessage(data: unknown): OpenNoticeMessage | null {
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+  const record = data as Record<string, unknown>;
+  if (record.command !== OPEN_NOTICE_COMMAND) {
+    return null;
+  }
+  if (typeof record.n !== 'number' || !Number.isInteger(record.n) || record.n < 1) {
+    return null;
+  }
+  if (typeof record.id !== 'string' || record.id === '') {
+    return null;
+  }
+  return { command: OPEN_NOTICE_COMMAND, n: record.n, id: record.id };
+}
+
 /** Posted by the in-content back/forward toolbar — the panel-specific counterpart to the global
  * `squads.previewBack`/`squads.previewForward` commands bound to `alt+left`/`alt+right`. Unlike
  * those (which act on whichever panel VS Code reports as focused), this message always names the

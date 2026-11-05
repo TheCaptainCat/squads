@@ -1,13 +1,14 @@
 """`sq board ...` — the team bulletin board: short, prescriptive broadcast notices.
 
 Grammar:
-  sq board post -m "<notice>" [--until date] [--as <slug>]  — post a notice
-  sq board list [--json] [--raw]                            — current (unexpired) notices
-  sq board clear <n>                                        — take the n-th listed notice down
+  sq board post "<summary>" [-m … | --file f] [--until date] --as <slug>  — post a notice
+  sq board list [--json] [--raw]    — current (unexpired) notices, summaries only
+  sq board show <n> [--json]        — the n-th listed notice in full
+  sq board clear <n>                — take the n-th listed notice down
 
 Unlike `sq memory <role> ...`, the board is team-scoped: no role subject, one shared board. A
 notice has no counter-allocated id (see squads._board); `list`'s ordinal is its position in
-the live, sorted, unexpired listing, resolved fresh on every `list`/`clear` and not stable
+the live, sorted, unexpired listing, resolved fresh on every `list`/`show`/`clear` and not stable
 across posts or clears.
 """
 # Commands registered via Typer decorators (side effects) read as unused to static analysis.
@@ -16,22 +17,25 @@ across posts or clears.
 import typer
 
 import squads._cli._common as common
-from squads._api import BoardClearRequest, BoardListRequest, BoardPostRequest, ops
+from squads._api import BoardClearRequest, BoardListRequest, BoardPostRequest, BoardShowRequest, ops
 from squads._cli import _calls as calls
-from squads._cli._common import console, handle_errors, require_as, resolve_body
-from squads._cli._render import render_cleared, render_notices, render_posted
+from squads._cli._common import console, handle_errors, require_as, resolve_body_optional
+from squads._cli._render import render_cleared, render_notice, render_notices, render_posted
 
 board_app = typer.Typer(
     no_args_is_help=True,
-    help="Post, list and take down notices on the team board.",
+    help="Post, list, read and take down notices on the team board.",
 )
 
 
 @board_app.command("post")
 @handle_errors
 def post_notice(
+    summary: str = typer.Argument(
+        ..., help="One-line summary of the notice; put the detail in `-m` or `--file`."
+    ),
     message: list[str] = common.message_option(),
-    file: str | None = common.file_option(),
+    file: str | None = common.file_option("Read the notice's body from a file; `-` reads stdin."),
     until: str | None = typer.Option(
         None, "--until", help="ISO 8601 date or time after which the notice is hidden."
     ),
@@ -42,7 +46,9 @@ def post_notice(
 ) -> None:
     """Post a notice to the board, visible to the whole team until it expires."""
     common.declare_actor(require_as(as_))
-    request = BoardPostRequest(body=resolve_body(message or None, file), until=until)
+    request = BoardPostRequest(
+        summary=summary, body=resolve_body_optional(message or None, file), until=until
+    )
     response = calls.call(ops.BOARD_POST, request)
     if json_out:
         calls.print_json(ops.BOARD_POST, response)
@@ -68,8 +74,24 @@ def list_notices(
         calls.print_json(ops.BOARD_LIST, response)
     else:
         calls.print_warnings(response)
-        render_notices(response.data, console, raw=raw)
+        if not (raw and response.omitted):
+            render_notices(response.data, console, raw=raw)
     calls.finish(response, json_out=json_out)
+
+
+@board_app.command("show")
+@handle_errors
+def show_notice(
+    n: int = typer.Argument(..., help="The notice's number in `sq board list`."),
+    json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the notice."),
+) -> None:
+    """Print one notice in full, by its number in the current listing."""
+    response = calls.call(ops.BOARD_SHOW, BoardShowRequest(n=n))
+    if json_out:
+        calls.print_json(ops.BOARD_SHOW, response)
+    else:
+        calls.print_warnings(response)
+        render_notice(response.data, console)
 
 
 @board_app.command("clear")

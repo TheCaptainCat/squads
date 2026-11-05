@@ -64,6 +64,44 @@ async def test_the_role_argument_refuses_a_slug_nobody_on_the_roster_has(project
 
 
 @pytest.mark.covers("memory add", "fact")
+async def test_add_with_a_multi_line_summary_stores_it_and_warns(project, invoke) -> None:
+    result = await invoke(["memory", "manager", "add", "First\nSecond", "--slug", "split"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "warning: memory manager/split has a multi-line summary; file it again with a one-line"
+        " summary: `sq memory manager forget split`, then `sq memory manager add"
+        ' "<summary>" --file <body> --slug split`\n'
+        "remembered split for manager\n",
+    )
+    rows = await read_json(invoke, ["memory", "manager", "list", "--json"])
+    assert [r["description"] for r in rows] == ["First\nSecond"]
+
+
+@pytest.mark.covers("memory list", "--raw")
+async def test_list_raw_indents_the_further_lines_of_a_multi_line_summary(project, invoke) -> None:
+    await _remember(invoke, "First\n\nSecond", "--slug", "split")
+    await _remember(invoke, "Plain", "--slug", "plain")
+    result = await invoke(["memory", "manager", "list", "--raw"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "- `plain`: Plain\n- `split`: First\n\n  Second\n",
+    )
+
+
+@pytest.mark.covers("memory list", "--raw")
+async def test_list_raw_prints_nothing_when_a_memory_file_cannot_be_read(project, invoke) -> None:
+    await _remember(invoke, "Plain", "--slug", "plain")
+    broken = project.squad_dir / "agents" / "memory" / "manager" / "broken.md"
+    broken.write_bytes(b"\xff\xfe not text")
+    result = await invoke(["memory", "manager", "list", "--raw"])
+    assert (result.exit_code, result.stdout, result.stderr) == (
+        4,
+        "",
+        f"error: {broken} is not valid UTF-8: byte 0xff at offset 0 \u2014 invalid start byte\n",
+    )
+
+
+@pytest.mark.covers("memory add", "fact")
 async def test_add_files_the_fact_under_a_slug_made_from_it(project, invoke) -> None:
     result = await invoke(["memory", "manager", "add", "Prefer uv over pip"])
     assert (result.exit_code, result.output) == (0, "remembered prefer-uv-over-pip for manager\n")

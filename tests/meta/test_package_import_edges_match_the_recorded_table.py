@@ -273,6 +273,7 @@ _board -> _errors top
 _board -> _models top
 _board -> _paths top
 _board -> _sections top
+_board -> _util top
 _cli -> _actor top
 _cli -> _api local
 _cli -> _api top

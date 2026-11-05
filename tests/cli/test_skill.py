@@ -274,6 +274,45 @@ async def test_show_raw_lists_the_panel_rows_then_the_body_and_no_header_prints_
     assert "\x1b" not in raw
 
 
+SQ_MEMORY_BOARD_SECTION = """\
+## The board — post there instead, when it's shared
+
+When something belongs on the shared side of the boundary above, it goes on the **team bulletin
+board**, not into anyone's memory — a single announcement everyone sees, not one entry copy-pasted
+into every role's pool.
+
+A notice has a **summary** and an optional **body**. The summary is one line that tells the team
+what to do or watch out for; the detail, if any, goes in the body. Keep it prescriptive, not a
+narrative. `sq board list` shows only the summaries, so a reader opens the body with
+`sq board show <n>` when it matters. A summary that spans several lines is still posted, with a
+warning, and `sq check` flags it until you post the notice again with a one-line summary and
+`clear` the old one. Set `--until` whenever the notice has a natural expiry (a freeze, a temporary
+heads-up) so it comes down on its own instead of turning into stale clutter someone else has to
+notice and remove. If a notice stops applying before its `--until` (or has none), `clear` it
+yourself rather than leaving it for someone else to puzzle over.
+
+```
+sq board post "<summary>" [-m … | --file f] --as <slug> [--until <date>]  # post a notice
+sq board list                                              # current notices, summaries only
+sq board show <n>                                          # read one notice in full
+sq board clear <n>                                         # take one down
+```
+
+`--as` is required — it attributes the post (an agent role slug, or `op-<slug>` for a human);
+the detail goes in the body through `-m` (repeatable) or `--file` (a path, or `-` for stdin).
+`<n>` in `show` and `clear` is the notice's position in the latest `sq board list`, not a stored
+id.
+"""
+
+
+@pytest.mark.covers("skill show", "--no-header")
+async def test_show_the_sq_memory_skill_teaches_the_board_by_summary_and_body(
+    seeded_project, invoke
+) -> None:
+    body = await printed(invoke, ["skill", "sq-memory", "show", "--raw", "--no-header"])
+    assert body[body.index("## The board") :] == SQ_MEMORY_BOARD_SECTION
+
+
 @pytest.mark.covers("skill show", "--raw")
 async def test_show_raw_joins_a_multi_line_when_to_use_so_the_file_row_stays_in_the_list(
     project, invoke

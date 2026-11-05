@@ -35,18 +35,18 @@ BOARD_ROOT = "board"
 _HASH_LEN = 10
 
 
-def _hash_id(author: str, posted_at: str, body: str) -> str:
-    """A stable short hash derived from content + author + posted-at.
+def _hash_id(author: str, posted_at: str, summary: str, body: str) -> str:
+    """A stable short hash derived from summary + body + author + posted-at.
 
     Deterministic and collision-resistant for the low-frequency, human-scale posting rate the
     board is designed for; two distinct posts (different text, author, or timestamp) get
     distinct ids, and the same inputs always hash to the same id.
     """
-    digest = hashlib.sha256(f"{author}\n{posted_at}\n{body}".encode()).hexdigest()
+    digest = hashlib.sha256(f"{author}\n{posted_at}\n{summary}\n{body}".encode()).hexdigest()
     return digest[:_HASH_LEN]
 
 
-def _is_expired(notice: BoardNotice, now: datetime) -> bool:
+def is_expired(notice: BoardNotice, now: datetime) -> bool:
     """True once *now* is at/after the notice's ``until`` expiry; never-expires when unset."""
     if not notice.until:
         return False
@@ -90,17 +90,21 @@ class BoardStore:
             return []
         return await _aio.to_thread(lambda: list(folder.glob("*.md")))
 
-    async def post(self, author: str, text: str, *, until: str | None = None) -> BoardNotice:
+    async def post(
+        self, author: str, summary: str, body: str | None = None, *, until: str | None = None
+    ) -> BoardNotice:
         """Write a new notice: ``<hash-id>.md`` (id derived from content).
 
-        *text* is both the source of the hash and the notice body itself — a notice has no
-        separate summary field; it is short and prescriptive by design. *until*, if
-        given, is parsed via the shared ISO helper and stored normalised. No counter id is
-        allocated and ``.squads.json`` is never touched.
+        The *summary* is required; the *body* is stored as written and is empty when omitted.
+        *until*, if given, is parsed via the shared ISO helper and stored normalised. No counter
+        id is allocated and ``.squads.json`` is never touched.
         """
-        text = text.strip()
-        if not text:
-            raise SquadsError("a board notice needs non-empty text")
+        summary = summary.strip()
+        if not summary:
+            raise SquadsError("a board notice needs a non-empty summary")
+        body = (body or "").strip("\n")
+        if not body.strip():
+            body = ""
         author = author.strip()
         if not author:
             raise SquadsError("a board notice needs a non-empty author")
@@ -114,9 +118,14 @@ class BoardStore:
 
         posted_at = clock.iso(clock.now())
         folder = self.folder
-        notice_id = await self._unique_id(folder, _hash_id(author, posted_at, text))
+        notice_id = await self._unique_id(folder, _hash_id(author, posted_at, summary, body))
         notice = BoardNotice(
-            id=notice_id, author=author, posted_at=posted_at, body=text, until=until_iso
+            id=notice_id,
+            summary=summary,
+            author=author,
+            posted_at=posted_at,
+            body=body,
+            until=until_iso,
         )
 
         file_text = join_frontmatter(notice.to_frontmatter_dict(), notice.body)
@@ -166,21 +175,28 @@ class BoardStore:
         """
         now = clock.now()
         all_notices, unreadable = await self._all_notices()
-        notices = [n for n in all_notices if not _is_expired(n, now)]
+        notices = [n for n in all_notices if not is_expired(n, now)]
         return sorted(notices, key=lambda n: (n.posted_at, n.id)), unreadable
 
-    async def clear(self, n: int) -> BoardNotice:
-        """Resolve ordinal *n* against the live listing (1-based) and delete that notice's file.
+    async def show(self, n: int) -> BoardNotice:
+        """Resolve ordinal *n* against the live listing (1-based).
 
-        Raises ``SquadsError`` on an out-of-range ordinal. Removal is a real file deletion (history
-        retained in git), never a side effect of a read. Resolving the ordinal only ever considers
-        the notices that could actually be read — an unreadable one has no ordinal to hold anyway.
+        Raises ``SquadsError`` on an out-of-range ordinal. Resolving the ordinal only ever
+        considers the notices that could actually be read — an unreadable one has no ordinal to
+        hold anyway.
         """
         notices, _unreadable = await self.list_notices()
         if n < 1 or n > len(notices):
             raise SquadsError(
                 f"no notice at position {n} (the board currently lists {len(notices)} notice(s))"
             )
-        notice = notices[n - 1]
+        return notices[n - 1]
+
+    async def clear(self, n: int) -> BoardNotice:
+        """Resolve ordinal *n* as :meth:`show` does and delete that notice's file.
+
+        Removal is a real file deletion (history retained in git), never a side effect of a read.
+        """
+        notice = await self.show(n)
         await _aio.path_unlink(self.notice_path(notice.id))
         return notice

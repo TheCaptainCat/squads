@@ -378,7 +378,7 @@ async def test_agents_md_compiles_each_role_body_as_role_show_prints_it(invoke) 
     assert (await invoke(["init", "--roles", "core", "--backend", "agents_md"])).exit_code == 0
     await invoke(["role", "manager", "body", "-m", "Squad prose for the manager.", "--append"])
     await invoke(["memory", "manager", "add", "Secret memory fact"])
-    await invoke(["board", "post", "-m", "Secret board notice", "--as", "manager"])
+    await invoke(["board", "post", "Secret board notice", "--as", "manager"])
     assert (await invoke(["sync"])).exit_code == 0
     compiled = "\n".join(region(root / "AGENTS.md"))
     for slug in ("manager", "architect", "tech-lead", "reviewer"):
