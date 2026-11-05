@@ -3,7 +3,7 @@ id: MILE-1269
 sequence_id: 1269
 type: milestone
 title: squads 0.20 - external sources
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - MILE-1241:depends-on
@@ -11,7 +11,7 @@ refs:
 description: Pull issues from GitLab, GitHub and Jira into the squad, with a schema
   migration
 created_at: '2026-11-03T15:57:06Z'
-updated_at: '2026-11-05T09:56:11Z'
+updated_at: '2026-11-05T10:19:42Z'
 ---
 <!-- sq:body -->
 The external sources release: a squad pulls the issues humans file on GitLab, GitHub and Jira and agents work them through `sq`. The linked epic carries the outcome and the framing. A new core `source` key on items and a `map` attribute kind make this a schema release, with a migration for existing squads.
@@ -95,4 +95,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
       Against 0.19.0's medians (show 757, list 712, tree 673 ms) every command is faster; the shim overhead medians stay within the 100 ms budget.
 - [2026-11-05T09:56:11Z] `op-pierre` Pierre Chat:
   - Ruling (2026-11-05): the Jira connectors (jira@cloud-v3, jira@dc-v2) ship as experimental in 0.20: they are tested against recorded fixtures only, never against a live Jira.
+- [2026-11-05T10:19:41Z] `manager` Catherine Manager:
+  - Closed: 0.20.0 published (tag v0.20.0), every item delivered.
 <!-- sq:discussion:end -->

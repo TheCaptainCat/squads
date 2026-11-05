@@ -1907,7 +1907,7 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
-[0.20.0]: https://github.com/TheCaptainCat/squads/compare/v0.19.0...HEAD
+[0.20.0]: https://github.com/TheCaptainCat/squads/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/TheCaptainCat/squads/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/TheCaptainCat/squads/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/TheCaptainCat/squads/compare/v0.16.0...v0.17.0
