@@ -145,7 +145,7 @@ def _build_create_cmd(item_type_str: str) -> _click.Command:
     """
     # With exactly one command, ``typer.main.get_command`` returns the command itself, not a
     # group, so ``TITLE`` dispatches as its argument.
-    _tmp_app = typer.Typer()
+    _tmp_app = typer.Typer(add_completion=False)
     _tmp_app.command(
         item_type_str,
         help=f"Create one new {item_type_str}.",

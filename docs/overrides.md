@@ -696,6 +696,11 @@ load, naming your entry:
 item 'task': validators entry 'nonesuch' names an unknown validator
 ```
 
+**`title_single_line`** is always on, for every type, roster included. It warns on an item title or a
+sub-entity title that holds a line break, which a file edited by hand can carry although `sq create`,
+`update --title` and `add-<kind>` refuse one, with `error: title must be a single line`; a retitle with `sq <type> <n> update --title "…"` (or the
+sub-entity's `update --title`) clears it.
+
 **The status-banner and title checks.** Both hold an item to a writing convention, not to anything
 squads needs in order to work, so a type runs one only when its list names it:
 
@@ -1459,7 +1464,8 @@ A workflow or playbook override that will not load is reported by these two rule
 ```
 
 Some validators are always on as well. Every type runs the common core (`item_status_valid`,
-`dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic` and `attribute_valid`) and
+`dangling_ref`, `ref_kind_valid`, `agent_registered`, `parent_acyclic`, `attribute_valid` and
+`title_single_line`) and
 the checks its `category` turns on: `parent_in`, `subentity_status_valid`,
 `subentity_container_marker`, `subentity_body_written`, `subentity_title_present`,
 `subentity_deferral_resolved`, `subentity_kind_mismatch` and
@@ -3271,7 +3277,8 @@ one included:
 sq role architect update --title "Chief Designer"
 ```
 
-The rename moves the role's `updated_at` and shows up in `sq reflog` as an update carrying the old
+A name holding a line break is refused with `error: title must be a single line`, and a blank one
+with `a role's name cannot be blank`; the role is left unchanged. The rename moves the role's `updated_at` and shows up in `sq reflog` as an update carrying the old
 and new names. The role's `.claude/` pointer and the `CLAUDE.md` roster show the new name at once.
 The slug does not change (see below), and comments the role wrote earlier keep the name they were
 written under.

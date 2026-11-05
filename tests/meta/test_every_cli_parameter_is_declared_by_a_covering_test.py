@@ -19,8 +19,8 @@ from tests._cli_surface import (
     EXCLUDED_PARAMS,
     Pair,
     Surface,
+    all_squads_surface,
     declared_pairs,
-    squad_known,
     surface_of,
 )
 from tests._help_tree import command_nodes
@@ -110,8 +110,7 @@ def _show(pair: Pair) -> str:
 
 
 def _surface() -> Surface:
-    bundled = surface_of(command_nodes(include_hidden=True), bundled_spec())
-    return Surface(bundled.pairs, bundled.leaves, squad_known() - bundled.known)
+    return all_squads_surface()
 
 
 def test_every_parameter_of_the_tree_is_declared_and_no_marker_is_stale() -> None:

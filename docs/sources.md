@@ -276,8 +276,8 @@ source 'platform': sources.platform.filter is a table of one expression per side
 
 The scope and the filter select; `maps.types` decides what becomes an item. A selected issue whose
 values map to no type is not created and not named: the pull counts it on the source's line as
-`skipped <n> (no type)`. Leaving a value out of the map is therefore how you leave those issues
-out, with no filter needed. A selected issue whose values map to two different types is a data
+`skipped <n> (no type)`, like an issue whose values map to two types. Leaving a value out of the
+map is therefore how you leave those issues out, with no filter needed. A selected issue whose values map to two different types is a data
 error on the tracker: it is not created, and every pull names it, with the types its values map
 to, until the tracker or the map is corrected:
 
@@ -295,9 +295,9 @@ A GitLab issue marked confidential and a Jira issue carrying a security level ar
 the connector treats them as not returned, in the listing, when fetched by ID and when looked up.
 A GitLab internal note is skipped like a restricted Jira comment. No source key pulls them, since
 the squad's files are readable by everyone who can read the repository. The pull counts the
-restricted issues the listing dropped (`restricted <n>`). An item whose issue becomes restricted
-reads as `gone`, is reported and stays. GitHub has no per-issue restriction: a repository's
-visibility is its scope's.
+restricted issues the listing dropped that no item holds (`restricted <n>`). An item whose issue
+becomes restricted reads as `gone`, is reported, counts as `gone` and stays. GitHub has no
+per-issue restriction: a repository's visibility is its scope's.
 
 A link to a restricted issue is dropped where the connector can tell: a GitLab link whose other end
 is confidential makes no ref, no report line and no count. A Jira link record does not say whether
@@ -432,7 +432,7 @@ reported with the probe's line and left out while the others are pulled; the com
 `1`.
 
 ```
-platform: created 2 (TASK-<n>, TASK-<m>), refreshed 1, unchanged 40, restricted 1, filtered out 12, skipped 3 (no type)
+platform: created 2 (TASK-<n>, TASK-<m>), refreshed 1, unchanged 40, gone 1, restricted 1, held elsewhere 1, filtered out 12, skipped 3 (no type)
   platform/api#12: out-of-filter (rejected by the filter); TASK-<a> stays
   platform/api#20: out-of-filter (outside the scope); TASK-<b> stays
   platform/api#21: deleted or no longer readable; TASK-<c> stays
@@ -440,14 +440,31 @@ platform: created 2 (TASK-<n>, TASK-<m>), refreshed 1, unchanged 40, restricted 
   platform/api#31: 1 link(s) not followed, no item holds platform/api#40
 ```
 
-The source's line counts what the pull did not turn into items, each only when it is not zero:
-`restricted` the issues the tracker restricts (see [Restricted issues](#restricted-issues)),
-`filtered out` the listed issues the filter rejects and no item holds, and `skipped (no type)` the
-selected issues that map to no type (see [The type map](#the-type-map)). A filtered-out or
-skipped issue is never named, logged or written. The lines under it name what needs a reader's
-eye: an issue that maps to two types, a badge field whose sides give two values, a held issue that
-left the selection or was deleted, an issue another source's item holds, a link not followed, and
-anything the squad refused.
+The source's line counts the issues the pull saw, and every issue lands in exactly one counter:
+the counters sum to the listed issues plus each held item's issue the listing did not return. A
+counter counts issues, not items: an issue two items of one source hold counts once, as refreshed
+if either item changed. A counter that is zero is not printed, and when every counter is zero the
+line reads `platform: no issues`. In the order the line prints them:
+
+| Counter | The issue |
+|---|---|
+| `created <n> (<IDs>)` | No item holds it, and the pull made an item for it (`would create` under `--dry-run`). |
+| `refreshed` | An item holds it, and the pull changed something: the title, a mapped field, the record, the description, a comment, or the state. An issue with some of its changes dropped is refreshed, and the drop is named on its line. |
+| `unchanged` | An item holds it, and the pull wrote nothing for it, an `out-of-filter` or `gone` item whose issue has not changed included. |
+| `dropped` | The squad refused every change the pull compiled for it, so nothing was written, whether or not an item holds it. The line names why, and the next pull retries. |
+| `gone` | An item holds it, and the tracker neither lists it nor returns it by ID: deleted, or now restricted. |
+| `restricted` | The listing dropped it as restricted, and no item holds it (see [Restricted issues](#restricted-issues)). |
+| `held elsewhere` | An item of another source of the tracker holds it, and this source has none. It is named on a `held by` line when the filter accepts it (see [Links across sources](#links-across-sources)). |
+| `filtered out` | The filter rejects it, and no item of any source holds it. |
+| `skipped <n> (no type)` | The filter accepts it, no item holds it, and the type map gives it no type or two (see [The type map](#the-type-map)). |
+
+An issue the filter rejects while an item of this source holds it is not filtered out: it is
+refreshed or unchanged, and its `out-of-filter` line stays. A filtered-out issue is never named,
+logged or written, nor is one skipped for having no type; one that maps to two types is named on
+every pull. The lines under the counters name what needs a reader's eye: an issue that maps to
+two types, a badge field whose sides give two values, a held issue that left the selection or was
+deleted, an issue another source's item holds, a link not followed, and anything the squad
+refused.
 
 **What an issue becomes.** An issue the source selects and no item on its tracker holds becomes an
 item of the type `maps.types` gives it, read from every side the map names; an issue that maps to
@@ -475,7 +492,7 @@ the one the pull would write: the tracker's `open` or `closed` when the filter a
 read in detail; the others count as unchanged, so a pull of an unchanged tracker writes nothing,
 and an `out-of-filter` item is not read in detail again until its issue changes. An issue an item
 of another source of the tracker already holds costs only its listing row: it is not read in
-detail, falls in no count and is named on a `held by` line (see
+detail, counts as `held elsewhere` and is named on a `held by` line (see
 [Links across sources](#links-across-sources)). Within the pull that first creates an issue,
 every source that selects it reads it in detail. A changed issue
 updates its item's title, mapped fields, record, description and comments: a comment edited on
@@ -508,7 +525,9 @@ is refreshed`).
 **`--dry-run`** runs every check and writes nothing. **`--json`** prints `{dry_run, sources}`, each
 source with `name`, `created` (the new item IDs), `refreshed`, `unchanged`, `left_out` (why the
 source was skipped, or `null`), `lines` (the report), `failed` (`true` when it was left out for
-failing its access probes), and the counts `restricted`, `filtered_out` and `skipped_no_type`.
+failing its access probes), and the counts `dropped`, `gone`, `restricted`, `held_elsewhere`,
+`filtered_out` and `skipped_no_type`. Every count is an integer and always present, `0` when
+none.
 
 **Running beside other commands.** A pull fetches outside every lock, then compiles and applies
 under the index lock, against the index as it stands then, so other commands wait only for that

@@ -502,6 +502,7 @@ async def test_a_hostile_description_drops_only_its_issue_and_the_report_names_i
     assert json.loads(pulled.stdout) == pull_document(
         pull_report(
             created=[profile.ref_id(2)],
+            dropped=1,
             lines=[
                 "platform/api#12: dropped, its text cannot be converted (ValueError)",
                 "platform/api#13: 1 link(s) not followed, no item holds platform/api#12",
@@ -535,7 +536,7 @@ async def test_a_link_between_issues_of_two_sources_on_one_tracker_makes_its_ref
         pull_report(first, created=[profile.ref_id(2)], filtered_out=1, lines=[unfollowed[first]])
     )
     assert json.loads(two.stdout) == pull_document(
-        pull_report(second, created=[profile.ref_id(3)], filtered_out=1)
+        pull_report(second, created=[profile.ref_id(3)], held_elsewhere=1)
     )
     if first == "epics":
         assert before == source_links.platform_item(
@@ -563,8 +564,8 @@ async def test_a_second_pull_of_two_split_sources_names_no_issue_the_other_holds
         again = [await invoke(["source", "pull", name, "--json"]) for name in ("epics", "stories")]
 
     assert [(r.exit_code, json.loads(r.stdout)) for r in again] == [
-        (0, pull_document(pull_report("epics", unchanged=1, filtered_out=1))),
-        (0, pull_document(pull_report("stories", unchanged=1, filtered_out=1))),
+        (0, pull_document(pull_report("epics", unchanged=1, held_elsewhere=1))),
+        (0, pull_document(pull_report("stories", unchanged=1, held_elsewhere=1))),
     ]
 
 
@@ -601,6 +602,7 @@ async def test_a_source_leaves_an_issue_another_source_of_its_tracker_holds_and_
     assert json.loads(second.stdout) == pull_document(
         pull_report(
             "wide",
+            held_elsewhere=2,
             lines=[
                 f"platform/api#12: held by {profile.ref_id(2)} of source 'narrow'",
                 f"platform/api#13: held by {profile.ref_id(3)} of source 'narrow'",
@@ -625,6 +627,7 @@ async def test_one_unnamed_pull_of_two_overlapping_sources_makes_one_item_per_is
         pull_report("narrow", created=[profile.ref_id(2), profile.ref_id(3)]),
         pull_report(
             "wide",
+            held_elsewhere=2,
             lines=[
                 "platform/api#12: held by the item source 'narrow' creates in this pull",
                 "platform/api#13: held by the item source 'narrow' creates in this pull",
@@ -733,6 +736,101 @@ async def test_a_moved_issue_keeps_its_item_and_takes_the_new_key(
     assert shown == item(profile, 2, source=moved, description=web, rendered=web)
 
 
+@pytest.mark.covers("source pull", "--json")
+async def test_every_issue_a_pull_sees_lands_in_exactly_one_counter(
+    project, invoke, credentials_home, profile
+) -> None:
+    def another(number: int, **changes: Any) -> dict[str, Any]:
+        base = source_pulls.listing(tracker)[1]
+        return {
+            **base,
+            "id": 9100 + number,
+            "iid": number,
+            "references": {"full": f"platform/api#{number}"},
+            **changes,
+        }
+
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url)
+        source_pulls.listing(tracker).append(another(21))
+        tracker.routes += [
+            {"path": f"/api/v4/projects/77/issues/{n}/{leaf}", "body": []}
+            for n in (21, 32)
+            for leaf in ("notes", "links")
+        ]
+        await source_pulls.pull(invoke, "platform")
+        source_pulls.listing(tracker)[0].update(
+            title="Login fails on a blank password", updated_at="2026-11-04T08:00:00Z"
+        )
+        source_pulls.listing(tracker).pop(2)
+        source_pulls.listing(tracker).extend(
+            [
+                another(30, confidential=True),
+                another(31, issue_type="incident"),
+                another(32, title="  "),
+            ]
+        )
+        second = await source_pulls.pull(invoke, "platform")
+
+    (report,) = second["sources"]
+    counters = (
+        "refreshed",
+        "unchanged",
+        "dropped",
+        "gone",
+        "restricted",
+        "held_elsewhere",
+        "filtered_out",
+        "skipped_no_type",
+    )
+    assert {name: report[name] for name in counters} == {
+        "refreshed": 1,
+        "unchanged": 1,
+        "dropped": 1,
+        "gone": 1,
+        "restricted": 1,
+        "held_elsewhere": 0,
+        "filtered_out": 0,
+        "skipped_no_type": 1,
+    }
+    assert len(report["created"]) + sum(report[name] for name in counters) == 6
+
+
+@pytest.mark.covers("source pull", "--dry-run")
+async def test_a_dry_run_counts_refreshed_unchanged_and_dropped_as_the_pull_does(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url)
+        await source_pulls.pull(invoke, "platform")
+        listing = source_pulls.listing(tracker)
+        listing[0].update(
+            title="Login fails on a blank password", updated_at="2026-11-04T08:00:00Z"
+        )
+        listing.append(
+            {
+                **listing[1],
+                "id": 9132,
+                "iid": 32,
+                "title": "  ",
+                "references": {"full": "platform/api#32"},
+            }
+        )
+        tracker.routes += [
+            {"path": f"/api/v4/projects/77/issues/32/{leaf}", "body": []}
+            for leaf in ("notes", "links")
+        ]
+        dry = await source_pulls.pull(invoke, "platform", "--dry-run")
+        real = await source_pulls.pull(invoke, "platform")
+
+    line = "platform/api#32: dropped, title must not be empty"
+    report = pull_report(refreshed=1, unchanged=1, dropped=1, lines=[line])
+    assert (dry, real) == (
+        pull_document(report, dry_run=True),
+        pull_document(report),
+    )
+
+
 @pytest.mark.covers("source pull", "source")
 async def test_a_linked_issue_the_filter_lost_is_out_of_filter_or_gone_and_its_item_stays(
     project, invoke, credentials_home, profile
@@ -761,6 +859,7 @@ async def test_a_linked_issue_the_filter_lost_is_out_of_filter_or_gone_and_its_i
         pull_report(
             refreshed=1,
             unchanged=2,
+            gone=1,
             lines=[
                 f"platform/api#20: out-of-filter (outside the scope); {profile.ref_id(4)} stays",
                 f"platform/api#21: deleted or no longer readable; {profile.ref_id(5)} stays",
@@ -819,9 +918,12 @@ async def test_two_items_holding_one_issue_are_both_refreshed_and_no_third_is_ma
         await source_pulls.pull(invoke, "platform")
         twin = json.loads((await invoke([profile.ref, "2", "show", "--json"])).output)["source"]
         # A second item mirrors the same issue: written as a pull would, then edited upstream.
-        await invoke(["create", profile.host, "Twin", "--author", "manager"])
+        await invoke(["create", profile.host, "Parent", "--author", "manager"])
+        parent = profile.host_id(4) if profile.ref in profile.needs_parent else None
+        under = ["--parent", "4"] if parent else []
+        await invoke(["create", profile.ref, "Twin", "--author", "manager", *under])
         path = next(
-            project.squad_dir.joinpath(profile.host_folder).glob(f"{profile.host_prefix}-*twin.md")
+            project.squad_dir.joinpath(profile.ref_folder).glob(f"{profile.ref_prefix}-*twin.md")
         )
         record = "source:\n" + "".join(f"  {k}: '{v}'\n" for k, v in twin.items())
         text = path.read_text(encoding="utf-8").replace("\nstatus:", f"\n{record}status:", 1)
@@ -830,34 +932,56 @@ async def test_two_items_holding_one_issue_are_both_refreshed_and_no_third_is_ma
         source_pulls.listing(tracker)[0]["updated_at"] = "2026-11-04T08:00:00Z"
         pulled = await source_pulls.pull(invoke, "platform")
         listed = await read_json(invoke, ["list", "--json"])
+        twin_row = await shown_item(invoke, profile, tracker, 5)
 
-    assert [r["id"] for r in listed if r["type"] in (profile.ref, profile.host)] == [
+    assert [r["id"] for r in listed if r["type"] == profile.ref] == [
         profile.ref_id(2),
         profile.ref_id(3),
-        profile.host_id(4),
+        profile.ref_id(5),
     ]
     assert pulled == pull_document(
         pull_report(
-            refreshed=2,
+            refreshed=1,
             unchanged=1,
             lines=[
-                f"platform/api#12: held by {profile.ref_id(2)}, {profile.host_id(4)}; "
-                "each is refreshed",
-                *(
-                    []
-                    if profile.host_has_badge
-                    else [
-                        f"platform/api#12: {profile.badge} skipped, {profile.host} items have "
-                        "no such field"
-                    ]
-                ),
+                f"platform/api#12: held by {profile.ref_id(2)}, {profile.ref_id(5)}; "
+                "each is refreshed"
             ],
         )
     )
-    twin_row = await read_json(invoke, [profile.host, "4", "show", "--json"])
-    assert (twin_row["title"], twin_row["source"]) == (
-        "Login fails on empty password",
-        {**RECORDS[12], "updated_at": "2026-11-04T08:00:00Z"},
+    assert twin_row == item(
+        profile,
+        5,
+        12,
+        author="manager",
+        parent=parent,
+        source={**RECORDS[12], "updated_at": "2026-11-04T08:00:00Z"},
+    )
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_mapped_field_the_held_item_has_no_such_field_for_is_skipped_and_named(
+    project, invoke, credentials_home, profile
+) -> None:
+    mapped = (
+        f"\n[sources.platform.maps.fields.{profile.skipped_field}.labels]\n"
+        f'bug = "{profile.skipped_value}"\n'
+    )
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, mapped)
+        await source_pulls.pull(invoke, "platform")
+        source_pulls.listing(tracker)[0]["updated_at"] = "2026-11-04T08:00:00Z"
+        pulled = await source_pulls.pull(invoke, "platform")
+
+    assert pulled == pull_document(
+        pull_report(
+            refreshed=1,
+            unchanged=1,
+            lines=[
+                f"platform/api#12: {profile.skipped_field} skipped, {profile.ref} items have "
+                "no such field"
+            ],
+        )
     )
 
 
@@ -902,7 +1026,7 @@ async def test_an_issue_mapping_to_no_item_type_is_counted_not_named_and_not_det
     assert not [p for p in asked if "/issues/13" in p]
     assert (shown.exit_code, shown.output) == (
         0,
-        "platform: created 0, refreshed 0, unchanged 1, skipped 1 (no type)\n",
+        "platform: unchanged 1, skipped 1 (no type)\n",
     )
 
 
@@ -944,13 +1068,14 @@ async def test_an_issue_mapping_to_two_types_is_named_with_its_values_on_every_p
     assert first == pull_document(
         pull_report(
             created=[profile.ref_id(2)],
+            skipped_no_type=1,
             lines=[
                 *expected,
                 "platform/api#13: 1 link(s) not followed, no item holds platform/api#12",
             ],
         )
     )
-    assert second == pull_document(pull_report(unchanged=1, lines=expected))
+    assert second == pull_document(pull_report(unchanged=1, skipped_no_type=1, lines=expected))
     assert not [p for p in asked if "/issues/12/" in p]
 
 
@@ -1000,7 +1125,7 @@ async def test_the_filter_selects_issues_and_counts_the_rejected_ones(
     )
     assert (shown.exit_code, shown.output) == (
         0,
-        "platform: created 0, refreshed 0, unchanged 1, filtered out 1\n",
+        "platform: unchanged 1, filtered out 1\n",
     )
 
 
@@ -1041,7 +1166,9 @@ async def test_a_quoted_filter_value_takes_an_escaped_quote_and_backslash_as_one
             lines=["platform/api#12: 1 link(s) not followed, no item holds platform/api#13"],
         )
     )
-    assert first["source"] == RECORDS[12]
+    assert first == item(
+        profile, 2, badge=False, refs=[], updated_at="2026-11-02T09:14:00Z", rendered=DESCRIPTION
+    )
 
 
 @pytest.mark.covers("source pull", "source")
@@ -1182,6 +1309,7 @@ async def test_a_link_target_that_fails_costs_only_the_link_and_the_report_lists
     assert pulled == pull_document(
         pull_report(
             created=[profile.ref_id(2)],
+            dropped=1,
             lines=[
                 "platform/api#12: a link was dropped, no item 'platform:gid://gitlab/Issue/9002' "
                 "in the index",
@@ -1231,6 +1359,7 @@ async def test_a_tracker_title_holding_a_marker_drops_only_that_issue(
     assert pulled == pull_document(
         pull_report(
             created=[profile.ref_id(2)],
+            dropped=1,
             lines=[
                 "platform/api#12: a link was dropped, no item 'platform:gid://gitlab/Issue/9002' "
                 "in the index",
@@ -1287,8 +1416,8 @@ async def test_an_issue_whose_events_were_dropped_is_fetched_and_reported_again(
 
     line = "platform/api#13: dropped, title must not be empty"
     assert dropped == [
-        pull_document(pull_report(refreshed=1, unchanged=1, lines=[line])),
-        pull_document(pull_report(refreshed=1, unchanged=1, lines=[line])),
+        pull_document(pull_report(unchanged=1, dropped=1, lines=[line])),
+        pull_document(pull_report(unchanged=1, dropped=1, lines=[line])),
     ]
     assert fixed == pull_document(pull_report(refreshed=1, unchanged=1))
     assert renamed == item(
@@ -1298,6 +1427,28 @@ async def test_an_issue_whose_events_were_dropped_is_fetched_and_reported_again(
         slug="fixed-upstream",
         path=profile.ref_path(3, "fixed-upstream"),
         source={**RECORDS[13], "updated_at": "2026-11-04T09:00:00Z"},
+    )
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_an_issue_titled_over_several_lines_is_dropped_and_the_others_are_kept(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        source_pulls.listing(tracker)[1]["title"] = "Token refresh\nloops"
+        await source_pulls.declare(invoke, project, profile, tracker.base_url)
+        pulled = await source_pulls.pull(invoke, "platform")
+
+    assert pulled == pull_document(
+        pull_report(
+            created=[profile.ref_id(2)],
+            dropped=1,
+            lines=[
+                "platform/api#12: a link was dropped, no item 'platform:gid://gitlab/Issue/9002' "
+                "in the index",
+                "platform/api#13: dropped, title must be a single line",
+            ],
+        )
     )
 
 
@@ -1323,8 +1474,8 @@ async def test_a_dropped_link_keeps_the_host_issue_to_be_fetched_and_reported_ag
     )
     lines = [line, "platform/api#13: dropped, title must not be empty"]
     assert pulls == [
-        pull_document(pull_report(refreshed=1, lines=lines)),
-        pull_document(pull_report(refreshed=1, lines=lines)),
+        pull_document(pull_report(unchanged=1, dropped=1, lines=lines)),
+        pull_document(pull_report(unchanged=1, dropped=1, lines=lines)),
     ]
 
 
@@ -1346,7 +1497,7 @@ async def test_a_confidential_issue_is_not_imported_and_the_report_counts_it(
     assert again == pull_document(pull_report(unchanged=1, restricted=1))
     assert (shown.exit_code, shown.output) == (
         0,
-        "platform: created 0, refreshed 0, unchanged 1, restricted 1\n",
+        "platform: unchanged 1, restricted 1\n",
     )
 
 
@@ -1382,7 +1533,7 @@ async def test_a_held_issue_that_becomes_confidential_reads_gone_and_its_item_st
     assert second == pull_document(
         pull_report(
             unchanged=1,
-            restricted=1,
+            gone=1,
             lines=[f"platform/api#13: deleted or no longer readable; {profile.ref_id(3)} stays"],
         )
     )

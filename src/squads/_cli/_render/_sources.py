@@ -46,16 +46,22 @@ def render_pulled(pulled: SourcePulled, console: Console) -> None:
         if report.left_out is not None:
             console.print(f"[yellow]{e(report.name)}[/yellow]: skipped, {e(report.left_out)}")
             continue
-        made = f"{verb} {len(report.created)}" + (
-            f" ({e(', '.join(report.created))})" if report.created else ""
-        )
-        console.print(
-            f"[bold]{e(report.name)}[/bold]: {made}, refreshed {report.refreshed}, "
-            f"unchanged {report.unchanged}"
-            + (f", restricted {report.restricted}" if report.restricted else "")
-            + (f", filtered out {report.filtered_out}" if report.filtered_out else "")
-            + (f", skipped {report.skipped_no_type} (no type)" if report.skipped_no_type else "")
-        )
+        counters = [
+            (f"{verb} {len(report.created)}" + (f" ({e(', '.join(report.created))})")),
+            f"refreshed {report.refreshed}",
+            f"unchanged {report.unchanged}",
+            f"dropped {report.dropped}",
+            f"gone {report.gone}",
+            f"restricted {report.restricted}",
+            f"held elsewhere {report.held_elsewhere}",
+            f"filtered out {report.filtered_out}",
+            f"skipped {report.skipped_no_type} (no type)",
+        ]
+        counts = [report.created, report.refreshed, report.unchanged, report.dropped, report.gone]
+        counts += [report.restricted, report.held_elsewhere, report.filtered_out]
+        counts += [report.skipped_no_type]
+        shown = [text for text, count in zip(counters, counts, strict=True) if count]
+        console.print(f"[bold]{e(report.name)}[/bold]: {', '.join(shown) or 'no issues'}")
         for line in report.lines:
             console.print(f"  {e(line)}")
 

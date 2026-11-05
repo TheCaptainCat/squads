@@ -280,6 +280,7 @@ def build_item_app(
     """
     item = typer.Typer(
         no_args_is_help=True,
+        add_completion=False,
         help=common.type_group_help(item_type),
         cls=_dynamic_subentity_group_cls(item_type) if dynamic_subentity else common.HelpAwareGroup,
     )

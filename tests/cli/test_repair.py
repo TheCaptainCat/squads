@@ -331,11 +331,18 @@ DEFINITION_TAG = "<!-- sq:view:role_definition -->"
 PLAYBOOK_TAG = "<!-- sq:view:role_playbook -->"
 
 
+def _lines_from_definition_tag(path: Path, count: int) -> list[str]:
+    """The *count* lines of the role file that start at its definition tag."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = lines.index(DEFINITION_TAG)
+    return lines[start : start + count]
+
+
 def _without_playbook_tag(squad_dir: Path, *, prose: str = "") -> Path:
     """The manager's role file with its playbook tag taken out and *prose* put in its place."""
     path = squad_dir / MANAGER_FILE
     text = path.read_text(encoding="utf-8")
-    assert PLAYBOOK_TAG in text
+    assert PLAYBOOK_TAG in text.splitlines()
     path.write_text(text.replace(PLAYBOOK_TAG, prose), encoding="utf-8")
     return path
 
@@ -347,7 +354,7 @@ async def test_repair_places_the_playbook_tag_after_the_definition_tag_of_a_role
     path = _without_playbook_tag(populated_project.squad_dir)
     result = await invoke(["repair"])
     assert result.exit_code == 0, result.output
-    assert f"{DEFINITION_TAG}\n\n{PLAYBOOK_TAG}" in path.read_text(encoding="utf-8")
+    assert _lines_from_definition_tag(path, 3) == [DEFINITION_TAG, "", PLAYBOOK_TAG]
 
 
 @pytest.mark.covers("repair")
@@ -357,9 +364,13 @@ async def test_repair_keeps_the_prose_of_a_role_body_when_it_places_the_playbook
     path = _without_playbook_tag(populated_project.squad_dir, prose="Our own rule.")
     result = await invoke(["repair"])
     assert result.exit_code == 0, result.output
-    assert f"{DEFINITION_TAG}\n\n{PLAYBOOK_TAG}\n\nOur own rule." in path.read_text(
-        encoding="utf-8"
-    )
+    assert _lines_from_definition_tag(path, 5) == [
+        DEFINITION_TAG,
+        "",
+        PLAYBOOK_TAG,
+        "",
+        "Our own rule.",
+    ]
 
 
 @pytest.mark.covers("repair")
@@ -373,7 +384,7 @@ async def test_repair_leaves_a_disabled_playbook_tag_of_a_role_body_alone(
     result = await invoke(["repair"])
     assert result.exit_code == 0, result.output
     assert path.read_text(encoding="utf-8") == before
-    assert "<!-- sq:view:role_playbook:disabled -->" in before
+    assert "<!-- sq:view:role_playbook:disabled -->" in before.splitlines()
 
 
 @pytest.mark.covers("repair")

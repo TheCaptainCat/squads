@@ -634,6 +634,9 @@ and what a role stores:
 | role | `--title` (the role's name), `--pronouns`, `--model`; and `--job-title`, `--desc`, `--mission`, `--capabilities`, `--color`, `--can-spawn`, `--file` | the definition options, on a catalog or template role (see [Changing a role](#changing-a-role-update-per-kind)) |
 | operator | `--title` (the display name), `--pronouns` | none |
 
+A role's new name holding a line break is refused with `error: title must be a single line`, and a
+blank one with `a role's name cannot be blank`; the role is left unchanged.
+
 The slug, the file name and the id never change. A role renamed with `update --title` keeps the
 name through every `sq sync` and every override change, and its pointer and the `CLAUDE.md`
 roster line show the new name at once. When a skill's body is still the scaffold it was created

@@ -92,6 +92,7 @@ class _Triage:
     untouched: int = 0
     filtered_out: int = 0
     no_type: int = 0
+    held_elsewhere: int = 0
 
 
 def _triage(
@@ -112,15 +113,18 @@ def _triage(
                 out.untouched += 1
             else:
                 out.wanted.append(issue)
+        elif issue.id in elsewhere:
+            out.held_elsewhere += 1
+            if accepted:
+                out.lines.append(f"{issue.key}: held by {elsewhere[issue.id]}")
         elif not accepted:
             out.filtered_out += 1
-        elif issue.id in elsewhere:
-            out.lines.append(f"{issue.key}: held by {elsewhere[issue.id]}")
         else:
             types = mapped_types(source.maps, issue)
             if not types:
                 out.no_type += 1
             elif len(types) > 1:
+                out.no_type += 1
                 out.lines.append(
                     f"{issue.key}: not created, the issue maps to several types: "
                     f"{', '.join(sorted(types))}"
@@ -168,9 +172,10 @@ def _fetch(
         listed,
         found,
         tuple(skipped),
-        connector.restricted,
+        len(connector.restricted_ids - set(stored)),
         triage.filtered_out,
         triage.no_type,
+        triage.held_elsewhere,
     )
 
 

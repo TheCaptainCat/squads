@@ -281,8 +281,15 @@ async def test_show_raw_joins_a_multi_line_when_to_use_so_the_file_row_stays_in_
     await _add(invoke, "Deploy Notes", "--when-to-use", "On release\nor hotfix")
     raw = (await printed(invoke, ["skill", SLUG, "show", "--raw"])).splitlines()
     rows = raw[: raw.index("")]
-    assert "- **when to use:** On release or hotfix" in rows
-    assert all(row.startswith("- ") for row in rows)
+    assert rows == [
+        "- SKILL-2 Deploy Notes",
+        "- **slug:** deploy-notes",
+        "- **origin:** project",
+        "- **status:** Active",
+        "- **operator invocable:** yes (declared default)",
+        "- **file:** agents/skills/SKILL-000002-deploy-notes.md",
+        "- **when to use:** On release or hotfix",
+    ]
 
 
 @pytest.mark.covers("skill show", "--comments")
@@ -1053,7 +1060,10 @@ async def test_the_greeting_skill_states_the_eight_startup_steps_in_order(
     ]
     positions = [body.index(mark) for mark in marks]
     assert positions == sorted(positions)
-    assert "adopt **Catherine Manager** (`manager`), the squad's default role" in body
+    assert (
+        "   If the operator greets no agent, adopt **Catherine Manager** (`manager`), "
+        "the squad's default role."
+    ) in body.splitlines()
     assert "no default role" not in body
 
 
@@ -1064,7 +1074,10 @@ async def test_the_greeting_skill_names_the_default_role_the_squad_designates(
     await invoke(["role", "activate", "architect"])
     await invoke(["role", "architect", "set-default"])
     body = await _greeting(invoke)
-    assert "adopt **Robert Architect** (`architect`), the squad's default role" in body
+    assert (
+        "   If the operator greets no agent, adopt **Robert Architect** (`architect`), "
+        "the squad's default role."
+    ) in body.splitlines()
     assert "Catherine Manager" not in body
 
 
@@ -1075,5 +1088,15 @@ async def test_the_greeting_skill_names_set_default_when_the_squad_has_no_defaul
     await invoke(["role", "activate", "architect"])
     await invoke(["role", "manager", "status", "Archived"])
     body = await _greeting(invoke)
-    assert "this squad has no default role (`sq role <slug> set-default`" in body
+    lines = body.splitlines()
+    assert lines[
+        lines.index(
+            "   If the operator greets no agent: this squad has no default role "
+            "(`sq role <slug> set-default`"
+        ) :
+    ][:2] == [
+        "   If the operator greets no agent: this squad has no default role "
+        "(`sq role <slug> set-default`",
+        "   designates one), so ask the operator which role to adopt.",
+    ]
     assert "the squad's default role" not in body

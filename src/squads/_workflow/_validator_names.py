@@ -50,6 +50,7 @@ VALIDATOR_NAMES: frozenset[str] = frozenset(
         "frontmatter_key_undeclared",
         "subentity_kind_mismatch",
         "pronouns_valid",
+        "title_single_line",
     }
 )
 
@@ -297,6 +298,7 @@ DEFAULT_VALIDATOR_LEVEL: dict[str, str] = {
     "subentity_deferral_resolved": "warn",
     "subentities_settled_with_parent": "warn",
     "no_status_banner": "warn",
+    "title_single_line": "warn",
     "supersedes_incoming": "warn",
     "ref_rule_target_present": "warn",
     "item_title_max": "warn",
@@ -355,6 +357,7 @@ COMMON_CORE: tuple[str, ...] = (
     "agent_registered",
     "parent_acyclic",
     "attribute_valid",
+    "title_single_line",
 )
 
 

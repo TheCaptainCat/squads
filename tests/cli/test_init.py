@@ -347,7 +347,7 @@ async def test_init_writes_no_skill_for_a_bundled_or_a_project_type(invoke) -> N
     result = await invoke(MINIMAL)
     assert result.exit_code == 0, result.output
     declared = await invoke(["workflow", "types", "--json"])
-    assert '"type": "note"' in declared.output
+    assert "note" in [row["type"] for row in json.loads(declared.output)]
     titles = sorted(title for _id, title in await listed(invoke) if title != "Catherine Manager")
     assert titles == ALWAYS_ON_SKILLS
     pointers = sorted(p.name for p in (root / ".claude" / "skills").iterdir())
@@ -385,7 +385,7 @@ async def test_agents_md_compiles_each_role_body_as_role_show_prints_it(invoke) 
         shown = await invoke(["role", slug, "show", "--raw", "--no-header"])
         assert shown.exit_code == 0, shown.output
         assert shown.output.rstrip("\n") in compiled
-    assert "Squad prose for the manager." in compiled
+    assert "Squad prose for the manager." in compiled.splitlines()
     assert "Secret memory fact" not in compiled
     assert "Secret board notice" not in compiled
 
@@ -412,7 +412,16 @@ async def test_init_seeds_every_role_body_with_both_tags_and_allows_the_two_base
     assert len(bodies) == 4
     for body in bodies:
         text = body.read_text(encoding="utf-8")
-        assert "<!-- sq:body -->\n<!-- sq:view:role_definition -->\n" in text
-        assert "\n<!-- sq:view:role_playbook -->\n<!-- sq:body:end -->" in text
+        lines = text.splitlines()
+        opening = lines.index("<!-- sq:body -->")
+        assert lines[opening : opening + 2] == [
+            "<!-- sq:body -->",
+            "<!-- sq:view:role_definition -->",
+        ]
+        closing = lines.index("<!-- sq:body:end -->")
+        assert lines[closing - 1 : closing + 1] == [
+            "<!-- sq:view:role_playbook -->",
+            "<!-- sq:body:end -->",
+        ]
     allowed = json.loads((root / ".claude/settings.json").read_text(encoding="utf-8"))
     assert {"Skill(sq-greeting)", "Skill(sq-how-to)"} <= set(allowed["permissions"]["allow"])

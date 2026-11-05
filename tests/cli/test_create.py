@@ -45,6 +45,17 @@ async def test_create_makes_a_draft_task_and_prints_its_id_and_path(
     )
 
 
+@pytest.mark.covers("create <type>", "title")
+@pytest.mark.parametrize("separator", ["\n", "\r", "\u2028"], ids=["LF", "CR", "U+2028"])
+async def test_title_refuses_a_line_break_and_writes_nothing(
+    populated_project, invoke, separator
+) -> None:
+    before = (await invoke(["list", "--json"])).output
+    result = await invoke(["create", P.ref, f"Index{separator}tokens", "--author", "manager"])
+    assert (result.exit_code, result.output) == (1, "error: title must be a single line\n")
+    assert (await invoke(["list", "--json"])).output == before
+
+
 @pytest.mark.covers("create <type>", "--author")
 async def test_author_refuses_a_slug_that_is_not_registered(project, invoke) -> None:
     result = await invoke(["create", P.ref, "Index", "--author", "nobody"])
@@ -418,6 +429,30 @@ async def test_list_attribute_values_split_on_commas_and_drop_blanks(
 
 @pytest.mark.covers("create <type>", "title")
 @pytest.mark.covers("create <type>", "--author")
+async def test_create_help_lists_the_options_of_the_type_and_no_completion_options(
+    project, invoke
+) -> None:
+    result = await invoke(["create", P.ref, "--help"])
+    assert result.exit_code == 0, result.output
+    assert re.findall(r"^│ [* ] +(--[\w-]+)", result.output, flags=re.M) == [
+        "--author",
+        "--parent",
+        "--desc",
+        "--label",
+        "--ref",
+        "--assignee",
+        "--message",
+        "--file",
+        "--json",
+        *P.create_flags,
+        "--help",
+    ]
+    created = await invoke(["create", P.ref, "Ship it", "--author", "manager"])
+    assert created.exit_code == 0, created.output
+
+
+@pytest.mark.covers("create <type>", "title")
+@pytest.mark.covers("create <type>", "--author")
 async def test_create_help_lists_the_declared_options_before_help(override_project, invoke) -> None:
     result = await invoke(["create", "job", "--help"])
     assert result.exit_code == 0, result.output
@@ -431,8 +466,6 @@ async def test_create_help_lists_the_declared_options_before_help(override_proje
         "--message",
         "--file",
         "--json",
-        "--install-completion",
-        "--show-completion",
         "--work-size",
         "--owner-team",
         "--help",

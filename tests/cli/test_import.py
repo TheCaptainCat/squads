@@ -195,6 +195,19 @@ async def test_an_event_refused_while_applying_undoes_the_events_before_it(proje
     assert await listed(invoke) == ONLY_ROLE
 
 
+@pytest.mark.covers("import", "file")
+async def test_an_event_with_a_line_break_in_its_title_is_refused_and_nothing_is_written(
+    project, invoke
+) -> None:
+    broken = {**CREATE, "handle": "u", "title": "Imported\nsecond"}
+    result = await invoke(["import", _events(CREATE, broken)])
+    assert (result.exit_code, result.output) == (
+        1,
+        "line 2: title must be a single line\n1 issue(s) found — nothing written.\n",
+    )
+    assert await listed(invoke) == ONLY_ROLE
+
+
 def _host(
     op: str, handle: str, kind: str, title: str, sub_handle: str | None = None
 ) -> list[dict[str, Any]]:

@@ -678,6 +678,43 @@ def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
+def _has_line_break(title: str) -> bool:
+    """Whether *title* holds a separator ``str.splitlines`` splits on; an empty title has none."""
+    return bool(title) and title.splitlines() != [title]
+
+
+def _title_single_line(ctx: ValidatorContext) -> list[CheckIssue]:
+    """An item title or a sub-entity title holding a line break, written by hand or before the
+    input guard refused it. A line break is any separator ``str.splitlines`` splits on."""
+    item = ctx.item
+    level = _resolved_level(ctx, "title_single_line")
+    issues: list[CheckIssue] = []
+    if _has_line_break(item.title):
+        issues.append(
+            CheckIssue(
+                level,
+                item.id,
+                "title holds a line break — set a one-line title with"
+                f' `sq {item.type} {item.sequence_id} update --title "…"`',
+                rule="title_single_line",
+            )
+        )
+    kind = ctx.spec.item_subentity_kind(item.type)
+    issues.extend(
+        CheckIssue(
+            level,
+            item.id,
+            f"{kind} {sub.local_id} title holds a line break"
+            f" — set a one-line title with `sq {item.type} {item.sequence_id}"
+            f' {kind} {sub.local_id} update --title "…"`',
+            rule="title_single_line",
+        )
+        for sub in item.subentities
+        if _has_line_break(sub.title)
+    )
+    return issues
+
+
 def _item_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     """An item whose title is longer than the number its type's ``item_title_max:<n>`` entry
     names, counted in code points after NFC normalisation (so a decomposed and a composed
@@ -1188,6 +1225,7 @@ CATALOG: dict[str, Validator] = {
     "frontmatter_key_undeclared": _frontmatter_key_undeclared,
     "subentity_kind_mismatch": _subentity_kind_mismatch,
     "pronouns_valid": _pronouns_valid,
+    "title_single_line": _title_single_line,
 }
 assert set(CATALOG) == VALIDATOR_NAMES, "CATALOG must implement exactly VALIDATOR_NAMES"
 

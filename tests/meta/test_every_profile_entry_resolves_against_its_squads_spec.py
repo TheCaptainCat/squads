@@ -76,8 +76,32 @@ def _problems(profile: Profile, spec: WorkflowSpec) -> list[str]:
             ("badge value", p.badge_value in codes),
             ("badge other value", p.badge_other_value in codes),
         ]
-    on_host = any(f.code == p.badge for f in spec.fields_for(p.host))
-    checks.append(("host carries the badge field as declared", on_host == p.host_has_badge))
+    declared = {f.code for f in spec.fields_for(p.ref)} | set(spec.item_attributes(p.ref))
+    checks.append(
+        (
+            "create flags",
+            all(flag.removeprefix("--").replace("-", "_") in declared for flag in p.create_flags),
+        )
+    )
+    skipped = next(
+        (
+            f
+            for t in spec.non_roster_types()
+            for f in spec.fields_for(t)
+            if f.code == p.skipped_field
+        ),
+        None,
+    )
+    checks.append(("skipped field is declared by some type", skipped is not None))
+    checks.append(
+        (
+            "reference type lacks the skipped field",
+            all(f.code != p.skipped_field for f in spec.fields_for(p.ref)),
+        )
+    )
+    if skipped is not None:
+        values = {b.code.lower() for b in spec.collections[skipped.collection].badges}
+        checks.append(("skipped value", p.skipped_value.lower() in values))
     third_field = next((f for f in spec.fields_for(p.third_kind) if f.code == p.third_field), None)
     checks.append(("third kind field", third_field is not None))
     if third_field is not None:

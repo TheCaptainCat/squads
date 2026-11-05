@@ -367,8 +367,9 @@ def is_blank(text: str) -> bool:
 
 
 def require_title(title: str, what: str = "title") -> None:
-    """Raise ``SquadsError`` when *title* is blank (see :func:`is_blank`) or holds an sq marker tag,
-    which would sit in the item's file outside any region and fail ``sq check``.
+    """Raise ``SquadsError`` when *title* is blank (see :func:`is_blank`), holds a line break (any
+    separator ``str.splitlines`` splits on) or holds an sq marker tag, which would sit in the
+    item's file outside any region and fail ``sq check``.
 
     The guard behind every write that sets an item's title: a blank title is not storable (the
     index model requires one), so it is refused before anything is written. A title that slugs
@@ -376,6 +377,8 @@ def require_title(title: str, what: str = "title") -> None:
     """
     if is_blank(title):
         raise SquadsError(f"{what} must not be empty")
+    if title.splitlines() != [title]:
+        raise SquadsError(f"{what} must be a single line")
     reject_markers(title, what)
 
 

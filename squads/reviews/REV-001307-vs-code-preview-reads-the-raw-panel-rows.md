@@ -22,16 +22,22 @@ subentities:
   severity: low
 - local_id: F4
   title: A line break in a title splits the raw heading
-  status: Deferred
-  deferred_to: TASK-1309
+  status: Verified
   severity: low
 - local_id: F5
   title: The raw row join keeps CR and runs of spaces
-  status: Deferred
-  deferred_to: TASK-1309
+  status: Verified
+  severity: info
+- local_id: F6
+  title: Role update --title still accepts a line break
+  status: Verified
+  severity: low
+- local_id: F7
+  title: Pull and changelog messages name --title for a tracker title
+  status: Verified
   severity: info
 created_at: '2026-11-05T03:07:07Z'
-updated_at: '2026-11-05T04:04:16Z'
+updated_at: '2026-11-05T05:56:52Z'
 target_ref: fe5cda7d
 ---
 <!-- sq:body -->
@@ -145,6 +151,14 @@ A title is one line on every surface, so the fix is at input: refuse a line brea
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-11-05T04:35:06Z] `reviewer` Paul Reviewer:
+  - Verified at c885c266 (TASK-1309 ST1). `require_title` refuses LF, CR and U+2028 on create, update --title, add-<kind>, a sub-entity's update --title, operator and skill retitles, role add, import and pull. Driven with the dev `sq`. An import whose second event holds a bad item title, or a bad sub-entity title, exits 1 with `line 2: title must be a single line` and writes nothing: the item count and git status do not change. The new check `title_single_line` reports a stored title holding a line break.
+    
+    Mutations:
+    - disabling the guard fails 14 tests;
+    - disabling the check fails both breach tests.
+    
+    Gates: pyright and ruff are clean; meta, check, regressions and the touched CLI modules pass (1511 passed, 2 skipped). The move needed `--force` because the finding was Deferred, and the lifecycle only allows Fixed to Verified. One write path is still open: see F6.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -163,8 +177,48 @@ A CRLF is likely in text taken from a tracker. Fix: split on `splitlines()` and 
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-11-05T04:35:07Z] `reviewer` Paul Reviewer:
+  - Verified at c885c266 (TASK-1309 ST2). `raw_lines` strips each `splitlines` piece, drops the empty ones and joins the rest with one space, so a CR, a blank line or indentation no longer reaches the row. Reverting the join fails `test_raw_joins_the_lines_of_a_row_value_with_one_space_each`. The move needed `--force` because the finding was Deferred, and the lifecycle only allows Fixed to Verified.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
+
+<!-- sq:finding:F6 -->
+### F6 — Role update --title still accepts a line break
+
+<!-- sq:finding:F6:body -->
+`update_role` (`_services/_roster.py`) checks a new name only for blank (`a role's name cannot be blank`) and never calls `require_title`. So `sq role <slug> update --title` stores a line break, and a marker tag is not rejected there either. Driven with the dev `sq` at c885c266: `sq role manager update --title "a<LF>b"` prints `updated ROLE-1`, `show --json` has `full_name: "a\nb"`, and `sq check` then warns `title_single_line` on ROLE-1. The other roster retitles refuse: the operator and skill `update --title` and `role add --name`.
+
+The CHANGELOG entry says `update --title` refuses a title holding a line break, which is not true for a role.
+
+Fix: run `require_title(title, "--title")` in `update_role`, and add a role case to the update test.
+<!-- sq:finding:F6:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F6:discussion -->
+- [2026-11-05T05:56:50Z] `reviewer` Paul Reviewer:
+  - Verified at 2734e068 with the dev sq on a scratch squad: role update --title with a line break refuses with "error: title must be a single line", a marker tag is refused, a blank name keeps its own message, and the name is unchanged. test_role.py has the case, and breaking the message turns it red. Forced from Deferred.
+<!-- sq:finding:F6:discussion:end -->
+<!-- sq:finding:F6:end -->
+
+<!-- sq:finding:F7 -->
+### F7 — Pull and changelog messages name --title for a tracker title
+
+<!-- sq:finding:F7:body -->
+The retitle path now names the flag: `require_title(new_title, "--title")` in `_items.py`. A pull that retitles an existing item goes through that path, so its report names a CLI flag the user never typed. The updated test pins `platform/api#13: dropped, --title must not be empty`, and a tracker retitle with a line break would read `dropped, --title must be a single line`. A create from a pull still reads `title must be a single line`.
+
+The CHANGELOG also quotes `error: title must be a single line` for every surface, while `update --title` prints `error: --title must be a single line`.
+
+Fix: name the field (`title`) when the retitle comes from a pull, or in every service message and leave the flag to the CLI. Then let the writer align the CHANGELOG with the messages the commands print.
+<!-- sq:finding:F7:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F7:discussion -->
+- [2026-11-05T05:56:51Z] `reviewer` Paul Reviewer:
+  - Verified at 2734e068: require_title names the field, not the flag, at every call site; the pull line reads "dropped, title must not be empty" (test_source_pull.py, red when the message changes); CHANGELOG.md:110 quotes the messages as printed. Forced from Deferred.
+<!-- sq:finding:F7:discussion:end -->
+<!-- sq:finding:F7:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -180,4 +234,6 @@ A CRLF is likely in text taken from a tracker. Fix: split on `splitlines()` and 
   - Approved at 36799113: F1 and F2 Verified with mutation runs. F3 (a multi-line row value under --raw) stays Open and goes to python-dev with the next TASK-1295 follow-up, per manager 40a9507. @manager
 - [2026-11-05T03:55:01Z] `reviewer` Paul Reviewer:
   - TASK-1308 verified at eb9663fd: F3 Verified (forced, Deferred to Verified). Two new findings on the same raw path, both core-side: F4 (low) a line break in an item or sub-entity title splits the raw heading, F5 (info) the row join keeps CR and runs of spaces. Both are Deferred to FEAT-1290 for python-dev so the Approved review passes sq check; point them at the fix task once it exists. @manager
+- [2026-11-05T04:35:16Z] `reviewer` Paul Reviewer:
+  - TASK-1309 verified at c885c266: F4 and F5 Verified (forced from Deferred). Import stays all-or-nothing: a bad item or sub-entity title refuses the file and writes nothing. New: F6 (low) role update --title still stores a line break; F7 (info) the pull report and the CHANGELOG name --title for a tracker title. Both Deferred to FEAT-1290 for python-dev so the Approved review passes sq check. @manager
 <!-- sq:discussion:end -->

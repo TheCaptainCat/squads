@@ -261,8 +261,7 @@ def _reached(
     prior = get_context()
     bind_context(replace(prior, active_spec=spec))
     try:
-        known = None if spec == bundled_spec() else cli_surface.squad_known()
-        return cli_surface.reached_pairs(args, spec, refusal, known=known)
+        return cli_surface.reached_pairs(args, spec, refusal)
     finally:
         bind_context(prior)
 
@@ -273,9 +272,11 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     the CLI; the remote modes send the command to the daemon (`remote`) or an `HttpApi` (`routes`).
 
     Each call records the pairs it reaches; at teardown the test fails when a pair its `covers`
-    markers declare was not reached, unless the test skipped itself.
+    markers declare was not reached, unless the test skipped itself or the pair is only in the
+    tree of a squad its calls did not run on.
     """
     reached: set[cli_surface.Pair] = set()
+    squads: set[str] = set()
     mode = os.environ.get("SQUADS_TEST_MODE")
     parity = ParityApi() if mode == "routes" else None
     endpoint = EndpointClient() if mode == "remote" else None
@@ -284,6 +285,7 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
         if parity is not None:
             bind_context(replace(get_context(), api=parity))
         spec = _squad_spec()
+        squads.add("bundled" if spec == bundled_spec() else "override")
         reached.update(_reached(args, spec))
         rendering_engine._env_cache.clear()
         if endpoint is not None:
@@ -303,7 +305,8 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
         endpoint.close()
     if call_was_skipped(request.node):
         return
-    missing = _declared_pairs(request.node) - reached
+    trees = [cli_surface.squad_surface(n).known for n in sorted(squads or {"bundled", "override"})]
+    missing = (_declared_pairs(request.node) & frozenset().union(*trees)) - reached
     if missing:
         listed = ", ".join(
             f"sq {k} {p}" if p else f"sq {k}"

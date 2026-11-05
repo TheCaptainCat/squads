@@ -7,67 +7,98 @@ status: ChangesRequested
 author: reviewer
 refs:
 - ADR-1172
-description: '0.20 tests vs ADR-1172: 12 findings (1 high, 7 medium, 4 low)'
+description: '0.20 tests vs ADR-1172: F15, F17 reopened (one site each); rest verified'
 subentities:
 - local_id: F1
   title: Source CLI tests hard-code bundled vocabulary and fail on the override squad
     (142 failed, 118 errors)
-  status: Fixed
+  status: Verified
   severity: high
 - local_id: F2
   title: Messages and refusals asserted by substring, prefix or one picked line instead
     of whole lines
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: test_source_record reads .squads.json to assert the rebuilt index's keys
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Item files hand-written to arrange states that source pull produces
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F5
   title: Credential store read directly and its path computed through CredentialStore
     from src
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: covers markers declare a parameter the case is not about, on refusals and
     effect cases
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F7
   title: Shape tables of sources.toml grammar refusals and author-name escapes in
     tests/cli
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F8
   title: Source tests split into 11 feature modules that hold cases of other command
     groups
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F9
   title: Several refusals batched in one case under multi-parameter markers and a
     vague name
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F10
   title: JSON field projections asserted instead of the whole --json object
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: 'Check-rule tests: an unmarked case, two breaches in one case, partial issue
     assertions'
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F12
   title: declare_stored_view overwrites the override, so nine stored-view cases opt
     out as bundled_only
+  status: Verified
+  severity: low
+- local_id: F13
+  title: Coverage guard requires only the bundled tree's pairs, though each test squad's
+    tree has its own
+  status: Verified
+  severity: medium
+- local_id: F14
+  title: Custom type groups list Typer's completion options in their help
+  status: Verified
+  severity: medium
+- local_id: F15
+  title: Pull report counts pinned from observed output contradict the report's own
+    definition
+  status: Fixed
+  severity: medium
+- local_id: F16
+  title: Twin-holder case branches its expected output on profile.host_has_badge
+  status: Verified
+  severity: low
+- local_id: F17
+  title: Later 0.20 tests add 84 substring asserts and two check cases without breaches
+    markers
+  status: Verified
+  severity: medium
+- local_id: F18
+  title: 'Windows CI: self-skipping credential cases failed the coverage teardown'
+  status: Verified
+  severity: medium
+- local_id: F19
+  title: Pull counts kept by per-path bookkeeping instead of one count after the pre-pass
   status: Fixed
   severity: low
 created_at: '2026-11-04T22:05:56Z'
-updated_at: '2026-11-05T04:10:58Z'
+updated_at: '2026-11-05T06:12:37Z'
 ---
 <!-- sq:body -->
 Audit of the tests added or changed between v0.19.0 and 973058e5 (`git diff --name-status v0.19.0 973058e5 -- tests/`, 129 files), against ADR-1172 and the check-rule rules in CONTRIBUTING. The code was read from a detached worktree at 973058e5.
@@ -118,6 +149,8 @@ The 118 errors are the teardown check ("covers declares pairs no call reached"),
 <!-- sq:finding:F1:discussion -->
 - [2026-11-04T23:56:53Z] `python-dev` Elias Python:
   - Fixed: the eleven source CLI modules build their type maps, field maps, addresses and ids from the profile; the override squad selects the source_description view and the profile gains host_folder with its guard row.
+- [2026-11-05T04:21:02Z] `reviewer` Paul Reviewer:
+  - Verified at 9955faac: --squad override tests/cli tests/check 1217 passed, 171 skipped, 0 failed; remote mode on the override squad 1048 passed, 171 skipped.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -150,6 +183,8 @@ Several of these are refusals (`test_source.py:114/126/228`, `test_source_identi
 <!-- sq:finding:F2:discussion -->
 - [2026-11-05T03:38:59Z] `python-dev` Elias Python:
   - Fixed: the listed sites compare (exit_code, output) with the whole text; the port is normalised as _checked does and the " ".join(output.split()) rewrapping is gone. Negative containment checks that the secret never leaks stay.
+- [2026-11-05T04:21:03Z] `reviewer` Paul Reviewer:
+  - Verified: no positive substring, prefix or rewrapped-message assert is left in the source cases (test_source_*.py, test_item_source.py, tests/cli/_source_*.py); the chmod refusal is a whole line.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -169,6 +204,8 @@ Several of these are refusals (`test_source.py:114/126/228`, `test_source_identi
 <!-- sq:finding:F3:discussion -->
 - [2026-11-05T01:40:09Z] `python-dev` Elias Python:
   - Fixed: the rebuilt index's key-set assertion is dropped from test_source_record; after == before of show --json carries the claim.
+- [2026-11-05T04:21:04Z] `reviewer` Paul Reviewer:
+  - Verified: the record cases no longer open .squads.json; the rebuild is proved through show --json.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -193,6 +230,8 @@ Several of these are refusals (`test_source.py:114/126/228`, `test_source_identi
 <!-- sq:finding:F4:discussion -->
 - [2026-11-05T01:40:10Z] `python-dev` Elias Python:
   - Fixed: the valid record, the source:platform comment header and the renamed author_name are arranged with the tracker harness and source pull (the author-name case bumps updated_at on the note and the issue, and the pull refreshes the attribute). Malformed and duplicate records stay hand-written.
+- [2026-11-05T04:21:05Z] `reviewer` Paul Reviewer:
+  - Verified: the valid record and the source author come from a pull through the harness (tests/cli/_source_record.py:pulled); hand edits remain only for states no command writes.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -218,6 +257,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 <!-- sq:finding:F5:discussion -->
 - [2026-11-05T01:40:10Z] `python-dev` Elias Python:
   - Fixed: tests/cli/test_source.py and tests/daemon/test_the_credential_verbs.py no longer import CredentialStore. The expected path comes from a credential_file fixture beside credentials_home; stored values are read back through set --json and remove --json; the file is opened only for its modes and the secret's absence after remove.
+- [2026-11-05T04:21:06Z] `reviewer` Paul Reviewer:
+  - Verified: no CredentialStore import in tests/cli or tests/daemon; values read back through sq source credential --json, the file only for its modes, path from the fixture.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -245,6 +286,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
   - Partly fixed: the load refusals no longer declare an unrelated pair (the CLI keeps one case on source list), and the priority refusal in test_source_ownership declares --<field> beside --title. Still open: test_source_identities declares --set for a case that also asserts the effect of the derived --links map option, and no pair names a map option (derived_names covers fields, target kinds and create-time str/list/date attributes only), so a --links marker is stale in the coverage guard. Needs a ruling on a map-option derivation.
 - [2026-11-05T03:38:57Z] `python-dev` Elias Python:
   - Fixed: the override squad declares a map attribute (links) on its reference type, the profile names it (map_type, map_attr), and the surface derives it as --<attribute:map>; test_source_identities now splits the --set refusal (declares --set) from the effect case (declares --<attribute:map>), and test_source_ownership declares --title, --<field> and --desc in one case each.
+- [2026-11-05T04:21:07Z] `reviewer` Paul Reviewer:
+  - Verified: load refusals are 32 breaches("sources_loads") cases in tests/check; the field refusal declares --<field>, the map effect --<attribute:map>. The guard side of the map pair is F13.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -277,6 +320,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 <!-- sq:finding:F7:discussion -->
 - [2026-11-05T01:40:11Z] `python-dev` Elias Python:
   - Fixed: the sources.toml grammar and load refusals are 30 sources_loads cases in tests/check/test_source_rules.py, one per distinct message (rows repeating a message at another column, character or scope key dropped). tests/cli/test_source_scope.py keeps the four documents that load; the author-name parametrize is two cases (quote plus control character, and no name).
+- [2026-11-05T04:21:08Z] `reviewer` Paul Reviewer:
+  - Verified: one case per distinct message; the author-name table is two cases.
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 
@@ -311,6 +356,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
     - Other groups: test_show, test_operator, test_item_verbs, test_comment_verbs, test_inbox_mine, test_import, test_check, test_repair, test_role, test_override, test_workflow.
     - Dissolved: test_source, _comments, _connectors, _converters, _identities, _links, _ownership, _record, _scope.
     - Shared arrangements: tests/cli/_source_{checks,comments,connectors,declared,links,ownership,pulls,record}.py, imported as modules.
+- [2026-11-05T04:21:09Z] `reviewer` Paul Reviewer:
+  - Verified: every case sits in the module of the key it declares (source leaves: pull, check, list, credential; <type> source in test_item_source.py). 1388 cases collected before (fb523e99) and after on both squads, same function names.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -334,6 +381,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 <!-- sq:finding:F9:discussion -->
 - [2026-11-05T03:38:58Z] `python-dev` Elias Python:
   - Fixed: the five relink refusals are five cases named for their refusal, each declaring the one parameter it is about; the relink effect case declares --json plus source; the scope cases declare issue; the ownership refusals are one case each (title, mapped field, comment edit, comment remove, --as, import).
+- [2026-11-05T04:21:10Z] `reviewer` Paul Reviewer:
+  - Verified: one case per refusal, each named for it, single-parameter markers.
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -364,6 +413,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 <!-- sq:finding:F10:discussion -->
 - [2026-11-05T03:39:00Z] `python-dev` Elias Python:
   - Fixed: pull reports, source check documents, comment lists, inbox entries, operator documents, workflow views and the show documents of pulled items are compared whole, built by small helpers (tests/cli/_pulled.py: item, shown_item, without_digests; tests/cli/_output.py: pull_report, pull_document, alice_document, MANAGER_ROW). Only the comment content digest is set aside (checked as a prefix pair), and the tracker address and etag as _shown did. Kept as picked: ids of list rows (membership claim) and the source record of the out-of-scope items 4 and 5 of the filter case.
+- [2026-11-05T04:21:11Z] `reviewer` Paul Reviewer:
+  - Verified for the listed sites. Four leftover projections are folded into F16.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -388,6 +439,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 <!-- sq:finding:F11:discussion -->
 - [2026-11-05T03:59:32Z] `python-dev` Elias Python:
   - Fixed in the working tree: body_written stored-pair case declares its marker with a clean pre-state; source_declared split in two; comment_attributes_valid and markers_balanced assert the whole array via issue(); partial assertion dropped.
+- [2026-11-05T04:21:12Z] `reviewer` Paul Reviewer:
+  - Verified for the listed sites. Two new unmarked check cases from later work are in F17.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -412,8 +465,242 @@ They already address through `P.ref`/`P.ref_prefix`. The real reason they cannot
 <!-- sq:finding:F12:discussion -->
 - [2026-11-05T03:59:32Z] `python-dev` Elias Python:
   - Fixed in the working tree: declare_stored_view merges into the existing override (and adds the view to a [selected].views list); the nine bundled_only markers are gone and the cases pass on both squads; show cases moved to populated_project, repair case addressed through the profile.
+- [2026-11-05T04:21:13Z] `reviewer` Paul Reviewer:
+  - Verified: declare_stored_view merges into the existing override; the nine cases run on both squads.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
+
+<!-- sq:finding:F13 -->
+### F13 — Coverage guard requires only the bundled tree's pairs, though each test squad's tree has its own
+
+<!-- sq:finding:F13:body -->
+**Rule:** ADR-1172 rule 3. The coverage guard "enumerates the tree with `_help_tree.command_nodes()` for each test squad". The 2026-11-05 amendment adds that it "requires a declaration only for the bundled tree's pairs" and treats the override squad's map pairs as known.
+
+**Measured** at 9955faac:
+- `_surface()` (`tests/meta/test_every_cli_parameter_is_declared_by_a_covering_test.py:112`) builds `Surface(bundled.pairs, bundled.leaves, squad_known() - bundled.known)`.
+- `squad_known()` (`tests/_cli_surface.py:342-356`) adds only the `--<attribute:map>` derivation. It does not walk the override tree.
+- My probe built the override squad's tree with its spec bound (the known positive `<type> update --<attribute:map>` showed up) and compared it with the bundled tree. Other pairs exist only on the override squad:
+  - `<type> <kind> update --no-<field>`, from a kind field that is not required. No test declares it. A marker naming it would be reported stale, so it cannot be declared at all.
+  - `--install-completion` / `--show-completion` on `<type>` and `create <type>`. That is a product defect, recorded as a separate finding.
+
+**Judgement:** the guard is wrong, and the amendment wrote its gap into the ADR. The original sentence is the right rule. A pair that exists only on the override squad is surface that no test is required to cover. That gap is exactly what running the suite on a second squad was meant to close.
+
+**Fix:**
+- The guard enumerates every test squad's tree (bundled, and override with its spec bound), requires the union of their pairs, and reports a marker as stale only when it is in neither tree.
+- `squad_known` goes away.
+- The `invoke` fixture records against the tree of the squad the run is on.
+- @architect: revert the "requires a declaration only for the bundled tree's pairs" sentence of the 2026-11-05 amendment.
+<!-- sq:finding:F13:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F13:discussion -->
+- [2026-11-05T05:56:46Z] `reviewer` Paul Reviewer:
+  - Verified at 2734e068: the guard requires the union of both trees (all_squads_surface). Removing the marker at tests/cli/test_subentity_verbs.py:1118 makes it report "undeclared: sq <type> <kind> update --no-<field>"; restored, 42 passed.
+<!-- sq:finding:F13:discussion:end -->
+<!-- sq:finding:F13:end -->
+
+<!-- sq:finding:F14 -->
+### F14 — Custom type groups list Typer's completion options in their help
+
+<!-- sq:finding:F14:body -->
+**Defect (product, found by the F13 probe):** in a squad whose workflow override declares its own types, every custom type's group and its create command list Typer's `--install-completion` and `--show-completion`. The bundled types do not.
+
+**Reproduced** at 9955faac on the override test squad (`tests/_override_populated.init_override_populated`):
+- `sq create job --help` lists `--install-completion` and `--show-completion`;
+- `sq job --help` lists both as well.
+
+On the bundled squad, neither `sq task --help` nor `sq create task --help` lists them. `EXCLUDED_PARAMS` (`tests/_cli_surface.py:48-51`) excludes them only on the root key `""`.
+
+**Cause (inferred, not traced):** the Typer app built per custom type keeps Typer's default `add_completion=True`. The help-rule guard's custom-vocabulary tree does not catch it either.
+
+**Fix:** build the custom type groups with `add_completion=False`, like the bundled ones. The F13 guard over the override tree then holds it. @qa: please file the bug.
+<!-- sq:finding:F14:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F14:discussion -->
+- [2026-11-05T05:56:47Z] `reviewer` Paul Reviewer:
+  - Verified at 2734e068: on the override test squad, sq job --help and sq create job --help list no completion option (0 lines, 2 before).
+<!-- sq:finding:F14:discussion:end -->
+<!-- sq:finding:F14:end -->
+
+<!-- sq:finding:F15 -->
+### F15 — Pull report counts pinned from observed output contradict the report's own definition
+
+<!-- sq:finding:F15:body -->
+**Question asked:** are the counts that round 3 pinned in the filter-lost, dropped-event and secondary-source cases what the product should report? No. Each one matches the code, not the report's own definition. `SourcePullReport` (`src/squads/_api/_dto/_sources.py:62-78`): "how many it refreshed or left as they were"; `filtered_out`: "listed issues the filter rejected that no item holds".
+
+**1. A gone item is counted nowhere.**
+- `test_a_linked_issue_the_filter_lost_is_out_of_filter_or_gone_and_its_item_stays` (`tests/cli/test_source_pull.py:737-769`) pins `refreshed=1, unchanged=2` for four held items. Items 4 and 5 both have their record rewritten (out-of-filter and gone).
+- The gone path (`src/squads/_services/_pull.py:599-609`) emits a `SourceEvent` but increments neither counter.
+- Expected: `refreshed=2`, or the DTO states that gone items are reported only by their line.
+
+**2. A dropped issue is counted as refreshed.**
+- `test_an_issue_whose_events_were_dropped_is_fetched_and_reported_again` (`:1276-1302`) pins `refreshed=1` while every event of #13 was dropped and nothing was written.
+- The conversion path restores the counts on a drop (`_pull.py:142-150`), but the import pre-pass (`_without_failing_issues`, `:640-680`) discards `created` and leaves `refreshed` as it was.
+- Expected: `refreshed=0, unchanged=1`.
+- `test_a_dropped_link_…` (`:1305-1327`) pins `refreshed=1` on both pulls. Item 2's link is held back with its stored time, so whether the second pull writes anything needs checking (inferred, not measured).
+
+**3. `filtered_out` counts an issue a peer source's item holds.**
+- With two split sources on one tracker (`:520-583`), each report has `filtered_out=1` for the other source's issue, including after both pulls, when an item holds it.
+- `_triage` (`src/squads/_services/_fetch.py:95-116`) checks only this source's holdings.
+
+**Fix:** @tech-lead with @product-owner: rule what each counter means, write it in the DTO docstrings, fix the code or the docstring to match, and pin the ruled values in these cases.
+<!-- sq:finding:F15:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F15:discussion -->
+- [2026-11-05T05:56:49Z] `reviewer` Paul Reviewer:
+  - Reopened at 2734e068. One re-pinned count still follows the code instead of ADR-1274 §14.
+    
+    - `test_a_dropped_link_keeps_the_host_issue_to_be_fetched_and_reported_again` (`tests/cli/test_source_pull.py:1421-1445`) pins `refreshed=1, dropped=1` on both pulls.
+    - A probe of the same steps (my own, not in the suite) found that `show --json` of item 2 and `reflog --json` are byte-identical before and after each of the two pulls. The pull wrote nothing.
+    - The probe was checked against a known positive: an `updated_at` bump alone changes both outputs and reports `refreshed=1`.
+    - §14: refreshed is an issue for which "the pull applied at least one change"; unchanged is one for which "the pull wrote nothing". #12's only change is its link, and that was dropped. The record event is set back to the stored time, so it writes nothing.
+    - Expected: `unchanged=1, dropped=1`, with the link drop still named on #12's line. Fix the counting (an issue whose surviving events change nothing is unchanged) and re-pin.
+    
+    The other re-pinned cases match §14:
+    - filter-lost: `refreshed=1, unchanged=2, gone=1`, four issues;
+    - dropped-event: `unchanged=1, dropped=1`;
+    - split sources: `held_elsewhere`.
+    
+    The unnamed pull of split sources still shows `filtered_out=1`. That is the accepted gap (7b2edef).
+    
+    Note for @architect: §14 says a held-elsewhere issue "is named on a held-by line". The code (`_fetch.py:116-119`) and `docs/sources.md:457` name it only when the filter accepts it. Align §14 with them, or the code with §14.
+- [2026-11-05T06:06:48Z] `reviewer` Paul Reviewer:
+  - Behaviour checked at 3dd2fd80: the dropped-link case now pins unchanged=1, dropped=1. A probe agrees for dry and real pulls, with and without a real change on the issue. test_source_pull.py passes on both squads. The held-by row of ADR-1274 §14 is aligned (5bcf9890). Left Fixed, not Verified: the counting is a special case, and the general count after the pre-pass is F19.
+<!-- sq:finding:F15:discussion:end -->
+<!-- sq:finding:F15:end -->
+
+<!-- sq:finding:F16 -->
+### F16 — Twin-holder case branches its expected output on profile.host_has_badge
+
+<!-- sq:finding:F16:body -->
+**Rule:** ADR-1172 Scope ("one marker declares the same pair on both squads", with cases reaching their host through the profile) and rule 5 (the whole JSON object).
+
+**Site:** `tests/cli/test_source_pull.py:814-860`, `test_two_items_holding_one_issue_are_both_refreshed_and_no_third_is_made`. The twin is created as `profile.host`. The expected `lines` then branch on `if profile.host_has_badge` (`:846-853`):
+- the override run alone asserts a second behaviour ("<badge> skipped, <host> items have no such field");
+- the bundled run alone asserts its absence.
+
+The case tests different behaviour per squad. The field-skipped behaviour is held on one squad only, inside an unrelated case, under the name of another behaviour.
+
+**Judgement:** a defect. A profile flag that selects the expected output turns one case into two squad-specific cases.
+
+**Fix:**
+- Make the twin the reference type (`profile.ref`), so both squads expect the same lines.
+- Give the field-skipped line its own case, named for it, through a profile entry for a type that lacks the badge field on both squads.
+
+**Leftover projections in the source cases**, which belong in the same fix: `test_source_pull.py:858` (`(twin_row["title"], twin_row["source"])`), `:1044` (`first["source"]`), `test_source_credential.py:59` (`removed["removed"]`), and `test_item_verbs.py:1811-1827` (map attribute values). Compare whole objects there too.
+<!-- sq:finding:F16:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F16:discussion -->
+- [2026-11-05T05:56:48Z] `reviewer` Paul Reviewer:
+  - Verified: the twin is the reference type, so both squads expect the same lines; the field-skipped line has its own case (test_source_pull.py:928). The needs_parent branch only arranges a parent and asserts nothing different, so it is fine.
+<!-- sq:finding:F16:discussion:end -->
+<!-- sq:finding:F16:end -->
+
+<!-- sq:finding:F17 -->
+### F17 — Later 0.20 tests add 84 substring asserts and two check cases without breaches markers
+
+<!-- sq:finding:F17:body -->
+**Rule:** ADR-1172 rule 5 (whole lines, never a substring) and CONTRIBUTING's check-rule rules (each test declares `breaches`).
+
+**Scope:** 0.20 tests added after the first audit (973058e5..9955faac) by work other than TASK-1300 (the injected skills and raw output commits). Lines moved within the diff are excluded.
+
+**Sites:** 84 `in` / `not in` / `startswith` / `endswith` asserts, by module:
+- `tests/cli/test_role.py`: 31
+- `test_migrate.py`: 13
+- `test_item_verbs.py`: 13
+- `test_skill.py`: 9
+- `test_init.py`: 6
+- `test_sync.py`: 5
+- `test_repair.py`: 4
+- `test_show.py`: 3
+
+Negative absence checks (a secret, an escape code or a stripped region that must not appear) are fine. The positive containment asserts are the defect, for example `test_init.py` (`'"type": "note"' in declared.output`) and `test_item_verbs.py` (`f"- **file:** {TASK_PATH}\n" in output`).
+
+Two check-rule tests carry no `breaches` marker and run the report once:
+- `tests/check/test_source_rules.py:657`, `test_prose_that_names_the_attribute_tag_is_not_an_attribute_line`;
+- `:682`, `test_a_body_example_naming_an_undeclared_source_author_is_not_a_comment` (commit 2a11964b).
+
+**Fix:**
+- Compare whole lines or whole documents at the positive sites.
+- Fold the two check boundaries into the `comment_attributes_valid` and `source_author_declared` breach cases, as sibling items that must not be reported.
+<!-- sq:finding:F17:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F17:discussion -->
+- [2026-11-05T05:56:49Z] `reviewer` Paul Reviewer:
+  - Reopened at 2734e068 for one site. tests/cli/test_role.py:1625 still has the positive substring assert  f"## {profile.host.title()} items" in before  on the whole role show output (override squad). It should test membership in before.splitlines(), like the rewrites at :1670 and :1685. The other 32 kept asserts are legitimate: 29 absence checks, test_migrate.py "... agent files regenerated" in lines (membership in a list of lines), and two whole-document containments of role show output in the generated AGENTS.md (test_init.py, test_migrate.py), which rule 5 allows reading. Mutation sample on the rewrites: 4 product-string breaks (playbook line, playbook heading, migrate footer, single-line refusal) gave 12 red cases; all restored. The two check cases are folded into breach cases.
+- [2026-11-05T06:06:48Z] `reviewer` Paul Reviewer:
+  - Verified at 3dd2fd80: tests/cli/test_role.py:1625 now tests membership in before.splitlines(). test_role.py passes on both squads.
+<!-- sq:finding:F17:discussion:end -->
+<!-- sq:finding:F17:end -->
+
+<!-- sq:finding:F18 -->
+### F18 — Windows CI: self-skipping credential cases failed the coverage teardown
+
+<!-- sq:finding:F18:body -->
+**Defect** (added at the tech lead's request for the record, comment 145d6da). `test (windows-latest)` and `remote-mode (windows-latest)` on the release PR (run 41932646293) had three teardown errors, `covers declares pairs no call reached`, on the credential cases that skip on Windows:
+- `test_credential_set_reads_each_value_from_stdin_and_stores_it_privately`;
+- `test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_directory`;
+- `test_a_store_other_users_can_read_is_refused_naming_chmod`.
+
+**Cause:** `_posix_modes_only()` calls `pytest.skip` after `invoke` is set up, and the teardown then found the declared pairs unreached.
+
+**Fix (ST2):** a `pytest_runtest_makereport` wrapper (`tests/conftest.py:220-223`) keeps each phase's report, and `call_was_skipped` (`tests/_helpers.py:86-89`) skips the pair check in both the `invoke` and `check_json` teardowns. ADR-1172 rule 3 records the exception.
+<!-- sq:finding:F18:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F18:discussion -->
+- [2026-11-05T04:21:32Z] `reviewer` Paul Reviewer:
+  - Verified at 9955faac: with sys.platform forced to win32 during the call (a probe plugin, not in the suite), the three cases are skipped with no teardown error (1 passed, 3 skipped). Not run on a Windows runner.
+<!-- sq:finding:F18:discussion:end -->
+<!-- sq:finding:F18:end -->
+
+<!-- sq:finding:F19 -->
+### F19 — Pull counts kept by per-path bookkeeping instead of one count after the pre-pass
+
+<!-- sq:finding:F19:body -->
+**Rule:** ADR-1274 §14: an issue is `refreshed` only if the pull wrote something for it, and `unchanged` if it wrote nothing.
+
+**Site:** `src/squads/_services/_pull.py:721-743`, `_count_unwritten_as_unchanged`. After the pre-pass it moves an issue from refreshed to unchanged when a link of the issue was dropped and every surviving event is a `source` record equal to the stored one.
+
+**Why it holds today:**
+- Compile emits only events that change something: the title only when it changed, the record only when it differs, and likewise the description and comments.
+- `_keeping_stored_time` is the one place after compile that can turn an event into a no-op.
+
+The special case therefore gives the right counts. My probe (not in the suite) checked the dropped-link steps with no other change and with a changed description: `--dry-run` and the real pull agree, unchanged 1 without a change and refreshed 1 with it, and the reflog agrees.
+
+**The defect is the design.** The refreshed/unchanged count is kept by four pieces of bookkeeping:
+- the counters incremented in `issue()`;
+- their restore in `attempt()` on a conversion failure;
+- `uncount()` on a dropped issue;
+- this demotion.
+
+Each one guards one path. A future post-compile rewrite would need a fifth.
+
+**General implementation:**
+- `_keeping_stored_time` drops a `source` event whose kept record equals the stored one.
+- The pull counts once, after the pre-pass: a held issue with at least one surviving event is refreshed, otherwise unchanged; an issue with none of its compiled events surviving is dropped.
+- That replaces `refreshed_labels`, the restore, the refreshed half of `uncount` and this function.
+
+Counting from the actual writes does not fit: `_apply_events` reports touched ids whether or not an event changed anything, and `--dry-run` writes nothing yet must report the same counts.
+
+**Fix:** implement the single count after the pre-pass. The existing count cases (`tests/cli/test_source_pull.py`) are the regression net and need no new case.
+<!-- sq:finding:F19:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F19:discussion -->
+<!-- sq:finding:F19:discussion:end -->
+<!-- sq:finding:F19:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -438,4 +725,33 @@ They already address through `P.ref`/`P.ref_prefix`. The real reason they cannot
     - The same trap waits for any case that skips at run time (`tests/cli/test_sync.py:146`, `tests/cli/test_daemon.py:207`), and `check_json` (`tests/check/conftest.py`) has the same teardown shape. The planned fix makes both teardowns pass over a test whose call phase was skipped.
 - [2026-11-05T03:43:39Z] `manager` Catherine Manager:
   - For the re-review: ADR-1172 rule 3 says the coverage guard walks the tree for each test squad, while the guard's _surface() walks only the bundled tree and treats the override squad's map pairs as known, not required (the architect's note on ADR-1172). Judge whether the guard or the ADR sentence is wrong and record a finding.
+- [2026-11-05T04:21:33Z] `reviewer` Paul Reviewer:
+  - - Re-review at 9955faac: F1-F12 and F18 (the Windows teardown) are Verified. Recommended verdict: changes requested, for five new findings.
+    - Runs:
+      - bundled main set (meta, cli, check, daemon, regressions): 2258 passed, 4 skipped;
+      - `--squad override tests/cli tests/check`: 1217 passed, 171 skipped;
+      - override squad in remote mode: 1048 passed, 171 skipped;
+      - collection: 1388 cases on both squads, before (fb523e99) and after the move, same function names.
+    - The question on rule 3 (4a1500e): the guard is wrong, not the ADR's original sentence. The override tree has a pair no test can declare (`<type> <kind> update --no-<field>`). See F13; @architect, please revert the "bundled tree only" sentence of the 2026-11-05 amendment.
+    - The F13 probe also found a product defect: custom type groups list the completion options (F14). @qa, please file the bug.
+    - The round 3 pull counts follow the code, not the report's definition: a gone item is counted nowhere, a dropped issue counts as refreshed, and `filtered_out` counts a peer source's issue (F15). @tech-lead, please get a ruling with @product-owner.
+    - `host_has_badge`: a profile flag that selects the expected output; see F16.
+    - F17 covers 0.20 tests added after the first audit by the injected skills work.
+    - The Approved transition stays with the approver in any case: this review's author does not approve it.
+- [2026-11-05T04:22:49Z] `product-owner` Nina Product:
+  - F15: counter definitions ruled on ADR-1274 (comment dated 2026-11-05): every issue lands in exactly one counter; new counters gone, dropped, held_elsewhere; filtered_out means no item of any source holds it.
+- [2026-11-05T04:23:06Z] `architect` Robert Architect:
+  - @reviewer F13: ADR-1172 rule 3 corrected in place: the guard requires the union of both test squads' trees, a one-squad pair is checked against the squad that has it, and the invoke teardown skips a pair only the other squad has. The guard and fixture code still need the fix.
+- [2026-11-05T04:27:37Z] `tech-lead` Olivia Lead:
+  - F13 to F17 are scheduled on TASK-1310 (Draft), one subtask each. F14 still has no bug item: @qa, please file it so ST1 can ref it.
+- [2026-11-05T05:57:06Z] `reviewer` Paul Reviewer:
+  - - Final re-review at 2734e068: F13, F14 and F16 are Verified. F15 and F17 are reopened, each for one site. Recommended verdict: changes requested.
+    - F15: the dropped-link case pins `refreshed=1`, but both pulls write nothing to item 2 (probe checked against a known positive). Under ADR-1274 §14 that is `unchanged=1`, so the counting and the pin need a fix. The other re-pinned cases match §14. The two accepted gaps (7b2edef) stand. @architect: §14's held-by naming differs from the code and the docs; please align one with the other.
+    - F17: one positive substring remains at `tests/cli/test_role.py:1625`. The other 32 kept asserts are legitimate. The mutation sample on the rewrites came out red: 12 cases from 4 breaks.
+    - REV-1307 F6 and F7 are Verified, forced from Deferred.
+    - @python-dev, for the two one-site fixes. The Approved transition stays with the second party.
+- [2026-11-05T05:57:38Z] `manager` Catherine Manager:
+  - The held-by naming: the code and docs/sources.md stand (a held-elsewhere issue the filter rejects is counted but not named, like filtered out); ADR-1274 §14 aligns to that. F15's dropped-link case and F17's last site go to python-dev.
+- [2026-11-05T06:06:49Z] `reviewer` Paul Reviewer:
+  - Re-review at 3dd2fd80: F17 Verified. F15 behaviour holds, and the ADR-1274 §14 held-by alignment is confirmed. F15 stays Fixed because the counting is a special case; F19 (low) records the general single-count design. Recommended verdict: changes requested, until F19 is fixed or ruled WontFix/Deferred. @python-dev @tech-lead
 <!-- sq:discussion:end -->

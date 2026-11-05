@@ -65,6 +65,8 @@ class Profile:
     #: A badge field of the reference type, a value of it, another value, and an unset marker.
     badge: str
     badge_flag: str
+    #: The options `create <ref>` takes for the type's own fields and attributes, in help order.
+    create_flags: tuple[str, ...]
     no_badge_flag: str
     badge_codes: str
     badge_value: str
@@ -72,8 +74,9 @@ class Profile:
     #: The line `check` adds for an open host item when no live role authors the host type (empty
     #: on a squad whose roles declare no authors).
     host_author_warning: str
-    #: Whether the host type carries that badge field too.
-    host_has_badge: bool
+    #: A badge field the reference type lacks (another type declares it) and a value of it.
+    skipped_field: str
+    skipped_value: str
     #: How a display shows the badge value and its label.
     badge_shown: str
     badge_shown_label: str
@@ -171,6 +174,7 @@ BUNDLED = Profile(
     third_other_value="Low",
     badge="priority",
     badge_flag="--priority",
+    create_flags=("--priority",),
     no_badge_flag="--no-priority",
     badge_codes="urgent, high, medium, low",
     badge_value="high",
@@ -179,7 +183,8 @@ BUNDLED = Profile(
         "warn: type 'feature' has 1 open item but no live role authors it \u2014 activate "
         "`product-owner` (`sq role activate product-owner`)\n"
     ),
-    host_has_badge=True,
+    skipped_field="severity",
+    skipped_value="high",
     badge_shown="\U0001f7e0 high",
     badge_shown_label="\U0001f7e0 High",
     badge_other_shown="\U0001f7e2 low",
@@ -249,12 +254,14 @@ OVERRIDE = Profile(
     third_other_value="small",
     badge="work_size",
     badge_flag="--work-size",
+    create_flags=("--work-size", "--owner-team"),
     no_badge_flag="--no-work-size",
     badge_codes="s, m, l",
     badge_value="m",
     badge_other_value="l",
     host_author_warning="",
-    host_has_badge=False,
+    skipped_field="urgency",
+    skipped_value="now",
     badge_shown="\u26aa m",
     badge_shown_label="\u26aa M",
     badge_other_shown="\u26aa l",

@@ -194,7 +194,7 @@ class JiraConnector(Connector):
             raise UnexpectedAnswerError("an issue without an id and a key")
         fields = mapping(record.get("fields"))
         if fields.get(_SECURITY):
-            raise RestrictedIssueError
+            raise RestrictedIssueError(issue_id)
         category = text(mapping(mapping(fields.get(_STATUS)).get("statusCategory")), "key")
         if category not in _CLOSED_CATEGORIES | _OPEN_CATEGORIES:
             raise UnexpectedAnswerError(f"issue {key} has no known status category")
@@ -217,12 +217,14 @@ class JiraConnector(Connector):
     def listing(self) -> list[Issue]:
         """Every issue the scope's JQL returns, closed ones included."""
         found: list[Issue] = []
-        self.restricted = 0
+        restricted: set[str] = set()
         for record in self._search(self._filter(), _FIELDS, _PAGE_SIZE):
             try:
                 found.append(self._parse_issue(mapping(record)))
-            except RestrictedIssueError:
-                self.restricted += 1
+            except RestrictedIssueError as exc:
+                restricted.add(exc.issue_id)
+        self.restricted = len(restricted)
+        self.restricted_ids = frozenset(restricted)
         return found
 
     def _issue_by(self, reference: str) -> Issue | None:

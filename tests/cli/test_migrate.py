@@ -351,7 +351,7 @@ async def test_up_lists_every_case_a_0_19_corpus_holds_and_stamps_nothing(
         "which rebuilds the index from the files first.\n",
     )
     assert _snapshot(squad) == before
-    assert 'schema_version = "0.19"' in _text(squad / ".squads.toml")
+    assert 'schema_version = "0.19"' in _text(squad / ".squads.toml").splitlines()
 
 
 def _skills_squad(tmp_path: Path, monkeypatch) -> Path:
@@ -397,7 +397,11 @@ async def test_up_retires_the_per_type_skills_and_renames_the_two_base_skills(
         "author": "sq-how-to",
         "description": how_to["description"],
     }
-    assert how_to["description"].startswith("How to track work on this project")
+    assert how_to["description"] == (
+        "How to track work on this project with the squads (`sq`) CLI: addressing items, bodies "
+        "and comments, common commands, and the `sq docs` topics to read next. Use whenever you "
+        "start, hand off, or update work."
+    )
     assert sorted(p.name for p in (squad / ".claude/skills").iterdir()) == [
         "release-notes",
         "sq-greeting",
@@ -413,7 +417,10 @@ async def test_up_retires_the_per_type_skills_and_renames_the_two_base_skills(
     allowed = json.loads(_text(squad / ".claude/settings.json"))["permissions"]["allow"]
     assert {"Skill(sq-greeting)", "Skill(sq-how-to)"} <= set(allowed)
     claude = _text(squad / "CLAUDE.md")
-    assert "invoke the `sq-greeting` skill" in claude
+    assert (
+        "**Before your first reply in a conversation with a human, invoke the `sq-greeting` "
+        "skill and"
+    ) in claude.splitlines()
     assert "`squads` skill" not in claude
     checked = await invoke(["check", "--json"])
     assert (checked.exit_code, checked.output) == (0, "[]\n")
@@ -466,7 +473,7 @@ async def test_up_lists_every_skill_it_refuses_and_what_the_skill_holds(
         "which rebuilds the index from the files first.\n",
     )
     assert _snapshot(squad) == before
-    assert 'schema_version = "0.19"' in _text(squad / ".squads.toml")
+    assert 'schema_version = "0.19"' in _text(squad / ".squads.toml").splitlines()
 
 
 @pytest.mark.covers("migrate up")
@@ -484,7 +491,7 @@ async def test_up_completes_once_the_refused_content_is_moved(
 
     assert result.exit_code == 0, result.output
     assert not list((squad / "squads/agents/skills").glob("*-sq-task.md"))
-    assert 'schema_version = "0.20"' in _text(squad / ".squads.toml")
+    assert 'schema_version = "0.20"' in _text(squad / ".squads.toml").splitlines()
 
 
 @pytest.mark.covers("migrate up")
@@ -557,7 +564,7 @@ async def test_up_leaves_base_skills_already_named_sq_greeting_and_sq_how_to(
     assert result.exit_code == 0, result.output
     assert (_skill_data(_skill_file(squad, "sq-greeting"))["id"]) == "SKILL-2"
     assert (_skill_data(_skill_file(squad, "sq-how-to"))["id"]) == "SKILL-13"
-    assert 'schema_version = "0.20"' in _text(squad / ".squads.toml")
+    assert 'schema_version = "0.20"' in _text(squad / ".squads.toml").splitlines()
 
 
 @pytest.mark.covers("migrate up")
@@ -621,10 +628,16 @@ async def test_up_refuses_a_playbook_override_setting_lifecycle_or_commands_and_
 
     result = await invoke(["migrate", "up"])
 
-    assert result.exit_code == 1
-    assert "types.task.lifecycle: 'lifecycle' is not a key of a playbook entry" in result.output
-    assert "types.task.commands: 'commands' is not a key of a playbook entry" in result.output
-    assert result.output.endswith("Correct the file, then re-run `sq migrate up`.\n")
+    assert (result.exit_code, result.output) == (
+        1,
+        f"error: {override}: Invalid playbook:\n"
+        "  - types.task.lifecycle: 'lifecycle' is not a key of a playbook entry \u2014 a type's "
+        "lifecycle line is derived from its workflow lifecycle \u2014 delete it\n"
+        "  - types.task.commands: 'commands' is not a key of a playbook entry \u2014 nothing "
+        "renders it \u2014 delete it, or move its lines into the `do` list of the guide whose "
+        "role runs them\n"
+        "Correct the file, then re-run `sq migrate up`.\n",
+    )
     assert _snapshot(squad) == before
 
 
