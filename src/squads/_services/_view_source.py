@@ -84,8 +84,6 @@ def _playbook_source(source: PlaybookSource) -> PlaybookView:
         if lane is None
         else PlaybookLane(
             overview=lane.overview,
-            lifecycle=lane.lifecycle,
-            commands=list(lane.commands),
             roles=[
                 PlaybookLaneRole(
                     slug=rg.slug,

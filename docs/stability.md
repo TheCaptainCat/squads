@@ -648,9 +648,8 @@ configured: they reply in the language that human writes in.
   stdout stays parseable, and `sq check` reports it through the always-on `working_language_valid`
   check (`warn`). At that default level no command fails because of it.
 - **Where it shows.** The rule is rendered into the managed `CLAUDE.md` and `AGENTS.md` sections
-  and the `squads` skill, with Babel's English name for the language plus the tag as written:
-  "French (`fr`)". After changing the key, `sq sync` refreshes the managed sections; the skill
-  picks it up the next time it is read.
+  with Babel's English name for the language plus the tag as written: "French (`fr`)". After
+  changing the key, `sq sync` refreshes the managed sections.
 - **Written by.** `sq init`, and `sq adopt` when it creates `.squads.toml`, write
   `working_language = "en"`. No other command adds, changes or removes it.
 - The names `language` and `locale` are not part of this setting; they are reserved for the CLI's
@@ -1264,8 +1263,8 @@ The frozen surface includes:
   | Key | Value |
   |---|---|
   | `body` | the stored text of the item's `sq:body` region, each `sq:view:<name>` tag left as a tag, never rendered, and a stored view's pair with its stored body escaped as on disk. The rendered text is on `sq show` and `--raw` |
-  | `views` | always present: an object of view name (vocabulary) to that view's entry, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform or is declared `stored`; `{}` when none does. The entry of a view that is not stored is the JSON its transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}`. The entry of a stored view is always `{body, data}`: `body` the stored body unescaped (`""` for an empty pair), `data` the transform's output, or `null` when the view declares no transform |
-  | `display.body` | display: the body as `sq show` prints it, each view tag expanded. A view whose template fails to render keeps its tag as written, and the command warns on stderr |
+  | `views` | always present: an object of view name (vocabulary) to that view's entry, for each view whose tag is placed and enabled in the body, resolves against the item, and declares a transform or is declared `stored`, a view that fails to render left out; `{}` when none does. The entry of a view that is not stored is the JSON its transform returned, whose shape that transform defines; `milestone_rollup`'s is `{delivered, outstanding, settled}`, three lists of `{id, type, title, status, assignee}`. The entry of a stored view is always `{body, data}`: `body` the stored body unescaped (`""` for an empty pair), `data` the transform's output, or `null` when the view declares no transform |
+  | `display.body` | display: the body as `sq show` prints it, each view tag expanded. A view that fails to render is replaced by one line naming `sq workflow view <name> <id>`, and the command warns on stderr |
   | `display.attributes` | display: one `{key, label, value}` per attribute the type declares with a `label` and the item stores, in declared order |
   | `etag` | the last key: a strong entity tag of the item's file as the command read it, a quoted string such as `"\"94dbfed2…\""`; opaque, compared for equality only; provisional |
 

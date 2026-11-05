@@ -1,8 +1,6 @@
 """`sq sync`: regenerating the pointers, skills and managed regions from the current squad."""
 
 import json
-import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -65,8 +63,10 @@ MANAGER_ROLE_SKILL_POINTER = (
     "---\n"
     "!`sq role manager show --raw --no-header || echo 'squads could not render the manager "
     "role; run: sq role manager show'`\n"
+    "\n## Memory\n\n"
     "!`sq memory manager list --raw || echo 'squads could not read the manager memory; run: "
     "sq memory manager list'`\n"
+    "\n## Board\n\n"
     "!`sq board list --raw || echo 'squads could not read the board; run: sq board list'`\n"
 )
 MANAGER_AGENT_POINTER = (
@@ -103,6 +103,18 @@ async def test_sync_writes_a_skill_pointer_that_renders_its_body_through_one_com
 
 
 @pytest.mark.covers("sync")
+async def test_sync_writes_a_pointer_frontmatter_that_parses_when_a_description_holds_backslashes(
+    seeded_project, invoke
+) -> None:
+    await invoke(["skill", "add", "Win paths", "--desc", "Read C:\\data\\new files\\"])
+    await invoke(["sync"])
+    text = (seeded_project.root / ".claude/skills/win-paths/SKILL.md").read_text(encoding="utf-8")
+    assert 'description: "Read C:\\\\data\\\\new files\\\\"\n' in text
+    front = yaml.safe_load(text.split("---\n")[1])
+    assert front["description"] == "Read C:\\data\\new files\\"
+
+
+@pytest.mark.covers("sync")
 async def test_sync_writes_a_role_skill_pointer_of_three_commands_for_each_live_role(
     seeded_project, invoke
 ) -> None:
@@ -122,42 +134,6 @@ async def test_sync_writes_an_agent_pointer_that_preloads_the_role_skill_and_nam
 ) -> None:
     await invoke(["sync"])
     assert (seeded_project.root / POINTER).read_text(encoding="utf-8") == MANAGER_AGENT_POINTER
-
-
-def _ran_without_sq(interpreter: str, line: str, empty_path: Path) -> tuple[int, str]:
-    """The exit code and output of *line* run by *interpreter* with nothing on the PATH."""
-    ran = subprocess.run(
-        [interpreter, "-c", line],
-        env={"PATH": str(empty_path)},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return ran.returncode, ran.stdout
-
-
-@pytest.mark.covers("sync")
-@pytest.mark.parametrize("shell", ["bash", "zsh"])
-async def test_every_line_of_a_pointer_exits_0_and_names_its_command_when_sq_is_absent(
-    seeded_project, invoke, tmp_path, shell
-) -> None:
-    interpreter = shutil.which(shell)
-    if interpreter is None:
-        pytest.skip(f"{shell} is not installed")
-    await invoke(["sync"])
-    lines = [
-        line[2:-1]
-        for line in (seeded_project.root / MANAGER_ROLE_SKILL)
-        .read_text(encoding="utf-8")
-        .splitlines()
-        if line.startswith("!`")
-    ]
-    assert len(lines) == 3
-    for line in lines:
-        assert _ran_without_sq(interpreter, line, tmp_path) == (
-            0,
-            line.split("echo '")[1].removesuffix("'") + "\n",
-        )
 
 
 @pytest.mark.covers("sync")

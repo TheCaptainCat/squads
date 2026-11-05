@@ -31,10 +31,13 @@ That is the whole ABC — seven methods, and it does not grow.
 
 - **`ensure_scaffold`** — create the tool's directories and base config (idempotent; never clobber
   user content). Claude Code makes `.claude/{agents,skills}` and merges `settings.json`.
-- **`write_managed`** — (re)write the version/roster-dependent files: the general skill, the
-  per-item-type skills, and any "project guidance" doc. Called by `init`/`adopt`/`sync`.
+- **`write_managed`** — (re)write the version/roster-dependent files: the bundled skills
+  (`sq-how-to`, `sq-greeting`, `sq-memory`) and any "project guidance" doc. Called by
+  `init`/`adopt`/`sync`.
 - **`generate_role_entry`** / **`generate_skill_entry`** — emit the per-role / per-skill entry (a
-  file or a section, depending on the backend).
+  file or a section, depending on the backend). A role entry may be more than one file: Claude Code
+  writes the agent pointer and the role skill `sq-role-<slug>` together, and `remove_artifacts`
+  removes both.
 - **`remove_artifacts`** — delete the files for a removed role/skill. This is also what withdraws a
   *retired* entry's files — see "Status is not your concern" below.
 - **`candidate_orphans`** — report, read-only, the on-disk pointer/skill files this backend does
@@ -45,7 +48,7 @@ That is the whole ABC — seven methods, and it does not grow.
 - **`managed_paths`** — the root-relative paths this backend owns, read-only, for `sq check` to
   verify scaffolding is present (a presence check, not a currency/drift check).
 
-Four more methods are non-abstract, with a working default — they don't grow the seven above (a
+Five more methods are non-abstract, with a working default — they don't grow the seven above (a
 subclass implementing only the seven still instantiates), but a bundled backend overrides them to
 declare its per-entry pointers and to answer question 4 and question 5 below:
 
@@ -62,6 +65,9 @@ declare its per-entry pointers and to answer question 4 and question 5 below:
 - **`render_role_entry`** and **`render_skill_entry`** — the pure render of what
   `generate_role_entry`/`generate_skill_entry` would write, without writing it. `None` when this
   backend has no per-entry file for that kind.
+- **`render_role_skill_entries`** — the pure render of every other file `generate_role_entry`
+  writes for a role, as root-relative path to text. Empty by default; Claude Code answers with the
+  role skill, so `sq check` compares it too.
 
 ## The five per-host questions
 
@@ -117,6 +123,8 @@ or "out of date or edited by hand" so an operator can tell the two facts about t
 - `ctx.paths` — `squad_dir`, `root`, …
 - `ctx.rel(path)` — project-root-relative, forward-slash path (for references and `Artifact` paths)
 - `ctx.root_relative(item)` — the same for an item's markdown file
+- `ctx.role_bodies` — each live role's body as `sq role <slug> show --raw --no-header` prints it,
+  for a backend that compiles role text rather than naming a command (the `AGENTS.md` backend)
 
 The **writing** methods return `Artifact(path, kind, backend)` records — informational, with a
 root-relative path. The read-only reporters (`candidate_orphans`, `managed_paths`) return plain
@@ -132,21 +140,28 @@ seven methods above and you inherit that behaviour — do **not** add a status b
 
 ## The recommended shape: pointers, not copies
 
-Follow the Claude Code pattern: write **thin pointers** in the tool's config that name the command
-to fetch the content — never a local path (see "The five per-host questions" below), and never a
-copy of the content itself. For a role, ClaudeCodeBackend writes a pointer to
-`.claude/agents/<slug>.md` that names `sq role <slug> show`; the role's own file,
-`squads/agents/roles/ROLE-*.md`, holds its identity and a view tag, and that command renders the
-definition. A managed skill gets a pointer in `.claude/skills/<name>/SKILL.md` naming `sq skill
-<slug> show`, and the definition behind it is rendered from templates when that command runs rather
-than stored — the backend's part is to make sure the skill's own file under the squad folder exists
-with a well-formed, empty body region. A skill an adopter authors is the other case: its body is
-real content, stored in that file and read back from it.
+Follow the Claude Code pattern: write **thin pointers** in the tool's config that carry the
+command producing the content — never a local path (see "The five per-host questions" below), and
+never a copy of the content itself. A Claude Code skill renders a `` !`command` `` line when it
+loads, so each skill pointer in `.claude/skills/<name>/SKILL.md` holds one such line: it runs
+`sq skill <slug> show --raw --no-header`, then `||` and an `echo` of a line naming
+`sq skill <slug> show`, and the agent receives the rendered body with no tool call. The `echo`
+keeps the line exiting `0`, so a missing or failing `sq` leaves a line naming the command instead
+of aborting the spawn. An agent file's body is
+not rendered, so for a role ClaudeCodeBackend writes two files: `.claude/agents/<slug>.md`, which
+carries the role's identity, preloads its skills and names `sq mine` and `sq inbox`, and the role
+skill `.claude/skills/sq-role-<slug>/SKILL.md`, which renders the role's body, its memory index and
+the board. The definitions behind them are rendered from templates when the commands run rather
+than stored — the backend's part is to make sure each skill's own file under the squad folder
+exists with a well-formed body region holding its view tag. A skill an adopter authors is the other
+case: its body is real content, stored in that file and read back from it. A host that cannot run a
+command at load compiles instead: the `AGENTS.md` backend writes each role's body from
+`ctx.role_bodies` and states the startup steps inline.
 
 Either way the pointer holds no content of its own, which is what keeps the "`.claude/` is
 pointers" invariant and means nothing is lost when the backend config is regenerated. The
 `_interactions` playbook (`skills_for_role`, `bundled_item_playbooks`) tells you which skills a role gets and what
-each item skill should say — reuse it.
+each role's playbook sections hold — reuse it.
 
 ## Registering one
 

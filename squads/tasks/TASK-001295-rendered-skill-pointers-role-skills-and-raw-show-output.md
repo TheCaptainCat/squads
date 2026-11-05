@@ -3,7 +3,7 @@ id: TASK-1295
 sequence_id: 1295
 type: task
 title: Rendered skill pointers, role skills and raw show output
-status: InProgress
+status: Done
 parent: FEAT-1290
 author: tech-lead
 assignee: python-dev
@@ -67,7 +67,7 @@ subentities:
   assignee: python-dev
   maps_to: US7
 created_at: '2026-11-04T21:46:20Z'
-updated_at: '2026-11-05T01:28:59Z'
+updated_at: '2026-11-05T02:48:07Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -711,4 +711,36 @@ Break each new or rewritten test once by hand (revert the line it guards, watch 
       - Body prose of a per-type skill on a squad below schema 0.15 is generated text and does not refuse the run: accepted. Comments and inbound refs still refuse.
       - This repository's own squad is not migrated by the manager: `sq migrate up` here is the operator's call (it moves the board past the released 0.19 tool). The after-measurement and QA run on migrated copies until op-pierre gives the go.
       - Before that run: the comments on ADR-1274 and REV-1281 that quote an `sq:attrs` line are read by 0.20 as malformed attribute lines; the reviewer judges whether that is a parser defect rather than a corpus fix.
+- [2026-11-05T01:41:54Z] `reviewer` Paul Reviewer:
+  - Reviewed in REV-1301: request changes, with 3 medium and 7 low findings. The verdict and next steps are on the review. @manager
+- [2026-11-05T01:43:02Z] `manager` Catherine Manager:
+  - REV-1301 (request changes): F1-F10 go to a fix round on this task. F3 (comment_attributes_valid misfiring on prose quoting sq:attrs and on bodies) is fixed here, before this squad is migrated. F7: keep the RoleView fields, correct the docstring.
+- [2026-11-05T01:49:43Z] `manager` Catherine Manager:
+  - - Docs pass committed. Follow-ups from the writer's handback, for the next TASK-1295 fix round (after the REV-1301 round):
+      1. The playbook's `lifecycle` and `commands` fields load but nothing renders them now; the reviewer judges at re-review whether they go.
+      2. `sq skill sq-greeting body`'s refusal names `.overrides/playbook.toml` as the authoring surface, but the text comes from `views/greeting_skill.md.j2`; the refusal names the wrong file.
+      3. `sq migrate up` prints "stripped retired regions from N item files" when the 0.20 step only placed `role_playbook` tags, and its footer still asks for `sq sync` (BUG-1306's code part).
+      4. `sq role <slug> view add` appears not to refresh AGENTS.md; QA confirms or rules it out.
+- [2026-11-05T01:50:09Z] `manager` Catherine Manager:
+  - - QA findings for the next TASK-1295 fix round, with my calls:
+      - BUG-1302: `show --raw --full --comments` must print sub-entity comments, as the panel does.
+      - BUG-1303: the role skill's pointer puts a heading line before each rendered line (`## Role`, `## Memory`, `## Board`, or similar), static text in the pointer, so the three outputs read as separate sections.
+      - BUG-1305: trim from `sq-how-to` what the managed CLAUDE.md section already gives (US3 rule).
+      - BUG-1306: the docs half is covered by the docs pass (43cf5280); its code half (the `migrate up` footer) is item 3 of my previous comment.
+- [2026-11-05T02:01:16Z] `python-dev` Elias Python:
+  - REV-1301 F1-F10 all Fixed, uncommitted. Notes: F2 also needed the pointer render fix (0.4 to 0.5 and 0.8 to 0.10 runners failed on the new template variables) and a 0.20 sweep of stray body files; F6 chose a command reference (`sq skill sq-how-to show`) in the role definition and playbook; F7 keeps the fields. Template manifest and content store regenerated (rebuild dropped 2 orphan blobs), bundled documents updated. Gates: pyright 0, ruff clean, meta+cli+check+daemon+regressions+cross_process 2267 passed 4 skipped; override cli+check 1189 passed 179 skipped, 0 failed. @reviewer please re-review REV-1301.
+- [2026-11-05T02:18:43Z] `python-dev` Elias Python:
+  - Fix round done, uncommitted. BUG-1302/1303/1305/1306 Fixed with comments. Writer follow-ups: the sq-greeting/how-to/memory refusal now names the view template override (skill_authoring_surface no longer reads the playbook); sq role view add/disable did not refresh AGENTS.md, now refreshes for roles when the tag changed (sq role body does not either: left as is). Gates: pyright 0; ruff clean; meta+cli+check+daemon+regressions+cross_process 2270 passed 4 skipped; --squad override cli+check 1192 passed 179 skipped, 0 failed/errors. Each new test broken once by hand. sq check clean. @reviewer @manager
+- [2026-11-05T02:40:33Z] `python-dev` Elias Python:
+  - - Fix round done for REV-1301 F6, F11, F12 plus `sq role <slug> body` refreshing AGENTS.md. Not committed.
+    - F6: role definition and five playbook lines now point to "Scope the comment to the right discussion" in `sq docs agents` (the section exists in docs/agents.md).
+    - F11: `comment_authors` scans discussion regions only.
+    - F12: playbook `lifecycle`/`commands` removed everywhere in ADR-226; load refusal names each key. Tests: migrate up refuses and writes nothing; check reports `playbook_loads`. MANUAL step 8, docs/migration.md, docs/overrides.md Format, CHANGELOG, override-squad fixture, goldens, manifest and content store regenerated.
+    - Role body: `_entry_body` refreshes managed files for a role; test added.
+    - Gates: pyright 0, ruff and format clean; main set 2275 passed, 4 skipped, 0 failed; `--squad override tests/cli tests/check` 1196 passed, 180 skipped, 0 failures or errors.
+    - Falsified: the F11, F12 (migrate and check), role-body, MANUAL and playbook-pointer tests each turned red with the fix reverted.
+    - Dry-run on a fresh squad copy: migrate up exit 0, no stop (this repo has no `.overrides/playbook.toml`); `sq check` exit 0 with one warn, the workflow override stale-base notice.
+    @reviewer ready for re-review of F6, F11, F12.
+- [2026-11-05T02:48:06Z] `manager` Catherine Manager:
+  - Done: REV-1301 approved with every finding verified, and the QA bugs verified. Non-visual work, accepted directly.
 <!-- sq:discussion:end -->

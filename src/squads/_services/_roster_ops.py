@@ -633,7 +633,10 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
 
     async def _entry_body(self, kind: str, req: RosterBodyRequest) -> Item:
         item = await self._write_target(kind, req.addr)
-        return await self.set_body(item.id, req.text, append=req.append, force=req.force)
+        written = await self.set_body(item.id, req.text, append=req.append, force=req.force)
+        if kind == ROSTER_ROLE:
+            await self.refresh_managed()  # AGENTS.md compiles the role bodies
+        return written
 
     async def _entry_status(
         self, kind: str, req: RosterStatusRequest
@@ -660,4 +663,6 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             changed = await self.add_view(item.id, req.name)
         else:
             changed = await self.disable_view(item.id, req.name)
+        if changed and kind == ROSTER_ROLE:
+            await self.refresh_managed()
         return await self.get(item.id), changed, was_present

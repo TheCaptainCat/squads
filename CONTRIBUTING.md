@@ -255,8 +255,8 @@ verbs or parameter signatures drift from the reference host's.
 
 `tests/check/` has one breach test per rule `sq check` reports: each member of `CATALOG` and
 `SQUAD_GLOBAL_CATALOG`, and each rule of `BINDING_RULES`. Modules are grouped by what the rules
-guard (`test_parent_rules.py`, `test_ref_rules.py`, …), and the tests carry no `covers` marker.
-The rules:
+guard (`test_parent_rules.py`, `test_ref_rules.py`, …), and the tests carry no `covers` marker. A
+load rule such as `sources_loads` has one test per distinct message it reports. The rules:
 
 - A test starts from the `minimal` squad, which `test_baseline.py` holds clean, and adds only what
   its breach needs. It runs the report through the `check_json` fixture twice: on the arranged

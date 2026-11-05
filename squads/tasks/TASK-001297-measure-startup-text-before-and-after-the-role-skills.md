@@ -3,7 +3,7 @@ id: TASK-1297
 sequence_id: 1297
 type: task
 title: Measure startup text before and after the role skills
-status: InProgress
+status: Done
 parent: FEAT-1290
 author: tech-lead
 assignee: qa
@@ -18,11 +18,11 @@ subentities:
   maps_to: US9
 - local_id: ST2
   title: 'After: startup figures once this squad is migrated'
-  status: Todo
+  status: Done
   assignee: qa
   maps_to: US9
 created_at: '2026-11-04T21:46:38Z'
-updated_at: '2026-11-04T21:56:15Z'
+updated_at: '2026-11-05T01:50:09Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -121,4 +121,6 @@ After the main loop has migrated this repository's squad with the finished build
     - Command outputs are the squad at 973058e5 (board, queues, tree), not today's. Operator op-pierre assumed for the main session; the greeting's git config user.name step not counted.
     - The main-session figure excludes the user-level CLAUDE.md, MEMORY.md and environment text; only the squads-contributed section is counted. The section was cut from the transcript's CLAUDE.md block (the marker lines are not in it); the file's marker region is 9310.
     - Only a hello was prompted, so no skill was followed and no command run by the models; the effective columns are my runs of the named commands. No spawn aborted.
+- [2026-11-05T01:49:17Z] `qa` Mara Tester:
+  - ST2 done: after figures posted on FEAT-1290. All 10 spawns and the main session read from transcripts; no echo fallback.
 <!-- sq:discussion:end -->

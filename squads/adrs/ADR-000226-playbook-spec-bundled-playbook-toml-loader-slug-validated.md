@@ -11,16 +11,17 @@ refs:
 - ADR-221
 - ADR-214
 - ADR-322
+- ADR-1294
 created_at: '2026-06-26T08:01:33Z'
-updated_at: '2026-10-27T21:05:25Z'
+updated_at: '2026-11-05T02:10:45Z'
 ---
 <!-- sq:body -->
 ## Context
 
-The team **playbook** says, per item type, what the type is for (an overview, a lifecycle line,
-command examples) and how each role interacts with it (an ordered list of per-role guides with
-`enter`/`do`/`handoff`/`watch` sections). It is the source of every generated `sq-<type>` skill, of
-`managed_item_types()`, and of `skills_for_role()`.
+The team **playbook** says, per item type, what the type is for (an overview) and how each role
+interacts with it (an ordered list of per-role guides with `enter`/`do`/`handoff`/`watch`
+sections). It is the source of each role's `role_playbook` view (ADR-1294 §2), of
+`managed_item_types()`, and of the create lane (ADR-163).
 
 `FEAT-000220` externalizes the playbook into a bundled `playbook.toml`, loaded and validated as a
 `PlaybookSpec`, with default behavior identical to the Python literal it replaced. It reuses the
@@ -30,7 +31,7 @@ fail-closed validation raising `SquadsError`.
 
 The playbook **depends on the role catalog** (ADR-221), the slug authority it validates against, and
 on the workflow spec, the authority on which types exist. A custom type's playbook entry is what
-gives its generated skill real role guidance instead of a thin stub.
+gives the roles that work on it guidance for that type.
 
 ## Decision
 
@@ -44,9 +45,7 @@ PlaybookSpec
 
 ItemPlaybookSpec
     overview:  str
-    lifecycle: str                  # human lifecycle line, e.g. "Draft → Ready → … (+ Blocked)"
-    commands:  list[str]
-    roles:     list[RoleGuideSpec]  # ORDERED — section order in the generated skill is significant
+    roles:     list[RoleGuideSpec]  # ORDERED — guide order in the role playbook is significant
 
 RoleGuideSpec
     slug:    str                    # a role slug, or `*<capability>` for every role holding it
@@ -58,9 +57,13 @@ RoleGuideSpec
 ```
 
 A `*<capability>` subject (e.g. `*dev`) addresses every role that declares that capability
-(ADR-984); it is resolved at skill-render time and is **exempt** from the role-catalog slug check in
-§3. The playbook's type set is the single authority for *which* `sq-<type>` skills exist; their
-description follows one generic pattern derived from the type.
+(ADR-984); it is resolved when the role playbook renders and is **exempt** from the role-catalog
+slug check in §3.
+
+An entry has no lifecycle line and no command list. A type's lifecycle line is derived from the
+workflow spec (`spec.machine_for(<type>) | linearize_lifecycle`, which the `role_playbook` template
+renders and any view template override can call), and a command belongs in the `do` list of the
+guide whose role runs it. §3 rule 6 refuses both keys by name.
 
 ### 2. Bundled TOML location & schema
 
@@ -72,11 +75,6 @@ Representative schema sketch (nested tables + array-of-tables for the ordered ro
 ```toml
 [types.task]
 overview = "A unit of implementation work. Its parent is the feature it implements; subtasks each map to one user story."
-lifecycle = "Draft → Ready → InProgress → InReview → Done (+ Blocked, Cancelled)"
-commands = [
-  'sq create task "…" --author tech-lead --parent FEAT-…',
-  'sq task <n> add-subtask "…" --story US1',
-]
 
   [[types.task.roles]]
   slug = "tech-lead"
@@ -111,12 +109,21 @@ empty lists.
      only be well-formed. An unknown slug is a spec error.
   3. **Coverage:** every bundled non-roster type still active in the spec has a playbook entry.
      Roster types (`role`, `skill`, `operator`) have none, and validation never requires one. A
-     custom type without an entry gets a thin generated skill.
-  4. **Required text present:** each entry has a non-empty `overview` and `lifecycle`.
+     custom type without an entry contributes no section to any role playbook.
+  4. **Required text present:** each entry has a non-empty `overview`.
   5. **No duplicate guide slug** within one type's `roles`.
+  6. **No `lifecycle` or `commands` key** in an entry, bundled or merged from the override. Each
+     occurrence is refused by name, all of them in one error, with the remedy:
+
+     ```
+     types.<type>.lifecycle: 'lifecycle' is not a key of a playbook entry — a type's lifecycle line is derived from its workflow lifecycle — delete it
+     types.<type>.commands: 'commands' is not a key of a playbook entry — nothing renders it — delete it, or move its lines into the `do` list of the guide whose role runs them
+     ```
+
+     Any other unknown key stays refused by the models' `extra="forbid"`.
 - **Consumers read the merged playbook** a service resolved: `managed_item_types(playbook)`,
-  `skills_for_role(role, spec, playbook)`, the create-lane helpers (ADR-163), and the backends'
-  per-type skill writers, which render each `sq-<type>` skill from it.
+  the create-lane helpers (ADR-163), and the `playbook` view source, whose lanes carry `overview`
+  and `roles` only, rendered by the `role_playbook` view (ADR-1294 §2).
 
 ### 4. Relationships
 
@@ -127,17 +134,42 @@ empty lists.
 
 ## Scope boundary
 
-- **Content, not rendering.** The skill-writing logic and its templates are not this decision's;
-  only the *source* of the playbook data is.
+- **Content, not rendering.** The views and templates that render the playbook are not this
+  decision's; only the *source* of the playbook data is.
 - **Project overrides** of the playbook are ADR-696's and ADR-777's; the bundled playbook is the base
   an override merges onto.
 
 ## Consequences
 
 - **Positive:** the playbook is one auditable, editable artifact; `managed_item_types()` /
-  `skills_for_role()` / the generated skills all flow from it; custom-type entries are held to the same slug-validation contract.
+  the role playbooks all flow from it; custom-type entries are held to the same slug-validation contract.
 - **Cost:** a TOML round-trip per load (negligible), and faithfully encoding the dense per-role prose
   (with backticks, `@mentions`, and `sq …` snippets) in TOML.
+
+## Narrowed 2026-11-05
+
+ADR-1294 retired the per-type skills, the only output that rendered an entry's `lifecycle` and
+`commands`. Both keys leave the format (§1, §2, §3 rule 4) and an entry that still sets one is
+refused (§3 rule 6): a required line no output shows, and one that can contradict the workflow
+spec it duplicates.
+
+- **An override that still sets them.** Every command that loads the playbook refuses the squad
+  with the rule 6 message, naming each `types.<type>.<key>`; `sq check` reports the same error
+  through its playbook fallback. The adopter deletes the keys from `.overrides/playbook.toml` by
+  hand. No release accepts them with a warning.
+- **The 0.19 → 0.20 migration does not touch `.overrides/playbook.toml`.** `sq migrate up` loads
+  the merged playbook before its first runner, so a squad whose override sets either key is
+  refused with the same message and nothing is written; the 0.20 manual names the step. The edit
+  is made with 0.20 installed: 0.19 still requires `lifecycle` on a custom type's entry.
+- **Removed with them:** the 18 keys of the bundled playbook, `ItemPlaybookSpec.lifecycle`/`.commands`,
+  `ItemPlaybook.lifecycle`/`.commands`, `PlaybookLane.lifecycle`/`.commands` in the `playbook` view
+  source, and the reading of override `commands` lines by the capability-token checks. No rendered
+  output changes.
+
+Rejected: accepting the keys with a deprecation warning for one release, which keeps a code path
+for a field with no output and moves the break to a later release instead of removing it; and a
+migration that strips them, since a migration writes item files, not the adopter's override text,
+and the `[dev]` table of the role catalog set the precedent of a load refusal plus a manual step.
 <!-- sq:body:end -->
 
 ## Discussion

@@ -23,23 +23,23 @@ subentities:
   assignee: python-dev
 - local_id: ST3
   title: Arrange and read source states through the CLI
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST4
   title: Load refusals in tests/check, markers name their parameter
-  status: Todo
+  status: InProgress
   assignee: python-dev
 - local_id: ST5
   title: 'CONTRIBUTING: one case per load-rule message'
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST6
   title: One case per refusal, named for it
-  status: Todo
+  status: InProgress
   assignee: python-dev
 - local_id: ST7
   title: Whole message lines and whole JSON objects
-  status: Todo
+  status: InProgress
   assignee: python-dev
 - local_id: ST8
   title: Check-rule cases follow the breach-test rules
@@ -54,7 +54,7 @@ subentities:
   status: Todo
   assignee: python-dev
 created_at: '2026-11-04T23:33:24Z'
-updated_at: '2026-11-04T23:57:03Z'
+updated_at: '2026-11-05T02:43:18Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -323,4 +323,8 @@ Overlap: the destinations include `tests/cli/test_item_verbs.py`, `test_show.py`
   - ST2: a pytest_runtest_makereport wrapper stashes each phase report; the invoke and check_json teardowns skip their check when the call was skipped. CONTRIBUTING updated. Falsified with a forced skip (3 credential cases and one tests/check case): error at teardown before, skipped after.
   - Gates: bundled 2210 passed, 2 skipped; override tests/cli 1022 passed, 179 skipped, local and remote mode; pyright, ruff clean.
   - @architect: ADR-1172 teardown sentence ("At teardown it fails the test when a declared key or pair is not among them") needs the same exception: a test that skipped itself is not checked.
+- [2026-11-05T01:40:23Z] `python-dev` Elias Python:
+  - Round 2 handback. ST3 (F3, F4, F5) and ST5 Done; ST4 (F6, F7) stays InProgress: F7 Fixed, F6 partly. Open: the --links effect in test_source_identities has no declarable pair (no map-option derivation in tests/_cli_surface.derived_names, so a --links marker is stale in the coverage guard); needs an architect ruling. test_source_ownership:50 still declares --title and --<field> together until ST6 splits it. Gates: pyright/ruff/format clean; tests/meta cli check daemon regressions 2236 passed 2 skipped; --squad override cli check 1185 passed 179 skipped, 0 failed. Logs in /home/pchat/.cache/sq-loop/r2-*.log. sq check clean.
+- [2026-11-05T01:43:01Z] `manager` Catherine Manager:
+  - F6 --links: the override squad's workflow override declares one map attribute on its reference type and its profile names it, and tests/_cli_surface gains the --<attribute:map> derivation like the str/list/date ones, so the derived option exists in that squad's tree and a marker can declare it. Goes into the ST6 round; the architect records the derivation in ADR-1172 rule 3.
 <!-- sq:discussion:end -->

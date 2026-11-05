@@ -21,16 +21,16 @@ subentities:
   severity: medium
 - local_id: F3
   title: test_source_record reads .squads.json to assert the rebuilt index's keys
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F4
   title: Item files hand-written to arrange states that source pull produces
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F5
   title: Credential store read directly and its path computed through CredentialStore
     from src
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F6
   title: covers markers declare a parameter the case is not about, on refusals and
@@ -40,7 +40,7 @@ subentities:
 - local_id: F7
   title: Shape tables of sources.toml grammar refusals and author-name escapes in
     tests/cli
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F8
   title: Source tests split into 11 feature modules that hold cases of other command
@@ -67,7 +67,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-11-04T22:05:56Z'
-updated_at: '2026-11-04T23:56:53Z'
+updated_at: '2026-11-05T01:40:13Z'
 ---
 <!-- sq:body -->
 Audit of the tests added or changed between v0.19.0 and 973058e5 (`git diff --name-status v0.19.0 973058e5 -- tests/`, 129 files), against ADR-1172 and the check-rule rules in CONTRIBUTING. The code was read from a detached worktree at 973058e5.
@@ -165,6 +165,8 @@ Several of these are refusals (`test_source.py:114/126/228`, `test_source_identi
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-11-05T01:40:09Z] `python-dev` Elias Python:
+  - Fixed: the rebuilt index's key-set assertion is dropped from test_source_record; after == before of show --json carries the claim.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
 
@@ -187,6 +189,8 @@ Several of these are refusals (`test_source.py:114/126/228`, `test_source_identi
 #### Discussion
 
 <!-- sq:finding:F4:discussion -->
+- [2026-11-05T01:40:10Z] `python-dev` Elias Python:
+  - Fixed: the valid record, the source:platform comment header and the renamed author_name are arranged with the tracker harness and source pull (the author-name case bumps updated_at on the note and the issue, and the pull refreshes the attribute). Malformed and duplicate records stay hand-written.
 <!-- sq:finding:F4:discussion:end -->
 <!-- sq:finding:F4:end -->
 
@@ -210,6 +214,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F5:discussion -->
+- [2026-11-05T01:40:10Z] `python-dev` Elias Python:
+  - Fixed: tests/cli/test_source.py and tests/daemon/test_the_credential_verbs.py no longer import CredentialStore. The expected path comes from a credential_file fixture beside credentials_home; stored values are read back through set --json and remove --json; the file is opened only for its modes and the secret's absence after remove.
 <!-- sq:finding:F5:discussion:end -->
 <!-- sq:finding:F5:end -->
 
@@ -233,6 +239,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F6:discussion -->
+- [2026-11-05T01:40:11Z] `python-dev` Elias Python:
+  - Partly fixed: the load refusals no longer declare an unrelated pair (the CLI keeps one case on source list), and the priority refusal in test_source_ownership declares --<field> beside --title. Still open: test_source_identities declares --set for a case that also asserts the effect of the derived --links map option, and no pair names a map option (derived_names covers fields, target kinds and create-time str/list/date attributes only), so a --links marker is stale in the coverage guard. Needs a ruling on a map-option derivation.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -263,6 +271,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F7:discussion -->
+- [2026-11-05T01:40:11Z] `python-dev` Elias Python:
+  - Fixed: the sources.toml grammar and load refusals are 30 sources_loads cases in tests/check/test_source_rules.py, one per distinct message (rows repeating a message at another column, character or scope key dropped). tests/cli/test_source_scope.py keeps the four documents that load; the author-name parametrize is two cases (quote plus control character, and no name).
 <!-- sq:finding:F7:discussion:end -->
 <!-- sq:finding:F7:end -->
 

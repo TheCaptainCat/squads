@@ -385,7 +385,6 @@ _migrations -> _itemfile top
 _migrations -> _models top
 _migrations -> _paths local
 _migrations -> _paths top
-_migrations -> _rendering top
 _migrations -> _roles top
 _migrations -> _sections top
 _migrations -> _util top

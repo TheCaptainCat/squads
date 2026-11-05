@@ -81,8 +81,6 @@ class RoleGuide:
 @dataclass(frozen=True)
 class ItemPlaybook:
     overview: str
-    lifecycle: str
-    commands: tuple[str, ...]
     roles: tuple[RoleGuide, ...]
 
 
@@ -105,8 +103,6 @@ def spec_to_item_playbook(pb: ItemPlaybookSpec) -> ItemPlaybook:
     """
     return ItemPlaybook(
         overview=pb.overview,
-        lifecycle=pb.lifecycle,
-        commands=tuple(pb.commands),
         roles=tuple(_spec_to_role_guide(rg) for rg in pb.roles),
     )
 
@@ -156,7 +152,7 @@ def orphaned_playbook_guides(
     never-installed from retired, which are the same event for the adopter. Retiring a bundled
     role that the bundled playbook names (six do) would otherwise mint an unclearable warning.
 
-    A type *spec* no longer declares is skipped. A merged playbook is already spec-filtered, so no
+    A type *spec* does not declare is skipped. A merged playbook is already spec-filtered, so no
     caller reaches this branch; it holds the property for a caller pairing the bundled playbook
     with an overridden spec. Pure, and returns sorted pairs.
     """
@@ -224,26 +220,26 @@ def unheld_capability_tokens(
     *,
     live_roles: Iterable[RoleLike],
     override_guides: Container[tuple[str, str]],
-    override_commands: Container[tuple[str, str]] = (),
 ) -> list[tuple[str, str]]:
-    """Every ``(item_type, capability)`` an adopter guide or command uses as an unheld ``@*<cap>``.
+    """Every ``(item_type, capability)`` an adopter guide uses as an unheld ``@*<cap>``.
 
     No live role holds it, so the generated role playbook renders ``*<capability>`` and mentions
     nobody.
-    Only a guide *override_guides* carries and a command line *override_commands* carries are
-    read: the same token in the bundled playbook degrades silently, as no adopter can edit it. A
-    type *spec* no longer declares is skipped. Pure, and returns sorted, unique pairs.
+    Only a guide *override_guides* carries is read: the same token in the bundled playbook degrades
+    silently, as no adopter can edit it. A type *spec* does not declare is skipped. Pure, and
+    returns sorted, unique pairs.
     """
     held = {c for r in live_roles for c in r.capabilities}
     out: set[tuple[str, str]] = set()
     for item_type in managed_item_types(playbook):
         if item_type not in spec.items:
             continue
-        entry = playbook.types[item_type]
-        lines = [ln for ln in entry.commands if (item_type, ln) in override_commands]
-        for guide in entry.roles:
-            if (item_type, guide.slug) in override_guides:
-                lines.extend(guide_text_lines(guide))
+        lines = [
+            line
+            for guide in playbook.types[item_type].roles
+            if (item_type, guide.slug) in override_guides
+            for line in guide_text_lines(guide)
+        ]
         out.update(
             (item_type, name)
             for line in lines

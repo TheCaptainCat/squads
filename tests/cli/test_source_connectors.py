@@ -399,60 +399,6 @@ async def test_a_jira_data_center_personal_access_token_passes_access(
     )
 
 
-@pytest.mark.covers("source credential remove", "source")
-async def test_a_jira_source_without_a_version_fails_at_load_listing_the_known_versions(
-    project, invoke, credentials_home, profile
-) -> None:
-    path = project.squad_dir / ".overrides" / "sources.toml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    declared = _jira(profile, "x", "http://127.0.0.1:9").replace('version = "x"\n', "")
-    path.write_text(declared, encoding="utf-8")
-
-    result = await invoke(["source", "credential", "remove", "platform"])
-
-    assert (result.exit_code, result.output.replace(str(path), "sources.toml")) == (
-        1,
-        "error: sources.toml: invalid sources after merge:\n  source 'platform': connector 'jira' "
-        "has several versions, so `version` is required (known: cloud-v3, dc-v2)\n",
-    )
-
-
-@pytest.mark.covers("source list", "--json")
-async def test_a_source_without_a_scope_or_with_a_badly_written_map_fails_at_load(
-    project, invoke, credentials_home, profile
-) -> None:
-    path = project.squad_dir / ".overrides" / "sources.toml"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    declared = _github(profile, "http://127.0.0.1:9")
-    unsided = declared.replace(
-        "[sources.platform.maps.types.labels]", "[sources.platform.maps.types]"
-    )
-    wrong_side = declared.replace(
-        f"[sources.platform.maps.fields.{profile.badge}.labels]",
-        f"[sources.platform.maps.fields.{profile.badge}.priority]",
-    )
-    results = []
-    for text in (declared.replace('repository = "acme/api"\n', ""), unsided, wrong_side):
-        path.write_text(text)
-        result = await invoke(["source", "list", "--json"])
-        results.append((result.exit_code, result.output.replace(str(path), "sources.toml")))
-
-    head = "error: sources.toml: invalid sources after merge:\n  source 'platform': "
-    assert results == [
-        (1, head + "no scope key; name exactly one of: repository\n"),
-        (
-            1,
-            head + "maps.types.squads is a value, not a side: write it under "
-            "maps.types.<side>, one of: labels, type\n",
-        ),
-        (
-            1,
-            head + "maps name the side 'priority', which the connector does not have "
-            "(known: labels, type)\n",
-        ),
-    ]
-
-
 @pytest.mark.covers("source pull", "source")
 async def test_a_vanished_issue_costs_only_itself_and_a_failing_source_only_itself(
     project, invoke, credentials_home, profile

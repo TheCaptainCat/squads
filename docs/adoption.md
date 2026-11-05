@@ -119,8 +119,7 @@ The value is a BCP 47 tag, for example:
 `sq init`, and `sq adopt` when it creates `.squads.toml`, write `working_language = "en"`. An adopt
 over an existing `.squads.toml` leaves that file as it is, so a squad without the key works in
 English, silently, until you add it. Run `sq sync` after setting or changing the key: it refreshes
-the rule in the managed `CLAUDE.md` and `AGENTS.md` sections, and the `squads` skill shows it the
-next time it is read. A value squads does not recognise as a language tag (`fr_FR`, say) prints a
+the rule in the managed `CLAUDE.md` and `AGENTS.md` sections. A value squads does not recognise as a language tag (`fr_FR`, say) prints a
 warning on every command and in `sq check`, and English applies until you fix it. The full rule is
 in [stability.md § "Working language in `.squads.toml`"](stability.md#working-language-in-squadstoml).
 
@@ -331,8 +330,8 @@ squads computes on every read rather than stores:
   and any other key.
 
 It also canonicalises any legacy ref encoding it finds, and fills an **empty** body region on a
-role or a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) with the view tag
-that `sq role <slug> show` / `sq skill <slug> show` render the definition into. That definition
+role or a generated skill (`sq-how-to`, `sq-greeting`, `sq-memory`) with the view tags that
+`sq role <slug> show` / `sq skill <slug> show` render the definition into. That definition
 comes from the role's base (its catalog entry, its role template, or the definition it stores) and
 your own overrides, so create a custom role with `sq role add` rather than relying on a role file
 alone. On a corpus that carries any of this, one
@@ -367,7 +366,8 @@ second run is always a no-op.
 
 ## Letting an agent do it
 
-After `sq adopt`, the project's `CLAUDE.md` and the `squads` skill teach the agents the workflow.
+After `sq adopt`, the project's `CLAUDE.md`, each role's role skill and the `sq-how-to` skill
+teach the agents the workflow.
 Point an agent (e.g. the manager or tech-lead) at the legacy docs and ask it to migrate them
 file-by-file using the steps above — it already knows the commands, and `--at` lets it stamp each
 item with the date it reads from the source document.

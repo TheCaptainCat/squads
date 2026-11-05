@@ -10,9 +10,6 @@ from squads._interactions._loader import PLAYBOOK_OVERRIDE_MESSAGES as PLAYBOOK_
 from squads._interactions._loader import bundled_playbook_toml_text as bundled_playbook_toml_text
 from squads._interactions._loader import load_playbook as load_playbook
 from squads._interactions._loader import (
-    playbook_override_command_lines as playbook_override_command_lines,
-)
-from squads._interactions._loader import (
     playbook_override_guide_pairs as playbook_override_guide_pairs,
 )
 from squads._interactions._loader import playbook_stamp_finding as playbook_stamp_finding

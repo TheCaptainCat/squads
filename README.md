@@ -69,9 +69,11 @@ is authored by a role (`--author`), which is why a squad starts by activating a 
 
 ## Working with agents
 
-After `sq init`, open Claude Code in the project. `CLAUDE.md` tells the agents how the process
-works and how to **impersonate a role on greeting**: say *"Hi Robert"* and Claude becomes Robert
-Architect; with no name it defaults to **Catherine Manager**, who triages and routes the request.
+After `sq init`, open Claude Code in the project. `CLAUDE.md` tells the main session to start
+from the **`sq-greeting`** skill before its first reply: identify you, adopt a role, read that
+role, its queue, its mentions, the board and its memory, then greet. Say *"Hi Robert"* and Claude
+becomes Robert Architect; with no name it adopts the squad's default role, **Catherine Manager**,
+who triages and routes the request (`sq role <slug> set-default` changes the default).
 
 The bundled roster: Catherine Manager (`manager`, default), Robert Architect (`architect`),
 Olivia Lead (`tech-lead`), Paul Reviewer (`reviewer`), Mara Tester (`qa`), Hugo Ops (`devops`),
@@ -81,13 +83,13 @@ Agents create items with `sq`, fill in the body with `sq <type> <n> body`, and h
 `sq <type> <n> comment … @role`. Everything an item knows — body, status, discussion — arrives
 through the CLI; the `.md` files are never hand-edited.
 
-`sq init`/`sq sync` also generate a **skill per item type** (`sq-feature`, `sq-task`, `sq-bug`, …)
-with role-directed guidance, plus the general `squads` skill. Each role's `.claude/agents/<slug>.md`
-pointer preloads (via `skills:`) `squads`, `greeting` and `sq-memory`, plus one `sq-<type>` skill
-per item type the team playbook gives that role a part in — so the product owner adds `sq-epic`,
-`sq-feature`, `sq-contract` and `sq-milestone`, a developer adds `sq-task`, `sq-bug`, `sq-contract`
-and `sq-review`, and the manager (who triages rather than owning a type) gets just the three shared
-skills. Run `sq workflow` for the cheatsheet.
+Each role's agent, `.claude/agents/<slug>.md`, preloads (via `skills:`) its own **role skill**
+`sq-role-<slug>`, then `sq-how-to` and `sq-memory`. Every skill pointer renders its skill when it
+loads, so a spawned agent starts with its role definition, its part of the team playbook for each
+item type it works with (the product owner's epic, feature, contract and milestone guidance, a
+developer's task, bug, contract and review guidance; the manager, who triages, gets its definition
+alone), its memory index and the board's notices, with no command to run first. A squad adds its
+own text for a role with `sq role <slug> body`. Run `sq workflow` for the cheatsheet.
 
 ### Team workflow
 
@@ -163,10 +165,11 @@ squad, which is what you do most once agents are the ones writing:
 ```
 your-project/
 ├── .squads.toml                 # config (schema version, squad dir, active backends, working language)
-├── CLAUDE.md                    # managed section: process + greeting impersonation
+├── CLAUDE.md                    # managed section: process, roster, start from sq-greeting
 ├── .claude/
-│   ├── agents/<slug>.md         # POINTER → `sq role <slug> show`
-│   └── skills/<skill>/SKILL.md  # POINTER → `sq skill <skill> show`
+│   ├── agents/<slug>.md         # POINTER: identity + preloaded skills
+│   └── skills/<skill>/SKILL.md  # POINTER: renders `sq skill <skill> show --raw --no-header`
+│                                #   (sq-role-<slug>: the role, its memory index and the board)
 └── squads/                      # self-contained & relocatable (squad_dir in .squads.toml)
     ├── .squads.json             # the index: counter + all items + refs
     ├── epics/ features/ tasks/ bugs/ adrs/ contracts/ milestones/ reviews/ guides/ operators/
@@ -303,7 +306,7 @@ works exactly like the canonical spelling.
 **Items**
 - `sq create epic|feature|task|bug|decision|contract|milestone|review|guide <title> --author <slug> [--parent id] [--desc] [--label] [--ref id] [--assignee] [--priority code] [--<field> code] [--<attribute> value] [-m "body"|--file] [--json]` — one `--<field>` option per field the type declares (a bug's `--severity`, or a field an override adds), where `code` is from the field's collection (`--help` lists them); a field left out stores its declared default, so a new bug gets `severity: medium`. One `--<attribute>` option per `str`, `list` or `date` attribute the type declares, named after its key with dashes: a milestone's `--target-date`, a review's `--target-ref`, a guide's `--tech` and `--tags`. A value is checked as `update --set` checks it; a list option is repeatable and splits on commas
 - `sq list [--type|--status|--category|--parent|--label|--assignee|--priority|--min-priority|--badge|--min-badge|--sort] [--all] [--json|--compact]` · `sq tree [root-id] [--all] [--json]` — closed (Done/Cancelled/…) items are hidden unless `--all` (or an explicit `--status`); `tree --json` emits the nested subtree (status/priority/assignee/blocked) for orchestrating agents; `list --compact` prints one line per item (ID, status, title cut to the terminal width)
-- `sq <type> <n> show [--full] [--comments] [--raw] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call · `sq show <id>` shows any item by ID or bare number, whatever its type
+- `sq <type> <n> show [--full] [--comments] [--raw [--no-header]] [--json]` — `--full` adds a pane per sub-entity, `--comments` the discussion: the whole dossier in one call; `--raw` prints plain markdown (no panel, colour or wrapping), and `--no-header` with it prints the body alone ([details](docs/workflow.md#plain-text-output---raw-and---no-header)) · `sq show <id>` shows any item by ID or bare number, whatever its type
 - `sq <type> <n> body [-m "…"|--file path] [--append]` · `sq <type> <n> comments` — read the discussion back on its own; each comment shows its short hash
 - `sq <type> <n> comment <hash> show|edit|remove` — work on one comment by 4 or more leading characters of its hash, on items, sub-entities, roles, skills and operators; only the comment's author (`--as`) can edit or remove it
 - `sq <type> <n> update [--title|--desc|--author|--status|--force|--parent|--no-parent|--assignee|--priority|--no-priority|--add-label|--rm-label|--set k=v|--unset k]` — `--set` writes a badge field or an attribute the type declares, checked before anything is written ([attributes](docs/overrides.md#attributes-the-keys-a-type-stores))
@@ -341,8 +344,9 @@ discussion — all written through commands.
 - `sq skill add <name> [--desc|--when-to-use|--allowed-tools|--operator-invocable]` · `sq skill <slug|id|n> show [--comments]|body|update [--title|--desc|--when-to-use|--operator-invocable]|comment|comments|regen|remove --purge|link-role <role>|unlink-role <role>|status <status> [--force] [--unlink]` — a skill slug is never `add`, and a skill cannot author or be assigned work; on a generated skill, `update` refuses `--title`, `--desc` and `--when-to-use` and accepts `--operator-invocable`
 - Archiving a roster entry **retires** it: its generated files are withdrawn, the transition is refused where the generated config couldn't survive it, and `--unlink` severs a severable dependency so the ordinary check can pass — see [docs/roles.md](docs/roles.md#retiring-a-roster-entry)
 - `sq create guide <title> --author <slug> [--tech] [--tags]` — tech/tag-labelled guides, taking the shared `sq create` options too; list them with `sq list --type guide`
-- `sq memory <role> list|search|show|add|forget` — a role's committed notebook: facts it learned and should carry into the next session
-- `sq board post|list|clear` — the team bulletin board: notices every agent reads at the start of a run
+- `sq memory <role> list [--raw]|search|show|add|forget` — a role's committed notebook: facts it learned and should carry into the next session
+- `sq board post|list [--raw]|clear` — the team bulletin board: notices every agent reads at the start of a run
+- `sq role|skill|operator <slug> show --raw [--no-header]` — the same plain-markdown output as an item's `show --raw`
 
 **Maintenance**
 - `sq check` — lint markers, dangling parent/ref IDs, invalid status, index drift
@@ -397,8 +401,11 @@ active_backends = ["claude_code", "agents_md"]
 ### `claude_code` (default)
 
 Writes thin pointer files into `.claude/agents/` and `.claude/skills/`, plus a managed section in
-`CLAUDE.md`. Each role and skill gets its own pointer file that names the `sq` command producing
-its full definition (`sq role <slug> show`, `sq skill <name> show`). Designed for Claude Code.
+`CLAUDE.md` and the allow rules in `.claude/settings.json`. Each skill pointer renders its skill
+when it loads, through `sq skill <name> show --raw --no-header`; each role gets an agent file and a
+role skill, `sq-role-<slug>`, that renders the role, its memory index and the board. When `sq`
+cannot run, the agent receives a line naming the command to run by hand and still starts. Designed
+for Claude Code.
 
 ```bash
 sq init --backend claude_code   # default; creates .claude/ + CLAUDE.md
@@ -409,7 +416,9 @@ Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/`.
 ### `agents_md`
 
 Writes a single `AGENTS.md` file at the project root — the cross-tool AGENTS.md convention
-(understood by Gemini CLI, Cursor, and other AI-enabled editors). No pointer files are created.
+(understood by Gemini CLI, Cursor, and other AI-enabled editors). No pointer files are created:
+the managed section states the startup steps inline and compiles each role's body (its definition
+and playbook sections, as `sq role <slug> show --raw --no-header` prints it).
 `sq sync` keeps the managed section current without touching user prose outside the
 `<!-- squads:start -->` / `<!-- squads:end -->` markers.
 
@@ -424,8 +433,8 @@ No staging files are written; commit `.squads.toml`, the `squads/` folder and `A
 
 ## Git notes
 
-Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/` (the pointers + squads
-skill). `squads/.gitignore` already excludes the lock/temp files. On a merge conflict in
+Commit `.squads.toml`, the `squads/` folder, `CLAUDE.md`, and `.claude/` (the pointers and
+`settings.json`). `squads/.gitignore` already excludes the lock/temp files. On a merge conflict in
 `.squads.json`, take either side and run `sq repair` (the frontmatter is the truth);
 if two branches reused an ID number, run `sq repair --renumber`.
 

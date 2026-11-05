@@ -71,10 +71,9 @@ SCOUT_BODY = (
     "by opening the file.\n"
     "When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> "
     "comment` for sub-entity-scoped\n"
-    "notes, `sq <type> <n> comment` for cross-cutting material — see the `sq-how-to` "
-    "skill's **comment-scoping\n"
-    "convention** for the full rule and examples. Correct or withdraw your own "
-    "comment by its hash:\n"
+    "notes, `sq <type> <n> comment` for cross-cutting material — see **Scope the comment to the\n"
+    "right discussion** in `sq docs agents` for the full rule. Correct or "
+    "withdraw your own comment by its hash:\n"
     "`sq <type> <n> [<kind> <k>] comment <hash> show|edit|remove`; if a hash stops "
     "resolving, read the\n"
     "discussion again.\n"
@@ -1316,6 +1315,37 @@ async def test_view_add_of_the_view_a_role_already_renders_changes_nothing(proje
     )
 
 
+def _text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.mark.covers("role view add", "name")
+@pytest.mark.covers("role view disable", "name")
+async def test_role_view_edits_refresh_the_agents_md_section(invoke) -> None:
+    assert (await invoke(["init", "--roles", "core", "--backend", "agents_md"])).exit_code == 0
+    agents = Path("AGENTS.md")
+    full = _text(agents)
+    off = await invoke(["role", "tech-lead", "view", "disable", "role_playbook"])
+    assert off.exit_code == 0, off.output
+    stripped = _text(agents)
+    assert stripped != full
+    on = await invoke(["role", "tech-lead", "view", "add", "role_playbook"])
+    assert on.exit_code == 0, on.output
+    assert _text(agents) == full
+
+
+@pytest.mark.covers("role body", "--append")
+async def test_role_body_edits_refresh_the_agents_md_section(invoke) -> None:
+    assert (await invoke(["init", "--roles", "core", "--backend", "agents_md"])).exit_code == 0
+    agents = Path("AGENTS.md")
+    assert "Kept in AGENTS.md." not in _text(agents)
+
+    result = await invoke(["role", "tech-lead", "body", "-m", "Kept in AGENTS.md.", "--append"])
+
+    assert result.exit_code == 0, result.output
+    assert "Kept in AGENTS.md." in _text(agents)
+
+
 @pytest.mark.covers("role view add", "name")
 async def test_view_add_is_refused_for_a_name_the_role_body_does_not_take(project, invoke) -> None:
     await _add_scout(invoke)
@@ -1553,6 +1583,38 @@ async def test_show_gives_the_definition_then_the_roles_own_section_of_each_play
 
 
 @pytest.mark.covers("role show", "--no-header")
+@pytest.mark.override_only("the manager's guides are the override playbook's")
+async def test_show_gives_the_manager_the_squads_own_types_after_its_definition(
+    project, invoke, profile
+) -> None:
+    out = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
+    definition, _, playbook = out.partition(f"\n## {profile.host.title()} items\n")
+    assert definition.startswith("# Catherine Manager\n")
+    headings = [line for line in playbook.splitlines() if line.startswith("## ")]
+    assert headings[0] == f"## {profile.ref.title()} items"
+    assert f"`sq {profile.ref} <n> show --full --comments`" in playbook
+    assert "- author the job and break it into actions" in playbook
+    assert "Epic" not in out
+
+
+@pytest.mark.covers("role view disable", "name")
+@pytest.mark.override_only("the manager's guides are the override playbook's")
+async def test_view_disable_turns_the_squads_own_playbook_sections_off(
+    project, invoke, profile
+) -> None:
+    before = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
+    result = await invoke(["role", "manager", "view", "disable", "role_playbook"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "ROLE-1: view role_playbook disabled in sq:body\n",
+    )
+    after = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
+    assert f"## {profile.host.title()} items" in before
+    assert f"## {profile.host.title()} items" not in after
+    assert after.startswith("# Catherine Manager\n")
+
+
+@pytest.mark.covers("role show", "--no-header")
 @pytest.mark.bundled_only("the developer's capability guide is the bundled playbook's")
 async def test_show_gives_a_developer_the_capability_guide_as_its_own_section(
     project, invoke
@@ -1621,11 +1683,20 @@ async def test_body_prose_sits_beside_the_rendered_playbook_sections(project, in
 
 
 @pytest.mark.covers("role show", "--raw")
-async def test_show_raw_names_the_sq_how_to_skill_and_no_other_skill_or_role_read(
+@pytest.mark.bundled_only("the tech lead's guides are the bundled playbook's")
+async def test_playbook_guides_point_to_the_agents_doc_not_to_a_skill(project, invoke) -> None:
+    await _activate(invoke, "tech-lead")
+    out = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
+    assert 'see "Scope the comment to the right discussion" in `sq docs agents`' in out
+    assert "sq skill sq-how-to" not in out
+
+
+@pytest.mark.covers("role show", "--raw")
+async def test_show_raw_points_to_the_how_to_through_a_command_and_names_no_skill(
     project, invoke
 ) -> None:
     out = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
-    assert "the `sq-how-to` skill's **comment-scoping" in out
-    assert re.findall(r"`sq-[a-z][a-z-]*`", out) == ["`sq-how-to`"]
+    assert "**Scope the comment to the\nright discussion** in `sq docs agents`" in out
+    assert re.findall(r"`sq-[a-z][a-z-]*`", out) == []
     assert "`greeting`" not in out
     assert "sq role manager show" not in out

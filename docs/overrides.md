@@ -77,11 +77,14 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
     views/
       milestone_rollup.md.j2
       role_definition.md.j2
-      squads_skill.md.j2
-      greeting_skill.md.j2
-      memory_skill.md.j2
-      item_skill.md.j2
-    workflow.md.j2            # the workflow cheatsheet (`sq workflow`, the squads skill)
+      role_playbook.md.j2     # a role's playbook sections, one per item type it works with
+      source_description.md.j2
+      squads_skill.md.j2      # the sq-how-to skill
+      greeting_skill.md.j2    # the sq-greeting skill
+      memory_skill.md.j2      # the sq-memory skill
+    startup_steps.md.j2       # the main session's startup steps (sq-greeting and AGENTS.md)
+    working_language.md.j2    # the working-language rule (CLAUDE.md and AGENTS.md)
+    workflow.md.j2            # the workflow cheatsheet (`sq workflow`, the AGENTS.md section)
     workflow_static.md.j2     # the fixed part of the cheatsheet, included by workflow.md.j2
   workflow.toml
   playbook.toml
@@ -116,8 +119,8 @@ All overrides live under a single umbrella directory, **`<squad-dir>/.overrides/
   field, and drop one you don't want.
 - **`playbook.toml`** is your squad's delta on the **team playbook**: which roles interact with each
   item type, and the guidance each of them reads before touching one (see
-  [Playbook overrides](#playbook-overrides-role-guidance-per-item-type)). It is what your generated
-  `sq-<type>` skills are compiled from.
+  [Playbook overrides](#playbook-overrides-role-guidance-per-item-type)). It is what each role's
+  playbook sections, in `sq role <slug> show` and the role's skill, are rendered from.
 - **`sources.toml`** declares the outside trackers your squad pulls issues from, and may shadow a
   connector's defaults (see [sources.md](sources.md#declaring-a-source)). It holds no credential.
 - **Transform files** are Python files a view's `transform = { path = … }` names, relative to
@@ -1237,10 +1240,9 @@ quietest a bundled check can be made is `warn`, which still reports. The opt-in 
 are on by default for no category, so a type that does not name one does not run it.
 
 **But a type's own list is an ordinary array, and arrays are leaves** (see § "Plain arrays are
-leaves — replaced whole"). Three bundled types ship a `validators` entry of their own, `epic`
-(`["no_parent"]`), `review` (`["subentities_settled_with_parent"]`) and `skill`
-(`["item_skill_shadowed"]`), and writing the key in your override replaces the whole list rather
-than adding to it. This turns the status-banner check on for epics
+leaves — replaced whole"). Two bundled types ship a `validators` entry of their own, `epic`
+(`["no_parent"]`) and `review` (`["subentities_settled_with_parent"]`), and writing the key in
+your override replaces the whole list rather than adding to it. This turns the status-banner check on for epics
 and drops `no_parent`, with no warning, so epics start accepting a parent:
 
 ```toml
@@ -1428,7 +1430,6 @@ The squad checks run once per `sq check`:
 | `override_stamped` | an override under `.overrides/` that shadows a bundled file and carries no `squads:override-base` stamp | `error` | without the stamp, `sq` cannot tell whether the bundled file changed under it |
 | `override_current` | an override whose bundled base changed since the version it is stamped with | `warn` | the override may hide an upgrade's change; `sq override diff` shows it |
 | `override_loads` | a template, role or role catalog override that cannot be read, lacks the markers a template needs, or does not load; a per-slug role file with no role under it | `error` | the overrides are the configuration every selection is read from |
-| `skill_type_declared` | a live skill generated for an item type the workflow no longer declares | `warn` | its generated files have been withdrawn, so the skill points at nothing |
 
 The configuration checks are reported by `sq check` itself when a document will not load. No
 selection can reach them, since the selections live in the document that failed:
@@ -2253,23 +2254,22 @@ A role takes prose with no override: `sq role <slug> body` writes beside its gen
 definition on every role (see
 [roles.md § "Updating and commenting on roles, skills and operators"](roles.md#updating-and-commenting-on-roles-skills-and-operators)).
 
-A permanently-system skill's body (`squads`, `greeting`, `sq-memory`) and a per-item-type
-`sq-<type>` skill's body render through their view and refuse prose — replace and append alike,
-`--force` or not. The same skills refuse a description, an attribute the bundled spec declares, a
-title and view edits (see
+A permanently-system skill's body (`sq-how-to`, `sq-greeting`, `sq-memory`) renders through its
+view and refuses prose — replace and append alike, `--force` or not. The same skills refuse a
+description, an attribute the bundled spec declares, a title and view edits (see
 [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
-Their content normally comes from the playbook overrides or the view's own template override. To
-write one of these bodies yourself instead, drop its view from `[selected]`. `[selected].views`
-lists the survivors, so name every other view you keep:
+Their content normally comes from the view's own template override. To write one of these bodies
+yourself instead, drop its view from `[selected]`. `[selected].views` lists the survivors, so name
+every other view you keep:
 
 ```toml
 [selected]
-views = ["milestone_rollup", "role_definition", "greeting_skill", "memory_skill", "item_skill"]
+views = ["milestone_rollup", "role_definition", "role_playbook", "greeting_skill", "memory_skill", "source_description"]
 ```
 
-With `squads_skill` dropped, `sq skill squads body -m "…"` is admitted, and `sq sync` and
+With `squads_skill` dropped, `sq skill sq-how-to body -m "…"` is admitted, and `sq sync` and
 `sq repair` leave the prose alone. The tag already in the body now names an undeclared view, so
-`sq check` reports it until you run `sq skill squads view disable squads_skill`. Putting the view
+`sq check` reports it until you run `sq skill sq-how-to view disable squads_skill`. Putting the view
 back in `[selected]` makes the body refuse writes again. A skill body that holds prose and lacks
 its tag is reported, with the remedy. The text you wrote stays, and renders beside the view once
 its tag is re-enabled with `view add`; changing it means dropping the view again.
@@ -2279,10 +2279,10 @@ text of your own. It affects every role at once: each one's tag becomes an undec
 in `sq check` until cleared with `sq role <slug> view disable role_definition`, and a role
 activated while the view is dropped gets no tag.
 
-A runbook you want to keep does not belong in an `sq-<type>` skill's body: give it a skill of its
-own with `sq skill add`. If one already sits in an `sq-<type>` skill, `sq check` names the five
-steps that move it out — see
-[migration.md § "After `sq migrate up`: seeded views"](migration.md#after-sq-migrate-up-seeded-views).
+A role's playbook sections need no dropped view to be turned off: `sq role <slug> view disable
+role_playbook` does it for one role (see [roles.md § "The role skill"](roles.md#the-role-skill)).
+Text you want a role to read goes in its body, `sq role <slug> body`; a runbook several roles share
+goes in a skill of its own, `sq skill add`, linked to each role.
 
 ---
 
@@ -2314,7 +2314,7 @@ plural_lower = "tickets"
 ```
 
 Tasks now read as "Ticket" everywhere squads writes the type's name for a human or an agent — the
-generated `sq-task` skill, `sq workflow types --json` — and `ticket` joins `t` and `tk` as a way to
+role playbook sections in `sq role <slug> show`, `sq workflow types --json` — and `ticket` joins `t` and `tk` as a way to
 address one, so every verb that works under `sq task <n>` also works under the alias. Their prefix,
 folder, lifecycle, allowed parents, sub-entity kind, ref rules and priority axis are untouched: you
 did not restate them, so a later release that improves any of them still reaches you.
@@ -2546,8 +2546,8 @@ sq workflow lint         # and whether the whole thing is valid
 ### What a drop or a rename actually changes
 
 A **type you add** appears everywhere a bundled type does: `sq create <type>`, `sq <type> <n> …` and
-its declared aliases, its own folder, its own ID prefix, and — after `sq sync` — its own generated
-`sq-<type>` skill.
+its declared aliases, its own folder, its own ID prefix, and a section in the role playbook of each
+role a playbook guide for it addresses.
 
 A **type you drop** stops being usable immediately. It disappears from the top-level command
 listing, from `sq create`, from `sq list -t` and from `sq workflow types`, and every way of reaching
@@ -2575,9 +2575,9 @@ Four practical notes:
   vocabulary at adoption time. Bare edges — the ones written with no kind at all — are never
   stranded by a rename of the kind carrying `role = "default"`; they store no spelling to strand.
   See **Ref kinds** above for the full field reference.
-- **Dropping a type does not delete what was already generated for it.** Its folder under the squad
-  directory, and the `sq-<type>` skill generated for it before the drop, stay on disk; `sq sync`
-  adds and updates, it does not sweep. Delete them by hand if you want them gone.
+- **Dropping a type does not delete what was already made for it.** Its folder under the squad
+  directory stays on disk; `sq sync` adds and updates, it does not sweep. Delete it by hand if you
+  want it gone. The type's section leaves every role's playbook at once.
 - **The command group itself still answers if you ask for it by name.** A dropped type is gone from
   the top-level listing, but typing its help explicitly — `sq guide --help`, say — still prints that
   group's usage, because the group is part of the built-in command table. Nothing under it works:
@@ -2600,9 +2600,9 @@ names its command. See [workflow.md § "Renaming existing types and statuses"](w
 ## Playbook overrides: role guidance per item type
 
 `.overrides/playbook.toml` customises the **team playbook** — the matrix of which roles interact
-with each item type, and what each of them is told to check, do and hand off. It is the source the
-generated `sq-<type>` skills are compiled from, so editing it changes the text an agent actually
-reads before it picks up a bug, a review or a task.
+with each item type, and what each of them is told to check, do and hand off. It is the source of
+each role's playbook sections (the `role_playbook` view in its body), so editing it changes the text
+an agent starts with: its role skill renders those sections when it loads.
 
 ```bash
 # Start the playbook override from a stamped, commented worked example
@@ -2611,16 +2611,21 @@ sq override scaffold playbook
 # Edit it
 $EDITOR squads/.overrides/playbook.toml
 
-# Regenerate the sq-<type> skills from it, then verify
+# Read the result, refresh the CLAUDE.md and AGENTS.md sections, then verify
+sq role tech-lead show
 sq sync
 sq check
 ```
 
+A role's playbook renders when it is read, so `sq role <slug> show` and the role skill follow the
+file at once; `sq sync` recompiles the sections that are written to disk (the team workflow in
+`CLAUDE.md`, and the role bodies in `AGENTS.md`).
+
 ### Format
 
-One entry per item type, keyed by type name. A type's **prose fields** — `overview`, `lifecycle`,
-`commands` — merge one field at a time, so you write only the field you want to change and the rest
-of that entry is inherited from the bundle:
+One entry per item type, keyed by type name. A type's `overview` is its only prose field, and it
+merges on its own, so you write only the field you want to change and the rest of that entry is
+inherited from the bundle:
 
 ```toml
 # .overrides/playbook.toml
@@ -2628,7 +2633,16 @@ of that entry is inherited from the bundle:
 
 [types.bug]
 overview = "A defect against shipped behaviour. Reproduce it before you file it."
-# lifecycle and commands are inherited unchanged
+# the guides are inherited unchanged
+```
+
+The bundled `role_playbook` view renders a type's `overview` and its guides. Its lifecycle line
+comes from the workflow spec's lifecycle for the type; an entry has no `lifecycle` key of its own.
+Nor does it have a `commands` key: put a command in the `do` list of the guide whose role runs it.
+A `lifecycle` or `commands` key is refused at load, each one named, with the remedy in the message:
+
+```text
+types.bug.commands: 'commands' is not a key of a playbook entry — nothing renders it — delete it, or move its lines into the `do` list of the guide whose role runs them
 ```
 
 `roles` is a **list**, so it follows the leaf rule from
@@ -2685,10 +2699,10 @@ the **security analyst** author **bugs** …").
   document — drop a type in `.overrides/workflow.toml` and its playbook coverage goes with it.
   Writing `[selected]` here is refused, with a message pointing you at the workflow override. You
   only need an entry for a type whose guidance you want to change, or a type you added and want role
-  guidance on: a declared type with no entry still gets its generated `sq-<type>` skill, with the
-  commands and lifecycle but no per-role sections.
-- **A slug appears at most once per type.** `roles` is keyed by slug — one slug renders one section
-  in the generated skill — so a repeat is refused at load rather than merged or rendered twice.
+  guidance on: a declared type with no entry gives no role a playbook section for it.
+- **A slug appears at most once per type.** `roles` is keyed by slug — one slug renders one guide
+  in that role's playbook section — so a repeat is refused at load rather than merged or rendered
+  twice.
   Which means: to change *one field* of a bundled guide, you must restate the array by hand (omit
   `"$(*self)"` and list every guide you want to keep). Spreading and then re-adding the same slug is
   not the way to edit one.
@@ -2699,24 +2713,24 @@ the **security analyst** author **bugs** …").
   that form to reach every developer. The playbook loader checks a subject for its form only, so
   `*Dev`, `*` and `* dev` are refused at load, naming `.overrides/playbook.toml`, while a
   well-formed slug no role holds loads and is reported by `sq check` (below).
-- **A capability guide renders under its capability.** Its section in the generated skill is headed
-  with the capability and its holders (``## For `*infra`: Bob Builder (`builder`)``), and
-  `authors = true` puts the type in the create lane of every holder.
-- **A guide reaches the skill only while its role is live.** A guide naming a role that is not
-  live loads but is dropped when the skill is generated. `sq check` and `sq sync` both warn while
+- **A capability guide renders under its capability.** In the playbook section of each holder it
+  opens with ``For every `*infra` role:``, and `authors = true` puts the type in the create lane of
+  every holder.
+- **A guide reaches a role's playbook only while its role is live.** A guide naming a role that is
+  not live loads but renders nowhere. `sq check` and `sq sync` both warn while
   that is true, naming the guide and both ways out. For a slug the role catalog declares, the way
   in is `sq role activate <slug>`; for any other slug, `sq role add <slug> …` or
   `sq role activate <slug> --from <template>`:
 
   ```
-  warn: playbook guide for role 'ghost' on type 'task' names no live role, so its guidance is dropped from the generated `sq-task` skill — create the role (`sq role add ghost …`, or `sq role activate ghost --from <template>`), or remove the guide from `.overrides/playbook.toml` under `[types.task]`
+  warn: playbook guide for role 'ghost' on type 'task' names no live role, so its guidance is dropped from every generated role playbook — create the role (`sq role add ghost …`, or `sq role activate ghost --from <template>`), or remove the guide from `.overrides/playbook.toml` under `[types.task]`
   ```
 
   The same warning covers a role you activated and later retired. A guide of yours addressed to a
   capability no live role holds is warned about the same way, with its two ways out:
 
   ```
-  warn: playbook guide for capability '*infra' on type 'bug' names no live role, so its guidance is dropped from the generated `sq-bug` skill — declare `capabilities = ["infra"]` on a live role, or remove the guide from `.overrides/playbook.toml` under `[types.bug]`
+  warn: playbook guide for capability '*infra' on type 'bug' names no live role, so its guidance is dropped from every generated role playbook — declare `capabilities = ["infra"]` on a live role, or remove the guide from `.overrides/playbook.toml` under `[types.bug]`
   ```
 
   A bundled capability guide nobody holds stays silent. These are warnings, not refusals: both
@@ -2745,8 +2759,8 @@ the **security analyst** author **bugs** …").
   A type no guide authors at all is reported with no remedy. A type whose items are all settled is
   not reported, so retiring a role on purpose leaves its finished items without a warning. To turn
   the check off or raise it, see [Squad-wide checks](#squad-wide-checks-the-squad-table).
-- **A hand-off names a capability with `@*<name>`.** In guide lines and in a type's `commands`,
-  `@*<name>` renders in the generated skill as the `@<slug>` of every live holder, `/`-joined in
+- **A hand-off names a capability with `@*<name>`.** In guide lines,
+  `@*<name>` renders in a role's playbook as the `@<slug>` of every live holder, `/`-joined in
   roster order, or as `*<name>` when nobody holds it; the bundled guides use it for every hand-off,
   and the security-analyst example above uses `@*plan` (see
   [roles.md § "Mentioning a capability in hand-offs"](roles.md#mentioning-a-capability-in-hand-offs)).
@@ -2755,34 +2769,32 @@ the **security analyst** author **bugs** …").
   role holds is warned about once per type and capability by `sq check` and `sq sync`:
 
   ```
-  warn: playbook guide on type 'bug' mentions `@*security`, but no live role holds the capability, so the generated `sq-bug` skill renders it as `*security` and mentions nobody — declare `capabilities = ["security"]` on a live role, or edit the line in `.overrides/playbook.toml` under `[types.bug]`
+  warn: playbook text on type 'bug' mentions `@*security`, but no live role holds the capability, so the generated role playbook renders it as `*security` and mentions nobody — declare `capabilities = ["security"]` on a live role, or edit the line in `.overrides/playbook.toml` under `[types.bug]`
   ```
 
-  The same token in a bundled guide renders as `*<name>` without a warning, and a token in a type's
-  `commands` is not checked.
+  The same token in a bundled guide renders as `*<name>` without a warning.
 - **Unknown top-level keys are refused by name**, the same fail-closed rule the workflow override
   follows. The accepted keys are listed in the message.
 
 ### Guidance for a role you invented
 
 A role you created yourself, with `sq role add` or from a template, can be given playbook guidance
-like any bundled role. Name it in a type's `roles`, run `sq sync`, and it gets its own section in
-that type's generated `sq-<type>` skill; the skill is also preloaded on the role's generated
-pointer, so the role boots with it. Until you name it somewhere in the playbook, a custom role
-appears in no item skill at all.
+like any bundled role. Name it in a type's `roles` and the role's playbook gains a section for that
+type: `sq role <slug> show` prints it, and its role skill renders it, so the role boots with it.
+Until you name it somewhere in the playbook, a custom role carries its definition alone.
 
 **Write the guide and create the role in either order, but do both.** A guide naming a slug no
-role holds yet loads, and `sq check` reminds you its guidance is not reaching the skill. What you
-should not do is leave it there, because the guidance stays absent from the generated skill:
+role holds yet loads, and `sq check` reminds you its guidance is reaching no role. What you should
+not do is leave it there, because the guidance stays absent:
 
 ```bash
 sq role add security-analyst --name "Sam Security" --job-title "security analyst" --desc "Reviews changes for exposure." --mission "Keep the attack surface small."
-sq sync                                       # regenerate the sq-<type> skills
+sq role security-analyst show                 # its playbook section for the type
 sq check                                      # confirms the warning has cleared
 ```
 
-The same applies in reverse: **retiring a role leaves its guides behind**, and the generated skills
-lose those sections. `sq check` names each one so a retirement does not quietly strip guidance you
+The same applies in reverse: **retiring a role leaves its guides behind**, rendered by no role.
+`sq check` names each one so a retirement does not quietly strip guidance you
 still want — either reactivate the role, or delete the guides you no longer need. This is why a
 retirement can produce several warning lines at once: one per item type that role had guidance on.
 

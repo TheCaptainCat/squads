@@ -169,6 +169,7 @@ class CorpusOpsMixin(ImportMixin, MaintenanceMixin, RenameMixin):
                 manual_span=(
                     _manual_span(run.applied) if any(m.manual for m in run.applied) else None
                 ),
+                agents_refreshed=any(m.refreshes_backend for m in run.applied),
             )
         )
 

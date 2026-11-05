@@ -29,7 +29,6 @@ from squads._interactions import (
     bundled_skill_slugs,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
-    playbook_override_command_lines,
     playbook_override_guide_pairs,
     skill_description,
     skill_origin,
@@ -318,10 +317,10 @@ def _record_pending_rewrite(
     """
     slug = item.slug
     addr: int | str = slug if item.type in (ROSTER_ROLE, ROSTER_SKILL) else number_for_id(item.id)
+    stripped = bool(_retired_region_tags(text))
     new_text = _strip_retired_regions(
         text, body_tag=body_tag, spec=spec, item_type=item.type, addr=addr
     )
-    stripped = new_text != text
     retired_keys = _retired_role_keys(item, spec)
     for key in retired_keys:
         del item.attributes[key]
@@ -623,9 +622,6 @@ class MaintenanceMixin(ServiceCore):
                     self.spec,
                     live_roles=roster,
                     override_guides=override_guides,
-                    override_commands=playbook_override_command_lines(
-                        self.paths.squad_dir, self.files
-                    ),
                 )
             ),
         ]

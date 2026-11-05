@@ -213,19 +213,14 @@ defines compatibility:
 A new bundled item type is a vocabulary change, not a data change: the declaration ships in the
 package, and what an existing squad is missing is only the two things a declaration never produces
 on disk — the type's own folder, and the generated agent-facing surface a squad created *after* the
-declaration would already have (the type's managed `sq-<type>` skill, its pointer, and the compiled
-`CLAUDE.md` / `AGENTS.md` regions that name it).
+declaration would already have (the compiled `CLAUDE.md` / `AGENTS.md` regions that name it). A
+role's playbook sections for the new type need nothing on disk: they render when the role is read.
 
 `sq migrate up` creates both. **No existing item is rewritten** — every write is either a path that
 did not exist or a generated region the migration is the first author of, so it is safe to re-run
 and a second pass changes nothing. A type your own workflow override has dropped is skipped: the
 migration scaffolds against your active spec, not the bundled one, so it never creates a folder for
 a type your squad does not declare.
-
-Run `sq sync` afterwards if your squad customises which skills a role loads — the migration
-deliberately regenerates only the new type's surface, and leaves each role's own resolved
-preload list to `sync`, which is where it belongs. On a squad that hasn't customised it, `sync`
-converges to the same result and changes nothing.
 
 Read the release's own entry with `sq migrate chlog vfrom..vto` before running it; a type-adding
 migration needs no manual step, and its entry says so rather than leaving you to guess.
@@ -239,9 +234,11 @@ key in an item's frontmatter, which becomes a core key, the role slug `source`, 
 reserved, and an indented HTML comment opening with `sq:attrs` on the line directly under a
 comment header, which 0.20 reads as that comment's attributes rather than its text. It also adds
 the paired tag of a stored view (see
-[stability.md § "View tags and stored view bodies"](stability.md#view-tags-and-stored-view-bodies)).
-So 0.20 moves the schema from 0.19 to 0.20, and until the squad is migrated it stops every
-command with:
+[stability.md § "View tags and stored view bodies"](stability.md#view-tags-and-stored-view-bodies)),
+and it retires the per-type `sq-<type>` skills: each role's own skill, `sq-role-<slug>`, now
+carries the guidance for the item types that role works with (see
+[roles.md § "The role skill"](roles.md#the-role-skill)). So 0.20 moves the schema from 0.19 to
+0.20, and until the squad is migrated it stops every command with:
 
 ```text
 error: this squad is at schema v0.19; squads 0.20.0 expects v0.20. Run sq migrate up to upgrade it (see `sq migrate help`).
@@ -270,24 +267,60 @@ the name:
   then delete the `source` type from the override. The items' old IDs are lost, so a reference to
   one in prose or outside the squad no longer resolves.
 
-**The step rewrites no item file.** It scans every item file, and a squad clear of the three cases
-is stamped and carried unchanged; the index is rebuilt from the files, as on every run. Commit,
+**Before running it, delete `lifecycle` and `commands` from your playbook override.** A playbook
+entry in 0.20 has no `lifecycle` or `commands` key: nothing renders either, and the lifecycle line
+comes from the workflow spec. If `squads/.overrides/playbook.toml` sets one in any `[types.<type>]`
+entry, every command refuses the squad, `sq migrate up` included, and writes nothing:
+
+```text
+error: …/squads/.overrides/playbook.toml: Invalid playbook:
+  - types.task.lifecycle: 'lifecycle' is not a key of a playbook entry — a type's lifecycle line is derived from its workflow lifecycle — delete it
+  - types.task.commands: 'commands' is not a key of a playbook entry — nothing renders it — delete it, or move its lines into the `do` list of the guide whose role runs them
+Correct the file, then re-run `sq migrate up`.
+```
+
+Make the edit with 0.20 installed, because 0.19 requires both keys on a custom type's entry.
+Delete both keys from every entry; to keep a command in front of an agent, move it into the `do`
+list of the guide whose role runs it. On a squad already at 0.20, `sq check` reports the same error
+as `playbook_loads`.
+
+**What the step writes.** It scans every item file first and writes nothing when it refuses
+(below). Otherwise it:
+
+- removes each per-type skill item (`sq-task`, `sq-bug`, …, a type your override dropped
+  included) and its `.claude/skills/<slug>/` pointer;
+- renames the `greeting` skill to `sq-greeting` and `squads` to `sq-how-to`: the slug, the title
+  and the file name change, the item ID does not, so a ref to either still resolves;
+- places the `role_playbook` view tag after `role_definition` in every role body;
+- ends with the refresh `sq sync` performs: it writes the `sq-greeting`, `sq-how-to` and
+  `sq-role-<slug>` pointers, removes the `greeting` and `squads` pointer directories, rewrites every
+  agent pointer's preload list, the managed `CLAUDE.md` and `AGENTS.md` sections and the
+  `settings.json` allow rules.
+
+No other item file is rewritten, and the index is rebuilt from the files, as on every run. Commit,
 then run it once per squad:
 
 ```bash
 sq migrate up
 sq migrate chlog v0.19.0..v0.20.0
 sq check
-sq sync
+git add .claude CLAUDE.md squads   # and AGENTS.md if you use it; review, then commit
 ```
 
 ```text
-  0.20.0 (schema v0.19→v0.20): `source` becomes a core item key and a reserved role slug, and a line shaped like a comment attribute under a comment header is read as one. Nothing is rewritten: the run refuses a squad that holds any of the three.
-migrated to schema v0.20; index rebuilt — run `sq sync` to regenerate the agent files (pointers, skills, CLAUDE.md/AGENTS.md sections)
+  0.20.0 (schema v0.19→v0.20): `source` becomes a core item key and a reserved role slug, a line shaped like a comment attribute under a comment header is read as one, and the per-type skills retire: their items and `.claude/skills` pointers are removed, `greeting` and `squads` become `sq-greeting` and `sq-how-to`, every role body gains the playbook tag and the run ends with the backend refresh. The run refuses a squad that holds a case it cannot carry. — 11 changed
+    removed skill SKILL-<n> sq-bug
+    …
+    renamed skill SKILL-<n> greeting to sq-greeting
+    renamed skill SKILL-<n> squads to sq-how-to
+migrated to schema v0.20; index rebuilt — agent files regenerated
 manual steps remain — read them with `sq migrate chlog v0.19.0..v0.20.0`
 ```
 
-**What it refuses.** A squad holding any of the three cases stops the run with exit `1` before
+The run has already refreshed the agent files, so a `sq sync` after it changes nothing. Commit
+`.claude/` with the rest: the pointer directories it removed and wrote are part of the change.
+
+**What it refuses.** A squad holding any of the cases below stops the run with exit `1` before
 the stamp, with nothing written and the schema left at 0.19. Every case is listed:
 
 ```text
@@ -333,6 +366,41 @@ refuses on a 0.19 squad, so run them with the 0.19 release, before upgrading:
   ID, which you re-point by hand.
 - **An attribute-shaped line under a comment header:** reword or remove the line, since 0.20 would
   read it as the comment's attributes.
+
+**What it refuses about skills.** Three more cases stop the same run, listed with the others:
+
+```text
+error: SKILL-<n>: per-type skill 'sq-review' holds a ref from TASK-<n>; move it first
+SKILL-<n>: per-type skill 'sq-task' holds a discussion comment; move it first
+SKILL-<n>: skill 'sq-role-tech-lead' is named like a role skill, a name 0.20 generates
+SKILL-<n>: project skill holds the name 'sq-how-to', which 0.20 gives to the 'squads' skill
+4 problem(s) found; fix them by hand (`sq migrate chlog v0.19.0..v0.20.0` lists the steps).
+```
+
+- **A per-type skill holding content of its own**: prose in its body beside its view tag, a
+  discussion comment, or a ref from another item. The run removes per-type skills, so it will not
+  remove one that holds something it would lose. With 0.19, before upgrading, move what it holds:
+  - prose meant for one role goes in that role's body, `sq role <slug> body --append --file <path>`,
+    which the role's skill renders after its playbook sections;
+  - prose several roles share goes in a skill of its own, `sq skill add <name>`, then
+    `sq skill <name> body --file <path>` and `sq skill <name> link-role <role>` for each role;
+  - guidance that belongs in the type's playbook goes in `.overrides/playbook.toml`, under
+    `[types.<type>]` (see
+    [overrides.md § "Playbook overrides"](overrides.md#playbook-overrides-role-guidance-per-item-type)).
+
+  Then re-point each ref that named the skill (`sq <type> <n> ref rm SKILL-<n>`, and a `ref add`
+  to the new home), and clear its comments: a comment is removed only by its author,
+  `sq skill <slug> comment <hash> remove --as <author>`.
+- **A skill named `sq-role-<slug>` for one of your roles.** That name belongs to the role's
+  generated skill. A skill's slug never changes, so give its content a skill under another name
+  (`sq skill add`), or fold it into the role's body, then delete the old one with
+  `sq skill <slug> remove --purge`. Archiving it is not enough.
+- **A project skill named `sq-greeting` or `sq-how-to`.** The run gives those names to the renamed
+  `greeting` and `squads` skills. Move it to another name the same way, then delete it.
+
+Two things the run does not carry: a stored `operator_invocable` choice on a removed skill, and
+your own prose that names `greeting` or `squads` (a skill you wrote, an item body): update those
+by hand.
 
 **The whole team upgrades together.** Once the squad is at 0.20, an older squads refuses every
 command on it and asks for a package upgrade, so upgrade every machine, CI job and agent host
@@ -1145,6 +1213,12 @@ The bundled template renders the same milestone in three buckets instead — see
 [§ "Milestones"](workflow.md#milestones).
 
 ### After `sq migrate up`: seeded views
+
+This subsection describes the squad at schema 0.15. A squad that `sq migrate up` carries on to
+0.20 ends with no per-type skills and with `greeting` and `squads` renamed `sq-greeting` and
+`sq-how-to` (see [Upgrading to 0.20](#upgrading-to-020-the-schema-step)), so on such a squad the
+commands below that name those skills take their 0.20 names, and a per-type skill holding text of
+its own stops that step until the text is moved.
 
 Every document is **seeded** with the views its type calls for: a milestone with
 `milestone_rollup`, a role with `role_definition`, the three permanently-system skills

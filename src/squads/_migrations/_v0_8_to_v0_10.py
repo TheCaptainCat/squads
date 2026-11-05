@@ -19,13 +19,12 @@ and recovers the counter from ``max(sequence_id)``. It runs only through ``sq mi
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._backends import oneline
+from squads._backends import render_skill_pointer
 from squads._index import IndexStore
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import with_legacy_extra
 from squads._models import Item
 from squads._paths import SquadPaths, number_for_id
-from squads._rendering import render
 
 # Frozen v0.8/v0.10 "skill" vocabulary (type-name, prefix, folder and status literals and this
 # skill's description at this schema). Never derive it from the live spec, enum or registry: a
@@ -87,13 +86,8 @@ async def _rewrite_pointer(paths: SquadPaths, new_body_rel: str) -> None:
         return  # no .claude dir — nothing to rewrite
     await _aio.write_text(
         pointer,
-        render(
-            "claude/pointer_skill.md.j2",
-            from_squad=paths.squad_dir,
-            slug=_SLUG,
-            description=oneline(_DESCRIPTION),
-            invocable=True,  # this runner writes no host key; the later pointer refresh does
-        ),
+        # This runner writes no host key; the later pointer refresh does.
+        render_skill_pointer(paths.squad_dir, _SLUG, _DESCRIPTION, invocable=True),
     )
 
 

@@ -7,11 +7,10 @@ from dataclasses import dataclass
 class RoleView:
     """The roster entry passed to backends, decoupled from ``RoleDef`` internals.
 
-    It carries every role field a backend renders into a compiled managed region, ``mission`` and
-    ``responsibilities`` included, because a view field is the declaration and generated text is
-    output, never input. A backend that recovers a declaration by parsing markdown it rendered
-    itself makes the template's formatting the carrier: relabel a line and the field empties out of
-    the compiled file with nothing reporting it. Anything a backend renders is declared here.
+    A view field is the declaration and generated text is output, never input: a backend that
+    recovers a declaration by parsing markdown it rendered itself makes the template's formatting
+    the carrier. Anything a backend renders is declared here. ``mission`` and ``responsibilities``
+    are carried for the roster entries of the ``playbook`` view source.
     """
 
     slug: str

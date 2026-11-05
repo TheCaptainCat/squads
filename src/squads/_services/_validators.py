@@ -34,7 +34,6 @@ from squads._interactions import (
     in_lane_owner,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
-    playbook_override_command_lines,
     playbook_override_guide_pairs,
     unheld_capability_token_message,
     unheld_capability_tokens,
@@ -1745,7 +1744,6 @@ def _playbook_guide_role_live(ctx: SquadGlobalContext) -> list[CheckIssue]:
             ctx.spec,
             live_roles=live_roles,
             override_guides=override_guides,
-            override_commands=playbook_override_command_lines(ctx.paths.squad_dir, ctx.files),
         )
     ]
     return [CheckIssue(level, "", message, rule="playbook_guide_role_live") for message in messages]

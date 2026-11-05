@@ -104,7 +104,8 @@ class AppliedMigration(DTO):
 
 class MigrationReport(DTO):
     """The migrations run, oldest first, and the schema the squad is now at. ``manual_span`` is
-    the ``sq migrate chlog`` range holding their manual steps, ``None`` when none has any."""
+    the ``sq migrate chlog`` range holding their manual steps, ``None`` when none has any.
+    ``agents_refreshed`` is whether the run already regenerated the agent files."""
 
     schema_version: str
     applied: list[AppliedMigration]
@@ -113,6 +114,7 @@ class MigrationReport(DTO):
     notice: str | None
     unreadable: list[str]
     manual_span: str | None
+    agents_refreshed: bool
 
 
 class RepadRequest(DTO):

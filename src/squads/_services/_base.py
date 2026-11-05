@@ -675,7 +675,7 @@ class ServiceCore:
             f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml`), or `sq role "
             f"{item.slug} update` for a role that defines itself"
             if item.type == ROSTER_ROLE
-            else views.skill_authoring_surface(roster_view, self.spec, self.playbook)
+            else views.skill_authoring_surface(roster_view)
         )
         tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
         head = (

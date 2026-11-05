@@ -5,12 +5,12 @@ import json
 import os
 import stat
 import sys
+from pathlib import Path
 
 import pytest
 
 from squads import __version__
 from squads._paths import SquadPaths
-from squads._sources import CredentialStore
 from tests.cli._output import json_text, read_json
 
 pytestmark = pytest.mark.anyio
@@ -40,13 +40,13 @@ def _posix_modes_only() -> None:
         pytest.skip("Windows files carry no POSIX mode")
 
 
-def _written(source: str = "platform") -> str:
+def _written(path: Path, source: str = "platform") -> str:
     return json_text(
         {
             "source": source,
             "base_url": f"{TRACKER}/",
             "fields": ["token"],
-            "path": str(CredentialStore().path()),
+            "path": str(path),
         }
     )
 
@@ -90,54 +90,14 @@ async def test_the_scaffolded_worked_example_loads_once_uncommented(project, inv
 # ------------------------------------------------------------------------------------ validation
 
 
-@pytest.mark.covers("source credential remove", "source")
-async def test_a_map_target_the_squad_does_not_declare_fails_naming_source_map_and_value(
-    project, invoke, credentials_home, profile
-) -> None:
-    _declare(project, profile, HEAD + '\n[sources.platform.maps.types.labels]\nbug = "defect"\n')
-
-    result = await invoke(["source", "credential", "remove", "platform"])
-
-    origin = project.squad_dir / ".overrides" / "sources.toml"
-    assert (result.exit_code, " ".join(result.output.split())) == (
-        1,
-        f"error: {origin}: invalid sources after merge: source 'platform': maps.types.labels: "
-        "'bug' -> 'defect' is not an item type",
-    )
-
-
-@pytest.mark.covers("source credential remove", "source")
-async def test_a_source_with_no_type_map_fails_naming_the_source_and_the_map(
-    project, invoke, credentials_home, profile
-) -> None:
-    _declare(project, profile, HEAD)
-
-    result = await invoke(["source", "credential", "remove", "platform"])
-
-    assert result.exit_code == 1
-    assert "source 'platform': maps.types is empty" in " ".join(result.output.split())
-
-
-@pytest.mark.covers("source credential remove", "source")
-async def test_a_gitlab_version_it_does_not_register_lists_the_known_ones(
-    project, invoke, credentials_home, profile
-) -> None:
-    _declare(project, profile, HEAD + 'version = "v1"\n' + _types(profile))
-
-    result = await invoke(["source", "credential", "remove", "platform"])
-
-    assert result.exit_code == 1
-    assert "connector 'gitlab' has no version 'v1' (known: v4)" in " ".join(result.output.split())
-
-
-@pytest.mark.covers("source credential remove", "source")
+@pytest.mark.covers("source list")
 async def test_a_broken_sources_document_leaves_the_rest_of_the_squad_working(
     project, invoke, credentials_home, profile
 ) -> None:
     _declare(project, profile, "[sources.platform\n")
 
     listed = await invoke(["list", "--json"])
-    refused = await invoke(["source", "credential", "remove", "platform"])
+    refused = await invoke(["source", "list"])
 
     origin = project.squad_dir / ".overrides" / "sources.toml"
     assert (listed.exit_code, [row["id"] for row in json.loads(listed.output)]) == (0, ["ROLE-1"])
@@ -153,7 +113,7 @@ async def test_a_broken_sources_document_leaves_the_rest_of_the_squad_working(
 @pytest.mark.covers("source credential set", "source")
 @pytest.mark.covers("source credential set", "--json")
 async def test_credential_set_reads_each_value_from_stdin_and_stores_it_privately(
-    project, invoke, credentials_home, profile
+    project, invoke, credentials_home, credential_file, profile
 ) -> None:
     _posix_modes_only()
     _declare(project, profile)
@@ -161,25 +121,28 @@ async def test_credential_set_reads_each_value_from_stdin_and_stores_it_privatel
     result = await invoke(
         ["source", "credential", "set", "platform", "--json"], input=f"{SECRET}\n"
     )
+    modes = (
+        stat.S_IMODE(credential_file.stat().st_mode),
+        stat.S_IMODE(credential_file.parent.stat().st_mode),
+    )
+    removed = await read_json(invoke, ["source", "credential", "remove", "platform", "--json"])
 
-    stored = CredentialStore().path()
     assert (result.exit_code, result.stdout, result.stderr) == (
         0,
-        _written(),
+        _written(credential_file),
         "platform token: ",
     )
-    assert stat.S_IMODE(stored.stat().st_mode) == 0o600
-    assert stat.S_IMODE(stored.parent.stat().st_mode) == 0o700
-    assert SECRET in stored.read_text(encoding="utf-8")
+    assert modes == (0o600, 0o700)
+    assert removed["removed"] is True
 
 
 @pytest.mark.covers("source credential set", "source")
 async def test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_directory(
-    project, invoke, credentials_home, profile
+    project, invoke, credentials_home, credential_file, profile
 ) -> None:
     _posix_modes_only()
     _declare(project, profile)
-    store = CredentialStore().path()
+    store = credential_file
     store.parent.mkdir(parents=True)
     store.parent.chmod(0o755)
     victim = store.parent / "victim"
@@ -201,7 +164,7 @@ async def test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_dir
 @pytest.mark.covers("source credential remove", "source")
 @pytest.mark.covers("source credential remove", "--json")
 async def test_credential_remove_deletes_the_entry_and_a_second_removal_finds_none(
-    project, invoke, credentials_home, profile
+    project, invoke, credentials_home, credential_file, profile
 ) -> None:
     _declare(project, profile)
     await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
@@ -214,20 +177,20 @@ async def test_credential_remove_deletes_the_entry_and_a_second_removal_finds_no
         f"removed the credential of source platform for {TRACKER}/",
     )
     assert second == {"source": "platform", "base_url": f"{TRACKER}/", "removed": False}
-    assert SECRET not in CredentialStore().path().read_text(encoding="utf-8")
+    assert SECRET not in credential_file.read_text(encoding="utf-8")
 
 
 @pytest.mark.covers("source credential remove", "source")
 async def test_a_store_other_users_can_read_is_refused_naming_chmod(
-    project, invoke, credentials_home, profile
+    project, invoke, credentials_home, credential_file, profile
 ) -> None:
     _posix_modes_only()
     _declare(project, profile)
     await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
-    CredentialStore().path().chmod(0o640)
+    credential_file.chmod(0o640)
 
     result = await invoke(["source", "credential", "remove", "platform"])
 
     assert result.exit_code == 1
-    assert f"run `chmod 600 {CredentialStore().path()}`" in " ".join(result.output.split())
-    assert SECRET in CredentialStore().path().read_text(encoding="utf-8")
+    assert f"run `chmod 600 {credential_file}`" in " ".join(result.output.split())
+    assert stat.S_IMODE(credential_file.stat().st_mode) == 0o640

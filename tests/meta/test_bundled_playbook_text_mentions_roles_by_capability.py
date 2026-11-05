@@ -15,10 +15,8 @@ def _playbook_text() -> list[str]:
     return [
         line
         for entry in get_playbook_spec().types.values()
-        for line in (
-            *entry.commands,
-            *(text for g in entry.roles for text in (*g.enter, *g.do, *g.handoff, *g.watch)),
-        )
+        for g in entry.roles
+        for line in (*g.enter, *g.do, *g.handoff, *g.watch)
     ]
 
 

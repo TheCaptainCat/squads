@@ -181,7 +181,7 @@ def skill_empty_body_hint(
             f"before it was dropped, disable it with `sq skill {slug} view disable "
             f"{view_name}`)"
         )
-    surface = views.skill_authoring_surface(view_name, spec, playbook)
+    surface = views.skill_authoring_surface(view_name)
     return (
         "(empty — run `sq sync`; if it stays empty, its content's real authoring "
         f"surface is {surface}; author it there instead — or run "

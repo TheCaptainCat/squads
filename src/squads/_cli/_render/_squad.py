@@ -140,10 +140,14 @@ def render_migration(report: MigrationReport, console: Console) -> None:
             f"{', '.join(e(k) for k in report.config_dropped)}",
             soft_wrap=True,
         )
+    tail = (
+        "agent files regenerated"
+        if report.agents_refreshed
+        else "run `sq sync` to regenerate the agent files "
+        "(pointers, skills, CLAUDE.md/AGENTS.md sections)"
+    )
     console.print(
-        f"[green]migrated[/green] to schema v{report.schema_version}; index rebuilt — "
-        "run `sq sync` to regenerate the agent files "
-        "(pointers, skills, CLAUDE.md/AGENTS.md sections)",
+        f"[green]migrated[/green] to schema v{report.schema_version}; index rebuilt — {tail}",
         soft_wrap=True,
     )
     _print_notice(report.notice, console)
