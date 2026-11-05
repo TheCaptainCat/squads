@@ -163,22 +163,23 @@ async def test_a_body_left_at_its_template_scaffold_is_reported(
     )
 
 
+@pytest.mark.breaches("body_written")
 async def test_a_body_holding_only_a_stored_view_body_is_still_unwritten(
     squad, invoke, check_json, select_validators
 ) -> None:
-    blank = await _task(invoke, "Blank")
+    written = await _task(invoke, "Written")
+    await write_body(invoke, written, "The plan.")
     stored.declare_stored_view(squad.squad_dir)
-    edit_item_file(squad, blank, "<!-- sq:body -->\n", f"<!-- sq:body -->\n{stored.pair()}\n")
     select_validators("body_written", on="task")
+    assert await check_json() == ([], 0)
+
+    blank = await _task(invoke, "Blank")
+    edit_item_file(squad, blank, "<!-- sq:body -->\n", f"<!-- sq:body -->\n{stored.pair()}\n")
 
     assert await check_json() == (
         [issue("body_written", "warn", blank, _unwritten_body(blank))],
         0,
     )
-
-    await write_body(invoke, blank, "The plan.")
-
-    assert await check_json() == ([], 0)
 
 
 @pytest.mark.breaches("body_written@error")

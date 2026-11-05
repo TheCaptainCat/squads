@@ -10,10 +10,16 @@ from typing import Any
 import pytest
 
 from tests import _stored_view as stored
+from tests import _tracker_harness as harness
+from tests._profile import REFERENCE, selected
 from tests._squadwide import listed
+from tests.cli import _source_record as source_record
 from tests.cli._output import json_text
+from tests.cli._pulled import item, shown_item
 
 pytestmark = pytest.mark.anyio
+
+P = selected()
 
 TASK_FILE = "tasks/TASK-000003-build-the-query-parser.md"
 ITEMS = [
@@ -294,15 +300,16 @@ async def test_repair_with_a_lock_file_it_cannot_open_does_not_blame_the_file_sy
 
 
 @pytest.mark.covers("repair")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_repair_leaves_the_pair_of_a_stored_view_named_head_alone(
     populated_project, invoke
 ) -> None:
     # the tag of a view named `head` is shaped like a retired badge region's; the sweep must skip it
     stored.declare_stored_view(populated_project.squad_dir, "head")
-    added = await invoke(["task", "3", "view", "add", "head"])
+    added = await invoke([P.ref, str(REFERENCE), "view", "add", "head"])
     assert added.exit_code == 0, added.output
-    path = populated_project.squad_dir / TASK_FILE
+    [path] = (populated_project.squad_dir / P.ref_folder).glob(
+        f"{P.ref_prefix}-{REFERENCE:06d}-*.md"
+    )
     pair = stored.pair().replace(stored.VIEW, "head")
     # no verb writes this view's stored body: put the text between the tags in the file
     path.write_text(
@@ -311,12 +318,12 @@ async def test_repair_leaves_the_pair_of_a_stored_view_named_head_alone(
         ),
         encoding="utf-8",
     )
-    shown = await invoke(["task", "3", "show", "--json"])
+    shown = await invoke([P.ref, str(REFERENCE), "show", "--json"])
 
     repaired = await invoke(["repair"])
 
     assert repaired.exit_code == 0, repaired.output
-    assert (await invoke(["task", "3", "show", "--json"])).output == shown.output
+    assert (await invoke([P.ref, str(REFERENCE), "show", "--json"])).output == shown.output
 
 
 MANAGER_FILE = "agents/roles/ROLE-000001-manager.md"
@@ -367,3 +374,21 @@ async def test_repair_leaves_a_disabled_playbook_tag_of_a_role_body_alone(
     assert result.exit_code == 0, result.output
     assert path.read_text(encoding="utf-8") == before
     assert "<!-- sq:view:role_playbook:disabled -->" in before
+
+
+@pytest.mark.covers("repair")
+async def test_repair_rebuilds_the_index_of_sourced_items_to_the_one_it_replaces(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_record.pulled(invoke, project, profile, tracker)
+        before = [(await invoke([profile.ref, n, "show", "--json"])).output for n in ("2", "3")]
+        (project.squad_dir / ".squads.json").unlink()
+
+        rebuilt = await invoke(["repair"])
+        after = [(await invoke([profile.ref, n, "show", "--json"])).output for n in ("2", "3")]
+        rebuilt_docs = [await shown_item(invoke, profile, tracker, n) for n in (2, 3)]
+
+    assert (rebuilt.exit_code, rebuilt.output) == (0, "rebuilt index: 3 items, counter=3\n")
+    assert after == before
+    assert rebuilt_docs == [item(profile, 2, badge=False), item(profile, 3, badge=False)]

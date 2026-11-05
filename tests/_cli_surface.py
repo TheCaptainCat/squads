@@ -12,6 +12,7 @@ import re
 import tempfile
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any
 
 import typer.main
@@ -20,7 +21,7 @@ from typer._click.core import Context, iter_params_for_processing
 from squads._cli import _create as cli_create
 from squads._cli import app
 from squads._context import bind_context, get_context
-from squads._workflow import WorkflowSpec, bundled_spec
+from squads._workflow import WorkflowSpec, bundled_spec, load_workflow_spec
 from tests._help_tree import Node, command_nodes
 
 type Pair = tuple[str, str | None]
@@ -51,6 +52,7 @@ EXCLUDED_PARAMS: dict[Pair, str] = {
 
 
 FIELD = "<field>"
+MAP_ATTRIBUTE = "--<attribute:map>"
 TARGET_KIND = "<target-kind>"
 
 
@@ -62,7 +64,8 @@ def derived_names(spec: WorkflowSpec) -> dict[str, str]:
     """The flags *spec* derives from its declarations, each with the name a marker holds it by, so
     one marker holds in every squad: `--<field>`, `--no-<field>` and `--min-<field>` for a badge
     field, `--<target-kind>` and `--no-<target-kind>` for a sub-entity mapping, and
-    `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute.
+    `--<attribute:str>`, `--<attribute:list>` or `--<attribute:date>` for a create-time attribute,
+    and `--<attribute:map>` for a settable map attribute.
     """
     names: dict[str, str] = {}
 
@@ -80,6 +83,8 @@ def derived_names(spec: WorkflowSpec) -> dict[str, str]:
         for key, attribute in item.attributes.items():
             if attribute.settable and attribute.kind in cli_create.CREATE_ATTRIBUTE_KINDS:
                 names.setdefault(f"--{_dashed(key)}", f"--<attribute:{attribute.kind}>")
+            elif attribute.settable and attribute.kind == "map":
+                names.setdefault(f"--{_dashed(key)}", MAP_ATTRIBUTE)
     for kind, kind_spec in spec.subentity_kinds.items():
         for declared in kind_spec.fields:
             field_flags(declared.code)
@@ -194,6 +199,8 @@ class Surface:
 
     pairs: frozenset[Pair]
     leaves: frozenset[str]
+    #: Pairs a marker may name that the bundled tree lacks: the options another test squad derives.
+    other_squads: frozenset[Pair] = frozenset()
 
     @property
     def parameterless_leaves(self) -> frozenset[str]:
@@ -208,7 +215,7 @@ class Surface:
     @property
     def known(self) -> frozenset[Pair]:
         """The pairs a marker may name: every pair, and the bare call of any leaf."""
-        return self.pairs | {(key, None) for key in self.leaves}
+        return self.pairs | {(key, None) for key in self.leaves} | self.other_squads
 
 
 def node_params(node: Node) -> list[Any]:
@@ -329,3 +336,21 @@ def bundled_known() -> frozenset[Pair]:
         bind_context(prior)
         # the tree built outside any squad must not be the one the next command is run on
         getattr(typer.main.get_command, "cache_clear", lambda: None)()
+
+
+@functools.cache
+def squad_known() -> frozenset[Pair]:
+    """Every pair a marker may name: the bundled tree's, and the `<type> update` option the
+    permanent override test squad derives for a map attribute, which the bundled squad declares
+    none of. A call that reaches it proves the live command takes the option."""
+    from tests._override_populated import OVERRIDE
+
+    with tempfile.TemporaryDirectory() as tmp:
+        overrides = Path(tmp) / "squads" / ".overrides"
+        overrides.mkdir(parents=True)
+        for document in OVERRIDE.glob("*.toml"):
+            text = document.read_text(encoding="utf-8")
+            (overrides / document.name).write_text(f"# squads:override-base:0.19.0\n{text}")
+        spec = load_workflow_spec(Path(tmp) / "squads")
+    maps = {name for name in derived_names(spec).values() if name == MAP_ATTRIBUTE}
+    return bundled_known() | {(f"{TYPE} update", name) for name in maps}

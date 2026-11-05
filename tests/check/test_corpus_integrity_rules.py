@@ -506,7 +506,7 @@ async def test_a_stored_view_pair_outside_the_body_region_is_an_error(
 async def test_a_tag_pair_for_a_view_not_declared_stored_is_an_error(
     project, invoke, check_json
 ) -> None:
-    await _task_with_stored_view(project, invoke)
+    damaged = await _task_with_stored_view(project, invoke)
     assert await check_json() == ([], 0)
 
     # the declaration is what makes a pair legitimate: drop `stored` from the override
@@ -516,12 +516,18 @@ async def test_a_tag_pair_for_a_view_not_declared_stored_is_an_error(
         f'[views.{stored.VIEW}]\nsource = {{ kind = "ref", name = "targets" }}\n',
     )
 
-    (found, code) = await check_json()
-    assert code == 3
-    assert [i["message"] for i in found if i["rule"] == "markers_balanced"] == [
-        f"view {stored.VIEW!r} has a tag pair {stored.OPEN_TAG}, but is not declared stored; "
-        "declare `stored = true` on the view or remove the pair"
-    ]
+    assert await check_json() == (
+        [
+            issue(
+                "markers_balanced",
+                "error",
+                item_path(project, damaged).name,
+                f"view {stored.VIEW!r} has a tag pair {stored.OPEN_TAG}, but is not declared "
+                "stored; declare `stored = true` on the view or remove the pair",
+            )
+        ],
+        3,
+    )
 
 
 # view_target_resolves

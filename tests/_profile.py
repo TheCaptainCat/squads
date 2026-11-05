@@ -69,6 +69,16 @@ class Profile:
     badge_codes: str
     badge_value: str
     badge_other_value: str
+    #: The line `check` adds for an open host item when no live role authors the host type (empty
+    #: on a squad whose roles declare no authors).
+    host_author_warning: str
+    #: Whether the host type carries that badge field too.
+    host_has_badge: bool
+    #: How a display shows the badge value and its label.
+    badge_shown: str
+    badge_shown_label: str
+    badge_other_shown: str
+    badge_other_shown_label: str
     #: A type with a create-time date attribute, a list one and a string one, and their names.
     date_type: str
     date_attr: str
@@ -76,6 +86,10 @@ class Profile:
     list_attr: str
     str_type: str
     str_attr: str
+    #: A type with a settable map attribute, and that attribute (the bundled squad declares none:
+    #: a case that needs one declares it in its own override).
+    map_type: str
+    map_attr: str
     #: A type retyped to another without parent or sub-entities, and the type it becomes.
     retype_from: str
     retype_from_prefix: str
@@ -161,12 +175,23 @@ BUNDLED = Profile(
     badge_codes="urgent, high, medium, low",
     badge_value="high",
     badge_other_value="low",
+    host_author_warning=(
+        "warn: type 'feature' has 1 open item but no live role authors it \u2014 activate "
+        "`product-owner` (`sq role activate product-owner`)\n"
+    ),
+    host_has_badge=True,
+    badge_shown="\U0001f7e0 high",
+    badge_shown_label="\U0001f7e0 High",
+    badge_other_shown="\U0001f7e2 low",
+    badge_other_shown_label="\U0001f7e2 Low",
     date_type="milestone",
     date_attr="target_date",
     list_type="guide",
     list_attr="tags",
     str_type="guide",
     str_attr="tech",
+    map_type="feature",
+    map_attr="links",
     retype_from="task",
     retype_from_prefix="TASK",
     retype_from_initial="Draft",
@@ -228,12 +253,20 @@ OVERRIDE = Profile(
     badge_codes="s, m, l",
     badge_value="m",
     badge_other_value="l",
+    host_author_warning="",
+    host_has_badge=False,
+    badge_shown="\u26aa m",
+    badge_shown_label="\u26aa M",
+    badge_other_shown="\u26aa l",
+    badge_other_shown_label="\u26aa L",
     date_type="initiative",
     date_attr="horizon",
     list_type="initiative",
     list_attr="themes",
     str_type="job",
     str_attr="owner_team",
+    map_type="job",
+    map_attr="links",
     retype_from="record",
     retype_from_prefix="REC",
     retype_from_initial="Proposed",

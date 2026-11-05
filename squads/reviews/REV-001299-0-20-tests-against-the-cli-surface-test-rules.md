@@ -17,7 +17,7 @@ subentities:
 - local_id: F2
   title: Messages and refusals asserted by substring, prefix or one picked line instead
     of whole lines
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F3
   title: test_source_record reads .squads.json to assert the rebuilt index's keys
@@ -35,7 +35,7 @@ subentities:
 - local_id: F6
   title: covers markers declare a parameter the case is not about, on refusals and
     effect cases
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F7
   title: Shape tables of sources.toml grammar refusals and author-name escapes in
@@ -45,29 +45,29 @@ subentities:
 - local_id: F8
   title: Source tests split into 11 feature modules that hold cases of other command
     groups
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F9
   title: Several refusals batched in one case under multi-parameter markers and a
     vague name
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F10
   title: JSON field projections asserted instead of the whole --json object
-  status: Open
+  status: Fixed
   severity: low
 - local_id: F11
   title: 'Check-rule tests: an unmarked case, two breaches in one case, partial issue
     assertions'
-  status: Open
+  status: Fixed
   severity: medium
 - local_id: F12
   title: declare_stored_view overwrites the override, so nine stored-view cases opt
     out as bundled_only
-  status: Open
+  status: Fixed
   severity: low
 created_at: '2026-11-04T22:05:56Z'
-updated_at: '2026-11-05T01:40:13Z'
+updated_at: '2026-11-05T04:10:58Z'
 ---
 <!-- sq:body -->
 Audit of the tests added or changed between v0.19.0 and 973058e5 (`git diff --name-status v0.19.0 973058e5 -- tests/`, 129 files), against ADR-1172 and the check-rule rules in CONTRIBUTING. The code was read from a detached worktree at 973058e5.
@@ -148,6 +148,8 @@ Several of these are refusals (`test_source.py:114/126/228`, `test_source_identi
 #### Discussion
 
 <!-- sq:finding:F2:discussion -->
+- [2026-11-05T03:38:59Z] `python-dev` Elias Python:
+  - Fixed: the listed sites compare (exit_code, output) with the whole text; the port is normalised as _checked does and the " ".join(output.split()) rewrapping is gone. Negative containment checks that the secret never leaks stay.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -241,6 +243,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 <!-- sq:finding:F6:discussion -->
 - [2026-11-05T01:40:11Z] `python-dev` Elias Python:
   - Partly fixed: the load refusals no longer declare an unrelated pair (the CLI keeps one case on source list), and the priority refusal in test_source_ownership declares --<field> beside --title. Still open: test_source_identities declares --set for a case that also asserts the effect of the derived --links map option, and no pair names a map option (derived_names covers fields, target kinds and create-time str/list/date attributes only), so a --links marker is stale in the coverage guard. Needs a ruling on a map-option derivation.
+- [2026-11-05T03:38:57Z] `python-dev` Elias Python:
+  - Fixed: the override squad declares a map attribute (links) on its reference type, the profile names it (map_type, map_attr), and the surface derives it as --<attribute:map>; test_source_identities now splits the --set refusal (declares --set) from the effect case (declares --<attribute:map>), and test_source_ownership declares --title, --<field> and --desc in one case each.
 <!-- sq:finding:F6:discussion:end -->
 <!-- sq:finding:F6:end -->
 
@@ -300,6 +304,13 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F8:discussion -->
+- [2026-11-05T04:10:57Z] `python-dev` Elias Python:
+  - - Cases moved to the module of the command each declares (1388 collected on both squads before and after, same ids).
+    - source leaf modules: test_source_pull (pull, incl. converters and connector pulls), test_source_check, test_source_list, test_source_credential (set, remove).
+    - test_item_source: `<type> source unlink|relink`.
+    - Other groups: test_show, test_operator, test_item_verbs, test_comment_verbs, test_inbox_mine, test_import, test_check, test_repair, test_role, test_override, test_workflow.
+    - Dissolved: test_source, _comments, _connectors, _converters, _identities, _links, _ownership, _record, _scope.
+    - Shared arrangements: tests/cli/_source_{checks,comments,connectors,declared,links,ownership,pulls,record}.py, imported as modules.
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
 
@@ -321,6 +332,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F9:discussion -->
+- [2026-11-05T03:38:58Z] `python-dev` Elias Python:
+  - Fixed: the five relink refusals are five cases named for their refusal, each declaring the one parameter it is about; the relink effect case declares --json plus source; the scope cases declare issue; the ownership refusals are one case each (title, mapped field, comment edit, comment remove, --as, import).
 <!-- sq:finding:F9:discussion:end -->
 <!-- sq:finding:F9:end -->
 
@@ -349,6 +362,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F10:discussion -->
+- [2026-11-05T03:39:00Z] `python-dev` Elias Python:
+  - Fixed: pull reports, source check documents, comment lists, inbox entries, operator documents, workflow views and the show documents of pulled items are compared whole, built by small helpers (tests/cli/_pulled.py: item, shown_item, without_digests; tests/cli/_output.py: pull_report, pull_document, alice_document, MANAGER_ROW). Only the comment content digest is set aside (checked as a prefix pair), and the tracker address and etag as _shown did. Kept as picked: ids of list rows (membership claim) and the source record of the out-of-scope items 4 and 5 of the filter case.
 <!-- sq:finding:F10:discussion:end -->
 <!-- sq:finding:F10:end -->
 
@@ -371,6 +386,8 @@ The modes `0600`/`0700` and the absence of the secret after `remove` are the sec
 #### Discussion
 
 <!-- sq:finding:F11:discussion -->
+- [2026-11-05T03:59:32Z] `python-dev` Elias Python:
+  - Fixed in the working tree: body_written stored-pair case declares its marker with a clean pre-state; source_declared split in two; comment_attributes_valid and markers_balanced assert the whole array via issue(); partial assertion dropped.
 <!-- sq:finding:F11:discussion:end -->
 <!-- sq:finding:F11:end -->
 
@@ -393,6 +410,8 @@ They already address through `P.ref`/`P.ref_prefix`. The real reason they cannot
 #### Discussion
 
 <!-- sq:finding:F12:discussion -->
+- [2026-11-05T03:59:32Z] `python-dev` Elias Python:
+  - Fixed in the working tree: declare_stored_view merges into the existing override (and adds the view to a [selected].views list); the nine bundled_only markers are gone and the cases pass on both squads; show cases moved to populated_project, repair case addressed through the profile.
 <!-- sq:finding:F12:discussion:end -->
 <!-- sq:finding:F12:end -->
 <!-- sq:findings:end -->
@@ -417,4 +436,6 @@ They already address through `P.ref`/`P.ref_prefix`. The real reason they cannot
     - Jobs: `test (windows-latest)` and `remote-mode (windows-latest)` on the release PR (run 41932646293), three errors at teardown, all `covers declares pairs no call reached`: `test_credential_set_reads_each_value_from_stdin_and_stores_it_privately`, `test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_directory`, `test_a_store_other_users_can_read_is_refused_naming_chmod`.
     - Cause: `_posix_modes_only()` in `tests/cli/test_source.py:34-37` calls `pytest.skip` inside the test body, after the `invoke` fixture is set up. No command runs, so the fixture's teardown (`tests/conftest.py:285-291`) finds the declared pairs unreached and fails the test.
     - The same trap waits for any case that skips at run time (`tests/cli/test_sync.py:146`, `tests/cli/test_daemon.py:207`), and `check_json` (`tests/check/conftest.py`) has the same teardown shape. The planned fix makes both teardowns pass over a test whose call phase was skipped.
+- [2026-11-05T03:43:39Z] `manager` Catherine Manager:
+  - For the re-review: ADR-1172 rule 3 says the coverage guard walks the tree for each test squad, while the guard's _surface() walks only the bundled tree and treats the override squad's map pairs as known, not required (the architect's note on ADR-1172). Judge whether the guard or the ADR sentence is wrong and record a finding.
 <!-- sq:discussion:end -->

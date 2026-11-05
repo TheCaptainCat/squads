@@ -26,9 +26,11 @@ def panel_text(rows: list[Row]) -> str:
 
 def raw_lines(rows: list[Row]) -> list[str]:
     """The markdown list `--raw` prints for *rows*: ``- **label:** value``, a plain bullet when
-    the row has no label."""
+    the row has no label. A value's line breaks become single spaces, so each row stays one
+    list item."""
     return [
-        f"- {row.plain}" if row.label is None else f"- **{row.label}:** {row.plain}"
+        f"- {flat}" if row.label is None else f"- **{row.label}:** {flat}"
         for row in rows
         if row.raw
+        for flat in [" ".join(row.plain.split("\n"))]
     ]

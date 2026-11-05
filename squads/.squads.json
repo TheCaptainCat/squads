@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1307,
+  "counter": 1309,
   "padding": 6,
   "items": {
     "12": {
@@ -42538,7 +42538,7 @@
       "subentities": [],
       "path": "adrs/ADR-001172-cli-surface-tests-one-case-per-parameter-guarded-coverage.md",
       "created_at": "2026-10-27T21:25:41Z",
-      "updated_at": "2026-11-04T22:19:17Z",
+      "updated_at": "2026-11-05T03:43:16Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68493,7 +68493,7 @@
       "type": "task",
       "title": "VS Code preview reads the --raw panel rows",
       "slug": "vs-code-preview-reads-the-raw-panel-rows",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Preview and skew canary follow the panel-row show --raw header",
       "parent": "FEAT-1290",
       "author": "tech-lead",
@@ -68525,7 +68525,7 @@
       ],
       "path": "tasks/TASK-001296-vs-code-preview-reads-the-raw-panel-rows.md",
       "created_at": "2026-11-04T21:46:37Z",
-      "updated_at": "2026-11-05T03:10:11Z",
+      "updated_at": "2026-11-05T03:16:24Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68666,7 +68666,7 @@
         {
           "local_id": "F2",
           "title": "Messages and refusals asserted by substring, prefix or one picked line instead of whole lines",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68710,7 +68710,7 @@
         {
           "local_id": "F6",
           "title": "covers markers declare a parameter the case is not about, on refusals and effect cases",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68732,7 +68732,7 @@
         {
           "local_id": "F8",
           "title": "Source tests split into 11 feature modules that hold cases of other command groups",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68743,7 +68743,7 @@
         {
           "local_id": "F9",
           "title": "Several refusals batched in one case under multi-parameter markers and a vague name",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68754,7 +68754,7 @@
         {
           "local_id": "F10",
           "title": "JSON field projections asserted instead of the whole --json object",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68765,7 +68765,7 @@
         {
           "local_id": "F11",
           "title": "Check-rule tests: an unmarked case, two breaches in one case, partial issue assertions",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68776,7 +68776,7 @@
         {
           "local_id": "F12",
           "title": "declare_stored_view overwrites the override, so nine stored-view cases opt out as bundled_only",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68787,7 +68787,7 @@
       ],
       "path": "reviews/REV-001299-0-20-tests-against-the-cli-surface-test-rules.md",
       "created_at": "2026-11-04T22:05:56Z",
-      "updated_at": "2026-11-05T01:40:13Z",
+      "updated_at": "2026-11-05T04:10:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68799,7 +68799,7 @@
       "type": "task",
       "title": "Fix the 0.20 test review findings",
       "slug": "fix-the-0-20-test-review-findings",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Override-squad and Windows CI fixes first, then the REV-1299 findings against ADR-1172",
       "parent": "FEAT-1173",
       "author": "tech-lead",
@@ -68840,7 +68840,7 @@
         {
           "local_id": "ST4",
           "title": "Load refusals in tests/check, markers name their parameter",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68858,7 +68858,7 @@
         {
           "local_id": "ST6",
           "title": "One case per refusal, named for it",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68867,7 +68867,7 @@
         {
           "local_id": "ST7",
           "title": "Whole message lines and whole JSON objects",
-          "status": "InProgress",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68876,7 +68876,7 @@
         {
           "local_id": "ST8",
           "title": "Check-rule cases follow the breach-test rules",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68885,7 +68885,7 @@
         {
           "local_id": "ST9",
           "title": "Stored-view helper merges into the override",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68894,7 +68894,7 @@
         {
           "local_id": "ST10",
           "title": "Each case in its command group's module",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68903,7 +68903,7 @@
       ],
       "path": "tasks/TASK-001300-fix-the-0-20-test-review-findings.md",
       "created_at": "2026-11-04T23:33:24Z",
-      "updated_at": "2026-11-05T02:43:18Z",
+      "updated_at": "2026-11-05T04:11:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -69210,7 +69210,7 @@
       "type": "review",
       "title": "VS Code preview reads the raw panel rows",
       "slug": "vs-code-preview-reads-the-raw-panel-rows",
-      "status": "ChangesRequested",
+      "status": "Approved",
       "description": "",
       "parent": null,
       "author": "reviewer",
@@ -69234,7 +69234,7 @@
         {
           "local_id": "F2",
           "title": "show-json.json fixture lacks etag and no test pins its keys",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69245,18 +69245,40 @@
         {
           "local_id": "F3",
           "title": "A multi-line row value breaks the raw metadata list (core)",
-          "status": "Open",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
           "attributes": {
             "severity": "low"
           }
+        },
+        {
+          "local_id": "F4",
+          "title": "A line break in a title splits the raw heading",
+          "status": "Deferred",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": "TASK-1309",
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "The raw row join keeps CR and runs of spaces",
+          "status": "Deferred",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": "TASK-1309",
+          "attributes": {
+            "severity": "info"
+          }
         }
       ],
       "path": "reviews/REV-001307-vs-code-preview-reads-the-raw-panel-rows.md",
       "created_at": "2026-11-05T03:07:07Z",
-      "updated_at": "2026-11-05T03:13:59Z",
+      "updated_at": "2026-11-05T04:04:16Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -69264,6 +69286,92 @@
       },
       "slug_in_file": false,
       "id": "REV-1307"
+    },
+    "1308": {
+      "sequence_id": 1308,
+      "type": "task",
+      "title": "Flatten raw row values and fix the 0.20 MANUAL step 8",
+      "slug": "flatten-raw-row-values-and-fix-the-0-20-manual-step-8",
+      "status": "Done",
+      "description": "Raw rows on one line; step 8 names both required keys",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1307:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Print each raw row value on one line",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Name both required keys in the 0.20 MANUAL step 8",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001308-flatten-raw-row-values-and-fix-the-0-20-manual-step-8.md",
+      "created_at": "2026-11-05T03:17:05Z",
+      "updated_at": "2026-11-05T03:55:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1308"
+    },
+    "1309": {
+      "sequence_id": 1309,
+      "type": "task",
+      "title": "Keep titles and raw row values on one line",
+      "slug": "keep-titles-and-raw-row-values-on-one-line",
+      "status": "Ready",
+      "description": "Refuse a line break in a title; tidy the raw row join",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1307:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Refuse a line break in a title",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Join raw row lines with splitlines and strip",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001309-keep-titles-and-raw-row-values-on-one-line.md",
+      "created_at": "2026-11-05T04:04:09Z",
+      "updated_at": "2026-11-05T04:12:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1309"
     }
   }
 }

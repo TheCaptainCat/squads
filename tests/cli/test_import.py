@@ -10,6 +10,7 @@ import pytest
 from tests._help_tree import CUSTOM_VOCABULARY_OVERRIDE, write_workflow_override
 from tests._profile import selected
 from tests._squadwide import listed
+from tests.cli import _source_ownership as source_ownership
 
 P = selected()
 
@@ -514,3 +515,36 @@ async def test_a_kind_the_type_does_not_host_is_refused_by_its_declared_plural(
         f"{P.kind_plural})\n"
         "1 issue(s) found — nothing written.\n",
     )
+
+
+@pytest.mark.covers("import", "file")
+async def test_import_refuses_an_event_whose_as_names_a_source(
+    project, invoke, credentials_home, profile
+) -> None:
+    await source_ownership.mirror(invoke, project, profile)
+    source_ownership.events(
+        {"op": "comment", "target": profile.ref_id(2), "message": "x", "as": "source:platform"}
+    )
+
+    assert await source_ownership.run(invoke, ["import", "events.jsonl"]) == (
+        1,
+        f"line 1: {source_ownership.NO_AS}\n1 issue(s) found \u2014 nothing written.\n",
+    )
+
+
+@pytest.mark.covers("import", "file")
+async def test_the_ops_only_a_pull_compiles_are_refused_in_a_jsonl_file(
+    project, invoke, tmp_path, profile
+) -> None:
+    adders = dict.fromkeys((profile.target_kind, profile.kind, profile.third_kind))
+    valid = ", ".join(f"add-{kind}" for kind in adders)
+    for op in ("source", "view-body", "comment-edit"):
+        events = tmp_path / f"{op}.jsonl"
+        events.write_text(json.dumps({"op": op, "target": "ROLE-1", "as": "manager"}) + "\n")
+        result = await invoke(["import", str(events)])
+        assert (result.exit_code, result.output) == (
+            1,
+            f"line 1: unknown op '{op}'; valid ops: create, status, body, comment, ref, add-sub, "
+            f"{valid}, sub-status, sub-body, assign, update\n"
+            "1 issue(s) found \u2014 nothing written.\n",
+        )

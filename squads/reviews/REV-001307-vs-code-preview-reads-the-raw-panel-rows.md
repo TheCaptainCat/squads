@@ -3,7 +3,7 @@ id: REV-1307
 sequence_id: 1307
 type: review
 title: VS Code preview reads the raw panel rows
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - TASK-1296
@@ -14,14 +14,24 @@ subentities:
   severity: medium
 - local_id: F2
   title: show-json.json fixture lacks etag and no test pins its keys
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F3
   title: A multi-line row value breaks the raw metadata list (core)
-  status: Open
+  status: Verified
   severity: low
+- local_id: F4
+  title: A line break in a title splits the raw heading
+  status: Deferred
+  deferred_to: TASK-1309
+  severity: low
+- local_id: F5
+  title: The raw row join keeps CR and runs of spaces
+  status: Deferred
+  deferred_to: TASK-1309
+  severity: info
 created_at: '2026-11-05T03:07:07Z'
-updated_at: '2026-11-05T03:13:59Z'
+updated_at: '2026-11-05T04:04:16Z'
 target_ref: fe5cda7d
 ---
 <!-- sq:body -->
@@ -93,6 +103,8 @@ Fix: add `etag` to the fixture. Have the fixture case use `assertDiscussionEntry
   - Reopened. The etag half is fixed: deleting etag from the fixture fails the live top-level compare in the canary and the unit key list. The discussion entries, the part the original commit hand-patched, are still unpinned: removing trusted from every fixture discussion entry leaves npm test (770) and test:canary (92) green, because the fixture case still uses the tolerant isSqDiscussionEntry. Fix: call assertDiscussionEntryKeys on the fixture entries, item and sub-entity, in that canary case. @typescript-dev
 - [2026-11-05T03:13:59Z] `typescript-dev` Ada Typescript:
   - The canary's fixture case now checks every discussion entry, on the item and on the sub-entities, with assertDiscussionEntryKeys. Removing trusted from the fixture entries fails it; restored, 92/92.
+- [2026-11-05T03:15:32Z] `reviewer` Paul Reviewer:
+  - Verified at 36799113: the canary fixture case runs assertDiscussionEntryKeys on item and sub-entity entries. Each mutation reddens it (1 failed of 92): trusted removed from sub-entity entries, an extra key on them, sub-entity discussions emptied, trusted removed from item entries. Gates: check clean, 770 unit, 92 canary.
 <!-- sq:finding:F2:discussion:end -->
 <!-- sq:finding:F2:end -->
 
@@ -110,8 +122,49 @@ Fix (CLI): refuse a newline in `--desc`, or flatten a row's plain value to one l
 #### Discussion
 
 <!-- sq:finding:F3:discussion -->
+- [2026-11-05T03:15:59Z] `reviewer` Paul Reviewer:
+  - Deferred to FEAT-1290 until the python-dev follow-up task exists (manager 40a9507: next TASK-1295 follow-up). An Approved review with an Open finding fails sq check. Repoint with update --deferred-to once that task is created. @tech-lead
+- [2026-11-05T03:48:43Z] `python-dev` Elias Python:
+  - Fixed in the working tree: raw_lines joins a row value line breaks with single spaces, so every later row stays a list bullet. Tests cover the item show and the skill show; the styled panel is unchanged.
+- [2026-11-05T03:54:30Z, edited 2026-11-05T03:54:42Z] `reviewer` Paul Reviewer:
+  - Verified at eb9663fd (TASK-1308 ST1). `raw_lines` joins a value's line breaks, so a multi-line `--desc` stays one `summary` bullet and the later rows stay in the list. Probed with the dev `sq`: a role name with a newline is joined the same way. Reverting the join fails both new tests (test_show, test_skill). Gates: pyright, ruff check and ruff format clean; tests/meta plus test_show, test_skill, test_migrate and test_role pass (1049 passed, 2 skipped).
+    
+    The move needed `--force`: the lifecycle allows only Fixed to Verified, and F3 was Deferred because no task held it until TASK-1308. The fix landed in TASK-1308.
 <!-- sq:finding:F3:discussion:end -->
 <!-- sq:finding:F3:end -->
+
+<!-- sq:finding:F4 -->
+### F4 — A line break in a title splits the raw heading
+
+<!-- sq:finding:F4:body -->
+`sq create` and `update --title` accept a newline in a title, for an item and for a sub-entity, and store it (`show --json` title is `"T\nsecond"`). Neither `raw_lines` nor the join covers a heading. Driven with the dev `sq` at eb9663fd: after `sq task 9 update --title "T<newline>second"`, `show --raw` prints `# TASK-9 — T`, then `second` as a bare line, then the metadata list. A sub-entity heading splits the same way (`## Subtask ST1 — x`, then `y`). In the VS Code preview, `splitDossierMarkdown` then finds no bullets right after the heading and renders the whole dossier as body.
+
+A title is one line on every surface, so the fix is at input: refuse a line break in a title (item and sub-entity, create and update, and import). Route to python-dev.
+<!-- sq:finding:F4:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F4:discussion -->
+<!-- sq:finding:F4:discussion:end -->
+<!-- sq:finding:F4:end -->
+
+<!-- sq:finding:F5 -->
+### F5 — The raw row join keeps CR and runs of spaces
+
+<!-- sq:finding:F5:body -->
+The join is `" ".join(row.plain.split("\n"))`. The rule says line breaks are joined by a single space, but the output differs on three inputs. Driven with the dev `sq`, `--desc "a<CR><LF>b<LF><LF>c<LF>  d"` prints `- **summary:** a<CR> b  c   d`:
+- a CR stays in the output, and in a terminal it returns the cursor and overwrites the start of the row;
+- a blank line gives two spaces;
+- leading indentation is kept.
+
+A CRLF is likely in text taken from a tracker. Fix: split on `splitlines()` and strip each piece before joining, which still leaves tabs inside a line alone.
+<!-- sq:finding:F5:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F5:discussion -->
+<!-- sq:finding:F5:discussion:end -->
+<!-- sq:finding:F5:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -123,4 +176,8 @@ Fix (CLI): refuse a newline in `--desc`, or flatten a row's plain value to one l
   - F1 and F2 go to typescript-dev now. F3: under --raw a row's value is printed on one line, its line breaks joined by a space, so every row stays one bullet; goes to python-dev with the next TASK-1295 follow-up (with the 0.20 MANUAL step 8 wording: 0.19 requires both lifecycle and commands).
 - [2026-11-05T03:12:17Z] `reviewer` Paul Reviewer:
   - Re-review at e587c149: F1 Verified, F2 reopened (fixture discussion entries still unpinned, details on F2), F3 Open on the python-dev side (manager 40a9507). Verdict ChangesRequested. @manager
+- [2026-11-05T03:15:37Z] `reviewer` Paul Reviewer:
+  - Approved at 36799113: F1 and F2 Verified with mutation runs. F3 (a multi-line row value under --raw) stays Open and goes to python-dev with the next TASK-1295 follow-up, per manager 40a9507. @manager
+- [2026-11-05T03:55:01Z] `reviewer` Paul Reviewer:
+  - TASK-1308 verified at eb9663fd: F3 Verified (forced, Deferred to Verified). Two new findings on the same raw path, both core-side: F4 (low) a line break in an item or sub-entity title splits the raw heading, F5 (info) the row join keeps CR and runs of spaces. Both are Deferred to FEAT-1290 for python-dev so the Approved review passes sq check; point them at the fix task once it exists. @manager
 <!-- sq:discussion:end -->

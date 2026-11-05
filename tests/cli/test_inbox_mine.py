@@ -6,7 +6,8 @@ import json
 import pytest
 
 from tests._readable import init_readable_with_operator, lines
-from tests.cli._output import json_text
+from tests.cli import _source_comments as source_comments
+from tests.cli._output import json_text, read_json
 
 pytestmark = pytest.mark.anyio
 
@@ -274,3 +275,42 @@ async def test_mine_json_prints_one_object_per_item_with_the_matching_sub_entiti
     ]
     # Compared as text, so the key order is held as well as the content.
     assert result.output == json_text(expected)
+
+
+def _inbox_entry(profile, untrusted: str | None) -> dict[str, object]:
+    """The inbox entry of the pulled item's one comment, whose digest is set aside."""
+    return {
+        "id": profile.ref_id(3),
+        "title": "Login fails on empty password",
+        "lines": ["- Ping @manager please."],
+        "regions": [None],
+        "untrusted": [untrusted],
+        "display": {
+            "type": profile.ref_label,
+            "status": {"badge": "\u26aa Draft", "intent": "neutral"},
+            "badges": {},
+            "assignee": None,
+            "status_code": "Draft",
+        },
+    }
+
+
+def _without_digests(entries: list[dict[str, object]]) -> list[dict[str, object]]:
+    return [{k: v for k, v in e.items() if k != "hashes"} for e in entries]
+
+
+@pytest.mark.covers("inbox", "role")
+async def test_a_mention_in_an_untrusted_comment_reaches_the_inbox_with_the_notice(
+    project, invoke, credentials_home, profile
+) -> None:
+    base = await source_comments.host(
+        invoke, project, profile, ("Ping @manager please.", source_comments.STRANGER)
+    )
+
+    untrusted = await read_json(invoke, ["inbox", "manager", "--json"])
+    source_comments.declare(project, profile, base, "trusted = true\n")
+    trusted = await read_json(invoke, ["inbox", "manager", "--json"])
+
+    # each entry also carries the digest of the comment it quotes, which the comment tests pin
+    assert _without_digests(untrusted) == [_inbox_entry(profile, "platform")]
+    assert _without_digests(trusted) == [_inbox_entry(profile, None)]

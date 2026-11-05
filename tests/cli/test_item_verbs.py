@@ -17,7 +17,8 @@ from squads import __version__
 from tests import _stored_view as stored
 from tests._populated import FEATURE, REVIEW, TASK
 from tests._profile import selected
-from tests.cli._output import unknown_option
+from tests.cli import _source_ownership as source_ownership
+from tests.cli._output import read_json, unknown_option
 from tests.cli._roster import forced_colour
 
 P = selected()
@@ -1464,7 +1465,6 @@ async def _task_with_stored_body(project, invoke) -> None:
 
 @pytest.mark.covers("<type> view add", "name")
 @pytest.mark.covers("<type> view disable", "name")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_view_add_and_disable_keep_a_stored_body_byte_for_byte(
     populated_project, invoke
 ) -> None:
@@ -1481,7 +1481,6 @@ async def test_view_add_and_disable_keep_a_stored_body_byte_for_byte(
 
 
 @pytest.mark.covers("<type> view add", "name")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_view_add_completes_the_open_only_tag_of_a_stored_view(
     populated_project, invoke
 ) -> None:
@@ -1501,7 +1500,6 @@ async def test_view_add_completes_the_open_only_tag_of_a_stored_view(
 
 
 @pytest.mark.covers("<type> body", "--message")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_body_keeps_a_stored_body_when_the_new_text_leaves_it_out(
     populated_project, invoke
 ) -> None:
@@ -1513,7 +1511,6 @@ async def test_body_keeps_a_stored_body_when_the_new_text_leaves_it_out(
 
 
 @pytest.mark.covers("<type> body", "--message")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_body_refuses_to_drop_the_second_of_two_different_stored_bodies(
     populated_project, invoke
 ) -> None:
@@ -1541,7 +1538,6 @@ async def test_body_refuses_to_drop_the_second_of_two_different_stored_bodies(
 
 
 @pytest.mark.covers("<type> body", "--file", "--force")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_body_takes_back_the_body_show_printed_with_its_stored_pair(
     populated_project, invoke
 ) -> None:
@@ -1556,7 +1552,6 @@ async def test_body_takes_back_the_body_show_printed_with_its_stored_pair(
 
 
 @pytest.mark.covers("<type> body", "--file", "--force")
-@pytest.mark.bundled_only("the stored view is declared by an override")
 async def test_body_refuses_a_pair_whose_text_differs_from_the_stored_one(
     populated_project, invoke
 ) -> None:
@@ -1760,3 +1755,148 @@ async def test_remove_json_asks_on_stderr_and_prints_only_the_document_on_stdout
     expected = {"removed_id": f"{P.ref_prefix}-{loose}", "severed_refs": []}
     assert result.stdout == json.dumps(expected, indent=2) + "\n"
     assert result.stderr == f"Remove {P.ref_prefix}-{loose}? This cannot be undone. [y/N]: "
+
+
+async def _declare_map_attribute(project, profile) -> None:
+    """Declare the map attribute of the profile on its type when the squad does not, and create
+    one item of that type."""
+    override = project.squad_dir / ".overrides" / "workflow.toml"
+    override.parent.mkdir(parents=True, exist_ok=True)
+    kept = override.read_text(encoding="utf-8") if override.exists() else ""
+    header = f"[items.{profile.map_type}.attributes.{profile.map_attr}]"
+    if header not in kept and f"{profile.map_attr} = " not in kept:
+        override.write_text(f'{kept}\n{header}\nkind = "map"\n', encoding="utf-8")
+
+
+async def _mapped(project, invoke, profile) -> str:
+    """The number of an item that holds the map attribute."""
+    await _declare_map_attribute(project, profile)
+    created = await invoke(
+        [
+            "create",
+            profile.map_type,
+            "Map host",
+            "--author",
+            "manager",
+            "--json",
+            *profile.parent_args(profile.map_type),
+        ]
+    )
+    assert created.exit_code == 0, created.output
+    return str(json.loads(created.output)["sequence_id"])
+
+
+def _unlink(profile) -> str:
+    return f"sq {profile.ref} 2 source unlink"
+
+
+def _owned(profile) -> str:
+    return f"error: {profile.ref_id(2)} is owned by source 'platform' (issue platform/api#12): its "
+
+
+@pytest.mark.covers("<type> update", "--set")
+async def test_set_refuses_a_map_attribute_and_names_the_option(
+    populated_project, invoke, profile
+) -> None:
+    mapped = await _mapped(populated_project, invoke, profile)
+    refused = await invoke([profile.map_type, mapped, "update", "--set", f"{profile.map_attr}=a=b"])
+
+    assert (refused.exit_code, refused.output) == (
+        1,
+        f"error: '{profile.map_attr}' is a map; set a key with `--{profile.map_attr} key=value`, "
+        "not --set\n",
+    )
+
+
+@pytest.mark.covers("<type> update", "--<attribute:map>")
+async def test_a_map_attribute_option_sets_and_removes_keys(
+    populated_project, invoke, profile
+) -> None:
+    mapped = await _mapped(populated_project, invoke, profile)
+    flag = profile.attr_flag(profile.map_attr)
+    done = await invoke([profile.map_type, mapped, "update", flag, "a=b", flag, "c=d"])
+    shown = await read_json(invoke, [profile.map_type, mapped, "show", "--json"])
+    removed = await invoke([profile.map_type, mapped, "update", flag, "a="])
+
+    assert done.exit_code == 0, done.output
+    assert shown[profile.map_attr] == {"a": "b", "c": "d"}
+    assert removed.exit_code == 0, removed.output
+    assert (await read_json(invoke, [profile.map_type, mapped, "show", "--json"]))[
+        profile.map_attr
+    ] == {"c": "d"}
+
+
+@pytest.mark.covers("<type> update", "--title")
+async def test_update_refuses_the_title_of_a_sourced_item(
+    project, invoke, credentials_home, profile
+) -> None:
+    await source_ownership.mirror(invoke, project, profile)
+
+    assert await source_ownership.run(invoke, [profile.ref, "2", "update", "--title", "Other"]) == (
+        1,
+        f"{_owned(profile)}title is set by `sq source pull`; run `{_unlink(profile)}` to edit it "
+        "here\n",
+    )
+
+
+@pytest.mark.covers("<type> update", "--<field>")
+async def test_update_refuses_a_mapped_field_of_a_sourced_item(
+    project, invoke, credentials_home, profile
+) -> None:
+    await source_ownership.mirror(invoke, project, profile)
+
+    assert await source_ownership.run(
+        invoke, [profile.ref, "2", "update", profile.badge_flag, profile.badge_value]
+    ) == (
+        1,
+        f"{_owned(profile)}{profile.badge} field is set by `sq source pull`; "
+        f"run `{_unlink(profile)}` to edit it here\n",
+    )
+
+
+@pytest.mark.covers("<type> update", "--desc")
+async def test_update_still_sets_the_description_of_a_sourced_item(
+    project, invoke, credentials_home, profile
+) -> None:
+    await source_ownership.mirror(invoke, project, profile)
+
+    assert await source_ownership.run(invoke, [profile.ref, "2", "update", "--desc", "Mine"]) == (
+        0,
+        f"updated {profile.ref_id(2)}  {profile.ref_path(2, 'login-fails-on-empty-password')}\n",
+    )
+
+
+@pytest.mark.covers("<type> body", "--message")
+async def test_the_body_refuses_to_rewrite_the_stored_description_of_a_sourced_item(
+    project, invoke, credentials_home, profile
+) -> None:
+    await source_ownership.mirror(invoke, project, profile)
+    pair = "<!-- sq:view:source_description -->\nmine\n<!-- sq:view:source_description:end -->"
+
+    assert await source_ownership.run(invoke, [profile.ref, "2", "body", "-m", pair]) == (
+        1,
+        f"error: {profile.ref_id(2)} is owned by source 'platform' (issue platform/api#12): "
+        "the stored body of view 'source_description' is set by `sq source pull`; "
+        f"run `{_unlink(profile)}` to edit it here\n",
+    )
+
+
+@pytest.mark.covers("<type> retype", "new-type")
+async def test_a_retyped_item_keeps_its_source_record(
+    project, invoke, credentials_home, profile
+) -> None:
+    await source_ownership.mirror(invoke, project, profile, profile.retype_from)
+
+    retyped = await invoke([profile.retype_from, "2", "retype", profile.retype_to])
+    shown = await read_json(invoke, [profile.retype_to, "2", "show", "--json"])
+
+    assert retyped.exit_code == 0, retyped.output
+    assert shown["source"] == {
+        "name": "platform",
+        "id": "gid://gitlab/Issue/9001",
+        "key": "platform/api#12",
+        "state": "open",
+        "updated_at": "2026-11-02T09:00:00Z",
+        "author_id": "4567",
+        "author_handle": "pchat",
+    }

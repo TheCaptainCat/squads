@@ -87,6 +87,7 @@ fields = [
 [items.job.attributes]
 owner_team = { kind = "str", label = "owner team" }
 needs_review = { kind = "bool", label = "needs review" }
+links = { kind = "map", label = "links" }
 
 [items.record]
 prefix = "REC"

@@ -3,7 +3,7 @@ id: TASK-1300
 sequence_id: 1300
 type: task
 title: Fix the 0.20 test review findings
-status: InProgress
+status: Done
 parent: FEAT-1173
 author: tech-lead
 assignee: python-dev
@@ -27,7 +27,7 @@ subentities:
   assignee: python-dev
 - local_id: ST4
   title: Load refusals in tests/check, markers name their parameter
-  status: InProgress
+  status: Done
   assignee: python-dev
 - local_id: ST5
   title: 'CONTRIBUTING: one case per load-rule message'
@@ -35,26 +35,26 @@ subentities:
   assignee: python-dev
 - local_id: ST6
   title: One case per refusal, named for it
-  status: InProgress
+  status: Done
   assignee: python-dev
 - local_id: ST7
   title: Whole message lines and whole JSON objects
-  status: InProgress
+  status: Done
   assignee: python-dev
 - local_id: ST8
   title: Check-rule cases follow the breach-test rules
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST9
   title: Stored-view helper merges into the override
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST10
   title: Each case in its command group's module
-  status: Todo
+  status: Done
   assignee: python-dev
 created_at: '2026-11-04T23:33:24Z'
-updated_at: '2026-11-05T02:43:18Z'
+updated_at: '2026-11-05T04:11:06Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -327,4 +327,23 @@ Overlap: the destinations include `tests/cli/test_item_verbs.py`, `test_show.py`
   - Round 2 handback. ST3 (F3, F4, F5) and ST5 Done; ST4 (F6, F7) stays InProgress: F7 Fixed, F6 partly. Open: the --links effect in test_source_identities has no declarable pair (no map-option derivation in tests/_cli_surface.derived_names, so a --links marker is stale in the coverage guard); needs an architect ruling. test_source_ownership:50 still declares --title and --<field> together until ST6 splits it. Gates: pyright/ruff/format clean; tests/meta cli check daemon regressions 2236 passed 2 skipped; --squad override cli check 1185 passed 179 skipped, 0 failed. Logs in /home/pchat/.cache/sq-loop/r2-*.log. sq check clean.
 - [2026-11-05T01:43:01Z] `manager` Catherine Manager:
   - F6 --links: the override squad's workflow override declares one map attribute on its reference type and its profile names it, and tests/_cli_surface gains the --<attribute:map> derivation like the str/list/date ones, so the derived option exists in that squad's tree and a marker can declare it. Goes into the ST6 round; the architect records the derivation in ADR-1172 rule 3.
+- [2026-11-05T03:39:23Z] `python-dev` Elias Python:
+  - - Round 3 handback. ST4, ST6, ST7 Done; REV-1299 F2, F6, F9, F10 Fixed. Nothing committed; `tests/cli/_pulled.py` is a new untracked file.
+    - **F6 map option.** Derivation named `--<attribute:map>`: a settable `kind = "map"` attribute of a non-roster type, derived on `<type> update` (`tests/_cli_surface.derived_names`). The override squad's workflow declares `links = { kind = "map" }` on `job`; the profile gains `map_type`/`map_attr`. The bundled tree has no such option, so `_cli_surface.squad_known()` adds `(<type> update, --<attribute:map>)` to the pairs a marker may name; the coverage guard and the `invoke` teardown use it (`Surface.other_squads`). The case that reaches it declares the attribute in its own override on the bundled squad. The architect records the derivation in ADR-1172 rule 3. Side effect: `job update --help` now lists `--links`, so one help line in `test_subentity_verbs` moved.
+    - **F9.** Five relink refusals, ownership title/field/desc, comment edit/remove and `--as`/import are one case each; effect markers reduced to `--json`+`source`, refusals declare `source` or `issue`.
+    - **F2/F10.** About 250 assert statements in 11 source modules plus `test_migrate` and `test_workflow` replaced by whole-line or whole-object compares. Helpers: `tests/cli/_pulled.py` (item, shown_item, without_digests), `tests/cli/_output.py` (pull_report, pull_document, alice_document, MANAGER_ROW, without_hashes). Profile gained fields the whole documents need (badge_shown*, host_has_badge, host_author_warning, map_*).
+    - **Set aside / kept picked, by design.** Comment content digest (`hash`, `short_hash`; prefix pair checked), tracker address, etag. Kept as picked: ids of `list` rows (membership claim), the `source` record of items 4 and 5 in the filter-lost case, the stamp line of the scaffolded `sources.toml`.
+    - **Gates.** pyright, ruff check, ruff format clean. `tests/meta tests/cli tests/check tests/daemon tests/regressions tests/cross_process -n 4`: 2284 passed, 4 skipped. `--squad override tests/cli tests/check -n 4`: 1205 passed, 180 skipped, 0 failures. Source modules also pass in remote mode on both squads. Logs: `/home/pchat/.cache/sq-loop/r3-main2.log`, `r3-override.log`.
+    - **Spot checks** (product string changed, case red, restored): relink "still holds", relink "was not created", map "not --set", pull "each is refreshed", comment "via", Jira "authenticated as", map option derivation, `restricted` count, "just now" age (28 reds). `sq check` clean.
+    - @manager
+- [2026-11-05T03:43:17Z] `architect` Robert Architect:
+  - ADR-1172 rule 3 now records the `--<attribute:map>` derivation (ST6/F6) and the skipped-call teardown exception (ST2). @manager
+- [2026-11-05T03:59:34Z] `python-dev` Elias Python:
+  - Round 4 handback. ST8 and ST9 Done; REV-1299 F11, F12 Fixed. Nothing committed. Gates: pyright, ruff, format clean; main set 2287 passed, 4 skipped; --squad override tests/cli tests/check 1217 passed, 171 skipped, 0 failures. Mutations: source_declared and markers_balanced messages changed (2 reds), sq:attrs wording changed (1 red), helper reverted to overwrite (9 failed + 9 errors on override); all restored. @manager
+- [2026-11-05T04:11:06Z] `python-dev` Elias Python:
+  - - Round 5 handback. ST10 Done, REV-1299 F8 Fixed, TASK-1300 Done. Nothing committed.
+    - Layout: each case sits in the module of the command it declares. source leaves: test_source_pull, test_source_check, test_source_list, test_source_credential; test_item_source for `<type> source unlink|relink`; the rest moved into test_show, test_operator, test_item_verbs, test_comment_verbs, test_inbox_mine, test_import, test_check, test_repair, test_role, test_override, test_workflow. The nine other test_source_* modules are gone; shared arrangements are in tests/cli/_source_*.py.
+    - Counts: 1388 collected on bundled and on override, before and after, identical ids.
+    - Gates: pyright, ruff check, ruff format clean; main set 2287 passed, 4 skipped; --squad override tests/cli tests/check 1217 passed, 171 skipped, 0 failures. Logs in /home/pchat/.cache/sq-loop/r5-*.log.
+    - @reviewer: REV-1299 is ready for re-review.
 <!-- sq:discussion:end -->
