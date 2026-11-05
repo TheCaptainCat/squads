@@ -825,6 +825,8 @@ and its `key` follows it.
 
 `jira` has two versions, so a `jira` source must name one.
 
+Both Jira connectors are **experimental**: they are tested against recorded responses only, not against a live Jira, so their behaviour and settings may change in a later release.
+
 - **`base_url`** is the Jira site (`https://example.atlassian.net`) for Cloud, or the Data Center
   address, its context path included (`https://jira.example.com/jira`).
 - **Credential:** Cloud takes `user`, the account's email, and `token`, an API token. Data Center

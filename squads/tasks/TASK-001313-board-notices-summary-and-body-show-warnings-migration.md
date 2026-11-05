@@ -3,7 +3,7 @@ id: TASK-1313
 sequence_id: 1313
 type: task
 title: 'Board notices: summary and body, show, warnings, migration'
-status: InProgress
+status: Done
 parent: FEAT-1311
 author: tech-lead
 assignee: python-dev
@@ -42,7 +42,7 @@ subentities:
   assignee: python-dev
   maps_to: US4
 created_at: '2026-11-05T07:21:31Z'
-updated_at: '2026-11-05T09:23:53Z'
+updated_at: '2026-11-05T09:29:39Z'
 ---
 <!-- sq:body -->
 ## Goal

@@ -421,8 +421,9 @@ SKILL-<n>: project skill holds the name 'sq-how-to', which 0.20 gives to the 'sq
   Then re-point each ref that named the skill (`sq <type> <n> ref rm SKILL-<n>`, and a `ref add`
   to the new home), and clear its comments: a comment is removed only by its author,
   `sq skill <slug> comment <hash> remove --as <author>`.
-- **A skill named `sq-role-<slug>` for one of your roles.** That name belongs to the role's
-  generated skill. A skill's slug never changes, so give its content a skill under another name
+- **A skill whose name starts with `sq-role-`**, whether or not a role holds the rest of the name
+  (`SKILL-<n>: skill 'sq-role-tech-lead' is named like a role skill, a name 0.20 generates`). That
+  prefix belongs to the skills squads generates for roles. A skill's slug never changes, so give its content a skill under another name
   (`sq skill add`), or fold it into the role's body, then delete the old one with
   `sq skill <slug> remove --purge`. Archiving it is not enough.
 - **A project skill named `sq-greeting` or `sq-how-to`.** The run gives those names to the renamed

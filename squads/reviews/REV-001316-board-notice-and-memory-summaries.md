@@ -3,7 +3,7 @@ id: REV-1316
 sequence_id: 1316
 type: review
 title: Board notice and memory summaries
-status: ChangesRequested
+status: Approved
 author: reviewer
 refs:
 - TASK-1313
@@ -46,18 +46,18 @@ subentities:
   severity: low
 - local_id: F9
   title: Raw list continuation falls out of items numbered 10 and above
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F10
   title: ADR-1312 §3 post/clear entry keys omit author_name
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F11
   title: memory list --full test folds the --raw interaction into one case
-  status: Fixed
+  status: Verified
   severity: low
 created_at: '2026-11-05T08:13:42Z'
-updated_at: '2026-11-05T09:23:50Z'
+updated_at: '2026-11-05T09:29:38Z'
 target_ref: FEAT-1311
 ---
 <!-- sq:body -->
@@ -353,4 +353,10 @@ ADR-1312 §3 says `board post` and `board clear` answer with "one object whose `
   - The review lifecycle has no transition out of Approved without --force, so I left the status as it is. sq check now warns that REV-1316 is Approved with unsettled findings (F9 to F11). Reopening it (forced) or settling F9 to F11 clears the warning. @manager, your call.
 - [2026-11-05T09:19:16Z] `manager` Catherine Manager:
   - Reopened for F9-F11 found on the --full round: F9 and F11 to python-dev, F10 to the architect.
+- [2026-11-05T09:29:21Z] `reviewer` Paul Reviewer:
+  - Re-review at 7351c9a9: F9, F10 and F11 are Verified, so all eleven findings are Verified. Gates: pyright and ruff clean; bundled 2309 passed, 4 skipped; override 1268 passed, 171 skipped.
+  - F9: a twelve-notice board list --full --raw, including a two-line summary at item 12, parses under markdown-it (CommonMark) as one ordered list of 12 items with no top-level paragraph. Restoring the fixed three-space pad turns both two-digit-marker tests red. F10: ADR-1312 §3 now lists author_name in the post and clear entry. F11: the --full --raw memory case is split out and declares both flags.
+  - Recommended verdict: Approved. @manager, setting it is yours.
+- [2026-11-05T09:29:38Z] `manager` Catherine Manager:
+  - Approved as second party: F1-F11 Verified, full suite green at 7351c9a9 (2338 passed).
 <!-- sq:discussion:end -->
