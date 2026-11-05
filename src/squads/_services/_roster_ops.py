@@ -419,15 +419,15 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             parent=parent,
             operator_invocable=req.operator_invocable,
         )
-        return Response(data=SkillWrite(entry=skill_row(item, self.spec)))
+        return Response(data=SkillWrite(entry=skill_row(item)))
 
     async def show_skill_entry(self, req: RosterAddress) -> Response[SkillShow]:
         """A skill with its stored and expanded body, its views and its discussion."""
         it = await self.roster_entry(ROSTER_SKILL, req.addr)
         warnings = await self._duplicate_warnings(it)
-        view_name = skill_view_name(it.slug, self.spec)
+        view_name = skill_view_name(it.slug)
         disabled = view_name is not None and await self.view_tag_state(it.id, view_name) is True
-        row = skill_row(it, self.spec)
+        row = skill_row(it)
         expanded = await self.read_body(it.id)
         warnings += expanded.warnings
         data = SkillShow.model_validate(
@@ -458,7 +458,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
             ),
             operator_invocable=req.operator_invocable,
         )
-        return Response(data=SkillWrite(entry=skill_row(updated, self.spec)))
+        return Response(data=SkillWrite(entry=skill_row(updated)))
 
     async def skill_refs(self, req: SkillRefsRequest) -> Response[SkillRefs]:
         """The refs the skill carries, the refs carried to it, or both."""
@@ -478,9 +478,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         target = await self.resolve_any_id(raw)
         kind = embedded or req.kind or self.spec.default_ref_kind()
         updated = await self.add_ref(item.id, target, kind=kind)
-        return Response(
-            data=SkillRefChange(entry=skill_row(updated, self.spec), target=target, kind=kind)
-        )
+        return Response(data=SkillRefChange(entry=skill_row(updated), target=target, kind=kind))
 
     async def remove_skill_ref(self, req: SkillRefRemoveRequest) -> Response[SkillRefChange]:
         """Remove the skill's ref to the target, whatever its kind."""
@@ -488,54 +486,50 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         raw, _ = split_ref(req.target)
         target = await self.resolve_any_id(raw)
         updated = await self.rm_ref(item.id, target)
-        return Response(
-            data=SkillRefChange(entry=skill_row(updated, self.spec), target=target, kind=None)
-        )
+        return Response(data=SkillRefChange(entry=skill_row(updated), target=target, kind=None))
 
     async def link_skill_role(self, req: SkillRoleRequest) -> Response[SkillRoleLink]:
         """Scope the skill to a role and regenerate that role's pointer."""
         item = await self._write_target(ROSTER_SKILL, req.addr)
         role = await self.roster_entry(ROSTER_ROLE, req.role)
         updated = await self.link_role(item.id, role.id)
-        return Response(data=SkillRoleLink(entry=skill_row(updated, self.spec), role=role.id))
+        return Response(data=SkillRoleLink(entry=skill_row(updated), role=role.id))
 
     async def unlink_skill_role(self, req: SkillRoleRequest) -> Response[SkillRoleLink]:
         """Unscope the skill from a role and regenerate that role's pointer."""
         item = await self._write_target(ROSTER_SKILL, req.addr)
         role = await self.roster_entry(ROSTER_ROLE, req.role)
         updated = await self.unlink_role(item.id, role.id)
-        return Response(data=SkillRoleLink(entry=skill_row(updated, self.spec), role=role.id))
+        return Response(data=SkillRoleLink(entry=skill_row(updated), role=role.id))
 
     async def regen_skill_entry(self, req: RosterAddress) -> Response[SkillWrite]:
         """Regenerate the skill's pointer."""
         item = await self.roster_entry(ROSTER_SKILL, req.addr)
-        return Response(data=SkillWrite(entry=skill_row(await self.regen(item.id), self.spec)))
+        return Response(data=SkillWrite(entry=skill_row(await self.regen(item.id))))
 
     async def set_skill_body(self, req: RosterBodyRequest) -> Response[SkillWrite]:
         """Set or append to the skill's body."""
-        return Response(
-            data=SkillWrite(entry=skill_row(await self._entry_body(ROSTER_SKILL, req), self.spec))
-        )
+        return Response(data=SkillWrite(entry=skill_row(await self._entry_body(ROSTER_SKILL, req))))
 
     async def move_skill_status(self, req: RosterStatusRequest) -> Response[SkillStatusMove]:
         """Move the skill to another status."""
         moved, severed, warnings = await self._entry_status(ROSTER_SKILL, req)
         return Response(
-            data=SkillStatusMove(entry=skill_row(moved, self.spec), severed=severed),
+            data=SkillStatusMove(entry=skill_row(moved), severed=severed),
             warnings=warnings,
         )
 
     async def remove_skill_entry(self, req: RosterRemoveRequest) -> Response[SkillWrite]:
         """Delete the skill."""
         removed, warnings = await self._entry_remove(ROSTER_SKILL, req)
-        return Response(data=SkillWrite(entry=skill_row(removed, self.spec)), warnings=warnings)
+        return Response(data=SkillWrite(entry=skill_row(removed)), warnings=warnings)
 
     async def add_skill_view(self, req: ViewRequest) -> Response[SkillViewChange]:
         """Place or re-enable a view tag in the skill's body."""
         item, changed, was_present = await self._entry_view(ROSTER_SKILL, req, enable=True)
         return Response(
             data=SkillViewChange(
-                entry=skill_row(item, self.spec),
+                entry=skill_row(item),
                 view=req.name,
                 changed=changed,
                 was_present=was_present,
@@ -547,7 +541,7 @@ class RosterOpsMixin(ItemOpsMixin, RefsMixin, RosterMixin, ViewsMixin):
         item, changed, was_present = await self._entry_view(ROSTER_SKILL, req, enable=False)
         return Response(
             data=SkillViewChange(
-                entry=skill_row(item, self.spec),
+                entry=skill_row(item),
                 view=req.name,
                 changed=changed,
                 was_present=was_present,

@@ -1,10 +1,12 @@
 """`sq init`: where the squad lives, the agent files and roles it writes, the names it gives
 the roles, and the refusals to start over an existing squad."""
 
+import json
 from pathlib import Path
 
 import pytest
 
+from squads import __version__
 from tests._squadwide import agent_files, flat, listed, region
 from tests.cli._output import json_text
 
@@ -15,6 +17,12 @@ MANAGER = "- **Catherine Manager** — manager (`manager`)"
 TESTER = "- **Mara Tester** — QA engineer (`qa`)"
 BAD_BACKEND = "error: unknown backend 'bogus' (available: claude_code, agents_md)\n"
 MINIMAL = ["init", "--roles", "minimal"]
+PROJECT_TYPE = (
+    f"# squads:override-base:{__version__}\n"
+    '[items.note]\nprefix = "NOTE"\nfolder = "notes"\nlifecycle = "work"\nparents = []\n'
+    'order = 95\ncategory = "work"\n'
+)
+ALWAYS_ON_SKILLS = ["sq-greeting", "sq-how-to", "sq-memory"]
 REFUSED_FOLDERS = [
     ("/abs", "error: --squad-dir must be relative to the project root, got '/abs'\n"),
     ("../up", "error: --squad-dir must stay inside the project root, got '../up'\n"),
@@ -36,7 +44,7 @@ async def test_squad_dir_names_the_folder_the_squad_lives_in(invoke) -> None:
     assert result.exit_code == 0, result.output
     assert flat(result.output) == _created(root, "work", "manager", "claude_code")
     items = await listed(invoke)
-    assert (items[0], len(items)) == (("ROLE-1", "Catherine Manager"), 13)
+    assert (items[0], len(items)) == (("ROLE-1", "Catherine Manager"), 4)
 
 
 @pytest.mark.covers("init", "--squad-dir")
@@ -323,3 +331,88 @@ async def test_name_spares_the_prompt_for_the_role_it_names(invoke, monkeypatch)
     assert prompts == "Name for 'qa' (Enter to keep default 'Mara Tester'): Quinn Q\n"
     assert flat(border + panel) == _created(root, "squads", "manager,qa", "claude_code")
     assert await listed(invoke) == [("ROLE-1", "Zed One"), ("ROLE-2", "Quinn Q")]
+
+
+def _with_project_type(root: Path) -> None:
+    """A squad directory already holding an override that declares the project type `note`."""
+    overrides = root / "squads" / ".overrides"
+    overrides.mkdir(parents=True)
+    (overrides / "workflow.toml").write_text(PROJECT_TYPE, encoding="utf-8")
+
+
+@pytest.mark.covers("init", "--roles")
+async def test_init_writes_no_skill_for_a_bundled_or_a_project_type(invoke) -> None:
+    root = Path.cwd()
+    _with_project_type(root)
+    result = await invoke(MINIMAL)
+    assert result.exit_code == 0, result.output
+    declared = await invoke(["workflow", "types", "--json"])
+    assert '"type": "note"' in declared.output
+    titles = sorted(title for _id, title in await listed(invoke) if title != "Catherine Manager")
+    assert titles == ALWAYS_ON_SKILLS
+    pointers = sorted(p.name for p in (root / ".claude" / "skills").iterdir())
+    assert pointers == sorted([*ALWAYS_ON_SKILLS, "sq-role-manager"])
+    bodies = sorted(
+        p.name.split("-", 2)[2][:-3] for p in (root / "squads/agents/skills").glob("*.md")
+    )
+    assert bodies == ALWAYS_ON_SKILLS
+
+
+@pytest.mark.covers("check", "--json")
+async def test_a_fresh_squad_with_a_project_type_checks_clean(invoke) -> None:
+    _with_project_type(Path.cwd())
+    result = await invoke(MINIMAL)
+    assert result.exit_code == 0, result.output
+    checked = await invoke(["check", "--json"])
+    assert (checked.exit_code, checked.output) == (0, "[]\n")
+
+
+def _steps(text: str) -> str:
+    """The startup steps 1 to 7 of *text*: from the first step to the greeting step."""
+    return text[text.index("1. **Identify the operator.**") : text.index("8. **Greet.")]
+
+
+@pytest.mark.covers("init", "--backend")
+async def test_agents_md_compiles_each_role_body_as_role_show_prints_it(invoke) -> None:
+    root = Path.cwd()
+    assert (await invoke(["init", "--roles", "core", "--backend", "agents_md"])).exit_code == 0
+    await invoke(["role", "manager", "body", "-m", "Squad prose for the manager.", "--append"])
+    await invoke(["memory", "manager", "add", "Secret memory fact"])
+    await invoke(["board", "post", "-m", "Secret board notice", "--as", "manager"])
+    assert (await invoke(["sync"])).exit_code == 0
+    compiled = "\n".join(region(root / "AGENTS.md"))
+    for slug in ("manager", "architect", "tech-lead", "reviewer"):
+        shown = await invoke(["role", slug, "show", "--raw", "--no-header"])
+        assert shown.exit_code == 0, shown.output
+        assert shown.output.rstrip("\n") in compiled
+    assert "Squad prose for the manager." in compiled
+    assert "Secret memory fact" not in compiled
+    assert "Secret board notice" not in compiled
+
+
+@pytest.mark.covers("init", "--backend")
+async def test_agents_md_states_the_steps_sq_greeting_states(invoke) -> None:
+    root = Path.cwd()
+    result = await invoke(
+        ["init", "--roles", "core", "--backend", "claude_code", "--backend", "agents_md"]
+    )
+    assert result.exit_code == 0, result.output
+    greeting = await invoke(["skill", "sq-greeting", "show", "--raw", "--no-header"])
+    assert greeting.exit_code == 0, greeting.output
+    assert _steps("\n".join(region(root / "AGENTS.md"))) == _steps(greeting.output)
+
+
+@pytest.mark.covers("init", "--roles")
+async def test_init_seeds_every_role_body_with_both_tags_and_allows_the_two_base_skills(
+    invoke,
+) -> None:
+    root = Path.cwd()
+    assert (await invoke(["init", "--roles", "core", "--backend", "claude_code"])).exit_code == 0
+    bodies = sorted((root / "squads/agents/roles").glob("*.md"))
+    assert len(bodies) == 4
+    for body in bodies:
+        text = body.read_text(encoding="utf-8")
+        assert "<!-- sq:body -->\n<!-- sq:view:role_definition -->\n" in text
+        assert "\n<!-- sq:view:role_playbook -->\n<!-- sq:body:end -->" in text
+    allowed = json.loads((root / ".claude/settings.json").read_text(encoding="utf-8"))
+    assert {"Skill(sq-greeting)", "Skill(sq-how-to)"} <= set(allowed["permissions"]["allow"])

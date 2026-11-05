@@ -1,10 +1,10 @@
-"""Repo-hygiene gate: every entry point that writes managed skill bodies must call *both*
-``seed_bundled_skills`` and ``seed_custom_skills`` — ``init``, ``adopt`` and ``sync`` alike."""
+"""Repo-hygiene gate: every entry point that writes managed skill bodies must call
+``seed_bundled_skills`` — ``init``, ``adopt`` and ``sync`` alike."""
 
 import ast
 from pathlib import Path
 
-_SEED_CALLS = ("seed_bundled_skills", "seed_custom_skills")
+_SEED_CALLS = ("seed_bundled_skills",)
 
 #: Entry point -> the module under ``src/squads`` that defines it. Each of these writes (or
 #: drives a backend that writes) managed skill bodies, so each owes the same seeding.
@@ -34,7 +34,7 @@ def _find_function(tree: ast.Module, name: str) -> ast.FunctionDef | ast.AsyncFu
     raise AssertionError(f"function {name!r} not found — has the module been restructured?")
 
 
-def test_every_entry_point_seeds_both_bundled_and_custom_skills() -> None:
+def test_every_entry_point_seeds_the_managed_skills() -> None:
     for fn_name, rel in _ENTRY_POINTS.items():
         path = _repo_root() / "src" / "squads" / rel
         tree = ast.parse(path.read_text(encoding="utf-8"))

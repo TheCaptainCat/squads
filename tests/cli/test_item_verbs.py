@@ -294,19 +294,19 @@ async def test_update_sets_and_clears_a_field_only_some_types_declare(
 async def test_update_takes_a_flag_per_declared_field_and_a_negation_per_optional_one(
     override_project, invoke
 ) -> None:
-    initiative = await _ok(invoke, ["initiative", "8", "update", "--urgency", "later", "--json"])
+    initiative = await _ok(invoke, ["initiative", "5", "update", "--urgency", "later", "--json"])
     assert json.loads(initiative)["entry"]["badges"] == {"urgency": "later"}
-    job = await _ok(invoke, ["job", "9", "update", "--work-size", "l", "--json"])
+    job = await _ok(invoke, ["job", "6", "update", "--work-size", "l", "--json"])
     assert json.loads(job)["entry"]["badges"] == {"work_size": "l"}
-    cleared = await _ok(invoke, ["job", "9", "update", "--no-work-size", "--json"])
+    cleared = await _ok(invoke, ["job", "6", "update", "--no-work-size", "--json"])
     assert json.loads(cleared)["entry"]["badges"] == {}
-    both = await _ran(invoke, ["job", "9", "update", "--work-size", "s", "--no-work-size"])
+    both = await _ran(invoke, ["job", "6", "update", "--work-size", "s", "--no-work-size"])
     assert both == (1, "error: use either --work-size or --no-work-size, not both\n")
     for flag, hint in (
         ("--priority", ""),
         ("--no-priority", " (Possible options: --no-parent)"),
     ):
-        refused = await _ran(invoke, ["initiative", "8", "update", flag])
+        refused = await _ran(invoke, ["initiative", "5", "update", flag])
         assert refused == (
             2,
             unknown_option("initiative {n} update [OPTIONS]", "initiative {n} update", flag, hint),
@@ -1712,8 +1712,8 @@ async def test_ref_rm_json_prints_the_items_row_without_the_ref(populated_projec
 async def test_view_add_json_prints_the_items_row_and_the_tag_change(
     populated_project, invoke
 ) -> None:
-    printed = await _ok(invoke, [P.ref, str(TASK), "view", "add", "item_skill", "--json"])
-    expected = _written(_task_row(), view="item_skill", changed=True, was_present=False)
+    printed = await _ok(invoke, [P.ref, str(TASK), "view", "add", "squads_skill", "--json"])
+    expected = _written(_task_row(), view="squads_skill", changed=True, was_present=False)
     assert printed == expected
 
 
@@ -1721,9 +1721,9 @@ async def test_view_add_json_prints_the_items_row_and_the_tag_change(
 async def test_view_disable_json_prints_the_items_row_and_the_tag_change(
     populated_project, invoke
 ) -> None:
-    await _ok(invoke, [P.ref, str(TASK), "view", "add", "item_skill"])
-    printed = await _ok(invoke, [P.ref, str(TASK), "view", "disable", "item_skill", "--json"])
-    expected = _written(_task_row(), view="item_skill", changed=True, was_present=True)
+    await _ok(invoke, [P.ref, str(TASK), "view", "add", "squads_skill"])
+    printed = await _ok(invoke, [P.ref, str(TASK), "view", "disable", "squads_skill", "--json"])
+    expected = _written(_task_row(), view="squads_skill", changed=True, was_present=True)
     assert printed == expected
 
 

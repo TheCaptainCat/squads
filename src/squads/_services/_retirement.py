@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from squads._errors import ConfigIntegrityError
-from squads._interactions import PlaybookSpec
 from squads._models import Item, SquadsDB, split_ref
 from squads._roles import CatalogSource, holds_default_designation
 from squads._services._config_integrity import (
@@ -102,7 +101,6 @@ def enforce(  # noqa: PLR0913 — one keyword per input of the gate
     active_backends: Sequence[str],
     unlink: bool,
     old_status: str,
-    playbook: PlaybookSpec,
     squad_dir: Path,
     catalog: CatalogSource,
     purge: bool = False,
@@ -129,19 +127,19 @@ def enforce(  # noqa: PLR0913 — one keyword per input of the gate
     current_status = item.status
     item.status = old_status
     before_keys = frozenset(
-        _finding_key(f) for f in check_all(db, spec, active_backends, playbook, squad_dir, catalog)
+        _finding_key(f) for f in check_all(db, spec, active_backends, squad_dir, catalog)
     )
     item.status = current_status
 
     severed: list[Severance] = []
     if unlink:
         prospective = _findings_new_since(
-            check_all(db, spec, active_backends, playbook, squad_dir, catalog), before_keys
+            check_all(db, spec, active_backends, squad_dir, catalog), before_keys
         )
         severed = _sever_declared_edges(item, prospective, spec)
 
     after = _findings_new_since(
-        check_all(db, spec, active_backends, playbook, squad_dir, catalog), before_keys
+        check_all(db, spec, active_backends, squad_dir, catalog), before_keys
     )
     if after:
         # --unlink is a real option only when retiring the finding's own entry; on a finding about

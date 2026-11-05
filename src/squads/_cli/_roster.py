@@ -109,7 +109,7 @@ def register_write_verbs[W: EntryWrite](
 
         Replacing a body someone has already written is refused unless `--force`.
         A role takes prose beside its generated definition. A body generated from a
-        declared view (a system or per-type skill) is refused even with `--force`;
+        declared view (a system skill) is refused even with `--force`;
         an operator body is never refused for it.
         """
         text = common.resolve_body(message or None, file)

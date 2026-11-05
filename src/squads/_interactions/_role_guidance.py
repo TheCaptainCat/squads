@@ -12,7 +12,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import replace
 from typing import Any, Protocol
 
-from squads._interactions._models import ItemPlaybookSpec, PlaybookSpec, RoleGuideSpec
+from squads._interactions._models import PlaybookSpec, RoleGuideSpec
 from squads._roles import CAPABILITY_NAME_PATTERN, RoleCatalogSpec, RoleView
 from squads._workflow import WorkflowSpec
 
@@ -140,7 +140,7 @@ def item_types_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSp
     ]
 
 
-def skills_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSpec) -> list[str]:
+def skills_for_role(role: RoleLike) -> list[str]:
     """Skill names a role's pointer preloads: its role skill, then the two always-on skills.
 
     A skill scoped to the role is added after these by the caller.
@@ -199,54 +199,6 @@ def live_roster_text(
         CAPABILITY_TOKEN.sub(replace_token, _ROLE_REFERENCE.sub(replace_reference, line))
         for line in lines
     ]
-
-
-def item_skill_role_sections(
-    pb: ItemPlaybookSpec | None,
-    roster: Iterable[RoleView],
-    playbook: PlaybookSpec | None = None,
-) -> list[dict[str, Any]]:
-    """The ordered per-role section blocks for one item type's per-type skill template.
-
-    Empty for a type the active playbook does not cover (the thin skill's "no role sections").
-    It is a Jinja filter (``_rendering/_engine.py``), so the roster lookup stays in Python.
-
-    Two rules depend on the roster: a guide addressed to a capability (``*<name>``) renders only
-    while a live role holds it, under a heading naming the capability and its holders; a guide
-    addressed to a role renders only while that role is live. With *playbook*, every reference
-    to a role the roster lacks in a guide's text becomes a placeholder
-    (:func:`live_roster_text`); a template that omits it keeps the text as authored.
-    """
-    if pb is None:
-        return []
-    roles = list(roster)
-    by_slug = {r.slug: r for r in roles}
-    out: list[dict[str, Any]] = []
-
-    def live(lines: list[str]) -> list[str]:
-        return lines if playbook is None else live_roster_text(lines, roles, playbook)
-
-    for guide in pb.roles:
-        if guide.slug.startswith(CAPABILITY_SUBJECT_PREFIX):
-            holders = [r for r in roles if addresses(guide.slug, r)]
-            if not holders:
-                continue
-            title = f"`{guide.slug}`: " + ", ".join(f"{r.full_name} (`{r.slug}`)" for r in holders)
-        elif guide.slug in by_slug:
-            r = by_slug[guide.slug]
-            title = f"{r.full_name} (`{r.slug}`)"
-        else:
-            continue
-        out.append(
-            {
-                "title": title,
-                "enter": live(guide.enter),
-                "do": live(guide.do),
-                "handoff": live(guide.handoff),
-                "watch": live(guide.watch),
-            }
-        )
-    return out
 
 
 def role_playbook_sections(

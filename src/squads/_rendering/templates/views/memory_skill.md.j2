@@ -4,12 +4,6 @@ Your role has a committed memory: small facts you've learned while working on th
 timing quirks, gotchas, conventions. It's yours (`{{ squad_dir }}/agents/memory/<role>/`) and
 survives across sessions.
 
-## Check it at the start of a run
-
-Before you start, run `sq memory <role> list` to browse your role's memory index — one line per
-memory, slug + description. If a line looks relevant, pull the full entry with `sq memory <role> show
-<slug>` before acting on it.
-
 ## One fact per memory
 
 Each memory holds **one** small fact, not a running log. Learn two things? That's two memories.
@@ -29,15 +23,6 @@ Memory is **personal and learned** — something you discovered doing the work o
 surface, not in every role's pool. When deciding what to write: is this mine (learned), or the
 team's (shared)? Personal facts go to memory; shared announcements go to the board.
 
-## The summary-vs-body split
-
-`sq memory <role> add "<fact>"` takes the positional argument as the memory's snappy one-line
-**summary** — the `summary:` field, and what `list`/`search` show in the index. It is not the
-place for the whole fact: keep it to a single glance-readable line. The detailed write-up — the
-reasoning, the example, the "why" — goes in the **body**, via `--file` (a path, or `-` for
-stdin). Name the memory's handle explicitly with `--slug` instead of letting it get derived (and
-possibly truncated) from the summary text — a clean, stable slug beats an auto-generated one.
-
 ## Memory command surface
 
 ```
@@ -48,6 +33,10 @@ sq memory <role> add "<summary>" [--file f] [--slug s]  # jot a new memory
 sq memory <role> forget <slug>                      # prune a stale or wrong one
 ```
 
+`add` takes the positional argument as the memory's one-line **summary**, the line `list` and
+`search` show. The detailed write-up goes in the body, through `--file` (a path, or `-` for stdin);
+name the handle with `--slug` rather than letting it be derived from the summary.
+
 `<role>` is a positional subject, consistent with `sq inbox <role>` /
 `sq mine <role>`. Memory is addressed by its own stable slug, not by position in the index.
 
@@ -55,8 +44,7 @@ sq memory <role> forget <slug>                      # prune a stale or wrong one
 
 When something belongs on the shared side of the boundary above, it goes on the **team bulletin
 board**, not into anyone's memory — a single announcement everyone sees, not one entry copy-pasted
-into every role's pool. Run `sq board list` at the start of a run to see current notices, content
-and all.
+into every role's pool.
 
 A good notice is **short and prescriptive** — a sentence or two saying what to do or watch out for,
 not a narrative. Set `--until` whenever the notice has a natural expiry (a freeze, a temporary

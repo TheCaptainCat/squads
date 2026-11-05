@@ -52,5 +52,5 @@ async def test_the_minimal_squad_holds_only_its_role(project, invoke) -> None:
 
 
 async def test_the_seeded_squad_holds_the_bundled_skills(seeded_project, invoke) -> None:
-    result = await invoke(["skill", "greeting", "show", "--json"])
-    assert (result.exit_code, json.loads(result.output)["title"]) == (0, "greeting")
+    result = await invoke(["skill", "sq-greeting", "show", "--json"])
+    assert (result.exit_code, json.loads(result.output)["title"]) == (0, "sq-greeting")

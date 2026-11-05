@@ -15,7 +15,7 @@ from squads import _views as views
 from squads._backends import BackendContext
 from squads._errors import SquadsError
 from squads._index import item_file
-from squads._interactions import PlaybookSpec, item_type_for_skill_slug, orphaned_skill_item_type
+from squads._interactions import PlaybookSpec
 from squads._itemfile import (
     SkewKey,
     frontmatter_skew,
@@ -215,8 +215,7 @@ def _seeded_view_issues(
 ) -> list[str]:
     """Every seeded view (:func:`~squads._views.seeded_view_names`) present exactly once and no view
     name duplicated, checked against *text* on disk, each violation with its runnable remedy. A role
-    body with prose in place of its tag reports nothing; a skill with prose beside a missing tag is
-    told to move the prose to a new skill first. An entirely absent region defers to
+    body with prose in place of its tag reports nothing. An entirely absent region defers to
     :func:`_absent_body_region_issues`. It never repairs.
     """
     seeded = views.seeded_view_names(item_type, slug, spec, from_squad=from_squad)
@@ -249,27 +248,12 @@ def _seeded_view_issues(
         if prose_beside_missing_tag:
             clear_cmd = clear_roster_body_cmd(item_type, slug)
             add_cmd = view_placement_invocation(item_type, addr, "add", name)
-            doc_type = item_type_for_skill_slug(slug, spec) if item_type == ROSTER_SKILL else None
-            if doc_type is not None:
-                # The same shape `_item_skill_shadowed` also reports: this prose may be an
-                # author's own runbook (the reclaim never ran against it, e.g. an `sq adopt`
-                # or a type declared later), so the remedy preserves it, never deletes outright.
-                problems.append(
-                    f"missing seeded view tag {tag} — the body already carries prose, and "
-                    f"{slug!r} still documents the declared type {doc_type!r}, so this may be "
-                    f"an author's own runbook rather than stale legacy text; the remedy that "
-                    f"preserves it: (1) `sq skill add <new-slug>` and move the prose there; "
-                    f"(2) drop {name!r} from [selected] in .overrides/workflow.toml; (3) clear "
-                    f"{slug}'s own text with `{clear_cmd}`; (4) restore {name!r} to [selected]; "
-                    f"(5) `{add_cmd}`"
-                )
-            else:
-                problems.append(
-                    f"missing seeded view tag {tag} — the body already carries "
-                    f"prose; the remedy that converges to a single live rendering: (1) drop "
-                    f"{name!r} from [selected] in .overrides/workflow.toml; (2) clear the text "
-                    f"with `{clear_cmd}`; (3) restore {name!r} to [selected]; (4) `{add_cmd}`"
-                )
+            problems.append(
+                f"missing seeded view tag {tag} — the body already carries "
+                f"prose; the remedy that converges to a single live rendering: (1) drop "
+                f"{name!r} from [selected] in .overrides/workflow.toml; (2) clear the text "
+                f"with `{clear_cmd}`; (3) restore {name!r} to [selected]; (4) `{add_cmd}`"
+            )
         else:
             add_cmd = view_placement_invocation(item_type, addr, "add", name)
             # A roster host's generated view cannot be disabled; its remedy is to restore it.
@@ -497,7 +481,6 @@ class CheckMixin(ServiceCore):
                 self.paths.squad_dir, role_items_by_slug, catalog=self.catalog, files=self.files
             )
         ]
-        issues += self._orphaned_skill_issues(index)
         issues += source_issues(index, self.sources, bodies)
         carriers = await self._id_carriers(ctx.carriers)
         listing = self._all_item_files()
@@ -560,34 +543,6 @@ class CheckMixin(ServiceCore):
             for i in issues
             if not (i.rule == "index_reconciled" and normalized_id(i.item) in dup_groups)
         ]
-        return issues
-
-    def _orphaned_skill_issues(self, index: SquadsDB) -> list[CheckIssue]:
-        """A live ``SKILL`` item whose ``sq-<type>`` slug names a type the active spec no longer
-        declares: its pointer and body were withdrawn (:meth:`RosterProjection.project_item`) but
-        the item still reads as live. ``warn``, because nothing is broken and the fix is reversible:
-        restore the type or retire the skill.
-        """
-        issues: list[CheckIssue] = []
-        for item in index.items.values():
-            if item.type != ROSTER_SKILL or item.status not in self.spec.live_statuses(
-                ROSTER_SKILL
-            ):
-                continue
-            stale_type = orphaned_skill_item_type(item.slug, self.spec)
-            if stale_type is None:
-                continue
-            issues.append(
-                CheckIssue(
-                    "warn",
-                    item.id,
-                    f"skill {item.slug!r} is {item.status} but type "
-                    f"{stale_type!r} is no longer declared — its generated files have "
-                    "been withdrawn; restore the type to bring it back, or retire this "
-                    "skill (update its status) to close it out",
-                    "skill_type_declared",
-                )
-            )
         return issues
 
     async def _confirm_one_drift_candidate(

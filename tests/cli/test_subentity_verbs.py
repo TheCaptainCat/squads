@@ -979,7 +979,7 @@ async def test_an_unknown_key_on_an_entry_survives_an_update_and_a_repair(
 
 
 async def _action(invoke, local: int = 1) -> dict[str, Any]:
-    return json.loads(await _ok(invoke, ["job", "9", "action", str(local), "show", "--json"]))
+    return json.loads(await _ok(invoke, ["job", "6", "action", str(local), "show", "--json"]))
 
 
 @pytest.mark.covers("<type> add-<kind>", "title")
@@ -990,16 +990,16 @@ async def _action(invoke, local: int = 1) -> dict[str, Any]:
 async def test_the_mapping_option_is_named_after_the_kind_the_parent_hosts(
     override_project, invoke
 ) -> None:
-    await _ok(invoke, ["job", "9", "add-action", "Publish it", "--outcome", "2"])
+    await _ok(invoke, ["job", "6", "add-action", "Publish it", "--outcome", "2"])
     assert (await _action(invoke, 3))["maps_to"] == "OC2"
 
-    await _ok(invoke, ["job", "9", "action", "1", "update", "--outcome", "OC1"])
+    await _ok(invoke, ["job", "6", "action", "1", "update", "--outcome", "OC1"])
     assert (await _action(invoke))["maps_to"] == "OC1"
 
-    await _ok(invoke, ["job", "9", "action", "1", "update", "--no-outcome"])
+    await _ok(invoke, ["job", "6", "action", "1", "update", "--no-outcome"])
     assert (await _action(invoke))["maps_to"] is None
 
-    assert await _ran(invoke, ["job", "9", "action", "1", "update", f"--{P.target_kind}", "1"]) == (
+    assert await _ran(invoke, ["job", "6", "action", "1", "update", f"--{P.target_kind}", "1"]) == (
         2,
         "Usage: sq job {n} action {local-id} update [OPTIONS]\n"
         "Try 'sq job {n} action {local-id} update --help' for help.\n"
@@ -1015,7 +1015,7 @@ async def test_the_mapping_flags_are_refused_together_under_the_target_kinds_nam
     override_project, invoke
 ) -> None:
     assert await _ran(
-        invoke, ["job", "9", "action", "1", "update", "--outcome", "1", "--no-outcome"]
+        invoke, ["job", "6", "action", "1", "update", "--outcome", "1", "--no-outcome"]
     ) == (1, "error: use --outcome or --no-outcome, not both\n")
 
 
@@ -1024,13 +1024,13 @@ async def test_the_mapping_flags_are_refused_together_under_the_target_kinds_nam
 async def test_a_missing_mapping_target_is_named_by_its_kind_and_local_prefix(
     override_project, invoke
 ) -> None:
-    assert await _ran(invoke, ["job", "9", "add-action", "Publish it", "--outcome", "9"]) == (
+    assert await _ran(invoke, ["job", "6", "add-action", "Publish it", "--outcome", "9"]) == (
         1,
-        "error: outcome OC9 not found in INI-8\n",
+        "error: outcome OC9 not found in INI-5\n",
     )
-    assert await _ran(invoke, ["job", "9", "action", "1", "update", "--outcome", "OC9"]) == (
+    assert await _ran(invoke, ["job", "6", "action", "1", "update", "--outcome", "OC9"]) == (
         1,
-        "error: outcome OC9 not found in INI-8\n",
+        "error: outcome OC9 not found in INI-5\n",
     )
 
 
@@ -1039,9 +1039,9 @@ async def test_a_missing_mapping_target_is_named_by_its_kind_and_local_prefix(
 async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
     override_project, invoke
 ) -> None:
-    await _ok(invoke, ["job", "9", "action", "1", "update", "--outcome", "1"])
-    add_help = (await _ok(invoke, ["job", "9", "add-action", "--help"])).splitlines()
-    update_help = (await _ok(invoke, ["job", "9", "action", "1", "update", "--help"])).splitlines()
+    await _ok(invoke, ["job", "6", "action", "1", "update", "--outcome", "1"])
+    add_help = (await _ok(invoke, ["job", "6", "add-action", "--help"])).splitlines()
+    update_help = (await _ok(invoke, ["job", "6", "action", "1", "update", "--help"])).splitlines()
 
     assert (
         "│ --impact               <str>  Impact: large|small.                           │"
@@ -1059,12 +1059,12 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         "│ --no-outcome                   Clear Desired outcome mapping.                │"
         in update_help
     )
-    assert await _ok(invoke, ["job", "9", "actions"]) == (
+    assert await _ok(invoke, ["job", "6", "actions"]) == (
         "Action  Impact    Status    Assignee  Title                   Desired outcome\n"
         "AC1     🔴 large  Todo                Draft the outline       OC1            \n"
         "AC2               Deferred            Record the walkthrough                 \n"
     )
-    assert await _ok(invoke, ["job", "9", "action", "1", "show"]) == (
+    assert await _ok(invoke, ["job", "6", "action", "1", "show"]) == (
         "AC1 — Draft the outline  (action)\n"
         "  status: Todo   Impact: large   Desired outcome: OC1\n"
         "\n"
@@ -1073,7 +1073,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         "Discussion\n"
         "(none)\n"
     )
-    update_item_help = (await _ok(invoke, ["job", "9", "update", "--help"])).splitlines()
+    update_item_help = (await _ok(invoke, ["job", "6", "update", "--help"])).splitlines()
     create_help = (await _ok(invoke, ["create", "job", "--help"])).splitlines()
     list_help = (await _ok(invoke, ["list", "--help"])).splitlines()
     assert (
@@ -1096,10 +1096,10 @@ async def test_a_clear_flag_removes_an_optional_field_and_is_refused_beside_its_
 ) -> None:
     assert (await _action(invoke))["impact"] == "large"
     assert await _ran(
-        invoke, ["job", "9", "action", "1", "update", "--impact", "small", "--no-impact"]
+        invoke, ["job", "6", "action", "1", "update", "--impact", "small", "--no-impact"]
     ) == (1, "error: use --impact or --no-impact, not both\n")
 
-    await _ok(invoke, ["job", "9", "action", "1", "update", "--no-impact"])
+    await _ok(invoke, ["job", "6", "action", "1", "update", "--no-impact"])
 
     cleared = await _action(invoke)
     assert "impact" not in cleared
@@ -1127,7 +1127,7 @@ async def test_a_required_field_has_no_clear_flag(populated_project, invoke) -> 
 async def test_a_refusal_names_the_declared_kind_with_no_article_chosen(
     override_project, invoke
 ) -> None:
-    assert await _ran(invoke, ["job", "9", "action", "1", "update", "--deferred-to", "10"]) == (
+    assert await _ran(invoke, ["job", "6", "action", "1", "update", "--deferred-to", "7"]) == (
         1,
         "error: a carrier (--deferred-to / deferred_to) applies to action sub-entities in a "
         "deferred status (Deferred); AC1 is Todo\n",
@@ -1139,7 +1139,7 @@ async def test_a_refusal_names_the_declared_kind_with_no_article_chosen(
 async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
     override_project, invoke
 ) -> None:
-    shown = await _ok(invoke, ["job", "9", "action", "1", "show", "--json"])
+    shown = await _ok(invoke, ["job", "6", "action", "1", "show", "--json"])
     kind = {"name": "action", "label": "Action", "plural": "actions", "heading": "Actions"}
     target = {
         "name": "outcome",
@@ -1173,11 +1173,11 @@ async def test_a_sub_entity_object_is_flat_with_its_mapping_always_present(
     }
     assert shown == json.dumps(expected, indent=2) + "\n"
 
-    await _ok(invoke, ["job", "9", "action", "1", "update", "--outcome", "2"])
+    await _ok(invoke, ["job", "6", "action", "1", "update", "--outcome", "2"])
     mapped = await _action(invoke)
     assert (mapped["maps_to"], mapped["display"]["maps_to"]) == ("OC2", "OC2")
 
-    listed = json.loads(await _ok(invoke, ["job", "9", "actions", "--json"]))
+    listed = json.loads(await _ok(invoke, ["job", "6", "actions", "--json"]))
     assert list(listed[0]) == [
         "local_id",
         "title",

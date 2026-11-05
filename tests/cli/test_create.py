@@ -215,10 +215,10 @@ async def test_a_field_flag_refuses_a_code_the_collection_does_not_declare(
 @pytest.mark.covers("create <type>", "--<field>")
 async def test_a_field_code_with_an_underscore_gets_a_dashed_flag(override_project, invoke) -> None:
     result = await invoke(
-        ["create", "job", "Wire it", "--author", "manager", "--parent", "8", "--work-size", "m"]
+        ["create", "job", "Wire it", "--author", "manager", "--parent", "5", "--work-size", "m"]
     )
     assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "job", 11))["badges"] == {"work_size": "m"}
+    assert (await _shown(invoke, "job", 8))["badges"] == {"work_size": "m"}
 
 
 @pytest.mark.covers("create <type>", "--<field>")
@@ -229,7 +229,7 @@ async def test_a_declared_field_flag_sets_the_value_the_squad_names(
         ["create", "initiative", "Open the doors", "--author", "manager", "--urgency", "later"]
     )
     assert result.exit_code == 0, result.output
-    assert (await _shown(invoke, "initiative", 11))["badges"] == {"urgency": "later"}
+    assert (await _shown(invoke, "initiative", 8))["badges"] == {"urgency": "later"}
     refused = await invoke(
         ["create", "initiative", "Open more", "--author", "manager", "--priority", "high"]
     )
@@ -437,5 +437,5 @@ async def test_create_help_lists_the_declared_options_before_help(override_proje
         "--owner-team",
         "--help",
     ]
-    created = await invoke(["create", "job", "Ship it", "--author", "manager", "--parent", "8"])
+    created = await invoke(["create", "job", "Ship it", "--author", "manager", "--parent", "5"])
     assert created.exit_code == 0, created.output

@@ -16,8 +16,6 @@ from squads._interactions import (
     MEMORY_SKILL,
     SQUADS_SKILL,
     get_playbook_spec,
-    item_skill_name,
-    managed_item_types,
 )
 from squads._language import WorkingLanguage
 from squads._models import Item
@@ -73,10 +71,10 @@ _PINNED_ROSTER: list[RoleView] = [
 _PROBE_SKILL_ITEM = Item(
     sequence_id=1,
     type="skill",
-    title="squads",
-    slug="squads",
+    title="sq-how-to",
+    slug="sq-how-to",
     status="Active",
-    path="agents/skills/SKILL-000001-squads.md",
+    path="agents/skills/SKILL-000001-sq-how-to.md",
     created_at=datetime.now(UTC),
     updated_at=datetime.now(UTC),
 )
@@ -96,8 +94,9 @@ def _top_level_commands() -> frozenset[str]:
 
 
 def _generated_skill_bodies() -> dict[str, str]:
-    """The twelve generated skill definitions, rendered the way a read expands each skill's own
-    ``sq:view:<name>`` placement tag, against the pinned roster."""
+    """The three generated skill definitions, rendered the way a read expands each skill's own
+    ``sq:view:<name>`` placement tag, plus the ``sq workflow`` cheatsheet the first skill's closing
+    lines send an agent to, against the pinned roster."""
     spec = bundled_spec()
     playbook = get_playbook_spec()
     playbook_source = PlaybookSource(
@@ -115,7 +114,7 @@ def _generated_skill_bodies() -> dict[str, str]:
         ),
         f"skill:{GREETING_SKILL}": render(
             "views/greeting_skill.md.j2",
-            source=_PROBE_SKILL_ITEM,
+            source=playbook_source,
             item=_PROBE_SKILL_ITEM,
             spec=spec,
             squad_dir="squads",
@@ -131,21 +130,22 @@ def _generated_skill_bodies() -> dict[str, str]:
             working_language=WorkingLanguage("en", "English"),
             from_squad=None,
         ),
-    }
-    for item_type in managed_item_types(playbook):
-        pb = playbook.types.get(item_type)
-        item_skill_source = PlaybookSource(
-            item_type=item_type, lane=pb, roster=_PINNED_ROSTER, playbook=playbook
-        )
-        bodies[f"skill:{item_skill_name(item_type)}"] = render(
-            "views/item_skill.md.j2",
-            source=item_skill_source,
-            item=_PROBE_SKILL_ITEM,
+        "cheatsheet:workflow": render(
+            "workflow.md.j2",
             spec=spec,
-            squad_dir="squads",
-            working_language=WorkingLanguage("en", "English"),
+            roles=[
+                {
+                    "full_name": r.full_name,
+                    "title": r.title,
+                    "slug": r.slug,
+                    "capabilities": list(r.capabilities),
+                }
+                for r in _PINNED_ROSTER
+            ],
+            playbook=playbook,
             from_squad=None,
-        )
+        ),
+    }
     return bodies
 
 
@@ -177,10 +177,9 @@ def _managed_claude_section() -> str:
 #: above every measured frontmatter-only stub, comfortably below every measured genuine render.
 _MIN_CARRIER_CHARS = 1000
 
-#: The three always-present skill bodies (``squads``, ``greeting``, ``sq-memory``) plus one
-#: ``sq-<type>`` per playbook-covered type, plus the managed section. Held as a floor rather than
-#: an equality so declaring a new item type does not redden this gate.
-_MIN_CARRIERS = 6
+#: The three always-present skill bodies (``sq-how-to``, ``sq-greeting``, ``sq-memory``), the
+#: ``sq workflow`` cheatsheet and the managed section. Held as a floor rather than an equality.
+_MIN_CARRIERS = 5
 
 
 def _agent_facing_corpus() -> str:

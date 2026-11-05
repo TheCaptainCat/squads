@@ -24,7 +24,6 @@ BINDING_RULES: dict[str, str] = {
     "override_stamped": "override checks",
     "override_current": "override checks",
     "override_loads": "override checks",
-    "skill_type_declared": "orphaned skills",
     "ids_unique": "duplicate ids",
     "numbers_unique": "duplicate ids",
     "frontmatter_matches_index": "cross-source",

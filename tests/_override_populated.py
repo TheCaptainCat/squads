@@ -1,7 +1,8 @@
 """The populated override squad the surface tests share: items of the vocabulary that
 `tests/fixtures/override_squad/workflow.toml` declares, with none of the bundled work vocabulary.
 
-The counter starts after the squad's role and its seeded skills, so the numbers below are fixed.
+The counter starts after the squad's role and its three seeded skills, so the numbers below are
+fixed.
 """
 
 import asyncio
@@ -13,9 +14,9 @@ from tests._squads import init_overridden, paths_of
 
 OVERRIDE = Path(__file__).parent / "fixtures" / "override_squad"
 
-INITIATIVE = 8
-JOB = 9
-RECORD = 10
+INITIATIVE = 5
+JOB = 6
+RECORD = 7
 
 
 async def _populate(root: Path) -> None:

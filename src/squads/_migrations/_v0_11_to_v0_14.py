@@ -1,30 +1,24 @@
 """Schema 0.11 → 0.14 runner: two new bundled item types join the vocabulary. Both are declared
 entirely in the bundled workflow spec (one ``[items.<type>]`` and one ``[lifecycles.<type>]`` block
 each), which this runner does not own. It owes an existing squad what a declaration alone never
-produces on disk: the type's folder and its generated agent-facing surface (a managed ``sq-<type>``
-skill item, its ``.claude`` pointer, and the compiled ``CLAUDE.md``/``AGENTS.md`` regions
-referencing it), which ``sq init``/``sq adopt`` write for a squad created after the declaration. The
-skill's definition text is not among them, as a system skill renders from its template on every read
-off the ``sq:view:item_skill`` tag in its ``sq:body`` (``squads._view_tags.expand_view_tags``, via
-``ItemsMixin.read_body``).
+produces on disk: the type's folder and the compiled ``CLAUDE.md``/``AGENTS.md`` regions
+referencing it, which ``sq init``/``sq adopt`` write for a squad created after the declaration.
 
 No existing item data is rewritten, every write creating a path that did not exist. It follows
-``init``'s order, writing the managed surface first (as ``Service.refresh_managed``) and then
-stamping any newly created skill file as a ``SKILL`` item (as ``Service.seed_bundled_skills``), both
+``init``'s order, writing the managed surface first (as ``Service.refresh_managed``), which is
 idempotent.
 
 It is deliberately narrower than ``Service.sync()``: it calls the same backend methods
 (``ensure_scaffold``, ``write_managed``) with the live roster read off the index, but touches no
 existing role's per-entry pointer (its resolved preload list, including project skills scoped by a
 ``scopes`` edge), since that convergence is an ongoing ``sq sync`` duty, not owed by a type's folder
-and skill appearing. An existing role interacting with either new type does carry a stale preload
+appearing. An existing role interacting with either new type does carry a stale preload
 list that ``sq check`` reports, so ``MANUAL`` names ``sq sync`` as the remedy rather than promising
 a convergence this runner does not perform.
 
-Every id, ref and status literal it touches is freshly minted (a new ``SKILL`` item's id, allocated
-as other runners do) or read from the live declared type and playbook vocabulary that the
-declaration put in place, so there is no corpus-era value to freeze. It still imports no id, ref or
-padding formatting primitive from ``_models`` (see
+Every id, ref and status literal it touches is read from the live declared type and playbook
+vocabulary that the declaration put in place, so there is no corpus-era value to freeze. It still
+imports no id, ref or padding formatting primitive from ``_models`` (see
 ``tests/meta/test_migrations_never_import_a_vocabulary_folded_primitive.py``). It runs only
 through ``sq migrate up`` via ``_migrations._registry``.
 """
@@ -32,16 +26,13 @@ through ``sq migrate up`` via ``_migrations._registry``.
 from pathlib import Path
 
 from squads import _aio
-from squads import _clock as clock
 from squads._backends import BackendContext, get_backend
 from squads._index import IndexStore
-from squads._interactions import PlaybookSpec, item_skill_name, skill_description
+from squads._interactions import PlaybookSpec
 from squads._migrations._context import MigrationContext
-from squads._migrations._legacy_extra import legacy_extra, with_legacy_extra
-from squads._models import Item, prefix_for
-from squads._paths import SquadPaths, number_for_id
+from squads._migrations._legacy_extra import legacy_extra
+from squads._paths import SquadPaths
 from squads._roles import CatalogSource, OperatorView, RoleView
-from squads._sections import join_frontmatter, split_frontmatter
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec
 
 #: The two type names this runner brings onto an existing squad's disk. They are declared by the
@@ -207,76 +198,12 @@ async def _regenerate_surface(
         await backend.write_managed(ctx, roster, operators)
 
 
-async def _seed_new_type_skills(
-    paths: SquadPaths, spec: WorkflowSpec, playbook: PlaybookSpec, catalog: CatalogSource
-) -> int:
-    """Stamp a ``SKILL`` item onto each new type's skill file :func:`_regenerate_surface` just
-    created (allocate, stamp, rewrite the pointer, as every prior skill-seeding runner does), scoped
-    to the two slugs this runner introduces rather than ``Service.seed_bundled_skills``' full sweep,
-    which stays a ``sq sync`` duty. It is idempotent per slug: an existing convention-named file
-    (``SKILL-<NNNNNN>-sq-<type>.md``) is untouched.
-    """
-    if not paths.index_path.is_file():
-        return 0
-    skill_prefix = prefix_for(ROSTER_SKILL, spec)
-    skills_folder = paths.squad_dir / spec.items[ROSTER_SKILL].folder
-    slugs = [item_skill_name(t) for t in _NEW_TYPES if t in spec.items]
-    seeded = 0
-    for slug in slugs:
-        if list(skills_folder.glob(f"{skill_prefix}-*-{slug}.md")):
-            continue  # already a convention-named SKILL item — nothing to do
-        legacy_path = skills_folder / f"{slug}.md"
-        if not legacy_path.is_file():
-            continue  # nothing to seed (regeneration above didn't run, or wrote nowhere)
-        existing_text = await _aio.read_text(legacy_path)
-        fm, _ = split_frontmatter(existing_text)
-        if fm.get("id"):
-            continue  # already stamped under the legacy name — leave to a future repair/rename
-
-        store = IndexStore(paths.index_path, paths.lock_path, spec=spec)
-        now = clock.now()
-        async with store.transaction() as db:
-            item_id = db.allocate_id(ROSTER_SKILL, prefix=skill_prefix)
-            seq = number_for_id(item_id)
-            new_name = f"{skill_prefix}-{seq:0{db.padding}d}-{slug}.md"
-            squad_rel = f"{spec.items[ROSTER_SKILL].folder}/{new_name}"
-            item = Item(
-                sequence_id=db.counter,
-                type=ROSTER_SKILL,
-                prefix=skill_prefix,
-                title=slug,
-                slug=slug,
-                status=spec.live_initial(ROSTER_SKILL),
-                description=skill_description(slug),
-                author=slug,
-                path=squad_rel,
-                created_at=now,
-                updated_at=now,
-                attributes=with_legacy_extra({"slug": slug}),
-            )
-            stamped_text = join_frontmatter(item.to_frontmatter_dict(), existing_text)
-            new_path = skills_folder / new_name
-            await _aio.write_text(new_path, stamped_text)
-            await _aio.path_unlink(legacy_path)
-            db.add(item)
-        # Rewrite each backend's pointer to reflect the now-indexed skill, as seed_bundled_skills'
-        # closing step does; for these system skills the pointer does not depend on the item, so
-        # this is defensive symmetry with other seeding runners, not a drift fix.
-        ctx = BackendContext(paths=paths, spec=spec, playbook=playbook, catalog=catalog)
-        for backend_name in paths.config.active_backends:
-            await get_backend(backend_name).generate_skill_entry(ctx, item)
-        seeded += 1
-    return seeded
-
-
 async def migrate(ctx: MigrationContext) -> int:
-    """Create the two new types' folders, regenerate the managed agent-facing surface so their
-    skill files/pointers/compiled regions appear, and stamp each new skill as an indexed
-    ``SKILL`` item. Returns the count of folders created plus skills seeded (0 on a squad
-    already carrying this content — e.g. one synced after the two types were declared in code
-    but before this runner shipped)."""
+    """Create the two new types' folders and regenerate the managed agent-facing surface so the
+    compiled regions appear. Returns the count of folders created (0 on a squad already carrying
+    this content — e.g. one synced after the two types were declared in code but before this
+    runner shipped)."""
     paths, spec = ctx.paths, ctx.spec
     changed = await _ensure_type_folders(paths, spec)
     await _regenerate_surface(paths, spec, ctx.playbook, ctx.catalog)
-    changed += await _seed_new_type_skills(paths, spec, ctx.playbook, ctx.catalog)
     return changed

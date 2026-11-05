@@ -56,9 +56,9 @@ def allowed_elsewhere(target: str, served: dict[str, set[str]]) -> set[str]:
 
 def test_a_stale_if_match_on_a_skill_link_answers_409(seeded_project: SquadPaths, serve) -> None:
     daemon = serve(seeded_project)
-    etag = daemon.get("/v1/skills/greeting").headers["etag"]
-    daemon.request("POST", "/v1/skills/greeting/link-role", {"role": "manager"})
+    etag = daemon.get("/v1/skills/sq-greeting").headers["etag"]
+    daemon.request("POST", "/v1/skills/sq-greeting/link-role", {"role": "manager"})
     reply = daemon.request(
-        "POST", "/v1/skills/greeting/unlink-role", {"role": "manager"}, {"If-Match": etag}
+        "POST", "/v1/skills/sq-greeting/unlink-role", {"role": "manager"}, {"If-Match": etag}
     )
     assert (reply.status, reply.json()["error"]["type"]) == (409, "changed_since_read")

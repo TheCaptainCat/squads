@@ -601,11 +601,10 @@ async def init(
     warnings: list[str] = []
     if not no_claude:
         warnings += await svc.refresh_managed()
-        # Stamp each managed skill as a SKILL item in slug order, bundled and custom types alike,
-        # rather than leaving them unindexed until the first `sq sync`.
+        # Stamp each managed skill as a SKILL item in slug order, rather than leaving them
+        # unindexed until the first `sq sync`.
         if not _skip_skill_seed:
             await svc.seed_bundled_skills()
-            await svc.seed_custom_skills()
         warnings += await svc.candidate_orphans()
 
     return InitResult(paths=sp, roles=created, warnings=warnings)
@@ -697,10 +696,9 @@ async def adopt(
     warnings: list[str] = []
     if not no_claude:
         warnings += await svc.refresh_managed()
-        # As in init(): seed bundled and custom skills so a generated skill file is never left
-        # without a SKILL item until the first `sq sync`.
+        # As in init(): seed the managed skills so a generated skill file is never left without a
+        # SKILL item until the first `sq sync`.
         await svc.seed_bundled_skills()
-        await svc.seed_custom_skills()
         warnings += await svc.candidate_orphans()
 
     return AdoptResult(paths=sp, repair=repair_result, roles=created, warnings=warnings)

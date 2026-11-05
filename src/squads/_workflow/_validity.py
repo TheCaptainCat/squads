@@ -1024,16 +1024,12 @@ CONSISTENCY_CLAUSES: tuple[tuple[frozenset[str], ConsistencyClause], ...] = (
 #:   ``ref_rule_target_present``'s coherence is referential (:func:`check_ref_rule_targets`).
 #:   ``subentity_title_max`` still satisfies :func:`_clause_subentity_checked`, while
 #:   ``subentities_settled_with_parent`` judges a policy about settled parents and does not.
-#: - ``item_skill_shadowed`` is selected only in ``[items.skill]``'s own ``validators`` (the
-#:   ``roster`` bundle is empty), and ``skill`` is locked to ``category = "roster"`` by
-#:   ``_workflow/_loader.py``, so no reassignment can lose it.
 #: - ``pronouns_valid`` is the roster bundle and judges one attribute no capability depends on.
 UNGUARDED_VALIDATOR_NAMES: frozenset[str] = frozenset(
     {
         "no_parent",
         "parent_present",
         "ref_rule_target_present",
-        "item_skill_shadowed",
         "no_status_banner",
         "subentity_title_max",
         "subentities_settled_with_parent",

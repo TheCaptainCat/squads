@@ -74,6 +74,7 @@ class Migration:
     # reach this contract through _wrap_sync/_wrap_async rather than speaking it natively.
     run: Callable[[MigrationContext], Awaitable[MigrationOutcome]]
     manual: str = ""  # markdown manual steps (LLM runbook); "" if fully automatic
+    refreshes_backend: bool = False  # `sq migrate up` ends with the backend refresh `sq sync` does
 
 
 MIGRATIONS: list[Migration] = [
@@ -218,6 +219,7 @@ MIGRATIONS: list[Migration] = [
         summary=_v0_19_to_v0_20.SUMMARY,
         run=_v0_19_to_v0_20.migrate,
         manual=_v0_19_to_v0_20.MANUAL,
+        refreshes_backend=True,
     ),
 ]
 

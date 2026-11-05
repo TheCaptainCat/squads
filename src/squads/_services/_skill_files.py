@@ -8,7 +8,7 @@ from typing import Literal
 
 from squads import _sections as sections
 from squads._errors import SquadsError
-from squads._interactions import bundled_skill_slugs, custom_skill_slugs
+from squads._interactions import bundled_skill_slugs
 from squads._models import Item, prefix_for
 from squads._services._duplicate_ids import CarrierLog, file_slug, normalized_id
 from squads._workflow import ROSTER_SKILL, WorkflowSpec
@@ -52,9 +52,9 @@ def stamped_skill_slug(md: Path, spec: WorkflowSpec) -> str | None:
     return parts[1] if parts else None
 
 
-def managed_skill_slugs(spec: WorkflowSpec) -> frozenset[str]:
-    """Every skill slug ``sync`` itself generates (bundled or custom)."""
-    return frozenset((*bundled_skill_slugs(), *custom_skill_slugs(spec)))
+def managed_skill_slugs() -> frozenset[str]:
+    """Every skill slug ``sync`` itself generates."""
+    return frozenset(bundled_skill_slugs())
 
 
 type VerdictKind = Literal["act", "blocked", "conflict"]
@@ -83,7 +83,7 @@ class SkillFolder:
 
     @classmethod
     def build(cls, texts: dict[str, str], spec: WorkflowSpec) -> SkillFolder:
-        managed = managed_skill_slugs(spec)
+        managed = managed_skill_slugs()
         prefix = prefix_for(ROSTER_SKILL, spec)
         ids: dict[str, list[str]] = {}
         slugs: dict[str, list[str]] = {}

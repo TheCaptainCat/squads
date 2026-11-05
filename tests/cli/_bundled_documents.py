@@ -673,13 +673,6 @@ REF_KINDS = [
 VIEWS = [
     {
         "view": "greeting_skill",
-        "source_kind": "self",
-        "source_name": None,
-        "transform": None,
-        "stored": False,
-    },
-    {
-        "view": "item_skill",
         "source_kind": "playbook",
         "source_name": None,
         "transform": None,
@@ -1589,10 +1582,13 @@ MIGRATIONS = {
             "version": "0.20.0",
             "from_schema": "0.19",
             "to_schema": "0.20",
-            "summary": "`source` becomes a core item key and a reserved role slug, and a"
-            " line shaped like a comment attribute under a comment header is "
-            "read as one. Nothing is rewritten: the run refuses a squad that "
-            "holds any of the three.",
+            "summary": "`source` becomes a core item key and a reserved role slug, a "
+            "line shaped like a comment attribute under a comment header is "
+            "read as one, and the per-type skills retire: their items and "
+            "`.claude/skills` pointers are removed, `greeting` and `squads` "
+            "become `sq-greeting` and `sq-how-to`, every role body gains "
+            "the playbook tag and the run ends with the backend refresh. "
+            "The run refuses a squad that holds a case it cannot carry.",
             "manual": "Clear what `sq migrate up` refuses before running it again; it "
             "lists every case and writes nothing. (1) An item whose "
             "frontmatter has a top-level `source` key: `source` is now the "
@@ -1628,18 +1624,42 @@ MIGRATIONS = {
             "which you must re-point by hand. (3) A comment whose header is "
             "directly followed by a line holding `sq:attrs` in an HTML "
             "comment: reword or remove the line, since it would be read as "
-            "the comment's attributes. (4) A workflow override that declares "
-            "an item type or an alias named `source`: `source` is now a "
-            "reserved command, so the override no longer loads. Run these "
-            "steps with the 0.19 release, before `sq migrate up`, because a "
-            "newer build refuses them on a 0.19 squad. For an alias, rename "
-            "or drop it in `squads/.overrides/workflow.toml`; no item file "
-            "changes. For a type, declare a successor type under another "
-            "name in the same file, run `sq migrate rename-type source "
-            "<new>`, which moves every item of the type to the new prefix "
-            "and folder, then delete the `source` type from the override. "
-            "What is lost: the items' old IDs, so a reference to one in "
-            "prose or outside the squad no longer resolves.",
+            "the comment's attributes. (4) A workflow override that "
+            "declares an item type or an alias named `source`: `source` is "
+            "now a reserved command, so the override no longer loads. Run "
+            "these steps with the 0.19 release, before `sq migrate up`, "
+            "because a newer build refuses them on a 0.19 squad. For an "
+            "alias, rename or drop it in `squads/.overrides/workflow.toml`; "
+            "no item file changes. For a type, declare a successor type "
+            "under another name in the same file, run `sq migrate "
+            "rename-type source <new>`, which moves every item of the type "
+            "to the new prefix and folder, then delete the `source` type "
+            "from the override. What is lost: the items' old IDs, so a "
+            "reference to one in prose or outside the squad no longer "
+            "resolves. (5) A per-type skill (`sq-<type>`, such as "
+            "`sq-task`) that holds prose in its body, a discussion comment, "
+            "or a ref from another item: the per-type skills are removed, "
+            "because each role's skill now carries the guidance for the "
+            "types it works with. Run these steps with the 0.19 release, "
+            "before `sq migrate up`. Move the prose first, into the body of "
+            "the role it addressed (`sq role <slug> body`), into a project "
+            "skill (`sq skill add`) or into the playbook override, then "
+            "re-point each ref that named the skill and clear its comments "
+            "(a comment is only removed by its author). The run lists every "
+            "skill it refuses and what it holds. (6) A skill item named "
+            "`sq-role-<slug>`: that name now belongs to the role skill "
+            "squads generates for a role. Rename the skill, or fold its "
+            "content into the role body. (7) A project skill named "
+            "`sq-greeting` or `sq-how-to`: those names now belong to the "
+            "`greeting` and `squads` skills, which are renamed by this run. "
+            "Rename the project skill first. A stored `operator_invocable` "
+            "choice on a removed skill is not carried over, and a squad's "
+            "own prose that names `greeting` or `squads` is not rewritten. "
+            "After the run, commit `.claude/`: it removed the pointer "
+            "directories of the per-type skills and of `greeting` and "
+            "`squads`, wrote the pointers of `sq-greeting`, `sq-how-to` and "
+            "of each role, and rewrote every agent pointer, the managed "
+            "`CLAUDE.md` section and the `settings.json` allow rules.",
         },
     ]
 }

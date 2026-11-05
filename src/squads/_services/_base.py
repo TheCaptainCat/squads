@@ -7,6 +7,7 @@ collaborator) so the mixins only ever call core methods + their own.
 """
 
 import contextlib
+import functools
 import unicodedata
 from collections.abc import AsyncGenerator, Callable, Collection, Iterator, Mapping
 from contextlib import asynccontextmanager
@@ -97,6 +98,7 @@ from squads._services._skill_files import (
     remedy_text,
     stamped_skill_slug,
 )
+from squads._services._source_view import described_by
 from squads._services._validators import ValidatorEngine
 from squads._sources import CredentialStore
 from squads._spec_documents import SpecDocuments
@@ -457,10 +459,10 @@ def _check_roster_slug(item_type: str, is_roster: bool, slug: str) -> None:
             raise SquadsError(f"{item_type} slug {candidate!r} {verb}; pick another slug")
 
 
-def _stamp_origin(item: Item, spec: WorkflowSpec) -> None:
+def _stamp_origin(item: Item) -> None:
     """Give a new role or skill its origin unless the caller supplied one."""
     if item.type in (ROSTER_ROLE, ROSTER_SKILL):
-        item.attributes.setdefault(AttributeKey.ORIGIN, item_origin(item, spec))
+        item.attributes.setdefault(AttributeKey.ORIGIN, item_origin(item))
 
 
 class ServiceCore:
@@ -673,7 +675,7 @@ class ServiceCore:
             f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml`), or `sq role "
             f"{item.slug} update` for a role that defines itself"
             if item.type == ROSTER_ROLE
-            else views.skill_authoring_surface(roster_view, item.slug, self.spec, self.playbook)
+            else views.skill_authoring_surface(roster_view, self.spec, self.playbook)
         )
         tag = f"{markers.PREFIX}{markers.view_tag(roster_view)}"
         head = (
@@ -796,7 +798,7 @@ class ServiceCore:
             slug_in_file=is_roster,
             attributes=attributes or {},
         )
-        _stamp_origin(item, self.spec)
+        _stamp_origin(item)
         self._set_declared_fields(item, fields or {})
         db.add(item)
         # Fail-closed on the new item's first error-level catalog violation (parent
@@ -962,6 +964,47 @@ class ServiceCore:
         """
         item = require_item(await self.store.load(), item_id)
         return item.model_copy(deep=True)
+
+    async def read_body(
+        self, item_id: str, *, keep_view: str | None = None
+    ) -> view_tags.ExpandedBody:
+        """The item's top-level ``:body`` content with any ``sq:view:<name>`` tag expanded but
+        *keep_view*'s, which stays as written, and a warning for each view that failed to render:
+        the one body-read boundary for rendered text
+        (:func:`~squads._view_tags.expand_view_tags`), while ``show --json`` reads
+        :meth:`read_stored_body` unexpanded. No writer may source its text from here, or expanded
+        view output would be persisted over the tag. A body with no tag returns without an index
+        load, as ``sq ui`` opts out of the read scope.
+        """
+        item = await self.get(item_id)
+        body = await self._stored_body(item)
+        if not views.has_view_tag(body):
+            return view_tags.ExpandedBody(body)
+        db = await self.store.load()
+        roster = functools.cache(lambda: self.roster_from_db(db))
+        return view_tags.expand_view_tags(
+            body,
+            item,
+            db,
+            self.spec,
+            self.playbook,
+            roster,
+            self.paths.squad_dir,
+            self.catalog,
+            described_by(self.sources, db.items.values()),
+            self.paths.config.squad_dir,
+            self.working_language,
+            keep=keep_view,
+        )
+
+    async def _stored_body(self, item: Item) -> str:
+        text = await self._read_item_file(item, item_file(self.paths, item))
+        return (sections.get_section(text, markers.BODY) or "").strip("\n")
+
+    async def read_stored_body(self, item_id: str) -> str:
+        """The item's ``:body`` region exactly as stored, each ``sq:view:<name>`` tag left as a
+        tag. The text a client can write back; :meth:`read_body` is the one that expands tags."""
+        return await self._stored_body(await self.get(item_id))
 
     def _type_folders(self) -> Iterator[tuple[str, ItemSpec, Path]]:
         """``(type, its spec, its folder)`` for every declared type whose folder exists, in each
@@ -1567,9 +1610,19 @@ class ServiceCore:
         """A live role's full preload-skill set."""
         return await self.roster_projection.resolved_skills_for_role(slug)
 
+    async def role_bodies(self) -> dict[str, str]:
+        """Each live role's body as ``sq role <slug> show --raw --no-header`` prints it, by slug."""
+        live = self.spec.live_statuses(ROSTER_ROLE)
+        items = [it for it in (await self.store.load()).items.values() if it.type == ROSTER_ROLE]
+        return {
+            it.slug: (await self.read_body(it.id)).text.rstrip("\n")
+            for it in sorted(items, key=lambda i: number_for_id(i.id))
+            if it.status in live
+        }
+
     async def refresh_managed(self) -> list[str]:
         """(Re)write every active backend's roster/version-dependent files; returns the warnings."""
-        return await self.roster_projection.refresh_managed()
+        return await self.roster_projection.refresh_managed(await self.role_bodies())
 
     async def candidate_orphans(self) -> list[str]:
         """WARN-only candidate-orphan pointer/skill files across every active backend."""
@@ -1620,7 +1673,7 @@ class ServiceCore:
         """The remedy a report line gives for a stamped managed-skill file, else ``None``."""
         if item_type != ROSTER_SKILL or stamped_skill_slug(md, self.spec) is None:
             return None
-        if stamped_skill_slug(md, self.spec) not in managed_skill_slugs(self.spec):
+        if stamped_skill_slug(md, self.spec) not in managed_skill_slugs():
             state = await self._skill_folder_state(scan)
             if not state.known:
                 state = state.with_index(await self._indexed_skills(scan))

@@ -10,7 +10,7 @@ subentity_kinds = ["outcome", "action"]
 lifecycles = ["work", "adr", "agent", "subentity", "step"]
 collections = ["urgency", "impact", "size"]
 ref_kinds = ["related", "blocks", "depends-on", "scopes", "replaces"]
-views = ["role_definition", "role_playbook", "squads_skill", "greeting_skill", "memory_skill", "item_skill", "source_description"]
+views = ["role_definition", "role_playbook", "squads_skill", "greeting_skill", "memory_skill", "source_description"]
 
 [lifecycles.step]
 initial = "Todo"

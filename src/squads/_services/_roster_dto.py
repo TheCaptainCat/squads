@@ -15,16 +15,11 @@ from squads._api import (
     SeveredRef,
     SkillRow,
 )
-from squads._interactions import (
-    PlaybookSpec,
-    is_system_skill,
-    orphaned_skill_item_type,
-    resolve_operator_invocable,
-)
+from squads._interactions import PlaybookSpec, resolve_operator_invocable
 from squads._models import AttributeKey, Item, attrs
 from squads._roles import ROLES_OVERRIDE_FILENAME, RoleDef
 from squads._services._retirement import Severance
-from squads._views import ITEM_SKILL_VIEW_NAME, ROLE_DEFINITION_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
+from squads._views import ROLE_DEFINITION_VIEW_NAME, SYSTEM_SKILL_VIEW_NAMES
 from squads._workflow import ROSTER_ROLE, WorkflowSpec
 
 #: The columns of the ``role list`` table; a dotted key reads the row's ``display``.
@@ -105,9 +100,9 @@ def developer_row(item: Item, role: RoleDef, *, pronouns: bool) -> DeveloperRow:
     )
 
 
-def skill_row(item: Item, spec: WorkflowSpec) -> SkillRow:
+def skill_row(item: Item) -> SkillRow:
     """The skill *item* as a row."""
-    invocable, invocable_set = resolve_operator_invocable(item.slug, item, spec)
+    invocable, invocable_set = resolve_operator_invocable(item.slug, item)
     return SkillRow(
         id=item.id,
         slug=item.slug,
@@ -170,17 +165,10 @@ def skill_empty_body_hint(
     slug: str, spec: WorkflowSpec, playbook: PlaybookSpec, *, view_disabled: bool
 ) -> str:
     """The empty-body hint of ``sq skill <slug> show``. A system skill's body is generated, and
-    empty for one of three reasons: the item type it documents is gone, its view is not declared,
-    or ``sq sync`` has not filled it. A custom skill is empty because nobody wrote it."""
-    system = is_system_skill(slug, spec)
-    dropped_type = orphaned_skill_item_type(slug, spec) if system else None
-    view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug) or (ITEM_SKILL_VIEW_NAME if system else None)
-    if dropped_type is not None:
-        return (
-            f"(no definition — the item type {dropped_type!r} this skill described is no "
-            "longer declared; restore the type, or retire this skill)"
-        )
-    if not system or view_name is None:
+    empty because its view is disabled or not declared, or ``sq sync`` has not filled it. A
+    custom skill is empty because nobody wrote it."""
+    view_name = SYSTEM_SKILL_VIEW_NAMES.get(slug)
+    if view_name is None:
         return f'(empty — write it with `sq skill {slug} body -m "…"`)'
     hint_state = views.empty_body_hint_state(view_name, spec, disabled=view_disabled)
     if hint_state == "disabled":
@@ -193,7 +181,7 @@ def skill_empty_body_hint(
             f"before it was dropped, disable it with `sq skill {slug} view disable "
             f"{view_name}`)"
         )
-    surface = views.skill_authoring_surface(view_name, slug, spec, playbook)
+    surface = views.skill_authoring_surface(view_name, spec, playbook)
     return (
         "(empty — run `sq sync`; if it stays empty, its content's real authoring "
         f"surface is {surface}; author it there instead — or run "
@@ -201,8 +189,6 @@ def skill_empty_body_hint(
     )
 
 
-def skill_view_name(slug: str, spec: WorkflowSpec) -> str | None:
+def skill_view_name(slug: str) -> str | None:
     """The view a system skill's body renders, ``None`` for a custom skill."""
-    if not is_system_skill(slug, spec):
-        return None
-    return SYSTEM_SKILL_VIEW_NAMES.get(slug) or ITEM_SKILL_VIEW_NAME
+    return SYSTEM_SKILL_VIEW_NAMES.get(slug)

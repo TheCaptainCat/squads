@@ -9,11 +9,9 @@ index is left as it was, because the drift between files and index is what sever
 import pytest
 import yaml
 
-from squads._workflow import bundled_spec
 from tests import _stored_view as stored
 from tests.check._arrange import (
     activate,
-    add_roster,
     address,
     copy_item_file,
     create,
@@ -711,39 +709,6 @@ async def test_a_subtask_block_outside_its_container_is_a_warning(
                 item_path(project, host).name,
                 "subtask block ST1 sits outside its 'subtasks' container -- move it between "
                 "`<!-- sq:subtasks -->` and `<!-- sq:subtasks:end -->`",
-            )
-        ],
-        0,
-    )
-
-
-# skill_type_declared
-
-
-@pytest.mark.breaches("skill_type_declared")
-async def test_a_live_skill_of_a_type_the_squad_no_longer_declares_is_a_warning(
-    project, invoke, check_json
-) -> None:
-    skill = await add_roster(invoke, "skill", "sq-guide")
-    # no command clears the prose beside a declared type's tag: cut it from the file
-    body = item_path(project, skill).read_text(encoding="utf-8")
-    prose = body.split("<!-- sq:body -->\n", 1)[1].split("<!-- sq:view:item_skill -->", 1)[0]
-    edit_item_file(project, skill, prose, "")
-    assert await check_json() == ([], 0)
-
-    # a type is dropped by an override listing the types that survive
-    kept = ", ".join(f'"{name}"' for name in bundled_spec().items if name != "guide")
-    write_override(project, "workflow.toml", f"[selected]\nitems = [{kept}]\n")
-
-    assert await check_json() == (
-        [
-            issue(
-                "skill_type_declared",
-                "warn",
-                skill,
-                "skill 'sq-guide' is Active but type 'guide' is no longer declared — its "
-                "generated files have been withdrawn; restore the type to bring it back, or "
-                "retire this skill (update its status) to close it out",
             )
         ],
         0,

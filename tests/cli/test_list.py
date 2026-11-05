@@ -410,8 +410,8 @@ async def test_a_derived_filter_means_exactly_its_generic_form(override_project,
     ):
         derived_ids = await _ids(invoke, *derived)
         assert derived_ids == await _ids(invoke, *generic)
-        assert derived_ids == ["INI-8"]
-    assert await _ids(invoke, "--urgency", "later") == ["INI-11"]
+        assert derived_ids == ["INI-5"]
+    assert await _ids(invoke, "--urgency", "later") == ["INI-8"]
     refused = await invoke(["list", "--json", "--priority", "high"])
     assert (refused.exit_code, refused.output) == (
         2,
@@ -535,9 +535,9 @@ async def test_the_item_row_carries_a_stored_field_by_its_code_and_no_other(
     rows = {
         row["id"]: row for row in json.loads((await invoke(["list", "--json", "--all"])).output)
     }
-    assert rows["INI-8"]["urgency"] == "now"
-    assert rows["INI-8"]["badges"] == {"urgency": "now"}
-    assert rows["JOB-9"]["work_size"] == "m"
-    assert "urgency" not in rows["JOB-9"]
-    assert not {"priority", "severity"} & set(rows["INI-8"])
-    assert not {"priority", "severity"} & set(rows["REC-10"])
+    assert rows["INI-5"]["urgency"] == "now"
+    assert rows["INI-5"]["badges"] == {"urgency": "now"}
+    assert rows["JOB-6"]["work_size"] == "m"
+    assert "urgency" not in rows["JOB-6"]
+    assert not {"priority", "severity"} & set(rows["INI-5"])
+    assert not {"priority", "severity"} & set(rows["REC-7"])

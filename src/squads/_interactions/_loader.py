@@ -245,9 +245,9 @@ def _check_slugs(
 def _check_duplicate_slugs(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
     """Refuse a role slug that appears more than once in one type's ``roles`` array.
 
-    ``roles`` is keyed by slug: the generated skill renders one H2 section per slug (see
-    ``_backends._claude_code._backend._write_item_skills``), so a second guide for a slug is
-    not a second voice but a truncated second section under the first. The usual cause is
+    ``roles`` is keyed by slug: the role playbook view renders one section per slug, so a second
+    guide for a slug is not a second voice but a truncated second section under the first. The
+    usual cause is
     ``roles = ["$(*self)", { slug = "<already-bundled>", ... }]``, which spreads a slug the
     bundled array already carries. The renderer has no merge-by-slug behaviour, so fail closed.
     """

@@ -33,27 +33,27 @@ subentities:
   maps_to: US2
 - local_id: ST5
   title: Retire the per-type sq-<type> skills from the code
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US3
 - local_id: ST6
   title: Rename to sq-how-to and sq-greeting; trim the base skills
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US3
 - local_id: ST7
   title: sq-greeting states the startup steps; CLAUDE.md directs to it
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US6
 - local_id: ST8
   title: AGENTS.md compiles role bodies and the shared startup steps
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US8
 - local_id: ST9
   title: 0.19 to 0.20 migration retires per-type skills and renames two
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US4
 - local_id: ST10
@@ -67,7 +67,7 @@ subentities:
   assignee: python-dev
   maps_to: US7
 created_at: '2026-11-04T21:46:20Z'
-updated_at: '2026-11-04T23:33:28Z'
+updated_at: '2026-11-05T01:28:59Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -627,4 +627,88 @@ Break each new or rewritten test once by hand (revert the line it guards, watch 
     **Mutations (each reverted, each turned its test red).** raw no-header off; soft_wrap off (item raw, memory raw); empty memory text; stdout before the error; board ordinal fixed at 1 (the first test of it was too weak, rewritten with three notices); board expiry dropped; empty board text; board only first line; pointer comment line removed; board line removed from the role skill; `sq board list` added back to the agent pointer; `|| echo` dropped (bash/zsh test); role skill removal on retire; role skill write skipped; both collision checks; companion drift check; orphan exemption; live slugs in the orphan context.
     
     **Not verified in-process:** that Claude Code actually runs the `!` lines and the YAML-list grant (host behaviour). The shell tests only prove each line exits 0 with `sq` absent under bash and zsh.
+- [2026-11-05T00:28:16Z] `python-dev` Elias Python:
+  - - Round 4 (ST5) done; ST5 Done. Not committed. @manager
+    
+    **Removed.** The `sq-<type>` writer in the Claude Code backend, `seed_custom_skills`, the `item_skill` view and template, `ITEM_SKILL_VIEW_NAME`, the per-type arms of `_interactions/_skills.py` and `_views.py` (`_playbook_subject` is now the host's own type), the `item_skill_role_sections` and `custom_item_skill_commands` filters, the orphaned-skill arms in check, sync, projection and the roster DTOs, the type-implied kind of `preloaded_skill`, and two `sq check` rules: `skill_type_declared` and the `item_skill_shadowed` validator (also out of `[items.skill] validators` and the validator name tables). A leftover `sq-<type>` skill item is now an ordinary project skill: sync, show and retire work on it (driven in a scratch squad). Its `sq:view:item_skill` tag is an undeclared view, so `sq check` reports `view_target_resolves` on it until ST9 removes the item.
+    
+    **Tidied signatures.** `skills_for_role(role)`; `resolve_operator_invocable(slug, item)`; `skill_origin(slug)`, `item_origin(item)`, `is_system_skill(slug)`; `skill_row(item)`; `skill_view_name(slug)`; `skill_authoring_surface(view, spec, playbook)`; `managed_skill_slugs()`; `retirement.enforce` and `check_all` lose `playbook`. Five `_interactions` re-exports with no `src` user left the init. Vulture: no new finding against HEAD.
+    
+    **Texts.** No delivered text names an `sq-<type>` skill now. I removed the `sq-<type>` line from `role_definition.md.j2` and the golden-rule bullet from `squads_skill.md.j2` (both are on ST6's list; ST6 can skip them). The orphaned-guide and unheld-capability messages say "generated role playbook". Manifest and content store regenerated and rebuilt (one orphan blob dropped); script docstring says 30 templates; frozen views document loses `item_skill`.
+    
+    **Tests.** New: `test_init_writes_no_skill_for_a_bundled_or_a_project_type`, `test_a_fresh_squad_with_a_project_type_checks_clean` (test_init). Removed: the two `item_skill_shadowed` and the `skill_type_declared` breach tests. Changed: the seeding meta guard (renamed `..._seeds_the_managed_skills`, one seed call), the command-naming guard (per-type bodies out, `_MIN_CARRIERS` 4), the rule-pin table, the override fixture (`item_skill` out of `[selected]`), the `view add/disable` JSON tests (use `squads_skill`), views listing, spec digest, role-body text, the 0.14 to 0.20 `migrate up --json` expectation, and the override squad's item numbers (initiative 5, job 6, record 7; fewer skills seeded) across test_check, test_create, test_import, test_init, test_item_verbs, test_list, test_migrate, test_root_options, test_subentity_verbs, test_tree.
+    
+    **Gates.** pyright 0 errors; ruff check and format clean. `tests/meta tests/cli tests/check tests/daemon tests/regressions -n 4`: 2209 passed, 2 skipped (log st5-gate-default2.log). `--squad override tests/cli -n 4`: 1024 passed, 179 skipped, 0 failed, 0 errors. `sq check` clean.
+    
+    **Mutations (each reverted).** Seeding guard: dropped `seed_bundled_skills` from `adopt`, red. Command guard: `_MIN_CARRIERS` raised, red. Init test: backend writes `sq-<type>` pointers for every type, red. The check-clean test stayed green under that mutation and under one that also seeded `sq-task`/`sq-note` items: nothing the check does flags them, so that test holds only "init then check is clean" and the init test carries the guard.
+    
+    **Commands left unnamed in agent guidance:** none. `test_every_cli_command_is_named_in_agent_guidance.py` passes with the per-type bodies removed and no change to its exemptions.
+    
+    **For you.** (1) Behaviour change in old migrations: the 0.11 to 0.14 runner no longer seeds `sq-contract`/`sq-milestone` skill items, the 0.14 to 0.15 reclaim no longer touches per-type skill bodies, and 0.15 to 0.16 stamps them `origin: project`. Fixture `v0_14` run: changed 4 (was 6), origin report "2 system, 2 project". (2) Docs still describe the per-type skills and the two removed rules: docs/overrides.md (1242, 1431), docs/workflow.md (1228, 1309), docs/adoption.md (334), docs/README.md (70), docs/faq.md (110): tech-writer task. (3) The 0.19 corpus fixture has no per-type skills; ST9 builds its own case.
+- [2026-11-05T00:30:41Z] `manager` Catherine Manager:
+  - - Round 4 (ST5) committed. Decisions on the handback's open points:
+      - Older migration runners: accepted. The 0.11→0.14 runner no longer seeds `sq-contract`/`sq-milestone`, and 0.15→0.16 stamps a per-type skill `origin: project`; only intermediate notices change, the end state is ST9's. ST9 must recognise a per-type skill by its `sq-<type>` slug whatever its origin, so a squad migrated from 0.14 still has them removed.
+      - ST9 adds its own corpus fixture case with per-type skills, since the `v0_19` fixture has none.
+      - The docs naming per-type skills and the two removed check rules (`docs/overrides.md`, `docs/workflow.md`, `docs/adoption.md`, `docs/README.md`, `docs/faq.md`) go to the tech-writer task, TASK-1298.
+- [2026-11-05T00:47:49Z] `python-dev` Elias Python:
+  - - Round 5 (ST6) done; ST6 Done. Not committed. @manager
+    
+      **Renames.** `SQUADS_SKILL` is `sq-how-to`, `GREETING_SKILL` is `sq-greeting`; `ensure_scaffold` creates `.claude/skills/sq-how-to`; the three descriptions say what each is for (`sq-greeting`: main session only, never a subagent). View names unchanged. Slugs in `_cli/_skill.py` epilog, `workflow.toml` comment, `playbook.toml` text (`sq-how-to` skill's comment-scoping), `role_definition.md.j2`, and the skill name only in `claude_section.md.j2` (opening, greeting paragraph, both orchestration-loop sentences). `bundled_skill_slugs` now sorts sq-greeting, sq-how-to, sq-memory (the memory and how-to ordinals swap).
+    
+      **Role definition.** The "follow `greeting`, then the `squads` section" instruction is gone; "Live with the operator" keeps the principle and points to `sq docs agents`. No command to read its own role, no `sq-<type>` text.
+    
+      **Trims and where each moved section lives.**
+      - sq-how-to opening paragraph, working-language include, operators paragraph: dropped, the managed CLAUDE.md section carries them (opening, Working language, Operators). No docs topic needed.
+      - "Working directly with the operator" (anchor to an item, keep status honest, hand back, stay in lane): `sq docs agents`. Partly held (The loop covers create, status, comment, hand off); the live-work anchoring and stay-in-lane advice is not a section there. Gap for TASK-1298.
+      - "Finding things across the board" (search scope, `--type/--status`, hit regions, `--json`): `sq docs recipes` ("Prioritize, find, and focus") holds only `sq search "lockout"`; `sq search --help` holds the narrowing and `--json`. Gap for TASK-1298 (region forms are in `sq docs stability`).
+      - workflow.md.j2 include (team workflow, aliases, lifecycles, sub-entities): `sq docs workflow` holds all of it (Team workflow, Type-command aliases, Status lifecycles, Sub-entities); `sq workflow` prints the squad's own cheatsheet.
+      - sq-memory "Check it at the start of a run" and the board's "run `sq board list` at the start": dropped, the role skill renders both and sq-greeting runs them. The summary-vs-body split became a 3-line paragraph under the command block.
+      - sq-greeting: "Get your bearings" dropped (ST7 rewrites the rest). Closing lines in sq-how-to: `sq docs agents`, `sq docs recipes`, `sq docs workflow`, `sq workflow`.
+      - `workflow.md.j2` still said "Each role has skills for the item types it manages (e.g. sq-task...)". ST5 missed it; replaced by a sentence about the role's definition.
+    
+      **Guard widened (your call).** `test_every_cli_command_is_named_in_agent_guidance` failed for graph, import, override, reflog, renumber, repair: they were named only in the workflow cheatsheet that sq-how-to included. The closing line now sends agents to `sq workflow`, so I added the `workflow.md.j2` render as a fifth carrier (`_MIN_CARRIERS` 5). Revert it if you prefer to name those commands elsewhere.
+    
+      **Older runners (please check for ST9).** The rename changed what two old runners see. 0.14 to 0.15 reclaimed skill bodies by current slug, so a legacy `squads`/`greeting` skill would no longer get its view tag; 0.15 to 0.16 stamped them origin project. I added a legacy-slug mapping in each (`_current_skill_slug`, `_RENAMED_SYSTEM_SKILLS`) so the v0_14 fixture run is unchanged (changed 4, 2 system, 2 project). The 0.4 to 0.5 runner seeds `bundled_skill_slugs()`, so a pre-0.5 squad now gets `sq-how-to`/`sq-greeting` items directly: ST9 must not refuse those as "a project skill already holds the name" when their origin is system.
+    
+      **Tests.** Updated slugs in test_skill, test_role, test_sync, test_init, test_workflow, the daemon tests, the fixtures guard and the options test. New: `test_the_sq_how_to_skill_names_no_per_type_skill_and_ends_with_its_docs_topics`, `test_show_raw_names_the_sq_how_to_skill_and_no_other_skill_or_role_read`; the init test `test_init_writes_no_skill_for_a_bundled_or_a_project_type` carries the "no squads/greeting skill or pointer" case. Manifest and store regenerated and rebuilt (4 orphan blobs dropped). `_bundled_documents.py` untouched (its two `squads`/`greeting` mentions are old migration text; ST9 owns the 0.20 entry).
+    
+      **Gates.** pyright 0 errors; ruff check and format clean. `tests/meta tests/cli tests/check tests/daemon tests/regressions -n 4`: 2211 passed, 2 skipped (st6-gate3.log). `--squad override tests/cli -n 4`: 1026 passed, 179 skipped, 0 failed, 0 errors. `sq check` clean.
+    
+      **Mutations (each reverted, each red).** role definition back to `squads`; a `sq role manager show` line added to it; last closing line deleted; an `sq-task` line added to sq-how-to; scaffold dir back to `squads`; the 0.14 to 0.15 mapping removed; the 0.15 to 0.16 mapping removed; the new workflow carrier pointed at another template (guard red).
+- [2026-11-05T00:50:03Z] `manager` Catherine Manager:
+  - - Round 5 (ST6) committed. Decisions on the handback's points:
+      - The command-naming guard counts the `workflow.md.j2` render as a carrier: accepted. `sq-how-to` sends every agent to `sq workflow`, which prints that cheatsheet, so the commands it names reach agents.
+      - The legacy-slug mappings in the 0.14→0.15 and 0.15→0.16 runners: accepted.
+      - For ST9: a squad migrated from before 0.5 is seeded `sq-how-to` and `sq-greeting` directly (system origin) and has no `squads`/`greeting` item. The rename skips what is already in place, and the "a project skill holds the name" stop fires only on a skill whose origin is project.
+- [2026-11-05T01:05:52Z] `python-dev` Elias Python:
+  - - Round 6 (ST7, ST8) done; both Done. Not committed. @manager
+    
+      **ST7.** New partial `templates/startup_steps.md.j2` holds steps 1 to 7 (takes `default_role_full_name`/`default_role_slug`, `spec`, `squad_dir`). `views/greeting_skill.md.j2` is rewritten whole: intro, partial, step 8 (greet, tone guidance trimmed), example. `[views.greeting_skill]` is now a `playbook` source; the template reads the default role from `source.roster`. The managed CLAUDE.md section keeps one bold instruction right after the opening paragraph; the Impersonation, Start of a run and greeting paragraphs are gone. `settings.json.j2` adds `Skill(sq-greeting)` and `Skill(sq-how-to)` (the existing merge keeps the adopter's rules). The `sq-greeting` description is reworded for the new steps.
+      **ST8.** `BackendContext.role_bodies` (slug to the text `role show --raw --no-header` prints, trailing newlines stripped). `ServiceCore.role_bodies()` fills it in `refresh_managed`, `project_transition` and `sync`; `read_body`/`_stored_body`/`read_stored_body` moved from `ItemsMixin` to `ServiceCore` so the core can call them. AGENTS.md "Role definitions" compiles the bodies as-is; "Start of a run" includes the same partial plus a short step 8. Memory and board are not compiled.
+      **Gates.** pyright 0; ruff check and format clean; `tests/meta tests/cli tests/check tests/daemon tests/regressions -n 4`: 2218 passed, 2 skipped (st78-gate2.log; two line-length fixes after it, re-ran meta + init/sync/skill: 876 passed). `--squad override tests/cli -n 4`: 1033 passed, 179 skipped, 0 failed, 0 errors. Manifest and content store regenerated and rebuilt (3 blobs dropped); script docstring says 31 templates. `sq check` clean.
+      **Tests.** New: 3 in test_skill (eight steps in order, default role named and moved, no-default line), 2 in test_sync (one instruction and removed headings, allow-rule merge), 2 in test_init (AGENTS.md role bodies equal `role show` output with adopter prose and no memory/board; steps equal sq-greeting's). Changed: test_role set-default, test_workflow (views listing, view json now on `memory_skill`, new spec digest), the skill refusal text, the command-naming guard, the RoleView guard (the section no longer renders mission/responsibilities), frozen views document.
+      **Mutations (each red, reverted).** instruction line, `Skill(sq-greeting)` rule, `--raw` on step 6, step 8 renumbered, default name hardcoded, no-default sentence, `{{ r.body }}` dropped, partial replaced by inline text, memory text appended to a body.
+      **Notes.** (1) `sq skill sq-greeting body`/`view` refusals now name `.overrides/playbook.toml` as the authoring surface, as for `sq-how-to`, because the surface follows the source kind. (2) The 0.11 to 0.14 runner builds a `BackendContext` without role bodies: an agents_md squad migrated through it gets no role bodies in AGENTS.md until the next `sq sync`; ST9 can pass them or rely on its refresh. (3) Step 1 reads the operator with `--raw --no-header`. (4) `RoleView.mission`/`responsibilities` are still carried (view source) though AGENTS.md no longer renders them.
+- [2026-11-05T01:08:16Z] `manager` Catherine Manager:
+  - - Round 6 (ST7, ST8) committed. Notes on the handback:
+      - Step 1 reads the operator with `show --raw --no-header`: accepted, consistent with the other steps.
+      - The reworded `sq-greeting` description and the playbook authoring surface for `greeting_skill`: accepted.
+      - For ST9: the 0.11→0.14 runner builds a `BackendContext` without role bodies; ST9's closing backend refresh writes AGENTS.md with them, so rely on that refresh and test an `agents_md` squad through the chain.
+      - `RoleView.mission` and `responsibilities` are no longer rendered by any backend; the reviewer judges at review whether they go.
+- [2026-11-05T01:26:37Z] `python-dev` Elias Python:
+  - - Round 7 (ST9) done; ST9 Done. Not committed. @manager
+    
+    **Runner** (`_v0_19_to_v0_20.py`). Scans first, writes nothing on refusal; all cases fold into the existing list. Refuses: a per-type skill with body prose, a comment or an inbound ref; an `sq-role-<s>` skill item; a project skill holding `sq-greeting`/`sq-how-to` (also a system one that sits beside the legacy skill it would replace). A per-type skill is found by the `item_skill` tag or `sq-<x>` slug with author == slug, whatever its origin or type. A system `sq-how-to`/`sq-greeting` with no legacy twin is left alone (pre-0.5 squads). Then: removes the per-type items, their pointer directories (through the backend `remove_artifacts`, only those slugs) and index rows; renames `greeting`/`squads` (slug, title, author, description, file name; id and refs unchanged). MANUAL items 5 to 7 and SUMMARY updated; frozen `migrate help --json` document regenerated.
+    **Closing refresh.** `Migration.refreshes_backend` (set on 0.20); `run_pending_migrations` calls `sync()` after the repair when a step asks. It writes pointers, role skills, CLAUDE.md, settings.json and the AGENTS.md role bodies. The role_playbook tag comes from the repair's backfill, not the runner.
+    **Decision for you.** A squad migrated from before 0.15 keeps the rendered guidance as prose in its per-type skill bodies (ST5 stopped the 0.14 to 0.15 reclaim touching them), so the prose stop would refuse every such squad. The runner therefore ignores body prose when the on-disk schema is below 0.15 (generated text); comments and refs still refuse. Revert if you prefer the strict reading.
+    **Tests.** New fixture `corpus/v0_19_skills` (a real 0.19 init plus a project skill). test_migrate: retires and renames (ids, refs, pointers, settings, CLAUDE.md, check clean); one run listing five refusals, nothing written; completes after the fix; removes by slug whatever origin or type; leaves already-named base skills; agents_md squad gets role bodies. test_init: both role-body tags and both Skill rules. Updated: the 0.14 chain json test (0.20 entry: 4 changed), the clean 0.19 test (also `.gitignore` from the refresh), `_bundled_documents.py`.
+    **Gates.** pyright 0, ruff check and format clean. `tests/meta tests/cli tests/check tests/daemon tests/regressions -n 4`: 2225 passed, 2 skipped. `--squad override tests/cli -n 4`: 1040 passed, 179 skipped, 0 failed, 0 errors. `sq check` clean.
+    **Mutations (each red, reverted).** pointer drop; backref hold; rendered-body cutoff; slug recognition; name-holder rule; refresh flag; role_playbook placement; settings rule; refusal always on.
+    **Dry run** on a copy in ~/.cache/sq-mig-dry: no hard stop fires. Removed SKILL-193..199, 834, 835; renamed SKILL-192 and 200; 10 role bodies gained role_playbook. `.claude/skills`: launch-dev-host, releasing-squads, sq-greeting, sq-how-to, sq-memory, 10 sq-role-*; 9 per-type dirs and greeting/squads gone; 10 agent pointers rewritten; CLAUDE.md -30/+5 lines; settings.json has both Skill rules. `sq check` on the copy: 2 errors (ADR-1274 and REV-1281: a comment quotes an `sq:attrs` line, which 0.20 reads as a malformed attribute line), plus the stale-override warning and one unknown-source-author warning on ADR-1274. These are in the content, not the migration; fix those comments or accept before the real run.
+    **Notes.** The `migrate up` footer still says "run `sq sync`" (harmless, now redundant for this step). CHANGELOG entry not written.
+- [2026-11-05T01:28:59Z] `manager` Catherine Manager:
+  - - Round 7 (ST9) committed. Decisions:
+      - Body prose of a per-type skill on a squad below schema 0.15 is generated text and does not refuse the run: accepted. Comments and inbound refs still refuse.
+      - This repository's own squad is not migrated by the manager: `sq migrate up` here is the operator's call (it moves the board past the released 0.19 tool). The after-measurement and QA run on migrated copies until op-pierre gives the go.
+      - Before that run: the comments on ADR-1274 and REV-1281 that quote an `sq:attrs` line are read by 0.20 as malformed attribute lines; the reviewer judges whether that is a parser defect rather than a corpus fix.
 <!-- sq:discussion:end -->

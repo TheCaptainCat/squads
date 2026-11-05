@@ -27,11 +27,8 @@ from squads._index import (
 )
 from squads._interactions import (
     bundled_skill_slugs,
-    custom_item_skill_description,
-    custom_skill_slugs,
     orphaned_playbook_guide_message,
     orphaned_playbook_guides,
-    orphaned_skill_item_type,
     playbook_override_command_lines,
     playbook_override_guide_pairs,
     skill_description,
@@ -453,7 +450,7 @@ class MaintenanceMixin(ServiceCore):
         ]
         roster_skills = await self.list_items(item_type=ROSTER_SKILL)
 
-        # The role/system-skill/per-item-type-skill body-tag convergence step
+        # The role and system-skill body-tag convergence step
         # (:meth:`_repair_body_tag`/:func:`_converge_body_tag`), scoped to the roster: no index
         # rebuild, no retired-region strip, no ref-encoding canonicalisation.
         await self._backfill_roster_body_tags(roster_roles, roster_skills)
@@ -478,11 +475,10 @@ class MaintenanceMixin(ServiceCore):
         # `missing_before` was never captured, so the two never overlap.
         skipped += await self._entry_drift_report(backends, entry_ctx, content_before)
         skipped += await self._dropped_guidance_notices(roster)
-        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, bundled and
-        # custom, in ``init``/``adopt`` order and idempotently; a bare file has no frontmatter, so
-        # repair could never index one that first appears after init.
+        # Seed SKILL ids for every managed skill file ``write_managed`` just ensured, in
+        # ``init``/``adopt`` order and idempotently; a bare file has no frontmatter, so repair
+        # could never index one that first appears after init.
         await self.seed_bundled_skills()
-        await self.seed_custom_skills()
         skipped += await self._skill_body_notices()
         # Collapse exact duplicates only (order-preserving) — see the docstring above. A
         # second, textually different message about the same item is never touched by this.
@@ -549,13 +545,6 @@ class MaintenanceMixin(ServiceCore):
                 skipped.append(skew_msg)
             skipped += await self.roster_projection.project_item(it, proj_ctx)
         for it in roster_skills:
-            stale_type = orphaned_skill_item_type(it.slug, self.spec)
-            if stale_type is not None and it.status in self.spec.live_statuses(ROSTER_SKILL):
-                skipped.append(
-                    f"{it.id} ({it.slug}): type {stale_type!r} no longer "
-                    "declared — generated files withdrawn; restore the type to "
-                    "re-materialise, or retire this skill to close it out"
-                )
             skipped += await self.roster_projection.project_item(it, proj_ctx)
         return skipped
 
@@ -589,6 +578,7 @@ class MaintenanceMixin(ServiceCore):
             skill_paths=skill_map,
             skill_invocable=await self.roster_projection.skill_invocable(),
             role_skills=role_skills,
+            role_bodies=await self.role_bodies(),
             spec=self.spec,
             playbook=self.playbook,
             catalog=self.catalog,
@@ -654,11 +644,7 @@ class MaintenanceMixin(ServiceCore):
         """A managed skill's item as the seeders would create it, built from the file name's
         number and slug and the skill catalog alone. When the index already knows *number*,
         its timestamps and sessions are carried over so the restored file agrees with it."""
-        desc = (
-            skill_description(slug)
-            if slug in bundled_skill_slugs()
-            else custom_item_skill_description(slug.removeprefix("sq-"))
-        )
+        desc = skill_description(slug)
         now = clock.now()
         sid, _psid = actor.current_session()
         return Item(
@@ -677,8 +663,7 @@ class MaintenanceMixin(ServiceCore):
             modified_session=known.modified_session if known else sid,
             slug_in_file=True,
             attributes={
-                AttributeKey.ORIGIN: (attrs.origin(known) if known else None)
-                or skill_origin(slug, self.spec)
+                AttributeKey.ORIGIN: (attrs.origin(known) if known else None) or skill_origin(slug)
             },
         )
 
@@ -863,7 +848,7 @@ class MaintenanceMixin(ServiceCore):
                     reports[m.to_schema] = outcome.report
             running = None
             if applied:
-                repaired = await self.repair(rerun="`sq migrate up`")
+                repaired = await self._repair_and_refresh(applied)
         except IndexFullError as exc:
             raise SquadsError(_index_full_refusal(exc, disk)) from exc
         except SquadsError as exc:
@@ -897,6 +882,14 @@ class MaintenanceMixin(ServiceCore):
             reconcile=reconciled,
             config_dropped=config_rewrite.dropped if config_rewrite else (),
         )
+
+    async def _repair_and_refresh(self, applied: list[Migration]) -> RepairResult:
+        """The tail of a migration run: rebuild the index, then regenerate the managed files when a
+        step asks for it, so they are written from the repaired corpus."""
+        repaired = await self.repair(rerun="`sq migrate up`")
+        if any(m.refreshes_backend for m in applied):
+            await self.sync()
+        return repaired
 
     async def _refuse_legacy_dev_table(self) -> None:
         """Stop the run, changing nothing, when the role catalog override carries a ``[dev]``
@@ -1054,7 +1047,7 @@ class MaintenanceMixin(ServiceCore):
                     created_session=sid,
                     modified_session=sid,
                     slug_in_file=True,
-                    attributes={AttributeKey.ORIGIN: skill_origin(slug, self.spec)},
+                    attributes={AttributeKey.ORIGIN: skill_origin(slug)},
                 )
                 # Stamp frontmatter and write to the convention-named file.
                 stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
@@ -1077,83 +1070,6 @@ class MaintenanceMixin(ServiceCore):
             # Rewrite each backend's pointer to reference the convention-named body (write_managed
             # wrote the old slug path). It stays outside the transaction, a backend pointer being
             # regenerable.
-            ctx = self._ctx
-            for backend in self._backends():
-                await backend.generate_skill_entry(ctx, item)
-            seeded.append(item)
-        return seeded
-
-    # ------------------------------------------------------------------ custom skill seeding
-    async def seed_custom_skills(self) -> list[Item]:
-        """Stamp SKILL-… ids onto custom-type managed skill body files (idempotent), mirroring
-        :meth:`seed_bundled_skills` for custom types in the active spec. Ids follow
-        :func:`bundled_skill_slugs`'s lexical-by-slug order, so bundled ids do not churn. It runs
-        from :meth:`sync` (a type declared or renamed later) and from ``init``/``adopt`` (via
-        ``_init_time_spec``), so a fresh squad has no unindexed skill bodies.
-        """
-        now = clock.now()
-        seeded: list[Item] = []
-        skill_prefix = prefix_for(ROSTER_SKILL, self.spec)
-        skills_folder = self.paths.squad_dir / self.spec.items[ROSTER_SKILL].folder
-        for slug in custom_skill_slugs(self.spec):
-            desc = custom_item_skill_description(slug.removeprefix("sq-"))
-
-            # Check if a convention-named file already exists — idempotent skip.
-            existing_convention = list(skills_folder.glob(f"{skill_prefix}-*-{slug}.md"))
-            if existing_convention:
-                continue  # already at convention name — leave id/sequence_id untouched
-
-            # Look for the legacy slug-named body file write_managed created.
-            legacy_path = skills_folder / f"{slug}.md"
-            if not legacy_path.is_file():
-                continue  # body file not created yet (write_managed must run first)
-            existing_text = await _aio.read_text(legacy_path)
-
-            # Allocate a new SKILL id through the single global counter.
-            sid, _psid = actor.current_session()
-            async with self.store.transaction() as db:
-                item_id = db.allocate_id(ROSTER_SKILL, prefix=skill_prefix)
-                seq = number_for_id(item_id)
-                # Padded filename stem — deliberately NOT the displayed item.id.
-                new_name = f"{skill_prefix}-{seq:0{db.padding}d}-{slug}.md"
-                squad_rel = self.paths.squad_relative(ROSTER_SKILL, new_name, spec=self.spec)
-                item = Item(
-                    sequence_id=db.counter,
-                    type=ROSTER_SKILL,
-                    prefix=skill_prefix,
-                    title=slug,
-                    slug=slug,
-                    # Scaffolding creates LIVE, not at `initial`: a role entry preloads a skill by
-                    # slug without consulting its status, so a non-live skill would leave a clean
-                    # `sq init` with roles preloading unmaterialised skills.
-                    status=self.spec.live_initial(ROSTER_SKILL),
-                    description=desc,
-                    author=slug,
-                    path=squad_rel,
-                    created_at=now,
-                    updated_at=now,
-                    created_session=sid,
-                    modified_session=sid,
-                    slug_in_file=True,
-                    attributes={AttributeKey.ORIGIN: skill_origin(slug, self.spec)},
-                )
-                stamped = join_frontmatter(item.to_frontmatter_dict(), existing_text)
-                convention_path = skills_folder / new_name
-                await write_text(convention_path, stamped)
-                # See seed_bundled_skills for why the legacy unlink moves inside the
-                # transaction, alongside the write it always follows.
-                await _aio.path_unlink(legacy_path)
-                db.add(item)
-                self.store.log(
-                    "create",
-                    item.id,
-                    {
-                        "title": slug,
-                        "type": ROSTER_SKILL,
-                        "status": self.spec.live_initial(ROSTER_SKILL),
-                    },
-                )
-            # Rewrite each backend's .claude pointer to the convention-named body.
             ctx = self._ctx
             for backend in self._backends():
                 await backend.generate_skill_entry(ctx, item)

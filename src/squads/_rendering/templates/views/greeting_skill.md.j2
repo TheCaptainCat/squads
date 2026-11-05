@@ -1,54 +1,31 @@
-# Greeting & session start
+# sq-greeting — session start
 
-Do this **when a human opens a conversation with you** — a fresh session, or the operator addressing
-you directly. **Skip it entirely when you've been spawned as a subagent to do a specific job** (just
-do the work and return your result) — the greeting is for the human, not for internal handoffs.
+Do this **when a human opens a conversation with you**: a fresh session, or the operator
+addressing you directly. Complete every step, in this order, before your first reply. Skip it
+entirely when you have been spawned as a subagent to do a specific job; the greeting is for the
+human, not for internal handoffs. The render ran none of these steps: run each one yourself.
 
-## 1. Know who you're talking to
+{% set _defaults = source.roster | selectattr("is_default") | list %}
+{% set default_role_full_name = _defaults[0].full_name if _defaults else none %}
+{% set default_role_slug = _defaults[0].slug if _defaults else none %}
+{% include "startup_steps.md.j2" %}
+8. **Greet.** Open with a short greeting that does three things:
+   - **Match their tone and register.** Let their profile set the register, their role and
+     expertise, and lean the project read-out toward what they come to do; never read the profile
+     back to them. Mirror how they addressed you: "Hello Robert" gets "Good morning, Alice"; "Hi
+     Mara!" gets "Hey Alice!"; a terse "architect?" gets a terse "Yep, Robert here." Warm if they
+     are warm, brisk if they are brisk.
+   - **Say who you are and how you help**: your role and what you are good for on this project.
+   - **Show you have understood the project**: one short paragraph or 2-4 bullets on what it is,
+     where the work stands, and what is next or blocked for them.
 
-- Work out the current human: prefer your logged-in Claude user; otherwise read
-  `git config user.name`. Map them to an operator slug `op-<firstname>`.
-- Check `sq list -t operator --all`, which also lists retired operators.
-  - **Registered:** run `sq operator <slug> show`. Its body is their profile — their role on the
-    project, their expertise, what they come to do. Keep it as context for the whole session.
-    A body that is still the default operator text means no profile yet: greet them as usual, and
-    you may offer to record one with `sq operator <slug> body`.
-  - **Retired:** their operator is listed as {{ spec.first_settled_status('operator') }}. Ask whether to bring them back, then run
-    `sq operator <slug> status {{ spec.live_initial('operator') }}` and read their profile as above. Never `operator add` them
-    again.
-  - **Not registered:** **ask first** whether to register them; on a no, change nothing. On a yes,
-    run `sq operator add "<their name>"`, then ask three short questions — their role on the
-    project, their level of expertise, and what they come to do — and record the answers as prose
-    with `sq operator <slug> body --file <path>`. `operator add` takes no answers. Never edit a
-    file under `squads/` by hand. The next session reads that profile.
-- **If you can't tell who it is, ask — don't guess.** Keep track of who's driving for the rest of the
-  conversation, and use their `op-` slug when recording their words or assigning them work.
+   Then hand back the floor: ask what they would like, or, if they already gave you a task, get to
+   work.
 
-## 2. Get your bearings
-
-Read just enough to make your greeting useful: skim `CLAUDE.md` / `README`, and check the live state
-with `sq tree --json` (or `sq list`), `sq mine <your-slug>`, and `sq blocked`. Distil it to what you
-can say in a sentence or a few bullets — don't dump the backlog.
-
-## 3. Greet
-
-Open with a short greeting that does three things:
-
-- **Match their tone and register.** Let their profile set the register — their role and
-  expertise — and lean the project read-out toward what they come to do; never read the profile
-  back to them. Mirror how they addressed you — "Hello Robert" → "Good morning,
-  Alice"; "Hi Mara!" → "Hey Alice!"; a terse "architect?" → a terse "Yep — Robert here." Warm if
-  they're warm, brisk if they're brisk.
-- **Say who you are and how you help** — your role and what you're good for on this project.
-- **Show you've understood the project** — one short paragraph or 2–4 bullets: what it is, where the
-  work stands, and (if useful) what's next or blocked for them.
-
-Then hand back the floor — ask what they'd like, or, if they already gave you a task, get to work.
-
-**Example** (warm greeting → warm reply):
+**Example** (warm greeting, warm reply):
 
 > **Good morning, Alice!** I'm Robert, your architect. This project is a payments API with a small
-> web dashboard on top — I look after how the pieces fit together. Quick lay of the land:
+> web dashboard on top; I look after how the pieces fit together. Quick lay of the land:
 > - <id> (auth) is mid-flight: one task in review, one blocked on a schema decision.
 > - Nothing else is started yet.
 >
