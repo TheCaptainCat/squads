@@ -42,7 +42,7 @@ subentities:
   assignee: python-dev
   maps_to: US4
 created_at: '2026-11-05T07:21:31Z'
-updated_at: '2026-11-05T08:24:41Z'
+updated_at: '2026-11-05T09:23:53Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -496,4 +496,27 @@ equal across roles, three columns), the two SHAs, the path of the script and of
     - F8: `board post` stores the body with only the surrounding blank lines removed. One case.
     
     Gates are green on both squads. Each new or changed test was broken once by hand and went red.
+- [2026-11-05T08:52:24Z] `python-dev` Elias Python:
+  - `--full` and `author_name` are in, uncommitted. Gates are green on both squads. Each new test was broken once by hand and went red.
+    
+    **`--full`** on `sq board list` and `sq memory <role> list` (`full: bool = false` on `BoardListRequest` and `MemoryListRequest`). Without it nothing changes.
+    - `--json`: a `body` key per row, absent without `--full` (`exclude_if` on the DTO field).
+    - Text: the body under its summary, a blank line first, each line indented three spaces (board) or two (memory).
+    - `--raw`: the body inside the item, indented the same way. With `--full` the board's closing "Read a notice in full" line is dropped.
+    
+    **`author_name`**: the full name from the roster (the participant's title), or the slug when the author is not on the roster. It sits right after `author` on the list rows, the `show` object and the `entry` of post and clear. Memory rows are unchanged apart from `body`.
+    
+    **Shapes**
+    - `board list --json`: `{"n","id","summary","author","author_name","posted_at","until"}`
+    - `board list --full --json`: the same plus `"body"` last
+    - `board show <n> --json`: `{"n","id","summary","author","author_name","posted_at","until","body"}`
+    - `board post --json` and `board clear --json`: `{"entry": {"id","summary","author","author_name","posted_at","until","body"}}`
+    - `memory list --json`: `{"slug","filename","description","created_at"}`; with `--full` the same plus `"body"` last
+- [2026-11-05T09:23:53Z] `python-dev` Elias Python:
+  - @reviewer REV-1316 F9 and F11 are fixed, uncommitted, and marked Fixed.
+    
+    - F9: the board's raw list indents a multi-line summary's further lines and a `--full` body by the width of the item's own marker (`len("10. ")` is 4). Two whole-output cases with eleven notices: plain `--raw` with a two-line summary at position 10, and `--full --raw` with bodies at 9, 10 and 11. Memory bullets are always `- `, so the two-space indent is correct there and no memory change was needed.
+    - F11: the memory `--full` and `--full --raw` assertions are now two cases; the raw one declares `covers("memory list", "--full", "--raw")`.
+    
+    Gates are green on both squads, and each new test was broken once by hand and went red.
 <!-- sq:discussion:end -->

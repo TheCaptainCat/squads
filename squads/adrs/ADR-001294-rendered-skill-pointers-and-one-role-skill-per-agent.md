@@ -15,7 +15,7 @@ description: Pointers render through never-failing commands with show --raw --no
   each role preloads sq-role-<slug>; sq-greeting states the main session's startup
   steps; per-type skills retire
 created_at: '2026-11-04T19:42:58Z'
-updated_at: '2026-11-05T07:11:02Z'
+updated_at: '2026-11-05T08:48:08Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -116,12 +116,10 @@ role skill (§2) is the one pointer with more than one `!` line.
 - **Raw lists.** `sq memory <slug> list --raw` and `sq board list --raw` follow the same contract:
   plain markdown, no ANSI, no wrapping, nothing on stdout unless the whole list was read. Memory
   prints one bullet per entry, its slug and summary. The board prints one numbered item per
-  notice with its full content, author, timestamp and expiry: a notice is a team rule, and a
-  one-line summary would send the agent to another command for each. Raw output writes nothing to stdout
+  notice with its summary, author and expiry, then one line naming `sq board show <n>`, which
+  prints a notice's body (ADR-1312 §4). Raw output writes nothing to stdout
   unless the whole render succeeded; on failure it exits non-zero with sq's one-line error on
   stderr, which the agent receives above the echo line.
-
-  > **Narrowed 2026-11-05 by ADR-1312 §4.** The board prints one numbered item per notice with its summary, author and expiry, and a closing line naming `sq board show <n>`; no body. The sentence that a one-line summary would send the agent to another command no longer holds.
 - **Partial failure stays inside the text.** A view that cannot read its source renders one line
   saying so and naming the command, and the render still exits 0. Only a failure to resolve the
   item, the squad or the schema fails the command.
@@ -143,9 +141,7 @@ role skill (§2) is the one pointer with more than one `!` line.
 - **What it renders, in order.** Three `!` lines, each with its own `|| echo` fallback (§1):
   1. `sq role <slug> show --raw --no-header`: the role's body;
   2. `sq memory <slug> list --raw`: the role's memory index;
-  3. `sq board list --raw`: the current board notices, content included.
-
-     > **Narrowed 2026-11-05 by ADR-1312 §4.** The command is unchanged; it prints the notices' summaries, not their content. So does `sq-greeting`'s step 6 (§4).
+  3. `sq board list --raw`: the board index, one line per current notice with its summary.
 
   Its `allowed-tools` names exactly those three commands, written as a YAML list, one
   `Bash(<command>)` entry per line. A failing line leaves one echo line in
@@ -300,40 +296,7 @@ messages, the method used for the facts above), not from the model's report:
 
 Recorded on FEAT-1290 as one table. No budget applies.
 
-## Amendment, 2026-11-04
-
-Applies op-pierre's rulings in this decision's discussion and on FEAT-1290:
-
-- Every skill squads ships is prefixed `sq-`: `sq-how-to`, `sq-greeting`, `sq-role-<slug>` (§2,
-  §3, §5); the migration renames the two existing ones and stops on a project skill holding a new
-  name (§6).
-- `--raw` on every `show` prints plain markdown; its header is the `show` panel's rows as a
-  `- **<label>:** <value>` list, built by the one function the panel uses, badges without a glyph,
-  refs as `<id> (<kind>)`, session rows left out; `--no-header` prints the body alone; `--body` is
-  not added (§1).
-- The `frontmatter` field leaves the show DTOs and `--json` (§1).
-- Every pointer's `!` line and grant use `sq skill <slug> show --raw --no-header` (§1).
-- The role body carries one view beside `role_definition`, `role_playbook`; `role_memory` and
-  `board_notices` are dropped, and `sq-role-<slug>` renders three `!` lines: the role, the memory
-  index and the board (§2).
-- `sq-greeting` takes no argument and renders only its own text; its body states the main
-  session's startup as mandatory steps the session runs, the role read with
-  `sq role <slug> show --raw --no-header` and memory and board as their own steps (§4).
-- The managed `CLAUDE.md` section only directs the session to `sq-greeting`; the impersonation
-  and start-of-run text moves into its body, and AGENTS.md keeps the same steps inline (§4, §7).
-- The `Skill(...)` allow rules are `Skill(sq-greeting)` and `Skill(sq-how-to)` (§4).
-- Under `--raw` an item's `# <id> — <title>` heading comes first, then the header list with a
-  `type` row, and `--no-header` drops both; a role, skill or operator prints no heading, since its
-  body opens with its own, and its list opens with the name row as a plain bullet (§1).
-- `sq memory <slug> list` and `sq board list` gain `--raw` under the same contract, the board
-  printing each notice's content; the role skill's lines and `sq-greeting`'s steps 6 and 7 use it
-  (§1, §2, §4).
-- The three-command grant is written as a YAML list; the list, comma and space forms all passed
-  on the host (§2).
-- The other points stand as recommended: the role skill is a projection of the role, and a
-  subagent's queue stays two named commands.
-
-## Decisions narrowed
+## Decisions this one changes
 
 - **ADR-781** §2 (a skill pointer renders its definition instead of naming it; the agent pointer
   names only `sq mine` and `sq inbox`), §2a (the skill pointer's contents grow by the
@@ -344,10 +307,10 @@ Applies op-pierre's rulings in this decision's discussion and on FEAT-1290:
 - **ADR-983** §2: the per-type family and its shared default retire. Role skills carry no stored
   choice and are always non-invocable.
 
-Each is narrowed in place with a dated note and linked related (board notice 6); none is
-superseded. **ADR-427** stays linked related but is not narrowed: its §2 names the `--raw`
+Each was edited in place to state the current decision and is linked related (board notice 6);
+none is superseded. **ADR-427** stays linked related and is not changed: its §2 names the `--raw`
 dossier without fixing its shape, and the dossier keeps its heading then bold-key metadata
-bullets; a dated note there says so.
+bullets.
 
 ## Consequences
 
@@ -441,4 +404,6 @@ bullets; a dated note there says so.
   - 2026-11-05: ADR-226 narrowed in place. The playbook entry keys `lifecycle` and `commands` leave the format, since this decision retired their only renderer; an override that still sets them is refused at load by name, and the 0.19 → 0.20 migration leaves `.overrides/playbook.toml` untouched (REV-1301 F12).
 - [2026-11-05T07:11:02Z] `architect` Robert Architect:
   - Amended in place 2026-11-05 per ADR-1312 §4, board rule 6: dated notes at §1 "Raw lists" and §2 item 3. `sq board list --raw` keeps its name and prints summaries only, with a closing line naming `sq board show <n>`; this also changes the output of `sq-greeting` step 6. No other text changed. Status unchanged. ADR-1312 is not yet accepted.
+- [2026-11-05T08:48:08Z] `architect` Robert Architect:
+  - 2026-11-05, op-pierre's rule that a body states only the current decision: the two ADR-1312 dated notes are folded into §1 Raw lists and §2 item 3, where the board now prints summaries plus a line naming `sq board show <n>`. The "Amendment, 2026-11-04" section is removed: each point was already stated in §1 to §7, as the rulings of 2026-11-04 in this discussion record. "Decisions narrowed" is renamed "Decisions this one changes" and drops its dated-note wording; the dated notes this decision placed in ADR-781, ADR-983 and ADR-427 wait for the 0.21 pass.
 <!-- sq:discussion:end -->

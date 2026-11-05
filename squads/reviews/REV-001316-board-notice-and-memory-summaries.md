@@ -14,38 +14,50 @@ description: 'Review of FEAT-1311: board and memory summaries over a body, Pytho
 subentities:
 - local_id: F1
   title: Raw board and memory lists print a partial list before exit 4
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F2
   title: memory list --raw breaks the bullet on a multi-line summary
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F3
   title: Migration tests parse files with a src helper and assert substrings
-  status: Fixed
+  status: Verified
   severity: medium
 - local_id: F4
   title: Migration rewrites non-mapping and frontmatter-less notice files
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F5
   title: 'sq ui board screen: no test, bold breaks on multi-paragraph summaries'
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F6
   title: The splitlines line-break boundary is not pinned by any test
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F7
   title: Three board and skill tests assert slices or substrings
-  status: Fixed
+  status: Verified
   severity: low
 - local_id: F8
   title: board post strips leading indentation from the body
+  status: Verified
+  severity: low
+- local_id: F9
+  title: Raw list continuation falls out of items numbered 10 and above
+  status: Fixed
+  severity: medium
+- local_id: F10
+  title: ADR-1312 §3 post/clear entry keys omit author_name
+  status: Fixed
+  severity: low
+- local_id: F11
+  title: memory list --full test folds the --raw interaction into one case
   status: Fixed
   severity: low
 created_at: '2026-11-05T08:13:42Z'
-updated_at: '2026-11-05T08:24:38Z'
+updated_at: '2026-11-05T09:23:50Z'
 target_ref: FEAT-1311
 ---
 <!-- sq:body -->
@@ -237,6 +249,60 @@ Fix: strip only the surrounding blank lines (`strip("\n")`, as the read path doe
 <!-- sq:finding:F8:discussion -->
 <!-- sq:finding:F8:discussion:end -->
 <!-- sq:finding:F8:end -->
+
+<!-- sq:finding:F9 -->
+### F9 — Raw list continuation falls out of items numbered 10 and above
+
+<!-- sq:finding:F9:body -->
+ADR-1312 §4: with `--full`, each notice's body "follows its item, indented to stay inside it". `_raw_notice` indents the body, and the further lines of a multi-line summary, by a fixed three spaces. That fits `1.` to `9.` but not `10.` and above, where CommonMark requires four spaces.
+
+Driven on a scratch squad with 11 notices, `board list --full --raw` printed:
+
+```
+10. Notice 10 — manager
+
+   Body 10
+11. Notice 11 — manager
+```
+
+Parsed with markdown-it (CommonMark), the list closes after item 10's summary. `Body 10` and item 11 then become one loose paragraph. The same break hits a multi-line summary at position 10 or later in plain `--raw`, the form the role skill renders. I missed this in the first round.
+
+Fix: indent continuation and body lines by the width of the item's own marker (`len(f"{n}. ")`). Add one `--full --raw` case with ten or more notices, asserting the whole output.
+<!-- sq:finding:F9:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F9:discussion -->
+<!-- sq:finding:F9:discussion:end -->
+<!-- sq:finding:F9:end -->
+
+<!-- sq:finding:F10 -->
+### F10 — ADR-1312 §3 post/clear entry keys omit author_name
+
+<!-- sq:finding:F10:body -->
+ADR-1312 §3 says `board post` and `board clear` answer with "one object whose `entry` holds `id`, `summary`, `author`, `posted_at`, `until` and `body`". The code adds `author_name` to `Notice`, so both entries carry it as well (asserted in `test_post_json_prints_the_notice_written` and `test_clear_json_prints_the_notice_taken_down`). Code and ADR disagree. The likely fix is one word in §3 (architect).
+<!-- sq:finding:F10:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F10:discussion -->
+- [2026-11-05T09:19:34Z] `architect` Robert Architect:
+  - Fixed: ADR-1312 §3 now lists `author_name` among the `board post`/`board clear` entry keys, matching `Notice`.
+<!-- sq:finding:F10:discussion:end -->
+<!-- sq:finding:F10:end -->
+
+<!-- sq:finding:F11 -->
+### F11 — memory list --full test folds the --raw interaction into one case
+
+<!-- sq:finding:F11:body -->
+`tests/cli/test_memory.py::test_list_full_prints_each_body_under_its_summary` runs both `--full` and `--full --raw` in one case, but declares only `covers("memory list", "--full")`. The two flags interact: `--raw` decides how `--full` lays out the body. ADR-1172 §1 asks for a test named for that interaction and carrying the pair in its marker. The board has it right: separate cases for `--full`, `--full --json` and `--full --raw`. Fix: split the raw half into its own case, `covers("memory list", "--full", "--raw")`.
+<!-- sq:finding:F11:body:end -->
+
+#### Discussion
+
+<!-- sq:finding:F11:discussion -->
+<!-- sq:finding:F11:discussion:end -->
+<!-- sq:finding:F11:end -->
 <!-- sq:findings:end -->
 
 ## Discussion
@@ -259,4 +325,32 @@ Fix: strip only the surrounding blank lines (`strip("\n")`, as the read path doe
       - F5: add an in-process `sq ui` board test with Textual's `run_test()`, and fix the rendering of blank lines and empty summaries and the skipped-note wording.
       - F6: one shared line-break helper for titles and summaries, with a test that pins CR and U+2028 for summaries.
       - F8: `board post` stores the body as written.
+- [2026-11-05T08:30:53Z] `reviewer` Paul Reviewer:
+  - Re-review at 77fdfdd9 (fresh worktree): F1 to F8 are all Verified. Recommended verdict: Approved. @manager, setting Approved is yours.
+    
+    - Gates: pyright, ruff check and ruff format are clean. Bundled run: 2301 passed, 4 skipped. Override run: 1260 passed, 171 skipped.
+    - Mutations, run in a scratch copy, each turned its own test red:
+      - the raw-list omission guard removed (F1);
+      - the memory continuation indent removed (F2);
+      - the mapping check dropped from the migration (F4);
+      - the old bold rendering restored in `sq ui` (F5);
+      - `has_line_break` narrowed to a bare newline (F6).
+    - F5: the new `run_test()` case runs under the bundled squad (it is not skipped). It asserts the whole board markdown, newest first, with a blank-line summary bolded line by line and its markdown escaped.
+    - F3 and F7: the tests compare whole files, report lines, config, check issue and skill section, with no src parser import.
+    - Note, not a finding: under F4, a 0.19 notice with an empty body is left without a summary, so it lists with an empty summary. This follows the manager's call, and post cannot create such a notice.
+- [2026-11-05T08:31:16Z] `manager` Catherine Manager:
+  - Approved as second party: F1-F8 Verified, full suite green at 77fdfdd9 (2330 passed).
+- [2026-11-05T09:18:10Z] `reviewer` Paul Reviewer:
+  - Pass on the round after approval (257022c4, 1bffcf25; ADR-1312 as edited through 7d37d58d), in a fresh worktree at a0935259.
+    
+    - Gates: pyright, ruff check and ruff format are clean. Bundled run: 2306 passed, 4 skipped. Override run: 1265 passed, 171 skipped. Client: npm check clean, npm test 780 passed, canary 105 passed against the worktree sq.
+    - Mutations, run in a scratch copy, each turned its tests red: `author_name` replaced by the slug; the closing line kept under `--full`; the memory body emitted without `--full`.
+    - `author_name` resolved on a scratch squad: an operator's name and an archived role's name both resolve, and the slug is used when no roster entry exists.
+    - The client renders every body through `renderMarkdownToHtml`, escapes the credits, and has no leftover click path. Its guard requires `body` and accepts a missing `author_name` from an older sq.
+    - New: F9 (medium): continuation and body lines are indented three spaces, so they fall out of list items 10 and above. F10 (low): ADR-1312 §3's post/clear entry key list omits `author_name`. F11 (low): one `memory list --full` case also covers `--raw` without naming that interaction.
+    - The review is Approved but now has open findings. @manager, whether it goes back for a fix round is your call. F9 is for python-dev, F10 for @architect.
+- [2026-11-05T09:18:23Z, edited 2026-11-05T09:18:42Z] `reviewer` Paul Reviewer:
+  - The review lifecycle has no transition out of Approved without --force, so I left the status as it is. sq check now warns that REV-1316 is Approved with unsettled findings (F9 to F11). Reopening it (forced) or settling F9 to F11 clears the warning. @manager, your call.
+- [2026-11-05T09:19:16Z] `manager` Catherine Manager:
+  - Reopened for F9-F11 found on the --full round: F9 and F11 to python-dev, F10 to the architect.
 <!-- sq:discussion:end -->

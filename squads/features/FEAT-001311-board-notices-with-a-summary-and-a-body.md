@@ -27,7 +27,7 @@ subentities:
   title: Docs describe summary and body
   status: Todo
 created_at: '2026-11-05T07:05:50Z'
-updated_at: '2026-11-05T08:06:42Z'
+updated_at: '2026-11-05T08:42:46Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -199,4 +199,11 @@ As an adopter reading the docs, I find the summary-and-body model for the board 
     - Drafted column: each of the 22 live notices posted again with `sq board post "<summary>" --file <body> --as <author> [--until <until>]`, the notice's whole original text as the body, then `sq board clear 1` 22 times. The summaries keep the authors' wording and are in `summaries.tsv` (id, author, summary). Posts made within one second list in id order, so the numbers differ from the original order. op-pierre reviews the summaries before this squad is migrated.
     - `sq check` on the rewritten copy: no `notice_summary_single_line` warning. Before the rewrite, 6 of the 22 live notices warn.
     - Files: `measure.py` (renders and counts), `setup.sh` (worktree copies and migration), `rewrite.sh` (the post and clear pass), `summaries.tsv`, all in `/home/pchat/.cache/sq-adr1290/board-measure/`. The before worktree is `before-wt` there.
+- [2026-11-05T08:36:55Z] `manager` Catherine Manager:
+  - Board rewrite on op-pierre's go (2026-11-05), applying the reviewed draft with the manager's recommendations: the 11 paragraph-length one-line notices take the short alternative summary with the paragraph as body; notice 10 (the deferred test-suite rebuild, delivered by FEAT-1173) is cleared; notice 21 (expires 2026-11-07) is left as it is.
+- [2026-11-05T08:42:46Z] `op-pierre` Pierre Chat:
+  - - Ruling (2026-11-05), after my look at the board panel:
+      - A notice's body is always visible in the panel. `sq board list` and `sq memory <role> list` take `--full`, which adds each entry's body (in `--json` a `body` key per row; in text and `--raw` the body under its summary). Without it, lists stay summaries only.
+      - Credits use the comment form: `<full name> (<slug>) — <timestamp>`, the full name resolved from the roster.
+      - The credits line sits on top of each entry, above the summary.
 <!-- sq:discussion:end -->

@@ -12,7 +12,7 @@ refs:
 description: 'Client side of ADR-1312: summaries in the board panel, body through
   board show'
 created_at: '2026-11-05T07:21:32Z'
-updated_at: '2026-11-05T07:41:22Z'
+updated_at: '2026-11-05T09:12:34Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -94,4 +94,14 @@ _Add with `sq task 1314 add-subtask "<title>"`; track with `sq task 1314 subtask
     - Not done: visual check in the Extension Development Host (operator's, after commit).
 - [2026-11-05T07:41:22Z] `manager` Catherine Manager:
   - Moved back to InReview: the board panel is visual, so it waits for op-pierre's look in the Extension Development Host and a code review. Requiring summary in the list guard is accepted.
+- [2026-11-05T08:59:01Z] `typescript-dev` Ada Typescript:
+  - Rework after op-pierre's ruling (uncommitted, clients/vscode only).
+    
+    - Bodies always visible: the panel loads `sq board list --full --json` and renders each body under its summary; a notice without a body shows none. The click path is gone (openNotice, its parser, the client-script branch, getBoardNotice, the detail guard, the id check and the re-list note): nothing else used it.
+    - Credits above the summary in the comment form, `<full name> (<slug>) — <timestamp>` plus the expiry, in the comment header's classes. `author_name` is optional in the guard (an older sq lacks it; the slug alone is shown then), and a non-string one is rejected.
+    - Guard requires summary and body. Fixtures: board-list.json (summary row), board-list-full.json (--full), board-show.json. Canary: exact key sets for `board list --json` (no body), `board list --full --json` and `board show` (the same keys, body last), live and fixtures, plus a self-test.
+    - Memory: not changed. The Roster tree lists memory summaries and a leaf click opens the entry panel, which always shows the body through `memory show`; a tree cannot show bodies inline, so `memory list --full` would only fetch text nothing displays.
+    - Gates (dev sq on PATH): npm run check clean; npm test 780 passed; npm run test:canary 105 passed. Each new test was broken once by hand and failed (the escaped expiry and the empty-body fixture needed a second pass).
+- [2026-11-05T09:12:34Z] `op-pierre` Pierre Chat:
+  - Checked in the Extension Development Host on a copy of this squad: every notice shows its credits on top, then its summary and body; the item preview header is unchanged. Approved.
 <!-- sq:discussion:end -->

@@ -8,7 +8,7 @@
  * surfaces the client depends on (ADR-427 #2) — `sq tree --json`, `sq graph --json`,
  * `sq list --json`, `sq show <id> --raw`, `sq workflow types --json`,
  * `sq workflow statuses --json`, `sq workflow roles --json`,
- * `sq workflow subentity-kinds --json`, `sq board list --json`, `sq board show <n> --json`.
+ * `sq workflow subentity-kinds --json`, `sq board list --json`, `sq board list --full --json`, `sq board show <n> --json`.
  *
  * It asserts SHAPE (key set / types / structure), never exact values — a squad's actual
  * items, statuses, and prose legitimately vary between runs and machines. If a core-side
@@ -39,7 +39,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createNodeDiscoveryEnvironment } from '../../src/nodeEnvironment';
 import {
   isSqBoardNotice,
-  isSqBoardNoticeDetail,
   isSqCollectionCatalogEntry,
   isSqDiscussionEntry,
   isSqGraphNode,
@@ -180,21 +179,30 @@ function assertExactKeys(node: object, expectedKeys: readonly string[]): void {
   expect([...Object.keys(node)].sort()).toEqual([...expectedKeys].sort());
 }
 
-/** Every key one `sq board list --json` row carries, as an exact set: the row has a `summary`
- * and no `body` (the body comes from `board show`). */
-const BOARD_LIST_KEYS = ['n', 'id', 'summary', 'author', 'posted_at', 'until'] as const;
+/** Every key one `sq board list --json` row carries, as an exact set: a row has a `summary` and
+ * no `body` (that is `--full`'s). */
+const BOARD_LIST_KEYS = [
+  'n',
+  'id',
+  'summary',
+  'author',
+  'author_name',
+  'posted_at',
+  'until',
+] as const;
 
-/** `sq board show <n> --json`: the list row's keys plus `body`. */
-const BOARD_SHOW_KEYS = [...BOARD_LIST_KEYS, 'body'] as const;
+/** `sq board list --full --json` and `sq board show <n> --json`: the list row's keys plus `body`.
+ * Both are what the adapter's guard reads. */
+const BOARD_FULL_KEYS = [...BOARD_LIST_KEYS, 'body'] as const;
 
+/** A plain list row: the exact keys only, since the panel reads the `--full` shape. */
 function assertBoardListRow(row: object): void {
   assertExactKeys(row, BOARD_LIST_KEYS);
-  expect(isSqBoardNotice(row)).toBe(true);
 }
 
-function assertBoardShow(notice: object): void {
-  assertExactKeys(notice, BOARD_SHOW_KEYS);
-  expect(isSqBoardNoticeDetail(notice)).toBe(true);
+function assertBoardFull(notice: object): void {
+  assertExactKeys(notice, BOARD_FULL_KEYS);
+  expect(isSqBoardNotice(notice)).toBe(true);
 }
 
 function assertExactTreeNodeKeys(node: object): void {
@@ -669,23 +677,29 @@ describe('the board key assertions', () => {
     id: 'a',
     summary: 's',
     author: 'manager',
+    author_name: 'Catherine Manager',
     posted_at: '2026-01-01T00:00:00Z',
     until: null,
   };
-  const { summary: _summary, ...withoutSummary } = row;
+  const { author_name: _name, ...withoutName } = row;
 
   const listShapes: readonly { name: string; payload: object; passes: boolean }[] = [
     { name: 'the list row', payload: row, passes: true },
     { name: 'a row still carrying a body', payload: { ...row, body: 'b' }, passes: false },
-    { name: 'a row without its summary', payload: withoutSummary, passes: false },
+    { name: 'a row without author_name', payload: withoutName, passes: false },
     { name: 'a row with an unmodelled key', payload: { ...row, extra: 1 }, passes: false },
   ];
-  const showShapes: readonly { name: string; payload: object; passes: boolean }[] = [
-    { name: 'the show object', payload: { ...row, body: '' }, passes: true },
-    { name: 'a show object without a body', payload: row, passes: false },
-    { name: 'a show object with a non-string body', payload: { ...row, body: 1 }, passes: false },
+  const fullShapes: readonly { name: string; payload: object; passes: boolean }[] = [
+    { name: 'the full row', payload: { ...row, body: '' }, passes: true },
+    { name: 'a full row without a body', payload: row, passes: false },
+    { name: 'a full row with a non-string body', payload: { ...row, body: 1 }, passes: false },
     {
-      name: 'a show object with an unmodelled key',
+      name: 'a full row without author_name',
+      payload: { ...withoutName, body: '' },
+      passes: false,
+    },
+    {
+      name: 'a full row with an unmodelled key',
       payload: { ...row, body: '', x: 1 },
       passes: false,
     },
@@ -702,9 +716,9 @@ describe('the board key assertions', () => {
     }
   });
 
-  it.each(showShapes)('show: $name', ({ payload, passes }) => {
+  it.each(fullShapes)('full: $name', ({ payload, passes }) => {
     const run = (): void => {
-      assertBoardShow(payload);
+      assertBoardFull(payload);
     };
     if (passes) {
       expect(run).not.toThrow();
@@ -872,7 +886,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
       });
     });
 
-    describe('sq board list --json and sq board show --json', () => {
+    describe('sq board list --json, --full and sq board show --json', () => {
       beforeAll(() => {
         runSq([
           'board',
@@ -885,7 +899,7 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         ]);
       });
 
-      it('every live list row has exactly the keys the adapter reads, and no body', () => {
+      it('every live list row has exactly the keys of a summary row, and no body', () => {
         const parsed = JSON.parse(runSq(['board', 'list', '--json'])) as unknown;
         expect(Array.isArray(parsed)).toBe(true);
         const rows = parsed as object[];
@@ -895,14 +909,24 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         }
       });
 
-      it('the live show object has exactly the keys the adapter reads, and carries the body', () => {
-        const parsed = JSON.parse(runSq(['board', 'show', '1', '--json'])) as {
+      it('every live --full row has exactly the keys the adapter reads, with the body last', () => {
+        const rows = JSON.parse(runSq(['board', 'list', '--full', '--json'])) as {
           summary: string;
+          author_name: string;
           body: string;
-        };
-        assertBoardShow(parsed);
-        expect(parsed.summary).toBe('Canary notice summary');
-        expect(parsed.body).toBe('Canary notice body.');
+        }[];
+        expect(rows.length).toBeGreaterThan(0);
+        for (const row of rows) {
+          assertBoardFull(row);
+          expect(Object.keys(row).at(-1)).toBe('body');
+        }
+        expect(rows[0]?.summary).toBe('Canary notice summary');
+        expect(rows[0]?.author_name).toBe('Catherine Manager');
+        expect(rows[0]?.body).toBe('Canary notice body.');
+      });
+
+      it('the live show object has the same keys as a --full row', () => {
+        assertBoardFull(JSON.parse(runSq(['board', 'show', '1', '--json'])) as object);
       });
 
       it('the committed fixtures still conform to the shapes the adapter accepts', () => {
@@ -911,7 +935,12 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         for (const row of rows) {
           assertBoardListRow(row);
         }
-        assertBoardShow(JSON.parse(fixture('board-show.json')) as object);
+        const full = JSON.parse(fixture('board-list-full.json')) as object[];
+        expect(full.length).toBeGreaterThan(0);
+        for (const row of full) {
+          assertBoardFull(row);
+        }
+        assertBoardFull(JSON.parse(fixture('board-show.json')) as object);
       });
     });
 

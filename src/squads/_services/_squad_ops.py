@@ -1,6 +1,7 @@
 """The squad-state operations: the board, memory notebooks, the workflow cheatsheet, catalogs,
 views and lint, overrides, the reflog, check and sync, each answering with its DTO."""
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, cast
 
 from squads import __version__
@@ -97,6 +98,7 @@ from squads._services._catalogs import (
     view_catalog,
 )
 from squads._services._check import CheckMixin
+from squads._services._item_dto import participant_names
 from squads._services._items import ItemsMixin
 from squads._services._maintenance import MaintenanceMixin
 from squads._services._memory import MemoryMixin
@@ -126,11 +128,12 @@ _BROKEN_REGION = (
 )
 
 
-def _notice(notice: BoardNotice) -> Notice:
+def _notice(notice: BoardNotice, names: Mapping[str, str]) -> Notice:
     return Notice(
         id=notice.id,
         summary=notice.summary,
         author=notice.author,
+        author_name=names.get(notice.author, notice.author),
         posted_at=notice.posted_at,
         until=notice.until,
         body=notice.body,
@@ -178,17 +181,24 @@ class SquadStateOpsMixin(
 ):
     # --- board
 
+    async def _author_names(self) -> dict[str, str]:
+        """Each role's and operator's full name by slug; an author outside the roster has none."""
+        return participant_names(await self.store.load(), {})
+
     async def list_board(self, req: BoardListRequest) -> Response[NoticeList]:
         """The current notices, numbered from 1, and the notice files that could not be read."""
         notices, unreadable = await self.board_list()
+        names = await self._author_names()
         rows = [
             NoticeRow(
                 n=i,
                 id=n.id,
                 summary=n.summary,
                 author=n.author,
+                author_name=names.get(n.author, n.author),
                 posted_at=n.posted_at,
                 until=n.until,
+                body=n.body if req.full else None,
             )
             for i, n in enumerate(notices, start=1)
         ]
@@ -204,7 +214,8 @@ class SquadStateOpsMixin(
             for n, listed in enumerate(live, start=1):
                 if listed.id == notice.id:
                     warnings.append(board_summary_message(n, notice))
-        return Response(data=NoticeWrite(entry=_notice(notice)), warnings=warnings)
+        entry = _notice(notice, await self._author_names())
+        return Response(data=NoticeWrite(entry=entry), warnings=warnings)
 
     async def show_board_notice(self, req: BoardShowRequest) -> Response[NoticeDetail]:
         """The notice at the requested position, with its body."""
@@ -215,6 +226,7 @@ class SquadStateOpsMixin(
                 id=n.id,
                 summary=n.summary,
                 author=n.author,
+                author_name=(await self._author_names()).get(n.author, n.author),
                 posted_at=n.posted_at,
                 until=n.until,
                 body=n.body,
@@ -223,7 +235,8 @@ class SquadStateOpsMixin(
 
     async def clear_from_board(self, req: BoardClearRequest) -> Response[NoticeWrite]:
         """Take down the notice at the requested position."""
-        return Response(data=NoticeWrite(entry=_notice(await self.board_clear(req.n))))
+        names = await self._author_names()
+        return Response(data=NoticeWrite(entry=_notice(await self.board_clear(req.n), names)))
 
     # --- memory
 
@@ -237,7 +250,11 @@ class SquadStateOpsMixin(
         entries, unreadable = await self.memory_list(role)
         rows = [
             MemoryRow(
-                slug=m.slug, filename=f"{m.slug}.md", description=m.summary, created_at=m.created_at
+                slug=m.slug,
+                filename=f"{m.slug}.md",
+                description=m.summary,
+                created_at=m.created_at,
+                body=m.body if req.full else None,
             )
             for m in entries
         ]

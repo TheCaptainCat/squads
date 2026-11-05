@@ -595,6 +595,10 @@ def force_transition_option(help: str = _FORCE_TRANSITION_HELP) -> Any:
     return typer.Option(False, "--force", help=help)
 
 
+def full_option(help: str) -> Any:
+    return typer.Option(False, "--full", help=help)
+
+
 def raw_option() -> Any:
     return typer.Option(
         False,

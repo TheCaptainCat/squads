@@ -8,7 +8,6 @@ import type { ProcessResult, ProcessRunner } from '../src/processRunner';
 import {
   describeFailure,
   getBoardList,
-  getBoardNotice,
   getCollectionsCatalog,
   getGraph,
   getList,
@@ -25,7 +24,6 @@ import {
   getTypeCatalog,
   getWorkflowRaw,
   isSqBoardNotice,
-  isSqBoardNoticeDetail,
   isSqDiscussionEntry,
   isSqRoleCatalogEntry,
   isSqRoleListRow,
@@ -1478,70 +1476,45 @@ describe('roster identity fetches', () => {
   });
 });
 
-describe('the board guards and getBoardNotice', () => {
-  const BOARD_LIST_FIXTURE = fixture('board-list.json');
+describe('the board guard and getBoardList', () => {
+  const BOARD_LIST_FIXTURE = fixture('board-list-full.json');
   const BOARD_SHOW_FIXTURE = fixture('board-show.json');
   const row = (JSON.parse(BOARD_LIST_FIXTURE) as Record<string, unknown>[])[1] ?? {};
-  const detail = JSON.parse(BOARD_SHOW_FIXTURE) as Record<string, unknown>;
 
-  it('getBoardList parses the committed board list fixture', async () => {
-    const runner = stubRunner({ stdout: BOARD_LIST_FIXTURE, stderr: '', exitCode: 0 });
-    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
-
-    expect(outcome.kind).toBe('success');
-    if (outcome.kind !== 'success') {
-      throw new Error('expected success');
-    }
-    expect(outcome.data.map((notice) => notice.summary)).toEqual([
-      'A notice without a body',
-      'Run board ops through the released tool',
-    ]);
-  });
-
-  it('getBoardNotice runs board show <n> --json and parses the committed fixture', async () => {
+  it('getBoardList asks for --full and parses the committed fixture', async () => {
     const { runner, calls } = recordingRunner({
-      stdout: BOARD_SHOW_FIXTURE,
+      stdout: BOARD_LIST_FIXTURE,
       stderr: '',
       exitCode: 0,
     });
-    const outcome = await getBoardNotice(runner, VENV_INVOCATION, WORKSPACE_ROOT, 2);
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
 
-    expect(calls[0]?.args).toEqual(['board', 'show', '2', '--json']);
+    expect(calls[0]?.args).toEqual(['board', 'list', '--full', '--json']);
     expect(outcome.kind).toBe('success');
     if (outcome.kind !== 'success') {
       throw new Error('expected success');
     }
-    expect(outcome.data.body).toBe('Use ~/.local/bin/sq with -C.\n\nSecond paragraph.');
+    expect(outcome.data.map((notice) => notice.author_name)).toEqual([
+      'Catherine Manager',
+      'Catherine Manager',
+    ]);
+    expect(outcome.data[1]?.body).toBe('Use ~/.local/bin/sq with -C.\n\nSecond paragraph.');
   });
 
-  it("getBoardNotice surfaces a failed show (exit 1) as a runtime-error with sq's message", async () => {
-    const runner = stubRunner({
-      stdout: '',
-      stderr: 'error: no notice at position 9',
-      exitCode: 1,
-    });
-    const outcome = await getBoardNotice(runner, VENV_INVOCATION, WORKSPACE_ROOT, 9);
-
-    expect(outcome).toEqual({
-      kind: 'runtime-error',
-      message: 'error: no notice at position 9',
-      exitCode: 1,
-    });
-  });
-
-  it('the list guard accepts a row and rejects a missing or non-string summary', () => {
+  it('the guard accepts a row and the show fixture, and rejects a missing or non-string summary or body', () => {
     expect(isSqBoardNotice(row)).toBe(true);
+    expect(isSqBoardNotice(JSON.parse(BOARD_SHOW_FIXTURE))).toBe(true);
     const { summary: _summary, ...withoutSummary } = row;
+    const { body: _body, ...withoutBody } = row;
     expect(isSqBoardNotice(withoutSummary)).toBe(false);
     expect(isSqBoardNotice({ ...row, summary: 3 })).toBe(false);
+    expect(isSqBoardNotice(withoutBody)).toBe(false);
+    expect(isSqBoardNotice({ ...row, body: 3 })).toBe(false);
   });
 
-  it('the detail guard accepts a notice with a body, "" included, and rejects a missing or non-string body', () => {
-    expect(isSqBoardNoticeDetail(detail)).toBe(true);
-    expect(isSqBoardNoticeDetail({ ...detail, body: '' })).toBe(true);
-    const { body: _body, ...withoutBody } = detail;
-    expect(isSqBoardNoticeDetail(withoutBody)).toBe(false);
-    expect(isSqBoardNoticeDetail({ ...detail, body: 3 })).toBe(false);
-    expect(isSqBoardNoticeDetail({ ...detail, summary: undefined })).toBe(false);
+  it('the guard tolerates a missing author_name (an older sq) but rejects a non-string one', () => {
+    const { author_name: _name, ...withoutName } = row;
+    expect(isSqBoardNotice(withoutName)).toBe(true);
+    expect(isSqBoardNotice({ ...row, author_name: 3 })).toBe(false);
   });
 });

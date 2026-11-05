@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  BOARD_CHANGED_NOTE,
-  EMPTY_NOTICE_BODY_LINE,
-  type NoticeBody,
-  renderBoardHtml,
-  sortNoticesNewestFirst,
-} from '../src/domain/boardView';
+import { renderBoardHtml, sortNoticesNewestFirst } from '../src/domain/boardView';
 import type { SqBoardNotice } from '../src/types';
 
 function notice(overrides: Partial<SqBoardNotice> = {}): SqBoardNotice {
@@ -15,6 +9,8 @@ function notice(overrides: Partial<SqBoardNotice> = {}): SqBoardNotice {
     id: 'a1',
     summary: 'A notice.',
     author: 'op-pierre',
+    author_name: 'Pierre Chat',
+    body: '',
     posted_at: '2026-01-01T00:00:00Z',
     until: null,
     ...overrides,
@@ -60,7 +56,7 @@ describe('renderBoardHtml: the list', () => {
     expect(renderBoardHtml(success([]))).toContain('no current notices');
   });
 
-  it('lists summary, author and posted-at for each notice, newest first, and carries n and id for the click', () => {
+  it('lists summary, author and posted-at for each notice, newest first', () => {
     const html = renderBoardHtml(
       success([
         notice({ n: 1, id: 'old', posted_at: '2026-01-01T00:00:00Z', summary: 'Older notice' }),
@@ -71,7 +67,6 @@ describe('renderBoardHtml: the list', () => {
     expect(html.indexOf('Newer notice')).toBeLessThan(html.indexOf('Older notice'));
     expect(html).toContain('op-pierre');
     expect(html).toContain('2026-01-02T00:00:00Z');
-    expect(html).toContain('data-sq-notice-n="2" data-sq-notice-id="new"');
   });
 
   it('shows the expiry only when until is set', () => {
@@ -80,12 +75,6 @@ describe('renderBoardHtml: the list', () => {
 
     expect(withExpiry).toContain('expires 2026-06-01T00:00:00Z');
     expect(withoutExpiry).not.toContain('expires');
-  });
-
-  it('shows no body until one is asked for', () => {
-    const html = renderBoardHtml(success([notice()]));
-
-    expect(html).not.toContain('sq-notice-body');
   });
 
   it('renders a multi-line summary as written, one line per line', () => {
@@ -102,13 +91,6 @@ describe('renderBoardHtml: the list', () => {
     expect(html).not.toContain('<img src=x onerror=alert(1)>');
     expect(html).not.toContain('<b>x</b>');
     expect(html).toContain('&lt;img');
-  });
-
-  it('escapes the id carried in the click attribute', () => {
-    const html = renderBoardHtml(success([notice({ id: 'a" onmouseover="x' })]));
-
-    expect(html).not.toContain('onmouseover="x');
-    expect(html).toContain('data-sq-notice-id="a&quot; onmouseover=&quot;x"');
   });
 
   it('renders the failure message as the whole document on a failed fetch', () => {
@@ -146,49 +128,50 @@ describe('renderBoardHtml: the list', () => {
   });
 });
 
-describe('renderBoardHtml: an opened notice', () => {
-  function withOpened(id: string, state: NoticeBody, other = 'b2'): string {
-    return renderBoardHtml(
-      success([
-        notice({ id, summary: 'Opened one' }),
-        notice({ id: other, n: 2, summary: 'Closed' }),
-      ]),
-      { opened: new Map([[id, state]]) },
-    );
-  }
+describe('renderBoardHtml: credits and body', () => {
+  it('puts the credits above the summary in the comment form: full name, slug, timestamp', () => {
+    const html = renderBoardHtml(success([notice({ summary: 'The summary' })]));
 
-  it('renders the body under its own entry only', () => {
-    const html = withOpened('a1', { kind: 'body', body: 'The **full** text.' }, 'b2');
+    expect(html).toContain('Pierre Chat</span>');
+    expect(html).toContain('(op-pierre)</span> — <span class="sq-comment-ts">2026-01-01T00:00:00Z');
+    expect(html.indexOf('Pierre Chat')).toBeLessThan(html.indexOf('The summary'));
+  });
+
+  it('falls back to the slug alone when the row has no author_name', () => {
+    const { author_name: _name, ...row } = notice();
+    const html = renderBoardHtml(success([row]));
+
+    expect(html).toContain('<span class="sq-comment-author">op-pierre</span> — ');
+    expect(html).not.toContain('(op-pierre)');
+  });
+
+  it('shows the body under the summary without any click', () => {
+    const html = renderBoardHtml(
+      success([notice({ summary: 'The summary', body: 'The **full** text.' })]),
+    );
 
     expect(html).toContain('<strong>full</strong>');
-    expect(html.match(/sq-notice-body/g)).toHaveLength(1);
-    expect(html.indexOf('The ')).toBeGreaterThan(html.indexOf('Opened one'));
+    expect(html.indexOf('The summary')).toBeLessThan(html.indexOf('full'));
   });
 
-  it('says in one line that a notice without a body has none', () => {
-    const html = withOpened('a1', { kind: 'body', body: '' });
+  it('escapes the expiry', () => {
+    const html = renderBoardHtml(success([notice({ until: '<i>soon</i>' })]));
 
-    expect(html).toContain(EMPTY_NOTICE_BODY_LINE);
+    expect(html).not.toContain('<i>soon</i>');
+    expect(html).toContain('expires &lt;i&gt;');
   });
 
-  it('escapes the body', () => {
-    const html = withOpened('a1', { kind: 'body', body: '<script>alert(1)</script>' });
+  it('renders no body block for a notice without a body', () => {
+    expect(renderBoardHtml(success([notice({ body: '' })]))).not.toContain('sq-notice-body');
+  });
+
+  it('escapes the body and the full name', () => {
+    const html = renderBoardHtml(
+      success([notice({ body: '<script>alert(1)</script>', author_name: '<b>x</b>' })]),
+    );
 
     expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).not.toContain('<b>x</b>');
     expect(html).toContain('&lt;script&gt;');
-  });
-
-  it('renders a failed show as its message in place of the body', () => {
-    const html = withOpened('a1', { kind: 'failure', message: 'sq exploded <b>' });
-
-    expect(html).toContain('Unable to load this notice');
-    expect(html).toContain('sq exploded');
-    expect(html).not.toContain('<b>');
-  });
-
-  it('shows the one-line note above the list when the board changed', () => {
-    const html = renderBoardHtml(success([notice()]), { note: BOARD_CHANGED_NOTE });
-
-    expect(html.indexOf(BOARD_CHANGED_NOTE)).toBeLessThan(html.indexOf('A notice.'));
   });
 });

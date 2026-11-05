@@ -309,24 +309,21 @@ export interface SqMemoryDetail {
   readonly body: string;
 }
 
-/** One row of `sq board list --json` — a current (unexpired) team bulletin-board notice. The
- * row carries the notice's one-line summary and no body: the body comes on demand from
- * `sq board show <n> --json` (`SqBoardNoticeDetail`). `n` is
- * a display-only positional ordinal (re-resolved on every listing, never a stable id — see
- * `sq board --help`); `id` is the notice's own stable (but not counter-allocated) identity.
- * `until` is `null` for a notice with no expiry set. */
+/** One row of `sq board list --full --json` (and the object `sq board show <n> --json` answers
+ * with) — a current (unexpired) team bulletin-board notice: its one-line `summary`, then its
+ * `body`, `""` when it has none. `n` is a display-only positional ordinal (re-resolved on every
+ * listing, never a stable id — see `sq board --help`); `id` is the notice's own stable (but not
+ * counter-allocated) identity. `author` is the author's slug and `author_name` the full name
+ * resolved from the roster; the name is optional for the usual skew reason (an older `sq`
+ * predates it). `until` is `null` for a notice with no expiry set. */
 export interface SqBoardNotice {
   readonly n: number;
   readonly id: string;
   readonly summary: string;
   readonly author: string;
+  readonly author_name?: string;
   readonly posted_at: string;
   readonly until: string | null;
-}
-
-/** `sq board show <n> --json` — one notice in full: the list row plus its `body`, `""` when the
- * notice has none. */
-export interface SqBoardNoticeDetail extends SqBoardNotice {
   readonly body: string;
 }
 

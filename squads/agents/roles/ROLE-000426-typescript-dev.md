@@ -16,6 +16,8 @@ template: dev
 ---
 <!-- sq:body -->
 <!-- sq:view:role_definition -->
+
+<!-- sq:view:role_playbook -->
 <!-- sq:body:end -->
 
 ## Discussion

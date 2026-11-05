@@ -64,12 +64,13 @@ def list_notices(
         False, "--json", help="Print a JSON array, one object per notice."
     ),
     raw: bool = common.raw_option(),
+    full: bool = common.full_option("Add each notice's body under its summary."),
 ) -> None:
     """List the notices that have not expired, numbered for `sq board clear`.
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    response = calls.call(ops.BOARD_LIST, BoardListRequest())
+    response = calls.call(ops.BOARD_LIST, BoardListRequest(full=full))
     if json_out:
         calls.print_json(ops.BOARD_LIST, response)
     else:
