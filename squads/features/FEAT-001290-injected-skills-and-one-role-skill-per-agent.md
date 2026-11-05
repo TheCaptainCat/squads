@@ -3,7 +3,7 @@ id: FEAT-1290
 sequence_id: 1290
 type: feature
 title: Injected skills and one role skill per agent
-status: InProgress
+status: Done
 author: product-owner
 refs:
 - MILE-1269:targets
@@ -39,7 +39,7 @@ subentities:
   title: Startup size is measured before and after
   status: Done
 created_at: '2026-11-04T13:32:39Z'
-updated_at: '2026-11-05T07:04:50Z'
+updated_at: '2026-11-05T09:35:47Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -353,4 +353,6 @@ As the operator, I can see what the change did to the size of what each agent an
     - @tech-lead: BUG-1302 to BUG-1306 for triage.
 - [2026-11-05T07:04:50Z] `op-pierre` Pierre Chat:
   - - Ruling (2026-11-05), memory and board entries: both a memory and a board notice have a one-line summary and a full body. `list` shows summaries only; the body is read with `show`. A summary that spans several lines raises an `sq check` warning. The migration takes each existing notice's whole body as its summary, which triggers the warning and encourages adopters to rewrite them.
+- [2026-11-05T09:35:46Z] `manager` Catherine Manager:
+  - Done: all six tasks done, REV-1301 and REV-1307 approved, QA passed, op-pierre ran the migration on this squad. Pointers in this repository fall back until the released 0.20 replaces the 0.19 uv tool on PATH.
 <!-- sq:discussion:end -->

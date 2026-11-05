@@ -3,7 +3,7 @@ id: FEAT-1311
 sequence_id: 1311
 type: feature
 title: Board notices with a summary and a body
-status: Ready
+status: Done
 author: product-owner
 refs:
 - MILE-1269:targets
@@ -13,21 +13,21 @@ description: A board notice gets a one-line summary and a body; list shows summa
 subentities:
 - local_id: US1
   title: Post, list and show a notice by summary and body
-  status: Todo
+  status: Done
 - local_id: US2
   title: Warn on a multi-line summary
-  status: Todo
+  status: Done
 - local_id: US3
   title: Migrate existing notices
-  status: Todo
+  status: Done
 - local_id: US4
   title: Startup text carries the board index
-  status: Todo
+  status: Done
 - local_id: US5
   title: Docs describe summary and body
-  status: Todo
+  status: Done
 created_at: '2026-11-05T07:05:50Z'
-updated_at: '2026-11-05T08:42:46Z'
+updated_at: '2026-11-05T09:29:54Z'
 ---
 <!-- sq:body -->
 ## Outcome

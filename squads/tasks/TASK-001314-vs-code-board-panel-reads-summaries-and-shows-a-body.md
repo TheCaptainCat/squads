@@ -3,7 +3,7 @@ id: TASK-1314
 sequence_id: 1314
 type: task
 title: VS Code board panel reads summaries and shows a body
-status: InReview
+status: Done
 parent: FEAT-1311
 author: tech-lead
 assignee: typescript-dev
@@ -12,7 +12,7 @@ refs:
 description: 'Client side of ADR-1312: summaries in the board panel, body through
   board show'
 created_at: '2026-11-05T07:21:32Z'
-updated_at: '2026-11-05T09:12:34Z'
+updated_at: '2026-11-05T09:29:39Z'
 ---
 <!-- sq:body -->
 ## Goal
