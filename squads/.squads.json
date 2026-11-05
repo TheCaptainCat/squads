@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1300,
+  "counter": 1306,
   "padding": 6,
   "items": {
     "12": {
@@ -40823,12 +40823,13 @@
         "FEAT-219",
         "ADR-221",
         "ADR-214",
-        "ADR-322"
+        "ADR-322",
+        "ADR-1294"
       ],
       "subentities": [],
       "path": "adrs/ADR-000226-playbook-spec-bundled-playbook-toml-loader-slug-validated.md",
       "created_at": "2026-06-26T08:01:33Z",
-      "updated_at": "2026-10-27T21:05:25Z",
+      "updated_at": "2026-11-05T02:10:45Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -67942,7 +67943,7 @@
       "type": "feature",
       "title": "Injected skills and one role skill per agent",
       "slug": "injected-skills-and-one-role-skill-per-agent",
-      "status": "Ready",
+      "status": "InProgress",
       "description": "Pointers inject their body; each agent preloads its own role skill; per-type skills retire",
       "parent": null,
       "author": "product-owner",
@@ -68036,7 +68037,7 @@
       ],
       "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
       "created_at": "2026-11-04T13:32:39Z",
-      "updated_at": "2026-11-04T21:47:10Z",
+      "updated_at": "2026-11-05T02:55:25Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68350,12 +68351,13 @@
         "FEAT-1290:implements",
         "ADR-781",
         "ADR-983",
-        "ADR-427"
+        "ADR-427",
+        "ADR-226"
       ],
       "subentities": [],
       "path": "adrs/ADR-001294-rendered-skill-pointers-and-one-role-skill-per-agent.md",
       "created_at": "2026-11-04T19:42:58Z",
-      "updated_at": "2026-11-04T22:35:00Z",
+      "updated_at": "2026-11-05T02:11:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68367,7 +68369,7 @@
       "type": "task",
       "title": "Rendered skill pointers, role skills and raw show output",
       "slug": "rendered-skill-pointers-role-skills-and-raw-show-output",
-      "status": "InProgress",
+      "status": "Done",
       "description": "Python side of ADR-1294, in seven dev rounds",
       "parent": "FEAT-1290",
       "author": "tech-lead",
@@ -68479,7 +68481,7 @@
       ],
       "path": "tasks/TASK-001295-rendered-skill-pointers-role-skills-and-raw-show-output.md",
       "created_at": "2026-11-04T21:46:20Z",
-      "updated_at": "2026-11-05T01:28:59Z",
+      "updated_at": "2026-11-05T02:48:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68535,7 +68537,7 @@
       "type": "task",
       "title": "Measure startup text before and after the role skills",
       "slug": "measure-startup-text-before-and-after-the-role-skills",
-      "status": "InProgress",
+      "status": "Done",
       "description": "ADR-1294 section 8 table on this repository, before and after",
       "parent": "FEAT-1290",
       "author": "tech-lead",
@@ -68557,7 +68559,7 @@
         {
           "local_id": "ST2",
           "title": "After: startup figures once this squad is migrated",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "qa",
           "maps_to": "US9",
           "deferred_to": null,
@@ -68566,7 +68568,7 @@
       ],
       "path": "tasks/TASK-001297-measure-startup-text-before-and-after-the-role-skills.md",
       "created_at": "2026-11-04T21:46:38Z",
-      "updated_at": "2026-11-04T21:56:15Z",
+      "updated_at": "2026-11-05T01:50:09Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68578,7 +68580,7 @@
       "type": "task",
       "title": "Docs and changelog for role skills, startup and --raw",
       "slug": "docs-and-changelog-for-role-skills-startup-and-raw",
-      "status": "Draft",
+      "status": "Done",
       "description": "Adopter docs, migration guide and CHANGELOG entry",
       "parent": "FEAT-1290",
       "author": "tech-lead",
@@ -68592,7 +68594,7 @@
         {
           "local_id": "ST1",
           "title": "Docs: the role skill, rendered pointers and sq- names",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "maps_to": "US5",
           "deferred_to": null,
@@ -68601,7 +68603,7 @@
         {
           "local_id": "ST2",
           "title": "Docs: show --raw and --no-header; sq-how-to topic lines",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "maps_to": "US5",
           "deferred_to": null,
@@ -68610,7 +68612,7 @@
         {
           "local_id": "ST3",
           "title": "Docs: the main session's startup steps and default role",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "maps_to": "US5",
           "deferred_to": null,
@@ -68619,7 +68621,7 @@
         {
           "local_id": "ST4",
           "title": "Migration guide and CHANGELOG entry for 0.20",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "tech-writer",
           "maps_to": "US5",
           "deferred_to": null,
@@ -68628,7 +68630,7 @@
       ],
       "path": "tasks/TASK-001298-docs-and-changelog-for-role-skills-startup-and-raw.md",
       "created_at": "2026-11-04T21:46:38Z",
-      "updated_at": "2026-11-05T00:50:03Z",
+      "updated_at": "2026-11-05T02:58:16Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68675,7 +68677,7 @@
         {
           "local_id": "F3",
           "title": "test_source_record reads .squads.json to assert the rebuilt index's keys",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68686,7 +68688,7 @@
         {
           "local_id": "F4",
           "title": "Item files hand-written to arrange states that source pull produces",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68697,7 +68699,7 @@
         {
           "local_id": "F5",
           "title": "Credential store read directly and its path computed through CredentialStore from src",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68719,7 +68721,7 @@
         {
           "local_id": "F7",
           "title": "Shape tables of sources.toml grammar refusals and author-name escapes in tests/cli",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68785,7 +68787,7 @@
       ],
       "path": "reviews/REV-001299-0-20-tests-against-the-cli-surface-test-rules.md",
       "created_at": "2026-11-04T22:05:56Z",
-      "updated_at": "2026-11-04T23:56:53Z",
+      "updated_at": "2026-11-05T01:40:13Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68829,7 +68831,7 @@
         {
           "local_id": "ST3",
           "title": "Arrange and read source states through the CLI",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68838,7 +68840,7 @@
         {
           "local_id": "ST4",
           "title": "Load refusals in tests/check, markers name their parameter",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68847,7 +68849,7 @@
         {
           "local_id": "ST5",
           "title": "CONTRIBUTING: one case per load-rule message",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68856,7 +68858,7 @@
         {
           "local_id": "ST6",
           "title": "One case per refusal, named for it",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68865,7 +68867,7 @@
         {
           "local_id": "ST7",
           "title": "Whole message lines and whole JSON objects",
-          "status": "Todo",
+          "status": "InProgress",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -68901,7 +68903,7 @@
       ],
       "path": "tasks/TASK-001300-fix-the-0-20-test-review-findings.md",
       "created_at": "2026-11-04T23:33:24Z",
-      "updated_at": "2026-11-04T23:57:03Z",
+      "updated_at": "2026-11-05T02:43:18Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -68909,6 +68911,299 @@
       },
       "slug_in_file": false,
       "id": "TASK-1300"
+    },
+    "1301": {
+      "sequence_id": 1301,
+      "type": "review",
+      "title": "Rendered skill pointers and role skills implementation",
+      "slug": "rendered-skill-pointers-and-role-skills-implementation",
+      "status": "Approved",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1294",
+        "TASK-1295"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "A skill or role description holding a backslash makes the pointer frontmatter invalid YAML",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "Migrating a pre-0.5 squad leaves its legacy skill files and pointers behind, with nine sq check errors",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "The comment_attributes_valid check flags prose that mentions sq:attrs, in bodies too; the reader is right",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F4",
+          "title": "The 0.20 manual tells adopters to rename a skill, which no sq verb can do",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F5",
+          "title": "show --raw expands tab characters to spaces, so rendered bodies are not the stored text",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F6",
+          "title": "AGENTS.md role bodies send agents to the sq-how-to skill, which an AGENTS.md host does not have",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F7",
+          "title": "Keep RoleView mission and responsibilities for the playbook source; its docstring is now false",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F8",
+          "title": "The pointer shell test starts a subprocess inside tests/cli, against ADR-1172 rule 4",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F9",
+          "title": "Every role_playbook test is bundled_only; the override squad playbook never reaches the view",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F10",
+          "title": "The refusal of a system skill beside the legacy skill it would replace has no test",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F11",
+          "title": "comment_authors still scans the whole file, so a body example names an undeclared source author",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F12",
+          "title": "The playbook lifecycle and commands fields load but nothing renders them; retire both",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        }
+      ],
+      "path": "reviews/REV-001301-rendered-skill-pointers-and-role-skills-implementation.md",
+      "created_at": "2026-11-05T01:40:06Z",
+      "updated_at": "2026-11-05T02:48:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "REV-1301"
+    },
+    "1302": {
+      "sequence_id": 1302,
+      "type": "bug",
+      "title": "Raw show --full --comments drops sub-entity comments",
+      "slug": "raw-show-full-comments-drops-sub-entity-comments",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001302-raw-show-full-comments-drops-sub-entity-comments.md",
+      "created_at": "2026-11-05T01:43:45Z",
+      "updated_at": "2026-11-05T02:47:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium",
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1302"
+    },
+    "1303": {
+      "sequence_id": 1303,
+      "type": "bug",
+      "title": "Role skill lines run together with no separator or label",
+      "slug": "role-skill-lines-run-together-with-no-separator-or-label",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001303-role-skill-lines-run-together-with-no-separator-or-label.md",
+      "created_at": "2026-11-05T01:43:46Z",
+      "updated_at": "2026-11-05T02:47:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium",
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1303"
+    },
+    "1304": {
+      "sequence_id": 1304,
+      "type": "bug",
+      "title": "Raw show header is a bullet list, not YAML front-matter",
+      "slug": "raw-show-header-is-a-bullet-list-not-yaml-front-matter",
+      "status": "Cancelled",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001304-raw-show-header-is-a-bullet-list-not-yaml-front-matter.md",
+      "created_at": "2026-11-05T01:43:46Z",
+      "updated_at": "2026-11-05T01:50:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "low",
+        "severity": "low"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1304"
+    },
+    "1305": {
+      "sequence_id": 1305,
+      "type": "bug",
+      "title": "sq-how-to repeats the managed CLAUDE.md section",
+      "slug": "sq-how-to-repeats-the-managed-claude-md-section",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001305-sq-how-to-repeats-the-managed-claude-md-section.md",
+      "created_at": "2026-11-05T01:43:47Z",
+      "updated_at": "2026-11-05T02:47:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "low",
+        "severity": "low"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1305"
+    },
+    "1306": {
+      "sequence_id": 1306,
+      "type": "bug",
+      "title": "Docs still send agents to sq-type skills and old names",
+      "slug": "docs-still-send-agents-to-sq-type-skills-and-old-names",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001306-docs-still-send-agents-to-sq-type-skills-and-old-names.md",
+      "created_at": "2026-11-05T01:43:47Z",
+      "updated_at": "2026-11-05T02:47:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium",
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1306"
     }
   }
 }

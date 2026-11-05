@@ -174,8 +174,34 @@ def load_playbook(
         raise SquadsError(f"{origin}: {exc}") from exc
 
 
+#: The keys a playbook entry may not set, each with the remedy its refusal names.
+_RETIRED_ENTRY_KEYS = (
+    ("lifecycle", "a type's lifecycle line is derived from its workflow lifecycle — delete it"),
+    (
+        "commands",
+        "nothing renders it — delete it, or move its lines into the `do` list of the guide "
+        "whose role runs them",
+    ),
+)
+
+
+def _refuse_retired_entry_keys(types_raw: dict[str, Any]) -> None:
+    """Refuse every ``types.<type>.lifecycle`` and ``.commands`` key, all in one error, before
+    the models report them as unknown keys."""
+    errors = [
+        f"types.{name}.{key}: '{key}' is not a key of a playbook entry — {remedy}"
+        for name, entry in types_raw.items()
+        if isinstance(entry, dict)
+        for key, remedy in _RETIRED_ENTRY_KEYS
+        if key in cast("dict[str, Any]", entry)
+    ]
+    if errors:
+        raise SquadsError("Invalid playbook:\n" + "\n".join(f"  - {e}" for e in errors))
+
+
 def _build_spec(raw: dict[str, Any], spec: WorkflowSpec) -> PlaybookSpec:
     types_raw = as_table(raw.get("types", {}), "types")
+    _refuse_retired_entry_keys(types_raw)
     types: dict[str, ItemPlaybookSpec] = {}
 
     for name, entry_raw in types_raw.items():
@@ -310,14 +336,12 @@ def _check_text(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
     for item_type, entry in types.items():
         if not entry.overview.strip():
             errors.append(f"types.{item_type}: overview is empty")
-        if not entry.lifecycle.strip():
-            errors.append(f"types.{item_type}: lifecycle is empty")
 
 
 def _check_capability_tokens(types: dict[str, ItemPlaybookSpec], errors: list[str]) -> None:
-    """Refuse an ``@*`` in command or guide text whose name is not a well-formed capability."""
+    """Refuse an ``@*`` in guide text whose name is not a well-formed capability."""
     for item_type, entry in types.items():
-        texts = [*entry.commands, *(line for g in entry.roles for line in guide_text_lines(g))]
+        texts = [line for g in entry.roles for line in guide_text_lines(g)]
         names = (n for line in texts for n in CAPABILITY_TOKEN_CANDIDATE.findall(line))
         errors.extend(
             f"types.{item_type}: capability token '@*{name}' must be "
@@ -412,27 +436,6 @@ def playbook_override_guide_pairs(
         for item_type, entry in _override_types(squad_dir, files).items()
         for slug in _declared_guide_slugs(entry)
     )
-
-
-def playbook_override_command_lines(
-    squad_dir: Path, files: OverrideFiles | None = None
-) -> frozenset[tuple[str, str]]:
-    """Every ``(item_type, line)`` command line ``<squad_dir>/.overrides/playbook.toml`` declares
-    in a type's ``commands`` (a splat-ref entry carries no token).
-
-    Read from the raw override mapping for the same reason as
-    :func:`playbook_override_guide_pairs`: only the adopter can clear a report about these lines.
-    """
-    lines: set[tuple[str, str]] = set()
-    for item_type, entry in _override_types(squad_dir, files).items():
-        commands = (
-            cast("dict[str, Any]", entry).get("commands") if isinstance(entry, dict) else None
-        )
-        if isinstance(commands, list):
-            lines.update(
-                (item_type, line) for line in cast("list[Any]", commands) if isinstance(line, str)
-            )
-    return frozenset(lines)
 
 
 def _override_types(squad_dir: Path, files: OverrideFiles | None) -> dict[str, Any]:

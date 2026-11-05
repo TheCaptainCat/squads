@@ -41,5 +41,6 @@ def model_drop_warning(slug: str, model: str | None) -> str | None:
 
 
 def oneline(text: str) -> str:
-    """Collapse to a single line so it is safe inside double-quoted YAML."""
-    return " ".join(text.split()).replace('"', "'")
+    """Collapse to a single line so it is safe inside double-quoted YAML: a backslash is doubled
+    and a double quote becomes a single quote."""
+    return " ".join(text.split()).replace("\\", "\\\\").replace('"', "'")

@@ -15,11 +15,11 @@ backend.
 | **[tutorial.md](tutorial.md)** | A 15-minute, end-to-end first squad. |
 | **[workflow.md](workflow.md)** | The team workflow (who creates & links what), the per-type status lifecycles, milestones, contracts and derived views. |
 | **[agents.md](agents.md)** | Operating *as* an agent inside a squad — the create→write→hand-off loop, and the optional init-time interview. |
-| **[roles.md](roles.md)** | The bundled roster, bundles, and stack developers. |
+| **[roles.md](roles.md)** | The bundled roster, bundles, stack developers, skills and each role's role skill. |
 | **[recipes.md](recipes.md)** | Copy-paste sequences for common moves. |
 | **[faq.md](faq.md)** | Common errors and how to fix them. |
 | **[adoption.md](adoption.md)** | Migrating an existing project: `sq adopt` + history-preserving `--at` timestamps. |
-| **[overrides.md](overrides.md)** | Customizing templates, roles, agent names, your squad's vocabulary, and the per-role guidance in each item skill: `.overrides/` layout, the override grammar (shadow / append / drop), the `sq override` workflow, and handling drift across upgrades. |
+| **[overrides.md](overrides.md)** | Customizing templates, roles, agent names, your squad's vocabulary, and the per-role guidance in each role's playbook: `.overrides/` layout, the override grammar (shadow / append / drop), the `sq override` workflow, and handling drift across upgrades. |
 | **[migration.md](migration.md)** | Upgrading a squad to a new squads version: `sq migrate up`, the changelog (`help`/`chlog`), what counts as a breaking change, and the per-release manual steps. |
 | **[sources.md](sources.md)** | Following an outside tracker: declaring a source in `sources.toml`, its scope and filter expressions, its credential, `sq source check` and `pull`, links across one tracker's sources, what the squad owns on a pulled item, unlink and relink, operators' `identities`, and the connectors and converters. |
 | **[daemon.md](daemon.md)** | The daemon that runs commands in remote mode: what differs from local mode, turning it on or off (`[daemon]`, `SQUADS_DAEMON`), `sq daemon status` and `stop`, what it keeps between commands and on your machine, and who can reach it. |
@@ -63,11 +63,11 @@ backend.
 ```
 project/
 ├─ .squads.toml ───────────────┐  config → which squad folder is active
-├─ CLAUDE.md                   │  (managed section: roster, impersonation, workflow)
+├─ CLAUDE.md                   │  (managed section: roster, start from sq-greeting, workflow)
 ├─ .claude/                    │  tool-owned pointers + config
 │  ├─ settings.json            │  merged, never clobbered
-│  ├─ agents/architect.md ─────┼────▶ `sq role architect show`     (definition rendered on read)
-│  └─ skills/sq-task/SKILL.md ─┼────▶ `sq skill sq-task show`      (definition rendered on read)
+│  ├─ agents/architect.md      │  identity; preloads sq-role-architect, sq-how-to, sq-memory
+│  └─ skills/sq-how-to/SKILL.md┼────▶ `sq skill sq-how-to show --raw --no-header` (rendered at load)
 └─ squads/                  ◀──┘  self-contained, relocatable (squad_dir in .squads.toml)
    ├─ .squads.json               the index: counter + items + refs  (rebuildable)
    ├─ epics/  features/  tasks/  bugs/  adrs/  contracts/  milestones/  reviews/  guides/  operators/

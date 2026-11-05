@@ -10,11 +10,12 @@ refs:
 - ADR-781
 - ADR-983
 - ADR-427
+- ADR-226
 description: Pointers render through never-failing commands with show --raw --no-header;
   each role preloads sq-role-<slug>; sq-greeting states the main session's startup
   steps; per-type skills retire
 created_at: '2026-11-04T19:42:58Z'
-updated_at: '2026-11-04T22:35:00Z'
+updated_at: '2026-11-05T02:11:07Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -432,4 +433,6 @@ bullets; a dated note there says so.
   - - Ruling (2026-11-04), the raw header, replacing my YAML front-matter ruling: under `--raw` the header is the rows the normal `show` panel prints, in its order and with its labels, as a `- **key:** value` markdown list; badges print their value without a glyph, refs as `ID (kind)`. One function builds those rows for both the panel and `--raw`, so they cannot drift. The session rows are left out. The `frontmatter` field leaves the DTOs and the `--json` output. `--no-header` still prints the body alone, and `--full`/`--comments` stay plain markdown.
 - [2026-11-04T22:34:13Z, edited 2026-11-04T22:35:00Z] `architect` Robert Architect:
   - Amended for the raw-header ruling: §1 and the Amendment section now state the header as the panel's rows (one builder for both, badges without glyph, refs as `ID (kind)`, no session rows). An item keeps its heading first, then the list with a `type` row; roster shows print no H1 and open the list with the name row as a plain bullet. `frontmatter` leaves the DTOs and `--json`; the YAML header is a rejected alternative. ADR-427 is no longer narrowed (its §2 never fixed the dossier's shape), dated note rewritten in place.
+- [2026-11-05T02:10:46Z, edited 2026-11-05T02:11:07Z] `architect` Robert Architect:
+  - 2026-11-05: ADR-226 narrowed in place. The playbook entry keys `lifecycle` and `commands` leave the format, since this decision retired their only renderer; an override that still sets them is refused at load by name, and the 0.19 → 0.20 migration leaves `.overrides/playbook.toml` untouched (REV-1301 F12).
 <!-- sq:discussion:end -->

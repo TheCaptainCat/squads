@@ -1,14 +1,14 @@
 """Schema 0.4 → 0.5 runner: stamp SKILL ids onto existing ``agents/skills/`` body files and rename
 them to the ``SKILL-<NNNNNN>-<slug>.md`` convention, for squads whose skill files predate it. For
-each bundled skill slug in lexical order (the order ``seed_bundled_skills()`` uses): a
-convention-named file already present is skipped, so a re-run is a no-op and ids are never
-reallocated; a legacy ``<slug>.md`` with no frontmatter id gets a new ``SKILL-…`` id through
-``IndexStore.transaction()``, sq frontmatter, the convention name and a rewritten
-``.claude/skills/<slug>/SKILL.md`` pointer; one that already carries an id (a partial migration) is
-renamed and re-pointed without allocating; and a slug with neither file is skipped (run ``sq sync``
-first). Afterwards ``run_pending_migrations`` calls ``repair()``, which rebuilds ``.squads.json``
-and recovers the counter from ``max(sequence_id)``. It runs only through ``sq migrate up`` via
-``_migrations._registry``.
+each skill a 0.4 squad was seeded with (``greeting``, ``squads`` and one ``sq-<type>`` per bundled
+type) in lexical order: a convention-named file already present is skipped, so a re-run is a no-op
+and ids are never reallocated; a legacy ``<slug>.md`` with no frontmatter id gets a new
+``SKILL-…`` id through ``IndexStore.transaction()``, sq frontmatter, the convention name and a
+rewritten ``.claude/skills/<slug>/SKILL.md`` pointer; one that already carries an id (a partial
+migration) is renamed and re-pointed without allocating; and a slug with neither file is skipped
+(run ``sq sync`` first). Afterwards ``run_pending_migrations`` calls ``repair()``, which rebuilds
+``.squads.json`` and recovers the counter from ``max(sequence_id)``. It runs only through
+``sq migrate up`` via ``_migrations._registry``.
 """
 
 from pathlib import Path, PurePath
@@ -17,14 +17,12 @@ from typing import Any
 from squads import _aio
 from squads import _clock as clock
 from squads import _sections as sections
-from squads._backends import oneline
+from squads._backends import render_skill_pointer
 from squads._index import IndexStore
-from squads._interactions import bundled_skill_slugs, skill_description
 from squads._migrations._context import MigrationContext
 from squads._migrations._legacy_extra import with_legacy_extra
 from squads._models import Item
 from squads._paths import SquadPaths
-from squads._rendering import render
 
 _CLAUDE_DIR = ".claude"
 _SKILLS = "skills"
@@ -36,6 +34,34 @@ _SKILL_TYPE = "skill"
 _SKILL_PREFIX = "SKILL"
 _SKILL_FOLDER = "agents/skills"
 _STATUS_ACTIVE = "Active"
+
+# The skills a 0.4 squad was seeded with and their descriptions, pinned as 0.5 recorded them: the
+# live skill vocabulary has other names, so the files on disk are matched against this table.
+_ITEM_SKILL_TYPES = ("bug", "decision", "epic", "feature", "guide", "review", "task")
+_BASE_SKILLS = (
+    (
+        "greeting",
+        "Start of a conversation with a human: detect & register the operator, then greet "
+        "them — match their tone, say how you help, and give a quick read of the project. "
+        "Use when a person opens a session; skip it when spawned as a subagent for a job.",
+    ),
+    (
+        "squads",
+        "How to track work on this project with the squads (`sq`) CLI: create/transition "
+        "items, comment, link context. Use whenever you start, hand off, or update work.",
+    ),
+)
+_LEGACY_SKILLS = (
+    *_BASE_SKILLS,
+    *(
+        (
+            f"sq-{t}",
+            f"Working with {t} items in this squad: lifecycle, commands, and role-specific "
+            "guidance.",
+        )
+        for t in _ITEM_SKILL_TYPES
+    ),
+)
 
 MANUAL = """\
 ## Schema 0.4 → 0.5 — SKILL ids and filename convention for existing squads
@@ -97,13 +123,8 @@ async def _rewrite_pointer(
         return  # no .claude dir — nothing to rewrite
     await _aio.write_text(
         pointer,
-        render(
-            "claude/pointer_skill.md.j2",
-            from_squad=root.squad_dir,
-            slug=slug,
-            description=oneline(description),
-            invocable=True,  # this runner writes no host key; the later pointer refresh does
-        ),
+        # This runner writes no host key; the later pointer refresh does.
+        render_skill_pointer(root.squad_dir, slug, description, invocable=True),
     )
 
 
@@ -185,9 +206,8 @@ async def migrate(ctx: MigrationContext) -> int:
     now = clock.now()
     acted = 0
 
-    for slug in bundled_skill_slugs():
+    for slug, desc in sorted(_LEGACY_SKILLS):
         legacy_path = skills_folder / f"{slug}.md"
-        desc = skill_description(slug)
         squad_dir_rel = str(paths.squad_dir.relative_to(paths.root))
 
         # Check for an already-convention-named file (normal post-migration state).

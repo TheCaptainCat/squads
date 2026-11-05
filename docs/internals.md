@@ -62,8 +62,9 @@ on its provenance read the same file once.
 ├── AGENTS.md             # agents_md backend, when active: the same kind of managed section
 ├── .claude/              # claude_code backend: tool-owned pointers + config
 │   ├── settings.json     # merged, never clobbered
-│   ├── agents/<slug>.md  # POINTER → `sq role <slug> show`  (with skills: frontmatter)
-│   └── skills/<name>/SKILL.md   # POINTER → `sq skill <name> show`
+│   ├── agents/<slug>.md  # POINTER: identity, skills: preload list, `sq mine`/`sq inbox`
+│   └── skills/<name>/SKILL.md   # POINTER: renders `sq skill <name> show --raw --no-header` at load
+│                                #   (sq-role-<slug>: the role, its memory index and the board)
 └── squads/               # the squad folder — self-contained & relocatable (squad_dir in .squads.toml)
     ├── .squads.json      # the index (counter + padding + all items + refs)
     ├── .reflog.jsonl     # append-only log of every mutating command
@@ -350,11 +351,16 @@ names → backend classes; adding a backend is a row there. Nothing outside a ba
 [backends.md](backends.md) covers writing a third.
 
 Everything in `.claude/` is a thin pointer: it carries the identity the host selects the entry by,
-and names the `sq` command that produces the rest.
+and a skill pointer carries the `sq` command the host runs to render the rest when the skill loads.
 
 ```
-   .claude/agents/architect.md ─────▶ `sq role architect show`   (definition rendered on read)
-   .claude/skills/sq-task/SKILL.md ─▶ `sq skill sq-task show`    (definition rendered on read)
+   .claude/agents/architect.md ──────────▶ preloads sq-role-architect, sq-how-to, sq-memory
+   .claude/skills/sq-role-architect/SKILL.md ─▶ !`sq role architect show --raw --no-header || echo …`
+                                                ## Memory
+                                                !`sq memory architect list --raw || echo …`
+                                                ## Board
+                                                !`sq board list --raw || echo …`
+   .claude/skills/sq-how-to/SKILL.md ────▶ !`sq skill sq-how-to show --raw --no-header || echo …`
    CLAUDE.md  <!-- squads:start … end -->  ◀── regenerated managed section (roster, workflow)
    .claude/settings.json                   ◀── merged (union of permissions.allow), never clobbered
 ```
@@ -362,21 +368,35 @@ and names the `sq` command that produces the rest.
 What it generates:
 
 - **Role pointers** — `.claude/agents/<slug>.md`: frontmatter (`name`=slug, `description`, `model`,
-  `color`, `disallowedTools: Agent` on a role that may not spawn subagents, and a `skills:` list) + a body that says *"You are <Full Name>… load your full definition
-  with `sq role <slug> show`"*. The role's file under the squad folder holds its identity and a view
-  tag; that command renders the definition.
-- **Managed skills** — the general `squads` skill, `greeting`, `sq-memory`, and one `sq-<type>`
-  skill per non-roster item type. Each
-  gets a **thin pointer** at `.claude/skills/<name>/SKILL.md` naming `sq skill <name> show`. The
-  definition that command prints is rendered from templates when it is read, so the skill's own
-  file under `squads/agents/skills/` holds frontmatter and an empty body region — an authored
-  skill is the other way round, its body being real stored content. Item skills contain one
-  **role-directed section** per *active* interacting role (see the playbook below).
+  `color`, `disallowedTools: Agent` on a role that may not spawn subagents, and a `skills:` list
+  that preloads `sq-role-<slug>`, `sq-how-to`, `sq-memory` and any skill scoped to the role) + a
+  body that says *"You are <Full Name>…"* and names the two startup commands nothing renders,
+  `sq mine <slug>` and `sq inbox <slug>`.
+- **Role skills** — `.claude/skills/sq-role-<slug>/SKILL.md`, one per live role, projected from the
+  role with no skill item behind it, always `user-invocable: false`. Three render lines: the role's
+  body (`sq role <slug> show --raw --no-header`: its definition and its `role_playbook` sections),
+  then its memory index under `## Memory` and the board's current notices under `## Board`.
+- **Managed skills** — `sq-how-to`, `sq-greeting` and `sq-memory`. Each gets a pointer at
+  `.claude/skills/<name>/SKILL.md` whose one line renders `sq skill <name> show --raw --no-header`
+  when the skill loads. The definition that command prints is rendered from templates when it is
+  read, so the skill's own file under `squads/agents/skills/` holds frontmatter and a view tag — an
+  authored skill is the other way round, its body being real stored content, and its pointer
+  renders it the same way.
+- **The render line** — every `!` line is one `sq` command, then `||`, then an `echo` of a
+  single-quoted line naming the command to run by hand, so the line exits `0` whatever `sq` does
+  and a failing render never stops the agent from starting. The pointer's `allowed-tools` names
+  exactly its own `sq` commands, which lets the host run them before the project's `settings.json`
+  is trusted. The first line of each pointer's frontmatter is a YAML comment saying `sq sync`
+  regenerates the file; the agent does not receive it.
 - **CLAUDE.md section** — a marker-delimited (`<!-- squads:start/end -->`) block injected into the
-  project `CLAUDE.md`: the roster, the **greeting-impersonation** rule ("Hi Robert" → adopt Robert
-  Architect; default to Catherine Manager), and the team workflow.
+  project `CLAUDE.md`: one mandatory instruction to invoke `sq-greeting` before the first reply
+  (never in a subagent), the roster, the operators, the working language and the team workflow.
+  The startup steps themselves are `sq-greeting`'s body, rendered from `startup_steps.md.j2`, the
+  partial the `AGENTS.md` section includes too.
 - **settings.json** — created if absent, else **merged** (union of `permissions.allow`), never
-  clobbering your keys.
+  clobbering your keys. The allow rules are `Bash(sq:*)`, `Bash(squads:*)`, `Bash(uv run sq:*)`,
+  `Skill(sq-greeting)` and `Skill(sq-how-to)`: the two skills the main session invokes by model
+  carry a render line, which needs a `Skill(...)` rule to run without a prompt.
 
 `BackendContext` carries the resolved `SquadPaths` and the `rel()` helper (project-root-relative,
 forward-slash paths used in pointers and `Artifact` records). `sq sync` regenerates every managed
@@ -409,10 +429,12 @@ through `_interactions/`). Both are project-overridable — `.overrides/roles/<s
   item type, the interacting roles + a one-line guidance each. A guide addresses a role slug, or
   every live role holding a capability with `*<capability>` (the bundled `*dev` guides reach every
   developer). It drives two things:
-  - **item skills** — `sq-feature` gets a "For Nina Product (`product-owner`)" section, etc.
-    (filtered to roles active in this squad);
-  - **`skills_for_role(slug)`** — which skills a role's pointer preloads. *A role that doesn't manage
-    a type gets no skill for it* (manager/devops get only the general `squads` skill).
+  - **the `role_playbook` view** — each role's body renders, for each type in
+    `item_types_for_role` order, that type's overview, its lifecycle and the guides addressed to the
+    role (filtered to roles live in this squad); a role the playbook gives no type renders its
+    definition alone (manager and devops, bundled);
+  - **who authors what** — `authors = true` on a guide puts the type in the role's create lane,
+    which drives the `sq create` advisory and the team-workflow lines of `CLAUDE.md`/`AGENTS.md`.
 
 Role/dev/skill metadata is stored as **attributes**: top-level frontmatter keys that the type
 declares in the workflow spec (`[items.<type>.attributes]`), held on the model as one
@@ -433,15 +455,18 @@ project override under `.overrides/templates/` must use the same relative path:
 - `items/<type>.md.j2` — one per bundled type (`bug`, `contract`, `decision`, `epic`, `feature`,
   `guide`, `milestone`, `review`, `task`), plus `items/_default.md.j2` for a type with none
 - `agents/{operator,role,skill}.md.j2` — roster item files
-- `views/{squads_skill,item_skill,greeting_skill,memory_skill,role_definition,milestone_rollup}.md.j2`
-  — the derived views rendered on read (managed skill definitions, a role's definition, a
-  milestone's roll-up)
+- `views/{squads_skill,greeting_skill,memory_skill,role_definition,role_playbook,milestone_rollup,source_description}.md.j2`
+  — the derived views rendered on read (managed skill definitions, a role's definition and its
+  playbook sections, a milestone's roll-up, a pulled issue's description)
+- `startup_steps.md.j2` — the main session's startup steps, included by `sq-greeting` and the
+  `AGENTS.md` section; `working_language.md.j2` — the working-language rule both managed sections
+  include
 - `claude/{pointer_agent,pointer_skill,claude_section}.md.j2` and `claude/settings.json.j2` — the
   `claude_code` backend; `agents_md/agents_section.md.j2` — the `agents_md` backend
 - `subentities/{block,head,summary}.md.j2` — a sub-entity's body block; `head` and `summary` are
   kept for migrations, which still read and write the retired presentation regions
-- `workflow.md.j2` and `workflow_static.md.j2` — the workflow cheatsheet shared by the `squads`
-  skill, `sq workflow` and the `AGENTS.md` section
+- `workflow.md.j2` and `workflow_static.md.j2` — the workflow cheatsheet shared by `sq workflow`
+  and the `AGENTS.md` section
 
 ## 10. Time & determinism (`_clock.py`)
 

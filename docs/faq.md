@@ -107,8 +107,8 @@ changed squads' own code, a running daemon still serves the old code: run `sq da
 the daemon off there (`SQUADS_DAEMON=off`).
 
 ### I upgraded squads: do I need to do anything?
-Run `sq sync`. It regenerates the project's tool-owned files (the `squads`/`sq-<type>` skills,
-pointers, the `CLAUDE.md` and `AGENTS.md` sections) from the installed version. Nothing warns you
+Run `sq sync`. It regenerates the project's tool-owned files (the skill and agent pointers, the
+`CLAUDE.md` and `AGENTS.md` sections, the `settings.json` allow rules) from the installed version. Nothing warns you
 that they are older than the installed `sq`, so make it part of every upgrade. `sq sync` never
 touches your authored content or `.squads.toml`. If the release changed the on-disk format, `sq`
 stops every command and asks for `sq migrate up` first; see [migration.md](migration.md).
@@ -153,9 +153,10 @@ retired role keys `full_name`, `skills` and `is_dev`. It also canonicalises any 
 encoding. A role keeps its name, its `slug`, its default-role designation, its stored `model`, a
 template role's `template` and `tech`, a self-defined role's definition, and any other key.
 
-A **role** or **generated skill** whose body is empty gets its view tag written back — the one
-line that makes `sq role <slug> show` / `sq skill <name> show` render the definition fresh from the
-catalog and your own overrides. A role or skill body that holds prose is left alone: `show`
+A **role** or **generated skill** whose body is empty gets its view tags written back — the lines
+that make `sq role <slug> show` / `sq skill <name> show` render the definition fresh from the
+catalog and your own overrides. A role body that carries the `role_definition` tag but no
+`role_playbook` tag, enabled or disabled, gets the playbook tag placed after it. A role or skill body that holds prose is left alone: `show`
 prints that prose in place of the definition. `sq check` accepts it on a role; on a generated
 skill it reports a missing seeded view tag, with the steps that restore the rendered definition.
 

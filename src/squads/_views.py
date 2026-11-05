@@ -31,7 +31,6 @@ from squads._errors import SquadsError
 from squads._interactions import (
     GREETING_SKILL,
     MEMORY_SKILL,
-    PLAYBOOK_OVERRIDE_FILENAME,
     SQUADS_SKILL,
     ItemPlaybookSpec,
     PlaybookSpec,
@@ -104,16 +103,15 @@ type SourceProvider = Callable[[Item, str], SourceIssue | None]
 class PlaybookSource:
     """The resolved value of a ``playbook`` source: a type's playbook lane and the live roster.
 
-    ``lane`` (overview, lifecycle line, commands, role guides) is ``None`` for a declared type
+    ``lane`` (overview and role guides) is ``None`` for a declared type
     with no playbook entry, a well-formed empty result rather than a failure (see
     :func:`_playbook_source_applies`). The raw ingredients let a view template derive its rendered
     values through the playbook filters; the active spec reaches the template separately as
     ``spec=``.
 
-    ``playbook`` is the whole merged document *lane* came from: ``squads_skill.md.j2``'s embedded
-    cheatsheet loops every declared type's authoring lane (``authoring_owners``), which one type's
-    ``lane`` cannot answer. It is carried here because it is already in hand in
-    :func:`_resolve_playbook_source`.
+    ``playbook`` is the whole merged document *lane* came from: ``role_playbook.md.j2`` renders a
+    section for every type the role works with, which one type's ``lane`` cannot answer. It is
+    carried here because it is already in hand in :func:`_resolve_playbook_source`.
     """
 
     item_type: str
@@ -639,22 +637,15 @@ def roster_companion_view_names(item_type: str, spec: WorkflowSpec) -> frozenset
     return frozenset()
 
 
-def skill_authoring_surface(view_name: str, spec: WorkflowSpec, playbook: PlaybookSpec) -> str:
-    """The real surface a roster skill's *view_name* tag is authored through — resolved off
-    the view's own declared source, never off a slug as a literal, so it stays correct under a
-    project override. A ``self`` source names its own template override; a ``playbook`` source
-    names the resolved type's playbook lane, or the bare playbook file when there is none."""
-    view = spec.views[view_name]
-    if view.source.kind != "playbook":
-        template = view_template_name(view_name)
-        return (
-            f"its `{TEMPLATES_OVERRIDE_DIR}/{template}` view template override "
-            f"(`sq override scaffold {template}` creates it)"
-        )
-    target_type = view.source.name or ROSTER_SKILL
-    if playbook.types.get(target_type) is not None:
-        return f"the `[types.{target_type}]` lane in `{PLAYBOOK_OVERRIDE_FILENAME}`"
-    return f"`{PLAYBOOK_OVERRIDE_FILENAME}`"
+def skill_authoring_surface(view_name: str) -> str:
+    """The surface a roster skill's *view_name* tag is authored through: its view template
+    override. A system skill's text comes from that template; the playbook only supplies the roster
+    the template reads."""
+    template = view_template_name(view_name)
+    return (
+        f"its `{TEMPLATES_OVERRIDE_DIR}/{template}` view template override "
+        f"(`sq override scaffold {template}` creates it)"
+    )
 
 
 def seeded_view_names(

@@ -6,6 +6,7 @@ The leak guards are autouse; the squad fixtures copy a template built once per m
 
 import functools
 import os
+import sys
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -190,6 +191,17 @@ def credentials_home(tmp_path, monkeypatch) -> Path:
     for variable in ("HOME", "USERPROFILE"):
         monkeypatch.setenv(variable, str(user))
     return user
+
+
+@pytest.fixture
+def credential_file(credentials_home) -> Path:
+    """Where the per-user credential store lives under the test's own user directory."""
+    root = (
+        credentials_home / "Library" / "Application Support"
+        if sys.platform == "darwin"
+        else credentials_home / "config"
+    )
+    return root / "squads" / "credentials.toml"
 
 
 @pytest.fixture

@@ -6,9 +6,12 @@ hand, so the host always gets a line that exits 0.
 
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
+from squads._backends._claude_code._frontmatter import oneline
 from squads._errors import SquadsError
 from squads._models import is_valid_slug
+from squads._rendering import render
 
 #: The characters an ``echo`` text may hold: bash and zsh read none of them specially inside
 #: single quotes, and none can close the quote.
@@ -21,12 +24,15 @@ class PointerLine:
 
     command: str
     failure: str
+    heading: str | None = None
 
     def render(self) -> str:
-        """The ``!`` line: the command, then ``||`` and an ``echo`` of the failure text."""
+        """The ``!`` line: the command, then ``||`` and an ``echo`` of the failure text; under a
+        *heading*, a blank line and the heading line come first."""
         if _ECHO_SAFE.fullmatch(self.failure) is None:
             raise SquadsError(f"cannot render a pointer line: unsafe echo text {self.failure!r}")
-        return f"!`{self.command} || echo '{self.failure}'`"
+        line = f"!`{self.command} || echo '{self.failure}'`"
+        return line if self.heading is None else f"\n## {self.heading}\n\n{line}"
 
     @property
     def grant(self) -> str:
@@ -56,7 +62,8 @@ def skill_lines(slug: str) -> list[PointerLine]:
 
 
 def role_skill_lines(slug: str) -> list[PointerLine]:
-    """The three lines a role skill's pointer renders: the role, its memory index, the board."""
+    """The three lines a role skill's pointer renders: the role, then its memory index and the
+    board, each of those two under its heading."""
     _require_slug(slug)
     return [
         PointerLine(
@@ -66,9 +73,25 @@ def role_skill_lines(slug: str) -> list[PointerLine]:
         PointerLine(
             f"sq memory {slug} list --raw",
             f"squads could not read the {slug} memory; run: sq memory {slug} list",
+            "Memory",
         ),
         PointerLine(
             "sq board list --raw",
             "squads could not read the board; run: sq board list",
+            "Board",
         ),
     ]
+
+
+def render_skill_pointer(squad_dir: Path, slug: str, description: str, *, invocable: bool) -> str:
+    """The text of the pointer of skill *slug* as the current release writes it."""
+    lines = skill_lines(slug)
+    return render(
+        "claude/pointer_skill.md.j2",
+        from_squad=squad_dir,
+        slug=slug,
+        description=oneline(description),
+        invocable=invocable,
+        grants=[line.grant for line in lines],
+        lines=[line.render() for line in lines],
+    )

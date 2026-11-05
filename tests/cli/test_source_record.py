@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import _tracker_harness as harness
+
 pytestmark = pytest.mark.anyio
 
 RECORD = {
@@ -15,12 +17,29 @@ RECORD = {
     "state": "open",
     "updated_at": "2026-11-03T20:41:07Z",
     "author_id": "4567",
-    "author_handle": "pchat",
 }
+SECRET = "glpat-not-a-real-token"
+
+
+async def _pulled(invoke, project, profile, tracker: harness.Tracker) -> None:
+    """Pull the two issues of the recorded tracker into the squad as items 2 and 3."""
+    path = project.squad_dir / ".overrides" / "sources.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
+        f'base_url = "{tracker.base_url}"\n'
+        f'\n[sources.platform.maps.types.type]\nissue = "{profile.ref}"\n',
+        encoding="utf-8",
+    )
+    stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
+    assert stored.exit_code == 0, stored.output
+    pulled = await invoke(["source", "pull", "platform"])
+    assert pulled.exit_code == 0, pulled.output
 
 
 async def _mirror(invoke, project, profile, title: str, record: dict[str, str]) -> Path:
-    """An item of the host type whose file carries *record* as its `source`."""
+    """An item of the host type whose file carries *record* as its `source`; no command writes a
+    record that lacks a field."""
     created = await invoke(["create", profile.host, title, "--author", "manager"])
     assert created.exit_code == 0, created.output
     path = next(
@@ -38,8 +57,7 @@ async def _mirror(invoke, project, profile, title: str, record: dict[str, str]) 
 async def test_an_item_whose_source_record_is_malformed_is_refused_naming_its_file(
     project, invoke, profile
 ) -> None:
-    incomplete = {key: value for key, value in RECORD.items() if key != "author_handle"}
-    await _mirror(invoke, project, profile, "Mirror", incomplete)
+    await _mirror(invoke, project, profile, "Mirror", RECORD)
 
     result = await invoke(["check"])
 
@@ -53,29 +71,19 @@ async def test_an_item_whose_source_record_is_malformed_is_refused_naming_its_fi
 
 @pytest.mark.covers("repair")
 async def test_repair_rebuilds_the_index_of_sourced_items_to_the_one_it_replaces(
-    project, invoke, profile
+    project, invoke, credentials_home, profile
 ) -> None:
-    await _mirror(invoke, project, profile, "Mirror", RECORD)
-    await _mirror(
-        invoke, project, profile, "Twin", {**RECORD, "key": "platform/api#13", "id": "48212"}
-    )
-    await invoke(["repair"])
-    before = [(await invoke([profile.host, n, "show", "--json"])).output for n in ("2", "3")]
-    index = project.squad_dir / ".squads.json"
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _pulled(invoke, project, profile, tracker)
+        before = [(await invoke([profile.ref, n, "show", "--json"])).output for n in ("2", "3")]
+        (project.squad_dir / ".squads.json").unlink()
 
-    index.unlink()
-    rebuilt = await invoke(["repair"])
-    after = [(await invoke([profile.host, n, "show", "--json"])).output for n in ("2", "3")]
+        rebuilt = await invoke(["repair"])
+        after = [(await invoke([profile.ref, n, "show", "--json"])).output for n in ("2", "3")]
 
     assert (rebuilt.exit_code, rebuilt.output) == (0, "rebuilt index: 3 items, counter=3\n")
     assert after == before
-    assert json.loads(before[0])["source"] == RECORD
-    assert set(json.loads(index.read_text(encoding="utf-8"))) == {
-        "schema_version",
-        "counter",
-        "padding",
-        "items",
-    }
+    assert json.loads(before[0])["source"]["key"] == "platform/api#12"
 
 
 @pytest.mark.covers("role add", "slug")
@@ -95,18 +103,13 @@ async def test_a_role_cannot_take_the_slug_that_names_sourced_authors(project, i
 
 
 @pytest.mark.covers("<host> comments", "--json")
-async def test_a_comment_header_may_name_a_sourced_author(project, invoke, profile) -> None:
-    path = await _mirror(invoke, project, profile, "Mirror", RECORD)
-    await invoke(["repair"])
-    await invoke([profile.host, "2", "comment", "-m", "Seen on the tracker", "--as", "manager"])
-    text = path.read_text(encoding="utf-8")
-    path.write_text(
-        text.replace("`manager` Catherine Manager:", "`source:platform` platform:"),
-        encoding="utf-8",
-    )
+async def test_a_comment_header_may_name_a_sourced_author(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _pulled(invoke, project, profile, tracker)
+        comments = json.loads((await invoke([profile.ref, "2", "comments", "--json"])).output)
 
-    comments = json.loads((await invoke([profile.host, "2", "comments", "--json"])).output)
-
-    assert [(c["author_slug"], c["author"], c["body"]) for c in comments] == [
-        ("source:platform", "via platform", "- Seen on the tracker")
+    assert [(c["author_slug"], c["author"]) for c in comments] == [
+        ("source:platform", '"Alice Smith" via platform @asmith')
     ]

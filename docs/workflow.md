@@ -83,6 +83,62 @@ sq task 3 comment --as op-alice -m "approved"  # record the human's own words
 being assigned to you, and the reverse. `sq blocked` keys on the dependency kinds — `depends-on`
 from the waiting item, `blocks` from the blocker (see [§ "Ref kinds"](#ref-kinds)).
 
+### Plain-text output: `--raw` and `--no-header`
+
+Every `show` (`sq <type> <n> show`, `sq show <id>`, `sq role <slug> show`, `sq skill <slug> show`,
+`sq operator <slug> show`) takes `--raw`, which prints plain markdown: no panel, no colour, no
+wrapping and no emoji badge, whatever `FORCE_COLOR`, `NO_COLOR`, `TERM` or the terminal say. It is
+what an agent or a script reads.
+
+```bash
+sq feature 8 show --raw                  # the heading, the header list, then the body
+sq feature 8 show --raw --full --comments   # sub-entities and discussion as plain markdown too
+sq feature 8 show --raw --no-header      # the body alone, every view expanded
+sq role tech-lead show --raw --no-header # a role's definition and playbook sections
+```
+
+The header is the rows the styled panel prints, in its order and with its labels, one
+`- **<label>:** <value>` line each; a badge prints its value without a glyph and a ref prints as
+`<id> (<kind>)`. An item opens with its `# <id> — <title>` heading and adds a `type` row:
+
+```
+# FEAT-<n> — Login lockout
+
+- **type:** feature
+- **status:** Draft
+- **author:** manager
+- **file:** features/FEAT-NNNNNN-login-lockout.md
+
+Lock the account after five failed logins.
+```
+
+A role, skill or operator prints no heading of its own under `--raw`, since its body opens with
+one; its header list starts with the panel's unlabelled first row as a plain bullet (a role's
+name and slug, a skill's ID and slug, an operator's name).
+`--no-header` drops the heading and the header, leaving the body with each view tag rendered. It
+is valid only with `--raw`, and refused without it:
+
+```
+error: --no-header is valid only with --raw
+```
+
+`--raw` writes nothing to standard output unless the whole render succeeded: an item, role or
+squad that cannot be read exits non-zero with one error line on standard error. A view inside the
+body that cannot be rendered does not fail the command; its place holds one line naming the
+command that shows why (see [§ "Derived views"](#derived-views)).
+
+Two lists follow the same contract. `sq memory <role> list --raw` prints one bullet per memory,
+``- `<slug>`: <summary>``, or `no memories for <role>`. `sq board list --raw` prints each current
+notice as a numbered item, its number the one `sq board clear <n>` takes, with its full text and
+then its author, timestamp and expiry:
+
+```
+1. Freeze on main until Friday.
+   — manager, 2026-11-05T01:31:31Z, until 2099-01-01T00:00:00Z
+```
+
+or `no current notices`. Neither list takes `--no-header`.
+
 ### Addressing a comment by its hash
 
 Every comment shows a short hash first in its header, in `comments` and `show --comments`
@@ -496,8 +552,11 @@ never a second source of truth for it.
 with each view tag left as a tag (`<!-- sq:view:milestone_rollup -->`), not the rendered view: what
 it reports is what the item file stores, a stored view's pair included with its escaped text. The
 rendered text is on `sq show`, `sq show --raw`, and
-`display.body` of `show --json`. A view whose template fails to render keeps its tag as written
-there, and the command prints a warning on stderr naming the view and the error.
+`display.body` of `show --json`. A view that fails to render there (its source, its transform or
+its template raises) is replaced by one line naming the command that shows why, such as
+``The `milestone_rollup` view could not be rendered; run `sq workflow view milestone_rollup MILE-<n>` to see why.``,
+and the command prints a warning on stderr naming the view and the error. The rest of the body
+still renders and the command exits `0`.
 That body can be written back as it came: `body --force`, `body --append` and an import `body`
 event accept a view tag that is already placed on the item in the same state, and keep it at its
 declared position, so a milestone keeps one roll-up. Any other view tag line is refused, with a
@@ -1224,9 +1283,9 @@ you write one, resolve it with `--json`, which does not render at all.
 
 **Seeded views.** A document's seeded views follow from its type (and, for a skill, its slug):
 the tags its type's creation template writes into the body — `milestone_rollup` on a milestone —
-or, for the roster, `role_definition` on every role, `squads_skill`, `greeting_skill` and
-`memory_skill` on the three permanently-system skills, and `item_skill` on the `sq-<type>` skill
-of each declared type. A custom skill has none, and a view dropped from `[selected]` seeds
+or, for the roster, `role_definition` then `role_playbook` on every role, and `squads_skill`,
+`greeting_skill` and `memory_skill` on the three permanently-system skills (`sq-how-to`,
+`sq-greeting` and `sq-memory`). A custom skill has none, and a view dropped from `[selected]` seeds
 nothing: a document created while its view is dropped gets no tag, and once the view is back,
 `sq check` names the remedy that places it. A seeded view's tag is never removed: a body
 write puts it back if it is missing.
@@ -1258,8 +1317,10 @@ MILE-21: view nope had no existing tag — placed disabled in sq:body
 ```
 
 Either verb also collapses duplicate copies of its view into one tag in the state it names.
-On a role or a generated skill, only `view add` of the document's own view runs, so `sq check`'s
-remedies there name that command alone.
+On a generated skill, only `view add` of the document's own view runs, so `sq check`'s remedies
+there name that command alone. On a role, `view add` runs for `role_definition` and
+`role_playbook`, and `view disable` for `role_playbook` alone, which is how a squad turns the
+playbook sections off for one role.
 
 **What `sq check` holds.** Each seeded view is present exactly once, enabled or disabled, and no
 view name appears twice in a body, counting both states together. Each is an error, reported once:
@@ -1303,23 +1364,19 @@ or by hand, then run `sq check` again.
 `sq milestone <n> body -m` and `body --append` both work, and the tag stays where its `position`
 puts it. A role's body takes prose the same way, beside its generated definition: `sq role <slug>
 body` and `body --append` both work on every role, and the `role_definition` tag stays at the top,
-so the definition comes first. The definition itself is authored in `.overrides/roles.toml` or
-`.overrides/roles/<slug>.toml`, or with `sq role <slug> update` for a role that defines itself.
+so the definition comes first, followed by the `role_playbook` sections, then the prose. The
+definition itself is authored in `.overrides/roles.toml` or `.overrides/roles/<slug>.toml`, or with
+`sq role <slug> update` for a role that defines itself; the playbook sections in
+`.overrides/playbook.toml`.
 
-A permanently-system skill's body and a per-item-type `sq-<type>` skill's body take no writes
-while their view is declared — replace and append are both refused, and `--force` does not lift
-it. Their content is authored elsewhere:
-
-- a per-item-type skill: that type's `[types.<type>]` lane in `.overrides/playbook.toml`;
-- `squads`: `.overrides/playbook.toml`;
-- `greeting` and `sq-memory`: the view's template override,
-  `.overrides/templates/views/<name>.md.j2` (`sq override scaffold views/greeting_skill.md.j2`
-  starts one).
-
-The refusal names the surface for the document at hand:
+A permanently-system skill's body (`sq-how-to`, `sq-greeting`, `sq-memory`) takes no writes while
+its view is declared — replace and append are both refused, and `--force` does not lift it. Its
+content is authored in the view's template override, `.overrides/templates/views/<name>.md.j2`
+(`sq override scaffold views/greeting_skill.md.j2` starts one). The refusal names the surface for
+the document at hand:
 
 ```
-error: SKILL-10's body renders through its declared sq:view:item_skill tag, and its content already has one validated authoring surface: the `[types.bug]` lane in `.overrides/playbook.toml`. A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead, then clear its leftover tag with `sq skill sq-bug view disable item_skill`.
+error: SKILL-11's body renders through its declared sq:view:memory_skill tag, and its content already has one validated authoring surface: its `.overrides/templates/views/memory_skill.md.j2` view template override (`sq override scaffold views/memory_skill.md.j2` creates it). A replace is refused — `--force` does not lift this. Drop the view from `[selected]` to author this directly instead, then clear its leftover tag with `sq skill sq-memory view disable memory_skill`.
 ```
 
 An operator's body is ordinary prose, its profile, and `sq operator <slug> body` always writes it
@@ -1331,7 +1388,7 @@ To write a generated skill's body by hand, or replace a role's generated definit
 view from `[selected]` — see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
 On these documents `view disable` is refused too, and so is `view add` of any view but the
-document's own (see [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
+document's own, a role's `role_playbook` aside (see [roles.md § "What a generated role or skill refuses"](roles.md#what-a-generated-role-or-skill-refuses)).
 
 **Dropping a view.** `[selected].views` names the views that survive, like every other section. A
 view is reached only through its `sq:view:<name>` tag in a document body, never by a type
@@ -1573,24 +1630,28 @@ gets no `data`, and a template that reads it fails under `StrictUndefined`.
 
 A view appears under `views` when its tag is placed in the body, enabled, resolvable (the view is
 declared, its template exists and its source applies to the item), and the view declares a
-transform or is stored. A disabled tag, a view that is neither stored nor has a transform, and a
-tag that does not resolve are left out, and `views` is `{}` when nothing qualifies. A stored
+transform or is stored. A disabled tag, a view that is neither stored nor has a transform, a view
+that fails to render and a tag that does not resolve are left out, and `views` is `{}` when nothing qualifies. A stored
 view's entry is `{"body", "data"}`, with `data` `null` when it has no transform; any other view's
 entry is the returned value itself. Sub-entities carry no `views` key.
 
-**When it fails.** Every failure is one error naming the view, the item, the declaration and the
-cause, with exit `1` and no traceback: a missing file, a path that leaves `.overrides/`, a failed
-import, a missing or refused function, an exception raised inside it, or a value that is not JSON
-data. For an exception, the cause is its type and message, plus the last line of the transform
-file the traceback passed through when there is one:
+**When it fails.** Every failure is one message naming the view, the item, the declaration and
+the cause, with no traceback: a missing file, a path that leaves `.overrides/`, a failed import, a
+missing or refused function, an exception raised inside it, or a value that is not JSON data. For
+an exception, the cause is its type and message, plus the last line of the transform file the
+traceback passed through when there is one:
 
 ```
 error: view 'story_progress' on FEAT-<n> (transform transforms/progress.py:story_progress): ZeroDivisionError: division by zero (at …/squads/.overrides/transforms/progress.py:2)
 ```
 
-The failure is loud on every surface that renders the view, `--json` included, so a broken
-transform fails every read of the items that place its view until it is fixed or the tag is
-disabled (`sq <type> <n> view disable <name>`, which does not run it). Body writes and `view
+`sq workflow view <name> <id>` prints it as an error and exits `1`. Every read that renders the
+item's body (`sq show`, `--raw`, `display.body`) prints it as a warning on stderr instead, puts
+one line in the view's place,
+``The `story_progress` view could not be rendered; run `sq workflow view story_progress FEAT-<n>` to see why.``,
+renders the rest and exits `0`; `show --json` leaves the view out of `views`. A broken transform
+so marks every read of the items that place its view until it is fixed or the tag is disabled
+(`sq <type> <n> view disable <name>`, which does not run it). Body writes and `view
 add`/`view disable` do not run transforms. `sys.exit()` in a transform, at import or at call, is a
 failure like any other, never an exit; `KeyboardInterrupt` is not caught, so Ctrl-C still
 interrupts. A tag that does not resolve stays literal and quiet, and its transform never runs.

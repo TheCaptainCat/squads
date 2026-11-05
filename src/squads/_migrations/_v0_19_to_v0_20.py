@@ -80,11 +80,22 @@ MANUAL = (
     "comment is only removed by its author). The run lists every skill it refuses and what it "
     "holds. "
     "(6) A skill item named `sq-role-<slug>`: that name now belongs to the role skill squads "
-    "generates for a role. Rename the skill, or fold its content into the role body. "
+    "generates for a role. A skill's slug never changes, so create the replacement under another "
+    "name (`sq skill add`), copy the body into it (`sq skill <new> body --file`), re-point the "
+    "refs and link it to its roles, then run `sq skill sq-role-<slug> remove --purge`; or fold "
+    "its content into the role body and remove it. "
     "(7) A project skill named `sq-greeting` or `sq-how-to`: those names now belong to the "
-    "`greeting` and `squads` skills, which are renamed by this run. Rename the project skill "
-    "first. A stored `operator_invocable` choice on a removed skill is not carried over, and a "
-    "squad's own prose that names `greeting` or `squads` is not rewritten. "
+    "`greeting` and `squads` skills, which are renamed by this run. Replace it the same way, "
+    "under another name, and remove it before the run. A stored `operator_invocable` choice on "
+    "a removed skill is not carried over, and a squad's own prose that names `greeting` or "
+    "`squads` is not rewritten. "
+    "(8) A playbook override that sets `lifecycle` or `commands` in a `[types.<type>]` entry of "
+    "`squads/.overrides/playbook.toml`: an entry no longer has either key, and the run refuses "
+    "the override, naming each one, and writes nothing. Delete both keys from every entry with "
+    "the 0.20 release installed, since 0.19 still requires `lifecycle` on a custom type's "
+    "entry, then run `sq migrate up`. A type's lifecycle line now comes from its workflow "
+    "lifecycle; move any command you want an agent to see into the `do` list of the guide whose "
+    "role runs it. "
     "After the run, commit `.claude/`: it removed the pointer directories of the per-type "
     "skills and of `greeting` and `squads`, wrote the pointers of `sq-greeting`, `sq-how-to` "
     "and of each role, and rewrote every agent pointer, the managed `CLAUDE.md` section and the "
@@ -272,6 +283,16 @@ async def _rename_skill(ctx: MigrationContext, item: Item, old: str, new: str) -
         await _aio.path_rename(path, target)
 
 
+async def _drop_stray_body(ctx: MigrationContext, item: Item, new: str) -> None:
+    """Remove the body file ``<new>.md`` beside a renamed skill's file when it has no id: an earlier
+    step of a long run writes one for each current system skill it finds no item for."""
+    stray = ctx.paths.abspath(item.path).with_name(f"{new}.md")
+    if await _aio.path_exists(stray):
+        data, _ = split_frontmatter(await _aio.read_text(stray), source=str(stray))
+        if "id" not in data:
+            await _aio.path_unlink(stray)
+
+
 async def _drop_pointers(ctx: MigrationContext, items: list[Item]) -> None:
     """Remove each skill's pointer from every active backend, by the slug it has now."""
     backend_ctx = BackendContext(
@@ -290,6 +311,7 @@ async def _apply(ctx: MigrationContext, plan: _Plan) -> tuple[str, ...]:
     for item in plan.removed:
         await _aio.path_unlink(ctx.paths.abspath(item.path))
     for item, old, new, _data in plan.renamed:
+        await _drop_stray_body(ctx, item, new)
         await _rename_skill(ctx, item, old, new)
     if plan.removed:
         store = IndexStore(ctx.paths.index_path, ctx.paths.lock_path, spec=ctx.spec)

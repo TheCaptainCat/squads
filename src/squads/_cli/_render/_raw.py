@@ -16,17 +16,19 @@ def raw_head(rows: list[Row], heading: str | None, *, no_header: bool) -> list[s
     return [*lines, *raw_lines(rows), ""]
 
 
-def raw_discussion(lines: list[str], comments: list[Comment]) -> None:
-    """Append the discussion to a raw show's *lines*, one section per comment."""
-    lines += ["", "## Discussion"]
+def raw_discussion(lines: list[str], comments: list[Comment], *, level: int = 2) -> None:
+    """Append the discussion to a raw show's *lines*, one section per comment; *level* is the
+    heading depth of the discussion heading, each comment one deeper."""
+    lines += ["", f"{'#' * level} Discussion"]
     for cmt in comments:
-        head = f"### {cmt.short_hash} {author_label(cmt)} — {cmt.ts}{edited_suffix(cmt)}"
+        who = f"{cmt.short_hash} {author_label(cmt)} — {cmt.ts}{edited_suffix(cmt)}"
+        head = f"{'#' * (level + 1)} {who}"
         lines += ["", head, "", *(f"_{n}_" for n in notice_lines(cmt)), cmt.body]
     if not comments:
         lines += ["", "_(no discussion)_"]
 
 
 def print_raw(console: Console, lines: list[str]) -> None:
-    """*lines* written in one call, as plain text: no markup, emoji, highlighting or wrapping."""
-    text = "\n".join(lines).rstrip("\n")
-    console.print(text, markup=False, highlight=False, emoji=False, soft_wrap=True)
+    """*lines* written in one call to the console's file as they are: no markup, emoji,
+    highlighting, wrapping or tab expansion."""
+    console.file.write("\n".join(lines).rstrip("\n") + "\n")

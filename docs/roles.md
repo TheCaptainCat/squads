@@ -11,21 +11,27 @@ it, and `sq role <slug> update --title` does.
 
 ## The bundled roster
 
-| Name | Slug | Title | Model | Color | Item skills it manages |
-|------|------|-------|-------|-------|------------------------|
+| Name | Slug | Title | Model | Color | Playbook sections in its role |
+|------|------|-------|-------|-------|-------------------------------|
 | Catherine Manager | `manager` | manager *(default)* | opus | cyan | — (triages & routes) |
-| Robert Architect | `architect` | architect | opus | blue | `sq-epic`, `sq-decision`, `sq-contract`, `sq-guide` |
-| Olivia Lead | `tech-lead` | tech lead | opus | purple | `sq-epic`, `sq-feature`, `sq-task`, `sq-bug`, `sq-decision`, `sq-contract`, `sq-milestone`, `sq-guide` |
-| Paul Reviewer | `reviewer` | code reviewer | opus | red | `sq-task`, `sq-bug`, `sq-review` |
-| Mara Tester | `qa` | QA engineer | sonnet | green | `sq-feature`, `sq-task`, `sq-bug` |
+| Robert Architect | `architect` | architect | opus | blue | epic, decision, contract, guide |
+| Olivia Lead | `tech-lead` | tech lead | opus | purple | epic, feature, task, bug, decision, contract, milestone, guide |
+| Paul Reviewer | `reviewer` | code reviewer | opus | red | task, bug, review |
+| Mara Tester | `qa` | QA engineer | sonnet | green | feature, task, bug |
 | Hugo Ops | `devops` | DevOps engineer | sonnet | orange | — |
-| Nina Product | `product-owner` | product owner | sonnet | yellow | `sq-epic`, `sq-feature`, `sq-contract`, `sq-milestone` |
-| Theo Writer | `tech-writer` | technical writer | sonnet | pink | `sq-guide` |
+| Nina Product | `product-owner` | product owner | sonnet | yellow | epic, feature, contract, milestone |
+| Theo Writer | `tech-writer` | technical writer | sonnet | pink | guide |
 
-Every role also gets three general skills: **`squads`** (how to use the CLI), **`greeting`** (the
-start-of-session ritual) and **`sq-memory`** (its memory notebook and the team board). A role that
-doesn't manage an item type doesn't get that type's skill — that's why the manager and devops carry
-only those three.
+A role's playbook sections are its part of the team playbook: for each item type it works with,
+the type's overview, its lifecycle and that role's own guidance (see
+[The role skill](#the-role-skill)). A role the playbook gives no type, like the manager and devops,
+carries its definition alone.
+
+Each role's agent preloads three skills: its own role skill **`sq-role-<slug>`** (its definition,
+its playbook sections, its memory index and the team board), **`sq-how-to`** (how to use the CLI)
+and **`sq-memory`** (its memory notebook and the team board). A fourth bundled skill,
+**`sq-greeting`**, is the main session's startup and is preloaded by no agent (see
+[agents.md § "The main session"](agents.md#the-main-session-sq-greeting)).
 
 ## Bundles
 
@@ -208,8 +214,8 @@ sq role add builder --name "Bob Builder" --job-title "build engineer" --desc "Ow
 
 The slug says nothing either way: a role named `legacy-dev` that holds no such capability is an
 ordinary role, and `builder` above is a developer. Every developer takes part in the playbook
-guides addressed to `*dev`, which is why each one manages `sq-task`, `sq-bug`, `sq-contract` and
-`sq-review` with the bundled playbook. `sq dev list` lists the live developers, built from the
+guides addressed to `*dev`, which is why each one's role carries playbook sections for task, bug,
+contract and review with the bundled playbook. `sq dev list` lists the live developers, built from the
 template or not, with the `tech` of those that have one.
 
 A developer's fields are overridable like any other role's: a `.overrides/roles/<slug>.toml` that
@@ -264,14 +270,15 @@ capabilities = ["$(*self)", "review"]
 capabilities = []
 ```
 
-Run `sq sync` after either change to regenerate the skills.
+A role's playbook sections render when they are read, so `sq role <slug> show` and the role skill
+follow the change at once; run `sq sync` after it to recompile the `CLAUDE.md` and `AGENTS.md`
+sections.
 
 **Addressing a capability in the playbook.** A guide whose `slug` is `*<capability>` applies to
 every live role holding that capability (see
 [overrides.md § "Playbook overrides"](overrides.md#playbook-overrides-role-guidance-per-item-type)).
-Its section in the generated `sq-<type>` skill is headed with the capability and lists the holders,
-for example ``## For `*dev`: Elias Python (`python-dev`)``, and it renders only while a live role
-holds the capability. `authors = true` on such a guide puts the type in the create lane of every
+In the role playbook of each holder it opens with a line naming the capability,
+``For every `*dev` role:``, and it renders only for a role that holds the capability. `authors = true` on such a guide puts the type in the create lane of every
 holder.
 
 **Where capabilities show.** `sq role list` has a Capabilities column and the `sq role <slug> show`
@@ -283,10 +290,10 @@ in `sq role list` and `sq role <slug> show` but not in the catalog.
 
 ### Mentioning a capability in hand-offs
 
-In playbook text, the guide lines (`enter`, `do`, `handoff`, `watch`) and a type's `commands`,
+In playbook text, the guide lines (`enter`, `do`, `handoff`, `watch`) and a type's `overview`,
 `@*<name>` mentions every live role holding the capability `<name>`. The bundled hand-offs are
 written this way, for example "comment a summary of what changed + `@*review`/`@*verify`".
-`sq sync` resolves the token when it generates the `sq-<type>` skill, against the live roster:
+A role's playbook resolves the token against the live roster each time it renders:
 
 - each holder renders as its `@<slug>`, in roster order (the order of `sq role list`) and joined
   with `/`: with the tech lead holding `review` as above, `@*review` renders as
@@ -301,8 +308,8 @@ per token. A literal `@<slug>` is not a token and names that one role; write one
 always go to one particular role. The token belongs to playbook text only: typed in a comment, `@*review`
 mentions nobody, so a comment names its recipients by slug.
 
-The item's author is not a capability: a skill is rendered once per type, and the author differs on
-every item. So the review guide's developer hand-off says it in words, "`@`-mention the review's
+The item's author is not a capability: a role's playbook is rendered once per role, not per item,
+and the author differs on every item. So the review guide's developer hand-off says it in words, "`@`-mention the review's
 author (shown on `sq review <n> show`) once all findings are Fixed, for re-review".
 
 A token whose name does not match `[a-z0-9][a-z0-9-]*` is a playbook load error, and every command
@@ -323,7 +330,7 @@ warning from `sq check` and `sq sync` (see
 ```bash
 sq role list                 # active roles
 sq role catalog              # the catalog, plus every role it does not declare
-sq role architect show       # a role's resolved definition
+sq role architect show       # a role's resolved definition and its playbook sections
 sq role activate qa          # add a catalog role later (creates its item + Claude pointer)
 sq role activate --from dev --tech go           # build a role from a role template
 sq role add sre --name "Sam Reliability" --job-title "site reliability engineer" --desc "Keeps production up." --mission "Keep the services up and the pager quiet."
@@ -462,10 +469,10 @@ event of `sq import` that sets a definition field is refused on the same terms.
 
 ## Managing skills
 
-Skills are the instruction files a role preloads. Every role carries the general `squads`,
-`greeting` and `sq-memory` skills plus one `sq-<type>` skill per item type it manages; those are
-generated and kept in step for you. You can add skills of your own and scope them to whichever roles
-should carry them:
+Skills are the instruction files a role preloads. Every role's agent preloads its own role skill,
+`sq-role-<slug>`, then the bundled `sq-how-to` and `sq-memory` skills; `sq-greeting` is the main
+session's. All four are generated and kept in step for you. You can add skills of your own and
+scope them to whichever roles should carry them, and a role preloads them after those three:
 
 ```bash
 sq list -t skill                        # the skills this squad has (there's no dedicated list verb)
@@ -489,24 +496,107 @@ anything, so a skill slug is not accepted by `--as`, `--author` or `--assignee`.
 generated skill's body yourself, see
 [overrides.md § "Authoring a role or skill body by hand"](overrides.md#authoring-a-role-or-skill-body-by-hand).
 
+A skill name starting with `sq-role-` is refused when the rest of it is a role's slug, whatever the
+role's status, since that name belongs to the role's own skill; adding or activating a role whose
+role-skill name is already a skill is refused the same way:
+
+```
+error: cannot add skill 'sq-role-qa': that name is the skill of role 'qa'; pick another name
+error: cannot create role 'ghost': the skill 'sq-role-ghost' exists and its name is the role's own skill; rename or remove that skill first
+```
+
+### The role skill
+
+Each live role has one role skill, `sq-role-<slug>`, which `sq sync` writes beside the role's agent
+file and which that agent preloads first. It has no skill item behind it: it is projected from the
+role, so it does not appear in `sq list -t skill`, takes no `sq skill` verb, and is never operator
+invocable. In Claude Code it is `.claude/skills/sq-role-<slug>/SKILL.md`, and it renders three
+commands when the agent starts: the role first, then the memory index and the board, each under its
+own heading:
+
+```
+!`sq role tech-lead show --raw --no-header || echo 'squads could not render the tech-lead role; run: sq role tech-lead show'`
+
+## Memory
+
+!`sq memory tech-lead list --raw || echo 'squads could not read the tech-lead memory; run: sq memory tech-lead list'`
+
+## Board
+
+!`sq board list --raw || echo 'squads could not read the board; run: sq board list'`
+```
+
+- **The role's body**: the role definition (mission, responsibilities, working agreements), then
+  the role's playbook sections, then any text the squad wrote in the role's body.
+- **The role's memory index**: one line per memory, its slug and its summary.
+- **The board's current notices**, each with its full text, author, date and expiry.
+
+A line whose command fails leaves its echo in place of the output, and the other two still render.
+The skill names exactly those three commands in its `allowed-tools`, so the host runs them without
+asking, a fresh clone included.
+
+**What a role's body holds.** A role's body carries two views: `role_definition`, then
+`role_playbook`. The playbook view renders, for each item type the playbook gives the role, in
+playbook order, a `## <Type> items` section: the type's overview, its lifecycle line, and this
+role's own **Enter**, **Do**, **Hand off** and **Watch for** guidance, with mentions resolved
+against the live roster. It holds no other role's guidance. `sq role <slug> show` prints the same
+body for a person, and so does the `AGENTS.md` backend, compiled into its "Role definitions"
+section; neither carries the memory index or the board.
+
+**Adding the squad's own text.** Write it in the role's body; `sq sync` never overwrites it:
+
+```bash
+sq role reviewer body --append -m "Always run the security checklist on auth changes."
+sq role reviewer body --file reviewer-notes.md --force   # replace what you wrote before
+```
+
+The text follows the two views, so the agent reads the definition, its playbook sections, then the
+squad's text. To change the definition itself, override the role (see
+[Where a role's definition comes from](#where-a-roles-definition-comes-from)); to change the
+playbook guidance, override the playbook (see
+[overrides.md § "Playbook overrides"](overrides.md#playbook-overrides-role-guidance-per-item-type)).
+
+**Turning the playbook off for one role.** `view disable` keeps the view's tag in the body,
+disabled, so the role shows its definition and the squad's text only; `view add` turns it back on:
+
+```bash
+sq role reviewer view disable role_playbook
+sq role reviewer view add role_playbook
+```
+
+`sq repair` places the `role_playbook` tag on a role body that lacks it altogether, after
+`role_definition`, and leaves a disabled one alone.
+
+`body`, `view add` and `view disable` on a role rewrite the `AGENTS.md` section at once, since it
+compiles the role bodies; the Claude Code role skill renders the body when the agent starts, so it
+needs no rewrite.
+
+**Its lifecycle follows the role.** Activating or adding a role writes its role skill with its
+agent file; retiring the role removes both, and reactivating writes both again. A role's slug never
+changes, so a renamed role keeps its skill and only the skill's description changes. `sq check`
+compares the role skill with a fresh render, as it does every pointer, and reports one edited by
+hand; `sq sync` rewrites it.
+
 ### Whether an operator can invoke a skill
 
-Every skill says whether an operator can run it by name in the agent host (`/greeting` in Claude
-Code). Agents load skills either way. Each skill has a declared default:
+Every skill says whether an operator can run it by name in the agent host (`/sq-greeting` in
+Claude Code). Agents load skills either way. Each skill has a declared default:
 
 | Skill | Operator invocable by default |
 |---|---|
-| `squads`, `greeting`, `sq-memory` | no |
-| every `sq-<type>` skill | no |
+| `sq-how-to`, `sq-greeting`, `sq-memory` | no |
 | a skill you add with `sq skill add`, whatever its name | yes |
+
+A role skill (`sq-role-<slug>`) has no skill item and no choice to store: it is never operator
+invocable.
 
 A squad chooses its own value per skill with `--operator-invocable`, on `sq skill add` and
 `sq skill <slug> update`:
 
 ```bash
-sq skill greeting update --operator-invocable yes    # store "invocable"
-sq skill runbook update --operator-invocable no      # store "not invocable"
-sq skill greeting update --operator-invocable default   # drop the stored choice, follow the default
+sq skill sq-greeting update --operator-invocable yes      # store "invocable"
+sq skill runbook update --operator-invocable no           # store "not invocable"
+sq skill sq-greeting update --operator-invocable default  # drop the stored choice, follow the default
 ```
 
 `yes` and `no` store the choice, even when it equals the default, and a stored choice is never
@@ -540,7 +630,7 @@ and what a role stores:
 
 | Entry | `update` options | Refused on |
 |---|---|---|
-| skill | `--title`, `--desc`, `--when-to-use`, `--operator-invocable` | a generated skill (`squads`, `greeting`, `sq-memory`, `sq-<type>`) refuses `--title`, `--desc` and `--when-to-use`; `--operator-invocable` is accepted on any skill |
+| skill | `--title`, `--desc`, `--when-to-use`, `--operator-invocable` | a generated skill (`sq-how-to`, `sq-greeting`, `sq-memory`) refuses `--title`, `--desc` and `--when-to-use`; `--operator-invocable` is accepted on any skill |
 | role | `--title` (the role's name), `--pronouns`, `--model`; and `--job-title`, `--desc`, `--mission`, `--capabilities`, `--color`, `--can-spawn`, `--file` | the definition options, on a catalog or template role (see [Changing a role](#changing-a-role-update-per-kind)) |
 | operator | `--title` (the display name), `--pronouns` | none |
 
@@ -689,8 +779,7 @@ Every role and skill stores `origin`, one of two words, written when the entry i
   slug, or when it is built from a template the bundled catalog declares (such as `dev`, for
   `sq dev add`). A bundled role or template you override, in `roles.toml` or
   `.overrides/roles/<slug>.toml`, stays `system`. A skill is
-  `system` when it is `squads`, `greeting` or `sq-memory`, or the `sq-<type>` skill of a type the
-  workflow spec declares.
+  `system` when it is `sq-how-to`, `sq-greeting` or `sq-memory`.
 - **`project`** — your squad defined it: a role declared by a `[[roles]]` entry of `roles.toml`,
   a role built from a template `roles.toml` declares, a role created with `sq role add`, and every
   skill added with `sq skill add`.
@@ -698,8 +787,8 @@ Every role and skill stores `origin`, one of two words, written when the entry i
 The stored value is the answer every surface gives: the Origin column of `sq role list` and
 `sq role catalog`, the `origin:` row of the `sq role <slug> show` and `sq skill <slug> show`
 cards, and the `origin` key of their `--json`, of `sq role catalog --json` and of
-`sq list -t role|skill --json`. It is never recomputed: `sq sync` leaves it alone, and the
-`sq-<type>` skill of a type you later drop keeps `system`. Nothing sets it afterwards; an `update`
+`sq list -t role|skill --json`. It is never recomputed: `sq sync` leaves it alone. Nothing sets
+it afterwards; an `update`
 event of `sq import` that tries is refused:
 
 ```
@@ -727,7 +816,9 @@ definition lives, not on the entry, and these writes are refused with exit `1`, 
   `--operator-invocable` to one of them is refused whole), and an `update` event of `sq import` that sets the description, sets
   or unsets an attribute the bundled spec declares for the type (`fields`, `unset_fields`), or
   changes a skill's title; an event that also changes something allowed is refused whole;
-- `view disable`, and `view add` of any view other than the entry's own.
+- `view disable`, and `view add` of any view other than the entry's own. A role's `role_playbook`
+  is the exception: `view disable` and `view add` both take it (see
+  [The role skill](#the-role-skill)).
 
 The error names the place to edit instead:
 
@@ -737,8 +828,8 @@ line 1: ROLE-3's body renders through its declared sq:view:role_definition tag, 
 
 For a catalog or template role, that is the role catalog override or its per-slug file, followed
 by `sq sync`; for a role that defines itself, `sq role <slug> update`. A role's `model` is set with
-`update --model` on any role. For a skill, it is the playbook override, or for
-`greeting` and `sq-memory` the view's template override.
+`update --model` on any role. For a skill, it is the view's template override,
+`.overrides/templates/views/<view>.md.j2`.
 
 Every role is covered, a `project` one too, because every role's definition is generated; a skill
 you added with `sq skill add` takes every write. The rest stays open on every role and skill: a
@@ -807,10 +898,10 @@ sq operator op-alice show
 ```
 
 There is no profile field or option: `operator add` takes no profile, and the body holds it.
-The `greeting` skill reads it. When a human opens a session, the agent looks them up with
-`sq list -t operator --all`:
+The first step of the `sq-greeting` skill reads it. When a human opens a session, the agent looks
+them up with `sq list -t operator --all`:
 
-- **registered:** it runs `sq operator <slug> show` and lets the profile set the register of its
+- **registered:** it runs `sq operator <slug> show --raw --no-header` and lets the profile set the register of its
   greeting and the project read-out, without reading the profile back. If the body is still the
   seeded text, it may offer to record a profile;
 - **retired:** it asks whether to bring them back, runs `sq operator <slug> status Active`, then
@@ -820,7 +911,6 @@ The `greeting` skill reads it. When a human opens a session, the agent looks the
   of expertise, what they come to do) and records the answers with
   `sq operator <slug> body --file <path>`.
 
-Run `sq sync` after upgrading so the generated `greeting` skill carries these steps.
 
 ## Retiring a roster entry
 
@@ -841,7 +931,9 @@ archiving an entry **retires** it.
 Retiring an entry deletes the per-entry file each enabled agent host reads — `.claude/agents/<slug>.md`
 for a role, `.claude/skills/<slug>/` for a skill, and the equivalent under any other host you have
 enabled — and rewrites every compiled region that named it: the rosters in `CLAUDE.md` and `AGENTS.md`,
-and the per-role sections of the generated `sq-<type>` skills. A retired role is no longer spawnable
+and the role's section of `AGENTS.md`. A retired role's role skill, `.claude/skills/sq-role-<slug>/`,
+goes with its agent file, and a capability mention in another role's playbook stops naming it. A
+retired role is no longer spawnable
 and a retired skill is no longer loadable. An operator has no file of its own, but its roster line goes
 the same way.
 
@@ -947,10 +1039,11 @@ this way can be given to a new entry; see
 
 ## How roles, skills, and items connect
 
-Roles ↔ item types is the **playbook**. It drives two things: which roles appear as sections in each
-`sq-<type>` skill, and which skills a role's pointer preloads. It is customisable:
-`.overrides/playbook.toml` reworks a type's guidance, or gives a role you defined yourself a section
-in a type's skill — see [overrides.md](overrides.md#playbook-overrides-role-guidance-per-item-type).
+Roles ↔ item types is the **playbook**. It decides which item types each role works with, and so
+which sections the role's `role_playbook` view renders and its role skill carries; it also decides
+who authors each type. It is customisable: `.overrides/playbook.toml` reworks a type's guidance, or
+gives a role you defined yourself a part in a type — see
+[overrides.md](overrides.md#playbook-overrides-role-guidance-per-item-type).
 See [workflow.md](workflow.md) for the team flow and
 [internals.md](internals.md#8-roles-and-the-playbook) for the mechanics. A role item stores its slug, its
 name and the values its verbs set, plus its base: a template role's `template` and `tech`, or a

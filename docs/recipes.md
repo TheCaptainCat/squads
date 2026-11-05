@@ -168,6 +168,43 @@ You can customize the priority axis — relabel badges, change emoji, add/remove
 custom badge collections — via `.overrides/workflow.toml`; see [workflow.md](workflow.md)
 § "Project workflow overrides".
 
+### Search the board
+
+`sq search` is for hunting a prior decision, or checking whether a topic is already tracked before
+you file it; it is not a step of every run.
+
+```bash
+sq search "lockout"                      # every item, open and closed alike
+sq search "lockout" --type feature       # only features
+sq search "lockout" --status Draft       # only items at Draft
+sq search "lockout" --type task --status InProgress   # both: a hit must match each one given
+sq search "lockout" --json               # the same results, for a script or an orchestrator
+```
+
+The match is a case-insensitive substring over every item's title, summary and body, every
+discussion comment, and each sub-entity's heading, body and discussion. `--type` and `--status`
+take the same vocabulary as `sq list` (`sq workflow types`, `sq workflow statuses`). Unlike
+`sq list`, a search hides no status: a cancelled or finished item is found too, unless `--status`
+narrows it out.
+
+Each result is one item, followed by the places the text was found, each named by its region:
+
+```
+FEAT-8 Login lockout (Draft)
+    title: Login lockout
+    story:US1:discussion#1: [2026-11-05T01:33:50Z] Catherine Manager: - Does lockout reset on success?
+    discussion#1: [2026-11-05T01:33:50Z] Catherine Manager: - Lockout scope agreed.
+```
+
+The region tells you where to read next without re-reading the whole item: `title`, `description`
+(the summary), `body`, `discussion#<n>` (the item's *n*-th comment), `<kind>:<local id>` (a
+sub-entity's heading or body, such as `story:US1`) and `<kind>:<local id>:discussion#<n>`. The
+table prints the first three places per item; `--json` carries every one. Under `--json`, each
+item carries `id`, `title`, `type`, `status` and a `hits` array of
+`{region, location, snippet, hash}`, where `hash` is the full hash of the comment a hit is in
+(ready for `comment <hash> show`) and `null` outside a discussion; the full field list is in
+[stability.md § "Search, tree and graph"](stability.md).
+
 ## Migrate a legacy ticket (preserve its date)
 
 ```bash

@@ -166,6 +166,8 @@ def _render_raw(
         for sub in _blocks(show):
             heading = f"## {sub.display.type} {sub.local_id} — {sub.title}"
             lines += ["", heading, "", _plain_state(sub), "", sub.body]
+            if comments and sub.discussion:
+                raw_discussion(lines, sub.discussion, level=3)
     if comments:
         raw_discussion(lines, show.discussion)
     print_raw(console, lines)

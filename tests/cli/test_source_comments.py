@@ -2,7 +2,6 @@
 marks their text as untrusted."""
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -42,27 +41,29 @@ def _note(number: int, text: str, user: dict[str, str]) -> dict[str, object]:
     }
 
 
-async def _host(
-    invoke, project, profile, *comments: tuple[str, dict[str, str]]
-) -> tuple[Path, str]:
-    """The third item, pulled from `platform/api#12` with one note for each of *comments* (text and
-    author), and the address of the tracker that served it."""
+async def _arrange(
+    invoke, project, profile, tracker: harness.Tracker, *comments: tuple[str, dict[str, str]]
+) -> None:
+    """Pull `platform/api#12` into the third item from *tracker*, with one note for each of
+    *comments* (text and author)."""
     assert (await invoke(["operator", "add", "Alice Tester"])).exit_code == 0
     assert (
         await invoke(["operator", "op-alice", "update", "--identities", "platform=4567"])
     ).exit_code == 0
+    route = next(r for r in tracker.routes if r["path"].endswith("/issues/12/notes"))
+    route["body"] = [_note(n, text, user) for n, (text, user) in enumerate(comments, 1)]
+    _declare(project, profile, tracker.base_url)
+    stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
+    assert stored.exit_code == 0, stored.output
+    pulled = await invoke(["source", "pull", "platform"])
+    assert pulled.exit_code == 0, pulled.output
+
+
+async def _host(invoke, project, profile, *comments: tuple[str, dict[str, str]]) -> str:
+    """The address of the tracker that served the third item, pulled with *comments*."""
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        route = next(r for r in tracker.routes if r["path"].endswith("/issues/12/notes"))
-        route["body"] = [_note(n, text, user) for n, (text, user) in enumerate(comments, 1)]
-        _declare(project, profile, tracker.base_url)
-        stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
-        assert stored.exit_code == 0, stored.output
-        pulled = await invoke(["source", "pull", "platform"])
-        assert pulled.exit_code == 0, pulled.output
-        base = tracker.base_url
-    return next(
-        project.squad_dir.joinpath(profile.ref_folder).glob(f"{profile.ref_prefix}-000003-*.md")
-    ), base
+        await _arrange(invoke, project, profile, tracker, *comments)
+        return tracker.base_url
 
 
 def _identity_of(attributes: dict[str, str]) -> dict[str, str]:
@@ -73,7 +74,7 @@ def _identity_of(attributes: dict[str, str]) -> dict[str, str]:
 async def test_json_shows_the_composed_author_with_and_without_a_matching_identity(
     project, invoke, credentials_home, profile
 ) -> None:
-    _path, base = await _host(
+    base = await _host(
         invoke, project, profile, ("From a known user.", KNOWN), ("From a visitor.", STRANGER)
     )
     noted = await invoke([profile.ref, "3", "comment", "--as", "manager", "-m", "Squad note."])
@@ -126,24 +127,27 @@ async def test_an_unmatched_author_named_like_an_operator_never_starts_with_the_
 
 
 @pytest.mark.covers("<host> comments", "--json")
-@pytest.mark.parametrize(
-    ("name", "shown"),
-    [
-        ('Jo "JD" Doe', r'"Jo \"JD\" Doe"'),
-        ("back\\slash", r'"back\\slash"'),
-        ("two\nlines\x1b", r'"two\u000alines\u001b"'),
-        ("", ""),
-    ],
-)
-async def test_an_unmatched_author_name_is_quoted_escaped_or_left_out(
-    project, invoke, credentials_home, profile, name: str, shown: str
+async def test_an_unmatched_author_name_with_a_quote_and_a_control_character_is_escaped(
+    project, invoke, credentials_home, profile
 ) -> None:
-    user = {"author_id": "77", "author_handle": "jdoe", "author_name": name}
+    user = {"author_id": "77", "author_handle": "jdoe", "author_name": 'Jo "JD"\nDoe\x1b'}
     await _host(invoke, project, profile, ("Hello.", user))
 
     comments = await read_json(invoke, [profile.ref, "3", "comments", "--json"])
 
-    assert comments[0]["author"] == " ".join(filter(None, [shown, "via platform @jdoe"]))
+    assert comments[0]["author"] == r'"Jo \"JD\"\u000aDoe\u001b" via platform @jdoe'
+
+
+@pytest.mark.covers("<host> comments", "--json")
+async def test_an_unmatched_author_with_no_name_shows_only_the_handle(
+    project, invoke, credentials_home, profile
+) -> None:
+    user = {"author_id": "77", "author_handle": "jdoe", "author_name": ""}
+    await _host(invoke, project, profile, ("Hello.", user))
+
+    comments = await read_json(invoke, [profile.ref, "3", "comments", "--json"])
+
+    assert comments[0]["author"] == "via platform @jdoe"
 
 
 @pytest.mark.covers("<host> comments")
@@ -167,7 +171,7 @@ async def test_comments_text_shows_the_composed_author_and_the_untrusted_notice(
 async def test_a_mention_in_an_untrusted_comment_reaches_the_inbox_with_the_notice(
     project, invoke, credentials_home, profile
 ) -> None:
-    _path, base = await _host(invoke, project, profile, ("Ping @manager please.", STRANGER))
+    base = await _host(invoke, project, profile, ("Ping @manager please.", STRANGER))
 
     untrusted = await read_json(invoke, ["inbox", "manager", "--json"])
     _declare(project, profile, base, "trusted = true\n")
@@ -185,15 +189,19 @@ async def test_a_mention_in_an_untrusted_comment_reaches_the_inbox_with_the_noti
 async def test_changing_only_the_attribute_line_keeps_the_comment_hash(
     project, invoke, credentials_home, profile
 ) -> None:
-    path, _base = await _host(invoke, project, profile, ("From a known user.", KNOWN))
-    before = (await read_json(invoke, [profile.ref, "3", "comments", "--json"]))[0]
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await _arrange(invoke, project, profile, tracker, ("From a known user.", KNOWN))
+        before = (await read_json(invoke, [profile.ref, "3", "comments", "--json"]))[0]
+        note = next(r for r in tracker.routes if r["path"].endswith("/issues/12/notes"))["body"][0]
+        note["author"]["name"] = "P. Chat"
+        note["updated_at"] = "2026-11-04T08:00:00Z"
+        listing = next(r for r in tracker.routes if r["path"].endswith("/platform%2Fapi/issues"))
+        listing["body"][0]["updated_at"] = "2026-11-04T08:00:00Z"
+        pulled = await invoke(["source", "pull", "platform"])
+        after = (await read_json(invoke, [profile.ref, "3", "comments", "--json"]))[0]
+        shown = await invoke([profile.ref, "3", "comment", before["short_hash"], "show"])
 
-    path.write_text(
-        path.read_text(encoding="utf-8").replace("Pierre Chat", "P. Chat"), encoding="utf-8"
-    )
-    after = (await read_json(invoke, [profile.ref, "3", "comments", "--json"]))[0]
-    shown = await invoke([profile.ref, "3", "comment", before["short_hash"], "show"])
-
+    assert pulled.exit_code == 0, pulled.output
     assert after["hash"] == before["hash"]
     assert after["attributes"]["author_name"] == "P. Chat"
     assert shown.exit_code == 0, shown.output

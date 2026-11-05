@@ -110,19 +110,43 @@ def _headed_lines(text: str) -> list[tuple[re.Match[str], str | None]]:
     ]
 
 
+def _discussion_regions(text: str) -> list[str]:
+    """The inner text of each discussion region of *text*, the item's own and the sub-entities'."""
+    spans = iter_marker_spans(text)
+    regions: list[str] = []
+    for i, (tag, _start, end) in enumerate(spans):
+        if tag != markers.DISCUSSION and not tag.endswith(f":{markers.DISCUSSION}"):
+            continue
+        close = next((s for t, s, _ in spans[i + 1 :] if t == f"{tag}:end"), None)
+        if close is not None:
+            regions.append(text[end:close])
+    return regions
+
+
 def comment_authors(text: str) -> list[str]:
-    """The author slug of every comment header in *text*, in file order."""
-    return [m.group(3) for m, _ in _headed_lines(text)]
+    """The author slug of every comment header in the discussion regions of *text*, in file order;
+    a header-shaped line in a body is not a comment."""
+    return [m.group(3) for region in _discussion_regions(text) for m, _ in _headed_lines(region)]
+
+
+#: The shape of an attribute line: indented, an HTML comment holding the tag and something after.
+_ATTRS_SHAPE_RE = re.compile(rf"^\s+<!--\s*{ATTRS_TAG}\b.*-->$")
 
 
 def malformed_attribute_comments(text: str) -> list[tuple[str, str]]:
-    """The ``(timestamp, author slug)`` of each comment whose line after the header names the
-    attribute tag without being a valid attribute line; such a line reads as comment text."""
-    return [
-        (m.group(1), m.group(3))
-        for m, after in _headed_lines(text)
-        if after is not None and ATTRS_TAG in after and parse_attributes_line(after) is None
-    ]
+    """The ``(timestamp, author slug)`` of each comment in a discussion region whose line after
+    the header has the shape of an attribute line without being a valid one; such a line reads
+    as comment text. Prose that mentions the tag, and any text outside a discussion, is not one."""
+    found: list[tuple[str, str]] = []
+    for region in _discussion_regions(text):
+        for m, after in _headed_lines(region):
+            if (
+                after is not None
+                and _ATTRS_SHAPE_RE.match(after)
+                and parse_attributes_line(after) is None
+            ):
+                found.append((m.group(1), m.group(3)))
+    return found
 
 
 def format_comment(

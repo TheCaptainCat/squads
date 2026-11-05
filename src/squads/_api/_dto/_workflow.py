@@ -253,11 +253,9 @@ class PlaybookLaneRole(DTO):
 
 
 class PlaybookLane(DTO):
-    """A type's playbook lane: its overview, lifecycle note, commands and role guidance."""
+    """A type's playbook lane: its overview and role guidance."""
 
     overview: str
-    lifecycle: str
-    commands: list[str]
     roles: list[PlaybookLaneRole]
 
 

@@ -626,8 +626,9 @@ _PLAYBOOK_SCAFFOLD_BODY = """\
 #     — coverage is DERIVED, never independently declared: dropping a type via
 #     .overrides/workflow.toml's [selected] drops its playbook coverage requirement too, with
 #     no [selected] key here (none exists for this document).
-#   - A type entry's SCALAR fields (overview, lifecycle, commands) merge field-by-field: write
-#     only the one you want to change, every other field of that entry is inherited unchanged.
+#   - A type entry's `overview` merges field-by-field: write only the field you want to change,
+#     every other field of that entry is inherited unchanged. An entry has no `lifecycle` or
+#     `commands` key; the lifecycle line comes from the workflow spec.
 #   - `roles` is a LIST, not a per-guide merge — writing it replaces the type's whole roles
 #     array. The one-line append idiom, `roles = ["$(*self)", { slug = "my-role", ... }]`,
 #     spreads the bundled array first so you keep every existing guide and ADD one — it does

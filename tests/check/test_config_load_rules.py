@@ -208,6 +208,41 @@ async def test_a_playbook_override_the_loader_refuses_is_an_error(
     )
 
 
+@pytest.mark.breaches("playbook_loads")
+async def test_a_playbook_override_that_sets_a_lifecycle_or_commands_key_is_an_error(
+    project, invoke, check_json
+) -> None:
+    write_override(project, "playbook.toml", "[types.task]\nroles = []\n")
+    assert await check_json() == ([], 0)
+
+    write_override(
+        project,
+        "playbook.toml",
+        '[types.task]\nlifecycle = "Draft"\ncommands = ["sq task"]\n[types.bug]\ncommands = []\n',
+    )
+
+    path = project.squad_dir / PLAYBOOK_OVERRIDE_FILENAME
+    assert await check_json() == (
+        [
+            issue(
+                "playbook_loads",
+                "error",
+                "playbook",
+                f"playbook config invalid: {path}: Invalid playbook:\n"
+                "  - types.task.lifecycle: 'lifecycle' is not a key of a playbook entry \u2014 "
+                "a type's lifecycle line is derived from its workflow lifecycle \u2014 delete it\n"
+                "  - types.task.commands: 'commands' is not a key of a playbook entry \u2014 "
+                "nothing renders it \u2014 delete it, or move its lines into the `do` list of the "
+                "guide whose role runs them\n"
+                "  - types.bug.commands: 'commands' is not a key of a playbook entry \u2014 "
+                "nothing renders it \u2014 delete it, or move its lines into the `do` list of the "
+                "guide whose role runs them",
+            )
+        ],
+        3,
+    )
+
+
 @pytest.mark.breaches("corpus_scans")
 async def test_a_board_item_of_a_type_the_fallback_spec_lacks_makes_the_scan_an_error(
     project, invoke, check_json

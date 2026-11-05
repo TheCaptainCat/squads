@@ -30,7 +30,9 @@ UNKNOWN_KIND = (
 )
 GENERATED_BODY_REFUSAL = (
     "error: SKILL-2's body renders through its declared sq:view:greeting_skill tag, and its "
-    "content already has one validated authoring surface: `.overrides/playbook.toml`. "
+    "content already has one validated authoring surface: its "
+    "`.overrides/templates/views/greeting_skill.md.j2` view template override "
+    "(`sq override scaffold views/greeting_skill.md.j2` creates it). "
     "{refused} is refused — `--force` does not lift this. Drop the view from `[selected]` to "
     "author this directly instead, then clear its leftover tag with `sq skill sq-greeting view "
     "disable greeting_skill`.\n"
@@ -1002,6 +1004,19 @@ async def test_the_sq_how_to_skill_names_no_per_type_skill_and_ends_with_its_doc
         "- `sq docs workflow` — lifecycles, type-command aliases and sub-entities.",
         "- `sq workflow` — this squad's own vocabulary: types, statuses, hierarchy.",
     ]
+
+
+@pytest.mark.covers("skill show", "--raw")
+async def test_the_sq_how_to_skill_does_not_repeat_the_managed_claude_md_section(
+    seeded_project, invoke
+) -> None:
+    how_to = await printed(invoke, ["skill", "sq-how-to", "show", "--raw", "--no-header"])
+    claude = (seeded_project.root / "CLAUDE.md").read_text(encoding="utf-8")
+    flat_how_to = " ".join(how_to.split())
+    sentences = re.split(r"(?<=[.!?])\s", " ".join(claude.split()))
+    repeated = [s for s in sentences if len(s) > 60 and s in flat_how_to]
+    assert repeated == []
+    assert "returns strictly less" not in how_to
 
 
 async def _greeting(invoke) -> str:

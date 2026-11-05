@@ -819,6 +819,14 @@ async def test_show_raw_no_header_prints_the_body_alone(populated_project, invok
 
 
 @pytest.mark.covers("<type> show", "--no-header")
+async def test_show_raw_no_header_keeps_the_tabs_of_the_body(populated_project, invoke) -> None:
+    number = await _create_task(invoke)
+    await _ok(invoke, [P.ref, str(number), "body", "-m", "all:\n\tgo build"])
+    output = await _ok(invoke, [P.ref, str(number), "show", "--raw", "--no-header"])
+    assert output == "all:\n\tgo build\n"
+
+
+@pytest.mark.covers("<type> show", "--no-header")
 @pytest.mark.bundled_only("the milestone is a bundled type")
 async def test_show_raw_no_header_expands_the_views_of_the_body(populated_project, invoke) -> None:
     await _milestone_with_a_target_date(invoke)
@@ -844,6 +852,21 @@ async def test_show_raw_full_comments_prints_sub_entity_state_as_plain_text(
     assert f"{heading}\n\nstatus: {P.kind_initial}; maps to: " in out
     assert out.endswith("## Discussion\n\n_(no discussion)_\n")
     assert "⚪" not in out
+
+
+@pytest.mark.covers("<type> show", "--comments")
+async def test_show_raw_full_comments_prints_the_discussion_of_a_sub_entity(
+    populated_project, invoke
+) -> None:
+    sub = f"{P.kind_prefix}1"
+    await _ok(
+        invoke, [P.ref, str(TASK), P.kind, sub, "comment", "-m", "sub note", "--as", "manager"]
+    )
+    out = await _ok(invoke, [P.ref, str(TASK), "show", "--raw", "--full", "--comments"])
+    heading = f"## {P.kind.capitalize()} {sub} — Tokenise the input"
+    section = out.split(heading)[1].split("\n## ")[0]
+    assert "### Discussion" in section
+    assert "sub note" in section
 
 
 @pytest.mark.covers("<type> show", "--raw")

@@ -33,6 +33,7 @@ browser = false
 OLD_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_14"
 SCHEMA_17_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_17"
 SCHEMA_19_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_19"
+SCHEMA_4_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_4"
 SCHEMA_19_SKILLS_SQUAD = Path(__file__).parents[1] / "fixtures" / "corpus" / "v0_19_skills"
 CHECK_HINT = "  run `sq check` to verify integrity\n"
 NO_SQUAD = "error: no .squads.toml found in this or any parent directory — run `sq init`\n"
@@ -72,10 +73,8 @@ async def test_up_brings_an_older_squad_to_the_current_schema(
     result = await invoke(["migrate", "up"])
     assert result.exit_code == 0, result.output
     lines = result.output.splitlines()
-    assert (
-        f"migrated to schema v{SCHEMA_VERSION}; index rebuilt — run `sq sync` to regenerate the "
-        "agent files (pointers, skills, CLAUDE.md/AGENTS.md sections)"
-    ) in lines
+    assert f"migrated to schema v{SCHEMA_VERSION}; index rebuilt — agent files regenerated" in lines
+    assert not any("run `sq sync`" in line for line in lines)
     listed = await invoke(["list", "--json"])
     assert listed.exit_code == 0, listed.output
     assert [i["id"] for i in json.loads(listed.output)][:6] == [
@@ -303,6 +302,8 @@ async def test_up_stamps_a_clean_0_19_squad_and_adds_only_the_playbook_tag_to_ea
     result = await invoke(["migrate", "up"])
 
     assert result.exit_code == 0, result.output
+    assert "stripped retired regions" not in result.output
+    assert "run `sq sync`" not in result.output
     assert f'schema_version = "{SCHEMA_VERSION}"' in _text(squad / ".squads.toml")
     after = _snapshot(squad)
     after.pop(".reflog.jsonl", None)
@@ -443,6 +444,8 @@ async def test_up_lists_every_skill_it_refuses_and_what_the_skill_holds(
     _edit(role_skill, "slug: sq-review\n", "slug: sq-role-manager\n")
     project = _skill_file(squad, "release-notes")
     _edit(project, "slug: release-notes\n", "slug: sq-how-to\n")
+    twin = _skill_file(squad, "sq-guide")
+    _edit(twin, "slug: sq-guide\n", "slug: sq-greeting\n")
     before = _snapshot(squad)
 
     result = await invoke(["migrate", "up"])
@@ -453,9 +456,10 @@ async def test_up_lists_every_skill_it_refuses_and_what_the_skill_holds(
         "SKILL-6: per-type skill 'sq-epic' holds a ref from ROLE-1; move it first\n"
         "SKILL-11: skill 'sq-role-manager' is named like a role skill, a name 0.20 generates\n"
         "SKILL-12: per-type skill 'sq-task' holds prose in its body; move it first\n"
+        "SKILL-8: skill 'sq-greeting' exists beside the 'greeting' skill it would replace\n"
         "SKILL-14: project skill holds the name 'sq-how-to', which 0.20 gives to the 'squads' "
         "skill\n"
-        "5 problem(s) found; fix them by hand (`sq migrate chlog v0.19.0..v0.20.0` lists the "
+        "6 problem(s) found; fix them by hand (`sq migrate chlog v0.19.0..v0.20.0` lists the "
         "steps).\n"
         "This step wrote nothing and the schema stamp is unchanged.\n"
         "The squad is still at schema v0.19: fix the cause, then re-run `sq migrate up`, "
@@ -509,6 +513,31 @@ async def test_up_removes_a_per_type_skill_whatever_its_origin_or_type(
         "SKILL-000014-release-notes.md",
     ]
     assert "sq-widget" not in {p.name for p in (squad / ".claude/skills").iterdir()}
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_brings_a_squad_made_by_release_0_4_to_the_current_skills(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_4_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in (squad / "squads/agents/skills").iterdir()) == [
+        "SKILL-000002-sq-greeting.md",
+        "SKILL-000010-sq-how-to.md",
+        "SKILL-000011-sq-memory.md",
+    ]
+    assert sorted(p.name for p in (squad / ".claude/skills").iterdir()) == [
+        "sq-greeting",
+        "sq-how-to",
+        "sq-memory",
+        "sq-role-manager",
+    ]
+    checked = await invoke(["check"])
+    assert (checked.exit_code, checked.output) == (0, "✓ no issues\n")
 
 
 @pytest.mark.covers("migrate up")
@@ -566,6 +595,28 @@ async def test_up_refuses_a_workflow_override_naming_a_type_or_alias_source_and_
     assert result.exit_code == 1
     assert "alias 'source' shadows the built-in `sq source` command" in result.output
     assert "`sq migrate chlog v0.19.0..v0.20.0`" in result.output
+    assert _snapshot(squad) == before
+
+
+@pytest.mark.covers("migrate up")
+async def test_up_refuses_a_playbook_override_setting_lifecycle_or_commands_and_writes_nothing(
+    tmp_path, monkeypatch, invoke
+) -> None:
+    squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
+    monkeypatch.chdir(squad)
+    override = squad / ".overrides" / "playbook.toml"
+    override.parent.mkdir()
+    override.write_text(
+        '[types.task]\nlifecycle = "Draft"\ncommands = ["sq task"]\n', encoding="utf-8"
+    )
+    before = _snapshot(squad)
+
+    result = await invoke(["migrate", "up"])
+
+    assert result.exit_code == 1
+    assert "types.task.lifecycle: 'lifecycle' is not a key of a playbook entry" in result.output
+    assert "types.task.commands: 'commands' is not a key of a playbook entry" in result.output
+    assert result.output.endswith("Correct the file, then re-run `sq migrate up`.\n")
     assert _snapshot(squad) == before
 
 
@@ -948,9 +999,10 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
                 ],
                 "reconciled": {"indexed": [], "missing": []},
                 "config_dropped": ["squads_version"],
-                "notice": "stripped retired regions from 4 item files — review the diff",
+                "notice": "stripped retired regions from 3 item files — review the diff",
                 "unreadable": [],
                 "manual_span": "v0.14.0..v0.20.0",
+                "agents_refreshed": True,
             }
         ),
     )

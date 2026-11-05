@@ -56,6 +56,7 @@ async def _run(invoke, args: list[str]) -> tuple[int, str]:
 
 
 @pytest.mark.covers("<type> update", "--title")
+@pytest.mark.covers("<type> update", "--<field>")
 async def test_update_refuses_the_title_and_a_mapped_field_of_a_sourced_item(
     project, invoke, credentials_home, profile
 ) -> None:

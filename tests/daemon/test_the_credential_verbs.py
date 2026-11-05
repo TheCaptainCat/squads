@@ -7,7 +7,6 @@ import sys
 
 import pytest
 
-from squads._sources import CredentialStore
 from tests._daemon_process import enable_browser
 from tests._endpoint_client import command_body, post_commands
 
@@ -17,6 +16,7 @@ SOURCE = (
     '[sources.platform.maps.types.labels]\nbug = "task"\n'
 )
 SET = ["source", "credential", "set", "platform"]
+REMOVE = ["source", "credential", "remove", "platform"]
 HEADERS = {"Content-Type": "application/json", "Squads-Client": "1"}
 
 
@@ -35,6 +35,7 @@ def test_a_hidden_answer_is_asked_for_without_echo_and_never_comes_back(
     asked = post_commands(daemon, command_body(SET)).json()
     answers = [{"digest": asked["digest"], "line": SECRET}]
     done = post_commands(daemon, command_body(SET, answers=answers))
+    removed = post_commands(daemon, command_body([*REMOVE, "--json"]))
 
     assert asked == {
         "kind": "prompt",
@@ -46,12 +47,18 @@ def test_a_hidden_answer_is_asked_for_without_echo_and_never_comes_back(
     }
     assert (done.status, done.json()["exit_code"]) == (200, 0)
     assert SECRET not in json.dumps(asked) + done.body.decode()
-    assert SECRET in CredentialStore().path().read_text(encoding="utf-8")
+    assert removed.json()["output"] == [
+        [
+            "stdout",
+            '{\n  "source": "platform",\n  "base_url": "http://127.0.0.1:9",\n'
+            '  "removed": true\n}\n',
+        ]
+    ]
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Windows has no Unix socket")
 async def test_the_browser_listener_reaches_neither_the_credential_verbs_nor_the_store(
-    project, run_daemon, credentials_home
+    project, run_daemon, credentials_home, credential_file
 ) -> None:
     _declare(project)
     enable_browser(project)
@@ -73,5 +80,5 @@ async def test_the_browser_listener_reaches_neither_the_credential_verbs_nor_the
         404,
         {"error": {"type": "not_found", "message": "no such route", "warnings": []}},
     )
-    assert not CredentialStore().path().exists()
+    assert not credential_file.exists()
     assert (served, "credential" in document.decode()) == (200, False)

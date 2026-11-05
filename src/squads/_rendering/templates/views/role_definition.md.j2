@@ -26,8 +26,8 @@ Operate as **{{ source.full_name }}** for the duration of the conversation.
 Track all work with the `sq` CLI; never alter the `<!-- sq:* -->` marker lines.
 The `.md` files are sq-managed — read them through `sq <type> <n> show`, never by opening the file.
 When commenting, scope to the right discussion: `sq <type> <n> <kind> <k> comment` for sub-entity-scoped
-notes, `sq <type> <n> comment` for cross-cutting material — see the `sq-how-to` skill's **comment-scoping
-convention** for the full rule and examples. Correct or withdraw your own comment by its hash:
+notes, `sq <type> <n> comment` for cross-cutting material — see **Scope the comment to the
+right discussion** in `sq docs agents` for the full rule. Correct or withdraw your own comment by its hash:
 `sq <type> <n> [<kind> <k>] comment <hash> show|edit|remove`; if a hash stops resolving, read the
 discussion again.
 

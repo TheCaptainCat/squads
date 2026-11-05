@@ -7,35 +7,74 @@ you're an agent reading this in a session: this is your operating manual. See
 
 ## You have a name
 
-After `sq init`/`sq adopt`, the project's `CLAUDE.md` carries a managed section that tells you:
+Every agent in a squad is one of its roles, and starts each run with that role's guidance already
+in hand. How it gets there depends on whether a person opened the conversation or another agent
+spawned it.
 
-- **Greeting → impersonation.** If the operator opens with a greeting to an agent by name
-  ("Hi Robert", "Hey Mara"), adopt that agent: load their role definition with
-  `sq role <slug> show` and act as them — refer to yourself by full name.
-- **No name → Catherine Manager** (`manager`), the default. She triages the request and routes it to
-  the right specialist.
+### The main session: `sq-greeting`
 
-Each role's Claude pointer (`.claude/agents/<slug>.md`) preloads the `squads`, `greeting` and
-`sq-memory` skills, plus the item-type skills that role manages (e.g. the product owner gets
-`sq-feature`/`sq-epic`). **Open the relevant `sq-<type>` skill** for role-directed guidance before
-you work an item of that type.
+After `sq init`/`sq adopt`, the project's `CLAUDE.md` carries a managed section with one mandatory
+instruction: before its first reply to a human, the main session invokes the `sq-greeting` skill
+and completes every step it gives. A spawned subagent never does. The skill lists the steps as
+commands the session runs itself, in this order:
 
-**Greet the human when they open a conversation.** The `greeting` skill is the start-of-session
-ritual: detect who you're talking to, register them as an operator if needed, then greet — *matching
-their tone* ("Hello Robert" → "Good morning, Alice"; "Hi Mara!" → "Hey Alice!"), saying how you
-help, and giving a quick read of the project (a sentence or a few bullets). If you've been spawned as
-a subagent for a specific job, skip the greeting and just do the work.
+1. **Identify the operator**: the logged-in user, otherwise `git config user.name`, checked against
+   `sq list -t operator --all`. A registered operator's profile is read with
+   `sq operator <slug> show --raw --no-header`; an unregistered one is asked first and registered
+   only on a yes; when it is unclear who is there, the session asks rather than guesses.
+2. **Adopt the role**: the agent the operator greets by name or by function ("Hi Robert", "talk to
+   the architect"), matched to a live role. A greeting that matches no live role means asking which
+   one. When the operator greets no agent, the session adopts the squad's default role, which the
+   skill names (Catherine Manager, `manager`, in a bundled squad; she triages the request and routes
+   it to the right specialist).
+3. **Read the role**: `sq role <slug> show --raw --no-header`.
+4. **Read the queue**: `sq mine <slug>`.
+5. **Read the mentions**: `sq inbox <slug>`.
+6. **Read the board**: `sq board list --raw`.
+7. **Read the memory**: `sq memory <slug> list --raw`, then `sq memory <slug> show <entry>` for each
+   entry the request touches.
+8. **Greet**, matching the operator's tone ("Hello Robert" → "Good morning, Alice"; "Hi Mara!" →
+   "Hey Alice!"), saying who you are and how you help, and giving one short read of the project.
+
+The skill states the steps; it runs none of them, so each one shows in the session's transcript as
+the command it is. A person introducing themselves ("it's Alice") is the operator, not a role to
+adopt: you stay the agent.
+
+**Changing the default role.** `sq role <slug> set-default` moves the designation to another live
+role and clears the previous holder. `sq-greeting` names the default when it renders, so the next
+session adopts the new one. A squad with no default role (its holder was retired, say) gets one line
+naming `sq role <slug> set-default` in its place, and the session asks the operator which role to
+adopt.
+
+On a host that reads `AGENTS.md` instead, the managed section's "Start of a run" part states the
+same steps, with the same commands.
+
+### A spawned agent: its role skill
+
+Each role's Claude Code agent file, `.claude/agents/<slug>.md`, preloads three skills:
+`sq-role-<slug>`, `sq-how-to` and `sq-memory`. The host renders a preloaded skill into the agent's
+first message, so the agent starts with:
+
+- **its role** (`sq role <slug> show --raw --no-header`): the role's definition (mission,
+  responsibilities, working agreements), then its part of the playbook for each item type it works
+  with: the type's overview, its lifecycle, and this role's own Enter, Do, Hand off and Watch for
+  guidance. No other role's guidance is in it;
+- **its memory index**, under a `## Memory` heading (`sq memory <slug> list --raw`);
+- **the board's current notices**, under a `## Board` heading (`sq board list --raw`), each with
+  its full text;
+- **how to use `sq`** (`sq-how-to`) and **its memory notebook and the board** (`sq-memory`).
+
+The agent file itself names the two commands left to run: `sq mine <slug>` and `sq inbox <slug>`.
+A role skill or `sq-how-to` that cannot be rendered (`sq` missing from the `PATH`, a squad stopped
+for a schema upgrade) leaves one line naming the command to run by hand, and the agent still starts.
+[roles.md § "The role skill"](roles.md#the-role-skill) covers what a squad can add to it.
 
 **Operators are the humans, not roles.** The people you work with are tracked as `operator` items
-(`op-<firstname>` slugs; see the "Operators (people)" roster in `CLAUDE.md`). At the start of a
-session, figure out who you're talking to (e.g. `git config user.name`), check `sq operator list`,
-and offer to register them (`sq operator add "<name>"`) — **ask if you're unsure who it is.** An
-operator's body is their profile, which `sq operator <slug> show` prints and
-`sq operator <slug> body` records (see [roles.md § "The operator profile"](roles.md#the-operator-profile)). A
-person introducing themselves identifies the operator; it does *not* mean impersonate them — you
-stay the agent. Assign manual steps or hand work to a person with `--assignee op-<slug>`, and when
-recording a human's own words (a comment, or a review point you reformulated) attribute it with
-`--as op-<slug>` (or `--author op-<slug>`).
+(`op-<firstname>` slugs; see the "Operators (people)" roster in `CLAUDE.md`). An operator's body is
+their profile, which `sq operator <slug> show` prints and `sq operator <slug> body` records (see
+[roles.md § "The operator profile"](roles.md#the-operator-profile)). Assign manual steps or hand
+work to a person with `--assignee op-<slug>`, and when recording a human's own words (a comment, or
+a review point you reformulated) attribute it with `--as op-<slug>` (or `--author op-<slug>`).
 
 ## Opening a new squad: the interview
 
@@ -156,6 +195,32 @@ parallel, or would you rather they were sequenced?
    sq task 3 ref add GUIDE-<n> --kind implements
    sq task 3 ref add BUG-<n> --kind fixes
    ```
+
+## Working directly with the operator
+
+The operator sometimes talks to you directly, for live work or debugging. The rest of the team
+sees only what reaches `sq`, never the chat, so keep the record as you go:
+
+- **Anchor the work to an item.** Read the item first with `sq <type> <n> show --full --comments`
+  (body, sub-entities and discussion: decisions often live in the comments). If the work is
+  genuinely new, create the item before you start, so what you do has an ID to hang on.
+- **Keep status honest.** Move the item to its lifecycle's first working state
+  (`sq <type> <n> status <status>`) when you actually start, not before, and move it on as the work
+  does. `sq <type> <n> show` gives the current status and `sq workflow lifecycles` the legal moves.
+  Don't leave it stale when you stop.
+- **Hand back through `sq`.** Before you wrap up, leave a comment summarising what changed:
+  `sq <type> <n> comment --as <your-slug> -m "…"`, or `--file` for anything holding a backtick or a
+  code block, since the shell substitutes an unescaped backtick in a quoted `-m` before `sq` runs.
+  `@mention` the role that acts next. That comment is how the coordinating agent, and the next
+  agent, pick up where you left off.
+- **Scope the comment to the right discussion.** A story, subtask or finding has its own
+  discussion: `sq <type> <n> <kind> <k> comment` is for a note about that one sub-entity, and
+  `sq <type> <n> comment` for anything that spans the item, including a hand-off. `sq inbox` finds
+  a mention wherever it is.
+- **Record decisions as they are made.** When the operator decides something, put it on the item
+  at once, in their name: `sq <type> <n> comment --as op-<slug> -m "…"`.
+- **Stay in lane.** File what you find out of scope as its own item (a bug, a task) and link it,
+  rather than widening the work in hand.
 
 ## Golden rules
 

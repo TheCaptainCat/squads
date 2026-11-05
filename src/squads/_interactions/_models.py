@@ -40,8 +40,6 @@ class ItemPlaybookSpec(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     overview: str
-    lifecycle: str  # human lifecycle line, e.g. "Draft → Ready → … (+ Blocked)"
-    commands: list[str]
     roles: list[RoleGuideSpec]  # ORDERED — section order in the generated skill is significant
 
 
