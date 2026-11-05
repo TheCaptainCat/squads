@@ -48,6 +48,36 @@ const STATUSES_CATALOG_FIXTURE = fixture('statuses-catalog.json');
 const ROLES_CATALOG_FIXTURE = fixture('roles-catalog.json');
 const SEARCH_FIXTURE = fixture('search.json');
 
+/** The top-level keys of `sq show --json` (`ItemShow`): the client reads only some of them, but the
+ * committed fixture must stay the whole live shape. */
+const SHOW_JSON_TOP_LEVEL_KEYS = [
+  'sequence_id',
+  'type',
+  'title',
+  'slug',
+  'status',
+  'description',
+  'parent',
+  'author',
+  'assignee',
+  'labels',
+  'refs',
+  'subentities',
+  'path',
+  'created_at',
+  'updated_at',
+  'created_session',
+  'modified_session',
+  'id',
+  'priority',
+  'body',
+  'views',
+  'discussion',
+  'badges',
+  'display',
+  'etag',
+];
+
 function stubRunner(result: ProcessResult): ProcessRunner {
   return { run: () => Promise.resolve(result) };
 }
@@ -1153,6 +1183,12 @@ describe('getShowJson', () => {
         expect(outcome.kind).toBe(kind);
       });
     }
+
+    it('the committed fixture carries exactly the top-level keys sq show --json emits', () => {
+      expect(Object.keys(JSON.parse(SHOW_JSON_FIXTURE) as object).sort()).toEqual(
+        [...SHOW_JSON_TOP_LEVEL_KEYS].sort(),
+      );
+    });
 
     it('accepts the committed older-sq payload, where no entry has an author_slug', async () => {
       const older = JSON.parse(SHOW_JSON_FIXTURE) as { discussion: Record<string, unknown>[] };

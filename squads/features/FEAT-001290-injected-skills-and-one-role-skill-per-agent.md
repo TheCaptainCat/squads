@@ -12,34 +12,34 @@ description: Pointers inject their body; each agent preloads its own role skill;
 subentities:
 - local_id: US1
   title: Skill pointers render their body at startup
-  status: Todo
+  status: Done
 - local_id: US2
   title: Each agent preloads its own sq-role skill
-  status: Todo
+  status: Done
 - local_id: US3
   title: Base skills get sq- names and lose duplicated text
-  status: Todo
+  status: Done
 - local_id: US4
   title: A migration retires per-type skills and renames two
-  status: Todo
+  status: Done
 - local_id: US5
   title: Docs and changelog for role skills and startup
-  status: Todo
+  status: Done
 - local_id: US6
   title: The main session starts from sq-greeting
-  status: Todo
+  status: Done
   assignee: product-owner
 - local_id: US7
   title: show --raw and --no-header on every item
-  status: Todo
+  status: Done
 - local_id: US8
   title: AGENTS.md gets the role bodies and startup steps
-  status: Todo
+  status: Done
 - local_id: US9
   title: Startup size is measured before and after
-  status: Todo
+  status: Done
 created_at: '2026-11-04T13:32:39Z'
-updated_at: '2026-11-05T02:55:25Z'
+updated_at: '2026-11-05T02:59:02Z'
 ---
 <!-- sq:body -->
 ## Outcome

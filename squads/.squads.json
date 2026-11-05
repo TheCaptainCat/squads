@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1306,
+  "counter": 1307,
   "padding": 6,
   "items": {
     "12": {
@@ -67956,7 +67956,7 @@
         {
           "local_id": "US1",
           "title": "Skill pointers render their body at startup",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -67965,7 +67965,7 @@
         {
           "local_id": "US2",
           "title": "Each agent preloads its own sq-role skill",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -67974,7 +67974,7 @@
         {
           "local_id": "US3",
           "title": "Base skills get sq- names and lose duplicated text",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -67983,7 +67983,7 @@
         {
           "local_id": "US4",
           "title": "A migration retires per-type skills and renames two",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -67992,7 +67992,7 @@
         {
           "local_id": "US5",
           "title": "Docs and changelog for role skills and startup",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68001,7 +68001,7 @@
         {
           "local_id": "US6",
           "title": "The main session starts from sq-greeting",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "product-owner",
           "maps_to": null,
           "deferred_to": null,
@@ -68010,7 +68010,7 @@
         {
           "local_id": "US7",
           "title": "show --raw and --no-header on every item",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68019,7 +68019,7 @@
         {
           "local_id": "US8",
           "title": "AGENTS.md gets the role bodies and startup steps",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68028,7 +68028,7 @@
         {
           "local_id": "US9",
           "title": "Startup size is measured before and after",
-          "status": "Todo",
+          "status": "Done",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68037,7 +68037,7 @@
       ],
       "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
       "created_at": "2026-11-04T13:32:39Z",
-      "updated_at": "2026-11-05T02:55:25Z",
+      "updated_at": "2026-11-05T02:59:02Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68525,7 +68525,7 @@
       ],
       "path": "tasks/TASK-001296-vs-code-preview-reads-the-raw-panel-rows.md",
       "created_at": "2026-11-04T21:46:37Z",
-      "updated_at": "2026-11-04T23:43:46Z",
+      "updated_at": "2026-11-05T03:10:11Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -69204,6 +69204,66 @@
       },
       "slug_in_file": false,
       "id": "BUG-1306"
+    },
+    "1307": {
+      "sequence_id": 1307,
+      "type": "review",
+      "title": "VS Code preview reads the raw panel rows",
+      "slug": "vs-code-preview-reads-the-raw-panel-rows",
+      "status": "ChangesRequested",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "TASK-1296"
+      ],
+      "subentities": [
+        {
+          "local_id": "F1",
+          "title": "Bullet label pattern rejects non-ASCII and punctuated labels",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F2",
+          "title": "show-json.json fixture lacks etag and no test pins its keys",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F3",
+          "title": "A multi-line row value breaks the raw metadata list (core)",
+          "status": "Open",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        }
+      ],
+      "path": "reviews/REV-001307-vs-code-preview-reads-the-raw-panel-rows.md",
+      "created_at": "2026-11-05T03:07:07Z",
+      "updated_at": "2026-11-05T03:13:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "target_ref": "fe5cda7d"
+      },
+      "slug_in_file": false,
+      "id": "REV-1307"
     }
   }
 }

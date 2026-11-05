@@ -439,11 +439,11 @@ function mermaidRenderScript(nonce: string): string {
 })();`;
 }
 
-/** A dossier's contiguous metadata bullet block (`- **label:** value`, a label of one or more words — the `--raw` contract:
+/** A dossier's contiguous metadata bullet block (`- **label:** value`, a label of any text without `*` — the `--raw` contract:
  * title, blank, bullets, blank, body verbatim). Matched only right after the title so a body
  * paragraph that happens to start with a similar-looking bullet is never mistaken for
  * metadata. */
-const DOSSIER_METADATA_BULLET = /^- \*\*[\w][\w -]*:\*\* /;
+const DOSSIER_METADATA_BULLET = /^- \*\*[^*\n]+?:\*\* /;
 
 /** The index of the first non-blank line at/after `start`. */
 function skipBlankLines(lines: readonly string[], start: number): number {
