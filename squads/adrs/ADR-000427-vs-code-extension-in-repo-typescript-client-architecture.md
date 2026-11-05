@@ -14,7 +14,7 @@ description: 'In-repo VS Code extension at clients/vscode/: isolated dev-time TS
   browse-only for 0.10; one release bundle — client built/shipped with the core at
   the unified version (VSIX as a release asset)'
 created_at: '2026-07-16T13:40:12Z'
-updated_at: '2026-10-25T21:27:16Z'
+updated_at: '2026-11-04T22:38:47Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -45,6 +45,10 @@ runs are read commands: `sq tree --json`, `sq list --json`, `sq show <id> --json
 clean-markdown dossier rendered in a read-only `squads:` virtual document), `sq search --json`,
 `sq graph --json`, `sq board list --json`, `sq memory <slug> list --json`, `sq role list --json`,
 `sq operator list --json`, and the `sq workflow` catalogs.
+
+*Related 2026-11-04, ADR-1294 §1, not narrowed:* this section names the `--raw` dossier without
+fixing its shape, and the dossier keeps the `# <id> — <title>` heading followed by its bold-key
+metadata bullets, now generated from the `show` panel's rows.
 
 The frozen shapes freeze each key's name, type, presence and meaning, not every key's value set.
 The client tolerates an unknown value in an open-set key (`edge_semantic` in `sq graph --json`,
@@ -147,4 +151,8 @@ bundle against on-disk schema, which the CLI's hard-stop guards.
   - 2026-10-16: one dated note added in section 2 for ADR-1025 (consumers tolerate unknown open-set values); nothing else in the body changed.
 - [2026-10-25T21:27:16Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale, body rewritten in the present tense; the five decisions are unchanged. Marketplace publishing is no longer deferred: publish.yml runs vsce publish when VSCE_PAT is set and always attaches the VSIX. Replaced the three FEAT-100 surfaces with the read commands the client runs (sqAdapter.ts), noted it watches but never parses .squads.json, folded the dated ADR-1007 and ADR-1025 notes into §2, and removed the 0.10 framing, the prerequisite core task and the Deferred section.
+- [2026-11-04T21:51:46Z] `architect` Robert Architect:
+  - 2026-11-04: dated note in section 2 for ADR-1294 (the --raw dossier opens with a YAML front-matter header instead of the metadata bullets); linked related.
+- [2026-11-04T22:38:47Z] `op-pierre` Pierre Chat:
+  - Ruling (2026-11-04), after FEAT-1290: the VS Code preview stops parsing the raw dossier. It builds the header from sq show --json and reads the body with show --raw --no-header (views rendered), so the client parses no text format. ADR-427 §2 is narrowed then. Until then TASK-1296 only widens the bullet label pattern.
 <!-- sq:discussion:end -->

@@ -10,6 +10,7 @@ from rich.text import Text
 
 from squads._api import (
     Column,
+    Comment,
     DeveloperList,
     DeveloperRow,
     OperatorList,
@@ -29,6 +30,8 @@ from squads._api import (
     SkillShow,
 )
 from squads._cli._render._comments import is_styled, print_comments
+from squads._cli._render._raw import print_raw, raw_discussion, raw_head
+from squads._cli._render._rows import Row, panel_text, raw_lines
 from squads._cli._render._style import e, print_body
 from squads._pronouns import named
 
@@ -132,23 +135,75 @@ def render_developer_list(listing: DeveloperList, console: Console) -> None:
 # ----------------------------------------------------------------------------- shows
 
 
-def render_role_show(show: RoleShow, console: Console, *, raw: bool, comments: bool) -> None:
-    """A role's card, then its definition and discussion, or how to activate it, then how to
-    change it."""
+def _print_raw_entry(
+    console: Console,
+    rows: list[Row],
+    body: str,
+    discussion: list[Comment] | None,
+    *,
+    no_header: bool,
+) -> None:
+    """A roster entry's raw show: its rows as a list, the body and, given *discussion*, its
+    comments. The body carries its own heading."""
+    lines = [*raw_head(rows, None, no_header=no_header), body]
+    if discussion is not None:
+        raw_discussion(lines, discussion)
+    print_raw(console, lines)
+
+
+def _role_rows(show: RoleShow) -> list[Row]:
     shown = show.display
+    name = _name(show.full_name, shown.pronouns, style="bold")
     lane = ", ".join(show.create_lane) or "— (out-of-lane creates warn)"
-    rows = [
-        f"{_name(show.full_name, shown.pronouns, style='bold').markup} (`{e(show.slug)}`)",
-        f"[bold]title:[/bold] {e(show.title)}",
-        f"[bold]origin:[/bold] {show.origin or '—'}",
-        f"[bold]model:[/bold] {e(show.model or 'inherit')}",
-        f"[bold]color:[/bold] {e(shown.color or '—')}",
-        f"[bold]can spawn:[/bold] {'yes' if show.can_spawn else 'no'}",
-        f"[bold]capabilities:[/bold] {e(', '.join(show.capabilities) or '—')}",
-        f"[bold]creates:[/bold] {e(lane)}",
-        f"[bold]skills:[/bold] {e(', '.join(show.skills) or '—')}",
+    caps = ", ".join(show.capabilities) or "—"
+    skills = ", ".join(show.skills) or "—"
+    model = show.model or "inherit"
+    color = shown.color or "—"
+    can_spawn = "yes" if show.can_spawn else "no"
+    origin = show.origin or "—"
+    return [
+        Row(
+            None,
+            f"{_name(show.full_name, shown.pronouns).plain} (`{show.slug}`)",
+            f"{name.markup} (`{e(show.slug)}`)",
+        ),
+        Row("title", show.title, e(show.title)),
+        Row("origin", origin, origin),
+        Row("model", model, e(model)),
+        Row("color", color, e(color)),
+        Row("can spawn", can_spawn, can_spawn),
+        Row("capabilities", caps, e(caps)),
+        Row("creates", lane, e(lane)),
+        Row("skills", skills, e(skills)),
     ]
-    console.print(Panel("\n".join(rows), expand=False))
+
+
+def _raw_role(show: RoleShow, console: Console, *, no_header: bool, comments: bool) -> None:
+    shown = show.display
+    if shown.body is None:
+        hint = f"(no active item for {show.slug}: run `sq role activate {show.slug}`)"
+        lines = [] if no_header else [*raw_lines(_role_rows(show)), ""]
+        print_raw(console, [*lines, hint])
+        return
+    _print_raw_entry(
+        console,
+        _role_rows(show),
+        shown.body,
+        shown.discussion if comments else None,
+        no_header=no_header,
+    )
+
+
+def render_role_show(
+    show: RoleShow, console: Console, *, raw: bool, no_header: bool = False, comments: bool
+) -> None:
+    """A role's card, then its definition and discussion, or how to activate it, then how to
+    change it; *raw* prints plain markdown instead, with *no_header* the body alone."""
+    if raw:
+        _raw_role(show, console, no_header=no_header, comments=comments)
+        return
+    shown = show.display
+    console.print(Panel(panel_text(_role_rows(show)), expand=False))
     if shown.body is not None:
         if not shown.definition_resolves:
             console.print()
@@ -176,20 +231,38 @@ def render_role_show(show: RoleShow, console: Console, *, raw: bool, comments: b
     console.print(f"[dim]{e(shown.change_hint)}[/dim]", soft_wrap=True)
 
 
-def render_skill_show(show: SkillShow, console: Console, *, raw: bool, comments: bool) -> None:
-    """A skill's panel, its body and, with *comments*, its discussion."""
+def _skill_rows(show: SkillShow) -> list[Row]:
     setter = "set by this squad" if show.operator_invocable_set else "declared default"
+    invocable = f"{'yes' if show.operator_invocable else 'no'} ({setter})"
+    origin = show.origin or "—"
     rows = [
-        f"[bold]{show.id}[/bold] {e(show.title)}",
-        f"[bold]slug:[/bold] {show.slug}",
-        f"[bold]origin:[/bold] {show.origin or '—'}",
-        f"[bold]status:[/bold] {show.status}",
-        f"[bold]operator invocable:[/bold] {'yes' if show.operator_invocable else 'no'} ({setter})",
-        f"[bold]file:[/bold] {show.path}",
+        Row(None, f"{show.id} {show.title}", f"[bold]{show.id}[/bold] {e(show.title)}"),
+        Row("slug", show.slug, show.slug),
+        Row("origin", origin, origin),
+        Row("status", show.status, show.status),
+        Row("operator invocable", invocable, invocable),
+        Row("file", show.path, show.path),
     ]
     if show.when_to_use:
-        rows.append(f"[bold]when to use:[/bold] {e(show.when_to_use)}")
-    console.print(Panel("\n".join(rows), expand=False))
+        rows.append(Row("when to use", show.when_to_use, e(show.when_to_use)))
+    return rows
+
+
+def render_skill_show(
+    show: SkillShow, console: Console, *, raw: bool, no_header: bool = False, comments: bool
+) -> None:
+    """A skill's panel, its body and, with *comments*, its discussion; *raw* prints plain
+    markdown instead, with *no_header* the body alone."""
+    if raw:
+        _print_raw_entry(
+            console,
+            _skill_rows(show),
+            show.display.body,
+            show.display.discussion if comments else None,
+            no_header=no_header,
+        )
+        return
+    console.print(Panel(panel_text(_skill_rows(show)), expand=False))
     print_body(
         console,
         show.display.body,
@@ -200,18 +273,35 @@ def render_skill_show(show: SkillShow, console: Console, *, raw: bool, comments:
         print_comments(console, show.display.discussion)
 
 
-def render_operator_show(
-    show: OperatorShow, console: Console, *, raw: bool, comments: bool
-) -> None:
-    """An operator's panel, their body and, with *comments*, their discussion."""
-    rows = [
-        _name(show.full_name, show.display.pronouns, style="bold").markup,
-        f"[bold]slug:[/bold] {e(show.slug)}",
-        f"[bold]id:[/bold] {show.id}",
-        f"[bold]status:[/bold] {show.status}",
-        f"[bold]file:[/bold] {show.path}",
+def _operator_rows(show: OperatorShow) -> list[Row]:
+    return [
+        Row(
+            None,
+            _name(show.full_name, show.display.pronouns).plain,
+            _name(show.full_name, show.display.pronouns, style="bold").markup,
+        ),
+        Row("slug", show.slug, e(show.slug)),
+        Row("id", show.id, show.id),
+        Row("status", show.status, show.status),
+        Row("file", show.path, show.path),
     ]
-    console.print(Panel("\n".join(rows), expand=False))
+
+
+def render_operator_show(
+    show: OperatorShow, console: Console, *, raw: bool, no_header: bool = False, comments: bool
+) -> None:
+    """An operator's panel, their body and, with *comments*, their discussion; *raw* prints plain
+    markdown instead, with *no_header* the body alone."""
+    if raw:
+        _print_raw_entry(
+            console,
+            _operator_rows(show),
+            show.display.body,
+            show.display.discussion if comments else None,
+            no_header=no_header,
+        )
+        return
+    console.print(Panel(panel_text(_operator_rows(show)), expand=False))
     print_body(
         console,
         show.display.body,

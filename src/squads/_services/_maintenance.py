@@ -194,7 +194,43 @@ def _converge_body_tag(
     """Converge *text*'s ``sq:body`` region onto *view_name*'s placement tag only when the
     region is empty or already just that tag — anything else is left untouched, since it might
     be an author's real prose rather than a stale rendering. A missing region is reinstated
-    first when that is safe; otherwise *text* comes back unchanged, never raising."""
+    first when that is safe; otherwise *text* comes back unchanged, never raising. A body that
+    carries *view_name*'s tag gains each companion view's tag it lacks entirely."""
+    return _place_missing_companions(
+        _converge_primary_tag(text, view_name, spec, item_type, addr),
+        view_name,
+        spec,
+        item_type,
+        addr,
+    )
+
+
+def _place_missing_companions(
+    text: str, view_name: str, spec: WorkflowSpec, item_type: str, addr: int | str
+) -> str:
+    """*text* with each companion view of *item_type* that its ``sq:body`` lacks in every state
+    placed, when the body carries *view_name*'s tag in some state; a disabled companion is left
+    as it is, and so is any body without the tag, whose prose may be an author's own."""
+    region = sections.get_section(text, markers.BODY)
+    if region is None or not view_tags.view_tag_states(region, view_name):
+        return text
+    missing = frozenset(
+        name
+        for name in views.roster_companion_view_names(item_type, spec)
+        if not view_tags.view_tag_states(region, name)
+    )
+    if not missing:
+        return text
+    new_inner = view_tags.place_view_tags(
+        region, None, seeded=missing, spec=spec, item_type=item_type, addr=addr
+    )
+    return sections.replace_section(text, markers.BODY, new_inner)
+
+
+def _converge_primary_tag(
+    text: str, view_name: str, spec: WorkflowSpec, item_type: str, addr: int | str
+) -> str:
+    """The empty-or-just-the-tag convergence of :func:`_converge_body_tag`."""
     if sections.get_section(text, markers.BODY) is None:
         reinstated = view_tags.reinstate_absent_body_region(text)
         if reinstated is None:

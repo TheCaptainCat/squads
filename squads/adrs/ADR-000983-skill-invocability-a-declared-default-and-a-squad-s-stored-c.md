@@ -17,7 +17,7 @@ refs:
 description: Where a skill's operator-invocable attribute is declared and stored,
   how it resolves, and what each backend does with it.
 created_at: '2026-10-09T18:27:22Z'
-updated_at: '2026-10-25T21:42:30Z'
+updated_at: '2026-11-04T19:43:23Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -234,4 +234,6 @@ warned, and the compiled file is byte-identical.
   - 2026-10-17: clause 5 narrowed (REV-1091 F1). The resolved pair, `operator_invocable` plus `operator_invocable_set`, is published on the skill surfaces: `sq skill <slug> show`, its `--json`, and the skill listing. The generic item rows (`sq show`, `sq list -t skill --json`) carry the stored attribute like any other attribute, absent when nothing is stored, as `pronouns` does. For @manager.
 - [2026-10-25T21:42:30Z] `architect` Robert Architect:
   - 2026-10-25 audit: partly stale passages fixed; decision unchanged. extra.operator_invocable is the top-level attribute (ADR-1007 note folded), the 2026-10-17 clause-5 narrowing folded (resolved pair on skill surfaces, stored attribute on generic rows), and the system-skill update refusal described as it is built.
+- [2026-11-04T19:43:22Z] `architect` Robert Architect:
+  - ADR-1294 narrows section 2 here: the per-type family and its shared default retire with the per-type skills; role skills are pointers with no item and are always non-invocable. Linked related, not superseded (notice 6); the in-place amendment goes in with that decision.
 <!-- sq:discussion:end -->

@@ -2,12 +2,29 @@
 
 from rich.console import Console
 
-from squads._api import NoticeList, NoticeWrite
+from squads._api import NoticeList, NoticeRow, NoticeWrite
+from squads._cli._render._raw import print_raw
 from squads._cli._render._style import e
 
 
-def render_notices(listing: NoticeList, console: Console) -> None:
-    """One numbered line per notice, with its author, time and expiry."""
+def _raw_notice(n: NoticeRow) -> list[str]:
+    """A notice as a numbered markdown item: its whole text, then its author, time and expiry."""
+    first, *rest = n.body.splitlines() or [""]
+    until = f", until {n.until}" if n.until else ""
+    return [
+        f"{n.n}. {first}",
+        *(f"   {line}".rstrip() for line in rest),
+        f"   — {n.author}, {n.posted_at}{until}",
+    ]
+
+
+def render_notices(listing: NoticeList, console: Console, *, raw: bool = False) -> None:
+    """One numbered line per notice, with its author, time and expiry; *raw* prints each as a
+    numbered markdown item with its whole text."""
+    if raw:
+        lines = [line for n in listing.items for line in _raw_notice(n)]
+        print_raw(console, lines or ["no current notices"])
+        return
     if not listing.items:
         console.print("[dim]no current notices[/dim]")
         return

@@ -87,7 +87,7 @@ def test_a_bare_name_view_tag_call_is_discovered_too() -> None:
 #: codebase has today — a mismatch below is the whole point: this dict is a completeness
 #: claim, not a convenience cache.
 CLASSIFICATIONS: dict[tuple[str, str], tuple[str, str]] = {
-    ("squads/_services/_maintenance.py", "_converge_body_tag"): (
+    ("squads/_services/_maintenance.py", "_converge_primary_tag"): (
         "gated",
         "gated at its caller, _repair_body_tag's own classifier — never invoked with a view "
         "name the active spec does not declare",

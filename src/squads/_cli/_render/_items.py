@@ -7,14 +7,13 @@ from rich.text import Text
 
 from squads._api import ItemList, ItemRow, ItemShow, MineRow, Subentity
 from squads._cli._render._comments import (
-    author_label,
     comment_title,
-    edited_suffix,
     is_styled,
-    notice_lines,
     print_comments_plain,
     print_comments_styled,
 )
+from squads._cli._render._raw import print_raw, raw_discussion, raw_head
+from squads._cli._render._rows import Row, panel_text
 from squads._cli._render._style import cell_text, e, print_body, status_text
 from squads._models import split_ref
 
@@ -26,38 +25,45 @@ def _refs_line(refs: list[str]) -> str:
     return ", ".join(rid if not kind else f"{rid} ({kind})" for rid, kind in map(split_ref, refs))
 
 
-def _panel_rows(show: ItemShow) -> list[str]:
+def _rows(show: ItemShow) -> list[Row]:
+    """The rows of an item's metadata, in the order the panel prints them. The heading of a raw
+    show carries the id and title, so those two rows are panel-only and the type row raw-only."""
     rows = [
-        f"[bold]{show.id}[/bold]  ({show.type})",
-        f"[bold]title:[/bold] {e(show.title)}",
-        f"[bold]status:[/bold] {show.status}",
+        Row("type", show.type, show.type, panel=False),
+        Row(None, f"{show.id} ({show.type})", f"[bold]{show.id}[/bold]  ({show.type})", raw=False),
+        Row("title", show.title, e(show.title), raw=False),
+        Row("status", show.status, show.status),
     ]
-    rows += [f"[bold]{code}:[/bold] {e(b.badge)}" for code, b in show.display.badges.items()]
-    rows += [f"[bold]{e(a.label)}:[/bold] {e(a.value)}" for a in show.display.attributes]
+    rows += [Row(code, show.badges[code], e(b.badge)) for code, b in show.display.badges.items()]
+    rows += [Row(a.label, a.value, e(a.value)) for a in show.display.attributes]
     if show.description:
-        rows.append(f"[bold]summary:[/bold] {e(show.description)}")
+        rows.append(Row("summary", show.description, e(show.description)))
     if show.parent:
-        rows.append(f"[bold]parent:[/bold] {show.parent}")
+        rows.append(Row("parent", show.parent, show.parent))
     if show.author:
-        author = f"[bold]author:[/bold] {e(show.author)}"
+        suffix = ""
         if show.created_session:
-            author += (
+            suffix = (
                 f" [dim]@ {e(show.created_session)}[/dim]"
                 " [dim](best-effort session, untrusted)[/dim]"
             )
-        rows.append(author)
+        rows.append(Row("author", show.author, e(show.author) + suffix))
     if show.modified_session:
         rows.append(
-            f"[bold]last-modified session:[/bold] [dim]{e(show.modified_session)}[/dim]"
-            " [dim](best-effort, untrusted)[/dim]"
+            Row(
+                "last-modified session",
+                show.modified_session,
+                f"[dim]{e(show.modified_session)}[/dim] [dim](best-effort, untrusted)[/dim]",
+                raw=False,
+            )
         )
     if show.assignee:
-        rows.append(f"[bold]assignee:[/bold] {e(show.assignee)}")
+        rows.append(Row("assignee", show.assignee, e(show.assignee)))
     if show.labels:
-        rows.append(f"[bold]labels:[/bold] {e(', '.join(show.labels))}")
+        rows.append(Row("labels", ", ".join(show.labels), e(", ".join(show.labels))))
     if show.refs:
-        rows.append(f"[bold]refs:[/bold] {e(_refs_line(show.refs))}")
-    rows.append(f"[bold]file:[/bold] {show.path}")
+        rows.append(Row("refs", _refs_line(show.refs), e(_refs_line(show.refs))))
+    rows.append(Row("file", show.path, show.path))
     return rows
 
 
@@ -130,49 +136,57 @@ def _print_discussion(console: Console, show: ItemShow, *, styled: bool) -> None
         print_comments_plain(console, show.discussion)
 
 
-def _raw_metadata(show: ItemShow) -> list[str]:
-    lines = [f"- **status:** {show.status}"]
-    lines += [f"- **{code}:** {b.badge}" for code, b in show.display.badges.items()]
-    lines += [f"- **{a.label}:** {a.value}" for a in show.display.attributes]
-    if show.assignee:
-        lines.append(f"- **assignee:** {show.assignee}")
-    if show.parent:
-        lines.append(f"- **parent:** {show.parent}")
-    if show.author:
-        lines.append(f"- **author:** {show.author}")
-    if show.refs:
-        lines.append(f"- **refs:** {_refs_line(show.refs)}")
-    if show.labels:
-        lines.append(f"- **labels:** {', '.join(show.labels)}")
-    return lines
+def _plain_state(sub: Subentity) -> str:
+    """A sub-entity's state as plain text: status, each badge field, assignee, mapped
+    sub-entity and the item that carries its deferred work."""
+    shown = sub.display
+    parts = [f"status: {sub.status}"]
+    parts += [f"{shown.badges[code].label}: {value}" for code, value in sub.badges.items()]
+    if sub.assignee:
+        parts.append(f"assignee: {sub.assignee}")
+    if shown.maps_to:
+        parts.append(f"maps to: {shown.maps_to}")
+    if sub.deferred_to:
+        carrier = f" — {shown.carrier_title}" if shown.carrier_title else ""
+        parts.append(f"deferred to: {sub.deferred_to}{carrier}")
+    return "; ".join(parts)
 
 
-def _render_raw(console: Console, show: ItemShow, *, comments: bool, full: bool) -> None:
-    """The markdown dossier: heading, metadata bullets and the body, then optionally one section
-    per sub-entity and the discussion, printed with no markup."""
-    lines = [f"# {show.id} — {show.title}", "", *_raw_metadata(show), "", show.display.body]
+def _render_raw(
+    console: Console, show: ItemShow, *, no_header: bool, comments: bool, full: bool
+) -> None:
+    """The markdown dossier: the heading, the metadata list and the body, then optionally one
+    section per sub-entity and the discussion; built whole and written once."""
+    lines = [
+        *raw_head(_rows(show), f"{show.id} — {show.title}", no_header=no_header),
+        show.display.body,
+    ]
     summary = show.display.summary
     if full and summary is not None:
         for sub in _blocks(show):
             heading = f"## {sub.display.type} {sub.local_id} — {sub.title}"
-            lines += ["", heading, "", _badge_line(sub), "", sub.body]
+            lines += ["", heading, "", _plain_state(sub), "", sub.body]
     if comments:
-        lines += ["", "## Discussion"]
-        for cmt in show.discussion:
-            head = f"### {cmt.short_hash} {author_label(cmt)} — {cmt.ts}{edited_suffix(cmt)}"
-            lines += ["", head, "", *(f"_{n}_" for n in notice_lines(cmt)), cmt.body]
-        if not show.discussion:
-            lines += ["", "_(no discussion)_"]
-    console.print("\n".join(lines), markup=False, highlight=False, soft_wrap=True)
+        raw_discussion(lines, show.discussion)
+    print_raw(console, lines)
 
 
-def render_show(show: ItemShow, console: Console, *, raw: bool, comments: bool, full: bool) -> None:
+def render_show(
+    show: ItemShow,
+    console: Console,
+    *,
+    raw: bool,
+    no_header: bool = False,
+    comments: bool,
+    full: bool,
+) -> None:
     """An item's panel and body, its sub-entity summary, and with *full* one pane per
-    sub-entity and with *comments* its discussion; *raw* prints a markdown dossier instead."""
+    sub-entity and with *comments* its discussion; *raw* prints a markdown dossier instead, with
+    *no_header* the body alone."""
     if raw:
-        _render_raw(console, show, comments=comments, full=full)
+        _render_raw(console, show, no_header=no_header, comments=comments, full=full)
         return
-    console.print(Panel("\n".join(_panel_rows(show)), expand=False))
+    console.print(Panel(panel_text(_rows(show)), expand=False))
     styled = is_styled(console)
     print_body(console, show.display.body, styled=styled, empty_hint=_EMPTY_BODY)
     _print_summary(console, show)

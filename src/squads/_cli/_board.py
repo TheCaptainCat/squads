@@ -2,7 +2,7 @@
 
 Grammar:
   sq board post -m "<notice>" [--until date] [--as <slug>]  — post a notice
-  sq board list [--json]                                    — current (unexpired) notices
+  sq board list [--json] [--raw]                            — current (unexpired) notices
   sq board clear <n>                                        — take the n-th listed notice down
 
 Unlike `sq memory <role> ...`, the board is team-scoped: no role subject, one shared board. A
@@ -57,6 +57,7 @@ def list_notices(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per notice."
     ),
+    raw: bool = common.raw_option(),
 ) -> None:
     """List the notices that have not expired, numbered for `sq board clear`.
 
@@ -67,7 +68,7 @@ def list_notices(
         calls.print_json(ops.BOARD_LIST, response)
     else:
         calls.print_warnings(response)
-        render_notices(response.data, console)
+        render_notices(response.data, console, raw=raw)
     calls.finish(response, json_out=json_out)
 
 

@@ -1,7 +1,7 @@
 """`sq memory <role> ...` — a role's committed notebook of small, agent-authored facts.
 
 Grammar:
-  sq memory <role> list                     — print the index (one line per memory)
+  sq memory <role> list [--json] [--raw]    — print the index (one line per memory)
   sq memory <role> search <query>           — memories whose content matches
   sq memory <role> show <slug>              — full body of one memory
   sq memory <role> add "<fact>" [--file f] [--slug s]  — jot a new memory
@@ -64,6 +64,7 @@ def list_memories(
     json_out: bool = typer.Option(
         False, "--json", help="Print a JSON array, one object per memory."
     ),
+    raw: bool = common.raw_option(),
 ) -> None:
     """List the role's memories, one line each: slug and summary.
 
@@ -74,7 +75,7 @@ def list_memories(
         calls.print_json(ops.MEMORY_LIST, response)
     else:
         calls.print_warnings(response)
-        render_memories(response.data, console)
+        render_memories(response.data, console, raw=raw)
     calls.finish(response, json_out=json_out)
 
 

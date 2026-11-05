@@ -331,6 +331,7 @@ def _cmd_show(item: typer.Typer) -> None:
         ctx: typer.Context,
         json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
         raw: bool = common.raw_option(),
+        no_header: bool = common.no_header_option(),
         comments: bool = typer.Option(
             False, "--comments", help="Append the discussion as comment panes."
         ),
@@ -344,6 +345,7 @@ def _cmd_show(item: typer.Typer) -> None:
         ),
     ):
         """Show the item's metadata, body, sub-entity summary, and optional panes."""
+        common.require_raw_for_no_header(raw=raw, no_header=no_header)
         if refresh:
             refreshed = calls.call(ops.SOURCE_REFRESH, SourceRefreshRequest(**_address(ctx)))
             calls.print_warnings(refreshed)
@@ -354,7 +356,9 @@ def _cmd_show(item: typer.Typer) -> None:
             calls.print_json(ops.ITEM_SHOW, response)
         else:
             calls.print_warnings(response)
-            render_show(response.data, console, raw=raw, comments=comments, full=full)
+            render_show(
+                response.data, console, raw=raw, no_header=no_header, comments=comments, full=full
+            )
         calls.finish(response, json_out=json_out)
 
 

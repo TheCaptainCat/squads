@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 
 from tests.cli._output import read_json
-from tests.cli._roster import usage_error
+from tests.cli._roster import forced_colour, usage_error
 
 pytestmark = pytest.mark.anyio
 
@@ -166,6 +166,38 @@ async def test_list_prints_one_numbered_line_per_notice(project, invoke) -> None
         f"1. First  (manager @ {EARLIER})\n"
         f"2. Second  (manager @ {STAMP})  until 2999-01-01T00:00:00Z\n",
     )
+
+
+@pytest.mark.covers("board list", "--raw")
+async def test_list_raw_numbers_each_notice_with_its_text_author_time_and_expiry(
+    project, invoke, monkeypatch
+) -> None:
+    await _post(invoke, "-m", "First", "-m", "A second paragraph", at=EARLIER)
+    await _post(invoke, "-m", "Second", "--until", "2999-01-01")
+    forced_colour(monkeypatch)
+    result = await invoke(["board", "list", "--raw"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "1. First\n\n   A second paragraph\n"
+        f"   — manager, {EARLIER}\n"
+        f"2. Second\n   — manager, {STAMP}, until 2999-01-01T00:00:00Z\n",
+    )
+
+
+@pytest.mark.covers("board list", "--raw")
+async def test_list_raw_numbers_match_the_ones_clear_takes(project, invoke) -> None:
+    await _post(invoke, "-m", "First", at=EARLIER)
+    await _post(invoke, "-m", "Second")
+    await _post(invoke, "-m", "Third")
+    await invoke(["board", "clear", "2"])
+    result = await invoke(["board", "list", "--raw"])
+    assert result.output == f"1. First\n   — manager, {EARLIER}\n2. Third\n   — manager, {STAMP}\n"
+
+
+@pytest.mark.covers("board list", "--raw")
+async def test_list_raw_without_a_notice_prints_one_line(project, invoke) -> None:
+    result = await invoke(["board", "list", "--raw"])
+    assert (result.exit_code, result.output) == (0, "no current notices\n")
 
 
 # ----------------------------------------------------------------------------------- clear

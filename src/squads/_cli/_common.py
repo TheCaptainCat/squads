@@ -596,7 +596,23 @@ def force_transition_option(help: str = _FORCE_TRANSITION_HELP) -> Any:
 
 
 def raw_option() -> Any:
-    return typer.Option(False, "--raw", help="Print plain text instead of rendered markdown.")
+    return typer.Option(
+        False,
+        "--raw",
+        help="Print plain markdown, the panel's rows as a list: no panel, colour or wrapping.",
+    )
+
+
+def no_header_option() -> Any:
+    return typer.Option(
+        False, "--no-header", help="With --raw, print the body alone, without header or heading."
+    )
+
+
+def require_raw_for_no_header(*, raw: bool, no_header: bool) -> None:
+    """Refuse ``--no-header`` without ``--raw``."""
+    if no_header and not raw:
+        raise SquadsError("--no-header is valid only with --raw")
 
 
 def desc_option(default: str | None = "") -> Any:

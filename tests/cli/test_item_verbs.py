@@ -13,10 +13,12 @@ from typing import Any
 
 import pytest
 
+from squads import __version__
 from tests import _stored_view as stored
 from tests._populated import FEATURE, REVIEW, TASK
 from tests._profile import selected
 from tests.cli._output import unknown_option
+from tests.cli._roster import forced_colour
 
 P = selected()
 
@@ -760,9 +762,11 @@ async def test_show_raw_prints_a_declared_attribute_under_its_label(
     assert raw.splitlines() == [
         "# MILE-5 — Beta",
         "",
+        "- **type:** milestone",
         "- **status:** Draft",
         "- **target date:** 2026-12-01",
         "- **author:** manager",
+        "- **file:** milestones/MILE-000005-beta.md",
         "",
         *(MILESTONE_SCOPE + MILESTONE_ROLLUP).splitlines(),
     ]
@@ -773,10 +777,127 @@ async def test_show_raw_prints_plain_markdown(populated_project, invoke) -> None
     out = await _ran(invoke, [P.ref, str(TASK), "show", "--raw"])
     assert out == (
         0,
-        f"# {P.ref_prefix}-3 — Build the query parser\n\n"
-        f"- **status:** Draft\n- **parent:** {P.host_prefix}-2\n- **author:** manager\n\n"
+        f"# {P.ref_prefix}-3 — Build the query parser\n\n- **type:** {P.ref}\n"
+        f"- **status:** Draft\n- **parent:** {P.host_prefix}-2\n- **author:** manager\n"
+        f"- **file:** {TASK_PATH}\n\n"
         f"## Description\n\n_TODO: describe this {P.ref}._\n",
     )
+
+
+@pytest.mark.covers("<type> show", "--raw")
+async def test_show_raw_is_never_coloured_or_wrapped(
+    populated_project, invoke, monkeypatch
+) -> None:
+    forced_colour(monkeypatch)
+    output = await _ok(invoke, [P.ref, str(TASK), "show", "--raw"])
+    assert "\x1b" not in output
+    assert f"- **file:** {TASK_PATH}\n" in output
+    assert max(len(line) for line in output.splitlines()) > 40
+
+
+@pytest.mark.covers("<type> show", "--raw")
+async def test_show_raw_leaves_the_session_rows_to_the_styled_panel(
+    populated_project, invoke, monkeypatch
+) -> None:
+    monkeypatch.setenv("SQUADS_SESSION_ID", "session-under-test")
+    args = ["create", P.ref, "Seen", "--author", "manager", *P.parent_args(P.ref), "--json"]
+    seen = json.loads(await _ok(invoke, args))["id"]
+    number = seen.rpartition("-")[2]
+    await _ok(invoke, [P.ref, number, "status", "Ready"])
+    panel = await _ok(invoke, [P.ref, number, "show"])
+    raw = await _ok(invoke, [P.ref, number, "show", "--raw"])
+    assert "last-modified session: session-under-test" in " ".join(panel.split())
+    assert "@ session-under-test" in panel
+    assert "session" not in raw
+
+
+@pytest.mark.covers("<type> show", "--no-header")
+async def test_show_raw_no_header_prints_the_body_alone(populated_project, invoke) -> None:
+    body = (await _show(invoke))["body"]
+    output = await _ok(invoke, [P.ref, str(TASK), "show", "--raw", "--no-header"])
+    assert output == body + "\n"
+
+
+@pytest.mark.covers("<type> show", "--no-header")
+@pytest.mark.bundled_only("the milestone is a bundled type")
+async def test_show_raw_no_header_expands_the_views_of_the_body(populated_project, invoke) -> None:
+    await _milestone_with_a_target_date(invoke)
+    output = await _ok(invoke, ["milestone", str(MILESTONE), "show", "--raw", "--no-header"])
+    assert output == MILESTONE_SCOPE + MILESTONE_ROLLUP + "\n"
+
+
+@pytest.mark.covers("<type> show", "--no-header")
+async def test_show_no_header_without_raw_is_refused_before_anything_is_printed(
+    populated_project, invoke
+) -> None:
+    result = await invoke([P.ref, str(TASK), "show", "--no-header"])
+    assert (result.exit_code, result.output) == (1, "error: --no-header is valid only with --raw\n")
+
+
+@pytest.mark.covers("<type> show", "--full")
+@pytest.mark.covers("<type> show", "--comments")
+async def test_show_raw_full_comments_prints_sub_entity_state_as_plain_text(
+    populated_project, invoke
+) -> None:
+    out = await _ok(invoke, [P.ref, str(TASK), "show", "--raw", "--full", "--comments"])
+    heading = f"## {P.kind.capitalize()} {P.kind_prefix}1 — Tokenise the input"
+    assert f"{heading}\n\nstatus: {P.kind_initial}; maps to: " in out
+    assert out.endswith("## Discussion\n\n_(no discussion)_\n")
+    assert "⚪" not in out
+
+
+@pytest.mark.covers("<type> show", "--raw")
+async def test_show_raw_of_an_unknown_item_prints_nothing_but_the_error(
+    populated_project, invoke
+) -> None:
+    result = await invoke([P.ref, "99", "show", "--raw"])
+    assert result.exit_code == 1
+    assert result.stdout == ""
+    assert len(result.stderr.splitlines()) == 1
+
+
+def _failing_rollup_line() -> str:
+    command = f"sq workflow view milestone_rollup MILE-{MILESTONE}"
+    return f"The `milestone_rollup` view could not be rendered; run `{command}` to see why."
+
+
+@pytest.mark.covers("<type> show", "--no-header")
+@pytest.mark.bundled_only("the failing view is the bundled milestone's roll-up")
+async def test_a_view_whose_template_fails_leaves_one_line_naming_the_command(
+    populated_project, invoke
+) -> None:
+    await _milestone_with_a_target_date(invoke)
+    templates = populated_project.squad_dir / ".overrides" / "templates" / "views"
+    templates.mkdir(parents=True)
+    (templates / "milestone_rollup.md.j2").write_text("{{ nothing.here }}", encoding="utf-8")
+    result = await invoke(["milestone", str(MILESTONE), "show", "--raw", "--no-header"])
+    assert (result.exit_code, result.stdout) == (
+        0,
+        MILESTONE_SCOPE + _failing_rollup_line() + "\n",
+    )
+    assert "failed to render" in result.stderr
+
+
+@pytest.mark.covers("<type> show")
+@pytest.mark.bundled_only("the failing view is the bundled milestone's roll-up")
+async def test_a_view_whose_transform_raises_leaves_the_same_line_in_the_styled_show(
+    populated_project, invoke
+) -> None:
+    await _milestone_with_a_target_date(invoke)
+    overrides = populated_project.squad_dir / ".overrides"
+    (overrides / "transforms").mkdir(parents=True)
+    (overrides / "transforms" / "boom.py").write_text(
+        "def boom(source):\n    raise ValueError('no data')\n", encoding="utf-8"
+    )
+    (overrides / "workflow.toml").write_text(
+        f"# squads:override-base:{__version__}\n\n[views.milestone_rollup]\n"
+        'transform = { path = "transforms/boom.py", function = "boom" }\n',
+        encoding="utf-8",
+    )
+    result = await invoke(["milestone", str(MILESTONE), "show"])
+    assert result.exit_code == 0, result.output
+    assert _failing_rollup_line() in " ".join(result.stdout.split())
+    assert "Scope boundary" in result.stdout
 
 
 @pytest.mark.covers("<type> show", "--full")

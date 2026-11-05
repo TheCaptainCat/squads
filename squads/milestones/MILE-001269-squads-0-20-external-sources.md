@@ -3,7 +3,7 @@ id: MILE-1269
 sequence_id: 1269
 type: milestone
 title: squads 0.20 - external sources
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - MILE-1241:depends-on
@@ -11,7 +11,7 @@ refs:
 description: Pull issues from GitLab, GitHub and Jira into the squad, with a schema
   migration
 created_at: '2026-11-03T15:57:06Z'
-updated_at: '2026-11-03T15:57:06Z'
+updated_at: '2026-11-04T19:08:42Z'
 ---
 <!-- sq:body -->
 The external sources release: a squad pulls the issues humans file on GitLab, GitHub and Jira and agents work them through `sq`. The linked epic carries the outcome and the framing. A new core `source` key on items and a `map` attribute kind make this a schema release, with a migration for existing squads.
@@ -35,4 +35,6 @@ Membership works through incoming `targets` refs; the roll-up below inverts them
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-04T19:08:42Z] `manager` Catherine Manager:
+  - InProgress since the external sources work started on 2026-11-03; the status trailed the work. Remaining for 0.20: FEAT-1290 (injected skills), TASK-1293 (live Jira check) when an instance is available, and the release itself.
 <!-- sq:discussion:end -->

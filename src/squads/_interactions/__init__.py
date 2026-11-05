@@ -46,6 +46,7 @@ from squads._interactions._role_guidance import item_skill_role_sections as item
 from squads._interactions._role_guidance import item_types_for_role as item_types_for_role
 from squads._interactions._role_guidance import laned_types as laned_types
 from squads._interactions._role_guidance import live_roster_text as live_roster_text
+from squads._interactions._role_guidance import role_playbook_sections as role_playbook_sections
 from squads._interactions._role_guidance import skills_for_role as skills_for_role
 from squads._interactions._role_guidance import slug_only_role as slug_only_role
 from squads._interactions._skills import GREETING_SKILL as GREETING_SKILL
@@ -66,5 +67,7 @@ from squads._interactions._skills import item_type_for_skill_slug as item_type_f
 from squads._interactions._skills import orphaned_skill_item_type as orphaned_skill_item_type
 from squads._interactions._skills import resolve_operator_invocable as resolve_operator_invocable
 from squads._interactions._skills import role_origin as role_origin
+from squads._interactions._skills import role_skill_name as role_skill_name
+from squads._interactions._skills import role_slug_of_skill as role_slug_of_skill
 from squads._interactions._skills import skill_description as skill_description
 from squads._interactions._skills import skill_origin as skill_origin

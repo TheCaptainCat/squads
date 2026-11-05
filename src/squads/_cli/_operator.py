@@ -136,18 +136,20 @@ def _resolve_addr(
 def operator_show(
     ctx: typer.Context,
     raw: bool = common.raw_option(),
+    no_header: bool = common.no_header_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the operator."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
     ),
 ) -> None:
     """Show an operator's metadata panel and body."""
+    common.require_raw_for_no_header(raw=raw, no_header=no_header)
     response = calls.call(ops.OPERATOR_SHOW, RosterAddress(addr=address_of(ctx)))
     if json_out:
         calls.print_json(ops.OPERATOR_SHOW, response)
         return
     calls.print_warnings(response)
-    render_operator_show(response.data, console, raw=raw, comments=comments)
+    render_operator_show(response.data, console, raw=raw, no_header=no_header, comments=comments)
 
 
 @_addr.command("update", cls=field_options.update_command_cls("operator"))

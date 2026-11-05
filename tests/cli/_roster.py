@@ -27,6 +27,49 @@ async def actors_of(invoke, item_id: str, op: str) -> list[str]:
     return [entry["actor"] for entry in entries]
 
 
+def panel_rows(output: str) -> list[str]:
+    """The rows a styled show prints inside its panel, one string per row."""
+    return [line.strip("│ ") for line in output.splitlines() if line.startswith("│")]
+
+
+def as_bullets(rows: list[str], *, unlabelled_first: bool) -> str:
+    """Panel *rows* as the list `--raw` prints: ``- **label:** value``, with a plain first bullet
+    when the first row has no label."""
+    bullets = []
+    for number, row in enumerate(rows):
+        if unlabelled_first and number == 0:
+            bullets.append(f"- {row}")
+            continue
+        label, _, value = row.partition(": ")
+        bullets.append(f"- **{label}:** {value}")
+    return "\n".join(bullets)
+
+
+async def raw_forms(invoke, monkeypatch, argv: list[str]) -> tuple[str, str, str]:
+    """A roster entry's panel rows as the list `--raw` should print, its `--raw` output and its
+    `--raw --no-header` output, the last two with a forced colour and a narrow width."""
+    expected = as_bullets(panel_rows(await _printed(invoke, argv)), unlabelled_first=True)
+    forced_colour(monkeypatch)
+    return (
+        expected,
+        await _printed(invoke, [*argv, "--raw"]),
+        await _printed(invoke, [*argv, "--raw", "--no-header"]),
+    )
+
+
+async def _printed(invoke, argv: list[str]) -> str:
+    result = await invoke(argv)
+    assert result.exit_code == 0, result.output
+    return result.output
+
+
+def forced_colour(monkeypatch) -> None:
+    """Make the invocation's console a coloured terminal 40 columns wide, as `FORCE_COLOR` does."""
+    monkeypatch.setenv("FORCE_COLOR", "3")
+    monkeypatch.setenv("TTY_COMPATIBLE", "1")
+    monkeypatch.setenv("COLUMNS", "40")
+
+
 def forced_terminal(monkeypatch) -> None:
     """Make the invocation's console behave as a terminal without colour, so rendering that a pipe
     skips (markdown bodies) runs."""

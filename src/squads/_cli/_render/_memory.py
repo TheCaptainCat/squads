@@ -4,11 +4,19 @@ forgotten."""
 from rich.console import Console
 
 from squads._api import Memory, MemoryAdded, MemoryForgotten, MemoryList, MemorySearch
+from squads._cli._render._raw import print_raw
 from squads._cli._render._style import e
 
 
-def render_memories(listing: MemoryList, console: Console) -> None:
-    """One line per memory: its slug and summary."""
+def render_memories(listing: MemoryList, console: Console, *, raw: bool = False) -> None:
+    """One line per memory: its slug and summary; *raw* prints one markdown bullet each."""
+    if raw:
+        print_raw(
+            console,
+            [f"- `{m.slug}`: {m.description}" for m in listing.items]
+            or [f"no memories for {listing.role}"],
+        )
+        return
     if not listing.items:
         console.print(f"[dim]no memories for {e(listing.role)}[/dim]")
         return

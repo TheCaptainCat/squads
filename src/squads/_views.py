@@ -642,6 +642,10 @@ ITEM_SKILL_VIEW_NAME = "item_skill"
 #: ``[views.role_definition]`` in ``_specs/workflow.toml``, which all three writers agree with.
 ROLE_DEFINITION_VIEW_NAME = "role_definition"
 
+#: The view that follows a role's definition in its body: the playbook sections for the item types
+#: the role works with. A role can disable it; the definition it follows it cannot.
+ROLE_PLAYBOOK_VIEW_NAME = "role_playbook"
+
 
 def roster_body_view_name(item_type: str, slug: str, spec: WorkflowSpec) -> str | None:
     """The view name a role's or skill's own ``sq:body`` region is classified as carrying, from
@@ -658,6 +662,14 @@ def roster_body_view_name(item_type: str, slug: str, spec: WorkflowSpec) -> str 
             return ITEM_SKILL_VIEW_NAME if ITEM_SKILL_VIEW_NAME in spec.views else None
         return None
     return None
+
+
+def roster_companion_view_names(item_type: str, spec: WorkflowSpec) -> frozenset[str]:
+    """The declared views a role's body carries beside its classified one, each free to disable
+    or re-enable; none for any other type."""
+    if item_type == ROSTER_ROLE and ROLE_PLAYBOOK_VIEW_NAME in spec.views:
+        return frozenset({ROLE_PLAYBOOK_VIEW_NAME})
+    return frozenset()
 
 
 def skill_authoring_surface(
@@ -684,13 +696,14 @@ def seeded_view_names(
     item_type: str, slug: str, spec: WorkflowSpec, *, from_squad: Path | None
 ) -> frozenset[str]:
     """The view name(s) a document of *item_type* named *slug* is seeded with, gated on the
-    view still being declared — :func:`roster_body_view_name` for a role or skill,
-    :func:`template_seeded_view_names` for every other type. Type and slug only, never the
-    host's content, so the file checks can call this before frontmatter ever parses."""
+    view still being declared — :func:`roster_body_view_name` (and, for a role,
+    :func:`roster_companion_view_names`) for a role or skill, :func:`template_seeded_view_names`
+    for every other type. Type and slug only, never the host's content, so the file checks can
+    call this before frontmatter ever parses."""
     if item_type in (ROSTER_ROLE, ROSTER_SKILL):
-        return frozenset(
-            n for n in (roster_body_view_name(item_type, slug, spec),) if n is not None
-        )
+        classified = roster_body_view_name(item_type, slug, spec)
+        own = frozenset[str]() if classified is None else frozenset({classified})
+        return roster_companion_view_names(item_type, spec) | own
     return frozenset(
         n
         for n in template_seeded_view_names(item_type, spec, from_squad=from_squad)
@@ -714,7 +727,7 @@ def view_data(  # noqa: PLR0913 — the squad context a non-relation kind reads
     instead: its unescaped stored body and the transform's output, ``None`` without one. Gated by
     :func:`resolve_view_target` exactly as :func:`expand_view_tags` is, so text and data agree on
     which tags are live; a disabled, unresolvable or transform-less, non-stored tag contributes
-    nothing."""
+    nothing, and neither does a view whose source or transform fails."""
     loader = TransformLoader(squad_dir)
     data: dict[str, TransformData] = {}
     pair_at = {pair.start: pair for pair in find_view_pairs(text)}
@@ -732,18 +745,37 @@ def view_data(  # noqa: PLR0913 — the squad context a non-relation kind reads
             continue
         pair = pair_at.get(start)
         body = pair.body if pair is not None and view.stored else ""
-        result = resolve_source(
-            view, parts.name, item, db, spec, playbook, roster, squad_dir, catalog, described, body
-        )
-        out = (
-            loader.run(parts.name, view.transform, result, item=item, spec=spec, body=body)
-            if view.transform is not None
-            else None
-        )
+        try:
+            result = resolve_source(
+                view,
+                parts.name,
+                item,
+                db,
+                spec,
+                playbook,
+                roster,
+                squad_dir,
+                catalog,
+                described,
+                body,
+            )
+            out = (
+                loader.run(parts.name, view.transform, result, item=item, spec=spec, body=body)
+                if view.transform is not None
+                else None
+            )
+        except SquadsError:
+            continue  # the expanded body names the view that failed; its data is left out
         data[parts.name] = (
             {"body": body, "data": out} if view.stored else cast("TransformData", out)
         )
     return data
+
+
+def view_failure_line(view_name: str, item_id: str) -> str:
+    """The line that stands where a view failed to render: it names the command that shows why."""
+    command = f"sq workflow view {view_name} {item_id}"
+    return f"The `{view_name}` view could not be rendered; run `{command}` to see why."
 
 
 def render_resolved_source_or_raise(  # noqa: PLR0913 — same inputs as `render_source_view`

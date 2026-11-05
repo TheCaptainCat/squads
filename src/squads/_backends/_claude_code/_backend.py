@@ -17,6 +17,11 @@ from squads._backends._claude_code._frontmatter import (
     normalize_model,
     oneline,
 )
+from squads._backends._claude_code._pointer_lines import (
+    PointerLine,
+    role_skill_lines,
+    skill_lines,
+)
 from squads._interactions import (
     custom_item_skill_description,
     custom_item_skill_name,
@@ -25,6 +30,7 @@ from squads._interactions import (
     is_system_skill,
     item_skill_name,
     managed_item_types,
+    role_skill_name,
     skill_description,
 )
 from squads._models import Item, markers
@@ -40,13 +46,10 @@ _SKILL_FILE = "SKILL.md"
 _CLAUDE_DIR = ".claude"
 _CLAUDE_MD = "CLAUDE.md"
 
-#: The slug-bound startup commands an agent pointer names, in priority order: the concrete form
-#: of the "Start of a run" protocol in ``claude/claude_section.md.j2``. One declaration, so a
-#: command added here reaches every pointer; ``{slug}`` is filled per role by ``_startup_commands``.
+#: The slug-bound startup commands an agent pointer names: the queue commands no skill renders.
+#: One declaration, so a command added here reaches every pointer; ``{slug}`` is filled per role
+#: by ``_startup_commands``.
 _STARTUP_COMMAND_TEMPLATES: list[str] = [
-    "sq memory {slug} list",
-    "sq memory {slug} show <slug>",
-    "sq board list",
     "sq mine {slug}",
     "sq inbox {slug}",
 ]
@@ -340,6 +343,9 @@ class ClaudeCodeBackend(AgentBackend):
         await _aio.mkdir(pointer.parent, parents=True, exist_ok=True)
         model, warning = self._resolve_model(role)
         await _aio.write_text(pointer, self._render_role_pointer(ctx, role, model=model))
+        skill_pointer = self._role_skill_path(ctx, role.slug)
+        await _aio.mkdir(skill_pointer.parent, parents=True, exist_ok=True)
+        await _aio.write_text(skill_pointer, self._render_role_skill_pointer(ctx, role))
         # WARN-only, never a refusal: a model this host cannot express is dropped from the
         # rendered pointer, and the artifact is what carries that fact back to the caller.
         return Artifact(ctx.rel(pointer), "agent", self.name, warning=warning)
@@ -360,19 +366,52 @@ class ClaudeCodeBackend(AgentBackend):
             return skill_description(slug)
         return item.description or item.title
 
-    def _render_skill_pointer(
-        self, ctx: BackendContext, slug: str, description: str, *, invocable: bool
+    def _render_pointer(
+        self,
+        ctx: BackendContext,
+        slug: str,
+        description: str,
+        lines: list[PointerLine],
+        *,
+        invocable: bool,
     ) -> str:
-        """The one place ``pointer_skill.md.j2`` is rendered — shared by
-        :meth:`_write_managed_skill`, :meth:`generate_skill_entry` and :meth:`render_skill_entry`,
-        so the three can never drift onto different content for the same skill. *invocable* is
-        already resolved by the engine."""
+        """The one place ``pointer_skill.md.j2`` is rendered, for a skill and a role skill alike.
+        *invocable* is already resolved by the engine."""
         return render(
             "claude/pointer_skill.md.j2",
             from_squad=ctx.squad_dir,
             slug=slug,
             description=oneline(description),
             invocable=invocable,
+            grants=[line.grant for line in lines],
+            lines=[line.render() for line in lines],
+        )
+
+    def _render_skill_pointer(
+        self, ctx: BackendContext, slug: str, description: str, *, invocable: bool
+    ) -> str:
+        """A skill's pointer — shared by :meth:`_write_managed_skill`,
+        :meth:`generate_skill_entry` and :meth:`render_skill_entry`, so the three can never drift
+        onto different content for the same skill."""
+        return self._render_pointer(ctx, slug, description, skill_lines(slug), invocable=invocable)
+
+    @staticmethod
+    def _role_skill_path(ctx: BackendContext, slug: str) -> Path:
+        return ctx.root / _CLAUDE_DIR / _SKILLS / role_skill_name(slug) / _SKILL_FILE
+
+    def _render_role_skill_pointer(self, ctx: BackendContext, role: RoleDef) -> str:
+        """A role's skill pointer — shared by :meth:`generate_role_entry` and
+        :meth:`render_role_skill_entries`. It is never operator-invocable."""
+        description = (
+            f"{role.full_name}, the {role.title}: the role's definition and playbook, "
+            "its memory index and the team board."
+        )
+        return self._render_pointer(
+            ctx,
+            role_skill_name(role.slug),
+            description,
+            role_skill_lines(role.slug),
+            invocable=False,
         )
 
     async def generate_skill_entry(self, ctx: BackendContext, item: Item) -> Artifact:
@@ -403,6 +442,17 @@ class ClaudeCodeBackend(AgentBackend):
         model, _warning = self._resolve_model(role)
         return self._render_role_pointer(ctx, role, model=model)
 
+    def render_role_skill_entries(
+        self, ctx: BackendContext, item: Item, role: RoleDef
+    ) -> dict[str, str]:
+        """Question 5 for the files a role has beside its agent pointer: its role skill pointer,
+        from :meth:`_render_role_skill_pointer`."""
+        return {
+            ctx.rel(self._role_skill_path(ctx, role.slug)): self._render_role_skill_pointer(
+                ctx, role
+            )
+        }
+
     def render_skill_entry(self, ctx: BackendContext, item: Item) -> str | None:
         """Question 5 for a skill — see :meth:`_render_skill_pointer`/
         :meth:`_skill_pointer_description`, the shared render and description resolution this
@@ -424,6 +474,9 @@ class ClaudeCodeBackend(AgentBackend):
                 await _aio.to_thread(lambda: shutil.rmtree(skill_dir))
         else:
             await _aio.path_unlink(cdir / _AGENTS / f"{slug}.md", missing_ok=True)
+            role_skill_dir = self._role_skill_path(ctx, slug).parent
+            if role_skill_dir.is_dir():
+                await _aio.to_thread(lambda: shutil.rmtree(role_skill_dir))
 
     async def candidate_orphans(
         self, ctx: BackendContext, roster: list[RoleView], skill_slugs: set[str]
@@ -442,10 +495,11 @@ class ClaudeCodeBackend(AgentBackend):
         skills_dir = cdir / _SKILLS
         if await _aio.path_exists(skills_dir):
             entries = await _aio.to_thread(lambda: sorted(skills_dir.iterdir()))
+            live_role_skills = {role_skill_name(slug) for slug in ctx.live_role_slugs}
             orphans += [
                 ctx.rel(p / _SKILL_FILE)
                 for p in entries
-                if p.is_dir() and p.name not in skill_slugs
+                if p.is_dir() and p.name not in skill_slugs and p.name not in live_role_skills
             ]
         return orphans
 
@@ -462,6 +516,7 @@ class ClaudeCodeBackend(AgentBackend):
         see the ABC docstring for the level/liveness contract."""
         cdir = ctx.root / _CLAUDE_DIR
         paths = [ctx.rel(cdir / _AGENTS / f"{slug}.md") for slug in sorted(ctx.live_role_slugs)]
+        paths += [ctx.rel(self._role_skill_path(ctx, slug)) for slug in sorted(ctx.live_role_slugs)]
         paths += [
             ctx.rel(cdir / _SKILLS / slug / _SKILL_FILE) for slug in sorted(ctx.live_skill_slugs)
         ]

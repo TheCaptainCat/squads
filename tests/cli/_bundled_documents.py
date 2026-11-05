@@ -707,6 +707,13 @@ VIEWS = [
         "stored": False,
     },
     {
+        "view": "role_playbook",
+        "source_kind": "playbook",
+        "source_name": None,
+        "transform": None,
+        "stored": False,
+    },
+    {
         "view": "source_description",
         "source_kind": "source",
         "source_name": None,

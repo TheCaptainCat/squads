@@ -9,7 +9,12 @@ import pytest
 from squads._workflow import bundled_spec, load_workflow_spec
 from tests._profile import selected
 from tests.cli._output import entry_text, json_text, printed, read_json
-from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+from tests.cli._roster import (
+    actors_of,
+    body_of,
+    raw_forms,
+    usage_error,
+)
 
 P = selected()
 
@@ -92,6 +97,18 @@ async def test_add_refuses_a_name_whose_slug_a_skill_already_has(project, invoke
         1,
         "error: a skill with slug 'deploy-notes' already exists\n",
     )
+
+
+@pytest.mark.covers("skill add", "name")
+async def test_add_refuses_the_name_of_a_roles_own_skill(project, invoke) -> None:
+    result = await invoke(["skill", "add", "sq-role-manager"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: cannot add skill 'sq-role-manager': that name is the skill of role 'manager'; "
+        "pick another name\n",
+    )
+    shown = await invoke(["skill", "sq-role-manager", "show"])
+    assert (shown.exit_code, shown.output) == (1, _no_skill("sq-role-manager"))
 
 
 @pytest.mark.covers("skill add", "name")
@@ -244,18 +261,16 @@ async def test_show_json_of_a_system_skill_carries_its_view_data(seeded_project,
 
 
 @pytest.mark.covers("skill show", "--raw")
-async def test_show_raw_prints_the_body_unrendered_where_a_terminal_would_render_it(
+@pytest.mark.covers("skill show", "--no-header")
+async def test_show_raw_lists_the_panel_rows_then_the_body_and_no_header_prints_the_body_alone(
     project, invoke, monkeypatch
 ) -> None:
     await _add(invoke)
     await invoke(["skill", SLUG, "body", "-m", "Run `make release`."])
-    piped = await invoke(["skill", SLUG, "show"])
-    assert (piped.exit_code, piped.output) == (0, SHOWN_PANEL + "\nRun `make release`.\n")
-    forced_terminal(monkeypatch)
-    raw = await invoke(["skill", SLUG, "show", "--raw"])
-    rendered = await invoke(["skill", SLUG, "show"])
-    assert (raw.exit_code, raw.output) == (0, piped.output)
-    assert rendered.output != piped.output
+    rows, raw, bare = await raw_forms(invoke, monkeypatch, ["skill", SLUG, "show"])
+    assert raw == f"{rows}\n\nRun `make release`.\n"
+    assert bare == "Run `make release`.\n"
+    assert "\x1b" not in raw
 
 
 @pytest.mark.covers("skill show", "--comments")

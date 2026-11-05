@@ -317,3 +317,53 @@ async def test_repair_leaves_the_pair_of_a_stored_view_named_head_alone(
 
     assert repaired.exit_code == 0, repaired.output
     assert (await invoke(["task", "3", "show", "--json"])).output == shown.output
+
+
+MANAGER_FILE = "agents/roles/ROLE-000001-manager.md"
+DEFINITION_TAG = "<!-- sq:view:role_definition -->"
+PLAYBOOK_TAG = "<!-- sq:view:role_playbook -->"
+
+
+def _without_playbook_tag(squad_dir: Path, *, prose: str = "") -> Path:
+    """The manager's role file with its playbook tag taken out and *prose* put in its place."""
+    path = squad_dir / MANAGER_FILE
+    text = path.read_text(encoding="utf-8")
+    assert PLAYBOOK_TAG in text
+    path.write_text(text.replace(PLAYBOOK_TAG, prose), encoding="utf-8")
+    return path
+
+
+@pytest.mark.covers("repair")
+async def test_repair_places_the_playbook_tag_after_the_definition_tag_of_a_role_body(
+    populated_project, invoke
+) -> None:
+    path = _without_playbook_tag(populated_project.squad_dir)
+    result = await invoke(["repair"])
+    assert result.exit_code == 0, result.output
+    assert f"{DEFINITION_TAG}\n\n{PLAYBOOK_TAG}" in path.read_text(encoding="utf-8")
+
+
+@pytest.mark.covers("repair")
+async def test_repair_keeps_the_prose_of_a_role_body_when_it_places_the_playbook_tag(
+    populated_project, invoke
+) -> None:
+    path = _without_playbook_tag(populated_project.squad_dir, prose="Our own rule.")
+    result = await invoke(["repair"])
+    assert result.exit_code == 0, result.output
+    assert f"{DEFINITION_TAG}\n\n{PLAYBOOK_TAG}\n\nOur own rule." in path.read_text(
+        encoding="utf-8"
+    )
+
+
+@pytest.mark.covers("repair")
+async def test_repair_leaves_a_disabled_playbook_tag_of_a_role_body_alone(
+    populated_project, invoke
+) -> None:
+    disabled = await invoke(["role", "manager", "view", "disable", "role_playbook"])
+    assert disabled.exit_code == 0, disabled.output
+    path = populated_project.squad_dir / MANAGER_FILE
+    before = path.read_text(encoding="utf-8")
+    result = await invoke(["repair"])
+    assert result.exit_code == 0, result.output
+    assert path.read_text(encoding="utf-8") == before
+    assert "<!-- sq:view:role_playbook:disabled -->" in before

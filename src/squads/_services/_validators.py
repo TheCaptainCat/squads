@@ -60,6 +60,7 @@ from squads._pronouns import pronouns_problem
 from squads._rendering import scaffold_body
 from squads._roles import (
     CatalogSource,
+    RoleDef,
     base_problems,
     get_catalog,
     holds_default_designation,
@@ -1432,6 +1433,21 @@ def backend_entry_path(
     return found[0] if found else None
 
 
+def _drifted_companion(
+    backend: AgentBackend, bctx: BackendContext, item: Item, role: RoleDef
+) -> str | None:
+    """The path of the first file beside a role's agent pointer (its role skill pointer) that
+    exists and differs from its fresh render; an absent file is the presence rule's."""
+    for rel_path, fresh in backend.render_role_skill_entries(bctx, item, role).items():
+        try:
+            disk_text = (bctx.root / rel_path).read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if disk_text != fresh:
+            return rel_path
+    return None
+
+
 def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-render
     backend: AgentBackend,
     kind: str,
@@ -1456,10 +1472,6 @@ def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-re
     :func:`~squads._roles._resolver.resolve_role_for_item`, not stored attributes.
     """
     disk_path = paths.root / rel_path
-    try:
-        disk_text = disk_path.read_text(encoding="utf-8")
-    except OSError:
-        return None
     bctx = BackendContext(
         paths=paths, spec=spec, playbook=playbook, catalog=catalog, role_skills=role_skills
     )
@@ -1472,16 +1484,22 @@ def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-re
             return None
     else:
         role = None
-    fresh = (
-        backend.render_role_entry(bctx, item, role)
-        if role is not None
-        else backend.render_skill_entry(bctx, item)
-    )
-    if fresh is None or fresh == disk_text:
-        return None
-    level = "warn"
-    if role is not None:
-        expected = backend.restriction_fragment(role)
+    stale = _drifted_companion(backend, bctx, item, role) if role is not None else None
+    level, reported = "warn", stale
+    if stale is None:
+        try:
+            disk_text = disk_path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+        fresh = (
+            backend.render_role_entry(bctx, item, role)
+            if role is not None
+            else backend.render_skill_entry(bctx, item)
+        )
+        if fresh is None or fresh == disk_text:
+            return None
+        reported = rel_path
+        expected = backend.restriction_fragment(role) if role is not None else None
         if expected is not None and expected not in disk_text:
             level = "error"
     verb = (
@@ -1491,7 +1509,7 @@ def backend_entry_drift(  # noqa: PLR0913 — one keyword per input of the re-re
     )
     return CheckIssue(
         level,
-        rel_path,
+        reported or rel_path,
         f"managed pointer {verb} — run `sq sync` (backend: {backend.name})",
         "backend_reconciled",
     )

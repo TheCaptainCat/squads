@@ -3,7 +3,7 @@ id: FEAT-1290
 sequence_id: 1290
 type: feature
 title: Injected skills and one role skill per agent
-status: Draft
+status: Ready
 author: product-owner
 refs:
 - MILE-1269:targets
@@ -14,40 +14,55 @@ subentities:
   title: Skill pointers render their body at startup
   status: Todo
 - local_id: US2
-  title: Each agent preloads its own role skill
+  title: Each agent preloads its own sq-role skill
   status: Todo
 - local_id: US3
-  title: The squads and greeting skills carry only what is theirs
+  title: Base skills get sq- names and lose duplicated text
   status: Todo
 - local_id: US4
-  title: A migration retires the per-type skills
+  title: A migration retires per-type skills and renames two
   status: Todo
 - local_id: US5
-  title: Docs and changelog for role skills
+  title: Docs and changelog for role skills and startup
+  status: Todo
+- local_id: US6
+  title: The main session starts from sq-greeting
+  status: Todo
+  assignee: product-owner
+- local_id: US7
+  title: show --raw and --no-header on every item
+  status: Todo
+- local_id: US8
+  title: AGENTS.md gets the role bodies and startup steps
+  status: Todo
+- local_id: US9
+  title: Startup size is measured before and after
   status: Todo
 created_at: '2026-11-04T13:32:39Z'
-updated_at: '2026-11-04T14:33:44Z'
+updated_at: '2026-11-04T21:47:10Z'
 ---
 <!-- sq:body -->
 ## Outcome
 
-Every agent starts with the guidance written for it already in its context. A spawned agent does not have to choose to fetch its role, its playbook or the team's rules: the host renders them into the agent's first message from the skills the agent file preloads. Each agent preloads one skill of its own that carries its role definition and its part of the playbook for every item type it works on, and nothing addressed to other roles. The per-type `sq-<type>` skills are retired.
+Every agent starts with the guidance written for it already in its context. A spawned agent does not have to choose to fetch its role, its playbook, its memory or the team's notices: the host renders them into the agent's first message from the skill its agent file preloads. Each agent preloads one skill of its own, `sq-role-<slug>`, whose three rendered lines give its role (the role definition, then its part of the playbook for every item type it works on, and nothing addressed to other roles), its memory index and the board's current notices. The main session starts from `sq-greeting`, which the managed `CLAUDE.md` section directs it to and which lists the mandatory startup steps as commands the session runs: operator, role, read the role, items, inbox, board, memory, greet. Every skill squads ships carries the `sq-` prefix: `sq-how-to`, `sq-greeting`, `sq-memory`, `sq-role-<slug>`. The per-type `sq-<type>` skills are retired.
 
 ## Why
 
-A skill pointer today is a redirect: its body says to run `sq skill <slug> show`, and the agent must decide to follow it. Measured over 539 subagent runs in this repository, 18% ever opened a per-type skill and 5% opened the `squads` skill; 62% ran `sq role <slug> show`, which the agent file asks for first. The playbook guidance (Enter, Do, Hand off, Watch for) lives only in the per-type skills, so most agents never read it.
+A skill pointer today is a redirect: its body says to run `sq skill <slug> show`, and the agent must decide to follow it. Measured over 539 subagent runs in this repository, 18% ever opened a per-type skill and 5% opened the `squads` skill; 62% ran `sq role <slug> show`, which the agent file asks for first. The playbook guidance (Enter, Do, Hand off, Watch for) lives only in the per-type skills, so most agents never read it. Memory and board notices are likewise read only when the agent chooses to run the commands.
 
-Claude Code renders a `` !`command` `` line in a skill body when the skill loads, including when the skill is preloaded into a subagent, and the agent receives the output with no tool call. An agent file body is not rendered that way. A preloaded skill receives no arguments and cannot tell which agent loaded it, so the role-specific content needs one generated skill per agent.
+Claude Code renders a `` !`command` `` line in a skill body when the skill loads, including when the skill is preloaded into a subagent, and the agent receives the output with no tool call. An agent file body is not rendered that way. A preloaded skill receives no arguments and cannot tell which agent loaded it, so the role-specific content needs one generated skill per role.
 
 ## Acceptance criteria
 
-- Every squads-managed skill pointer renders its skill body through a `` !`…` `` command instead of telling the agent to run one. When the command fails, the agent receives a short error message that names the command to run, and the agent still starts: a missing, failing or schema-refused `sq` never blocks a spawn.
-- The rendered text is the skill body only: no metadata panel, no ANSI codes, whatever the terminal environment. The pointer's guidance lines are dropped; the file still says it is regenerated by `sq sync`, in a form the agent does not receive as instructions.
-- Each role gets one non-invocable skill, generated by `sq sync` and preloaded by its agent file. It renders the role definition and, for each item type in that role's playbook, the type's overview, its lifecycle and that role's own section. An adopter's text written around the view in that skill's body is kept across syncs.
-- The `squads` and `greeting` skills are rendered at startup too, and carry no text that the role skill, the managed `CLAUDE.md` section or `sq docs` already gives. No delivered text tells an agent to open an `sq-<type>` skill.
-- A migration retires the per-type skills: their skill items, pointers and preload entries. It stops before writing anything when one of those skills holds content beyond its view, and names each such skill, so the adopter moves that content before migrating.
-- The AGENTS.md backend gives each role the same content.
-- Docs and CHANGELOG describe the role skill, the rendered pointers and the migration step for adopters.
+- Every squads-managed skill pointer renders its skill body through a `` !`…` `` command instead of telling the agent to run one. When the command fails, the agent receives a short message naming the command to run by hand, and the agent still starts: a missing, failing or schema-refused `sq` never blocks a spawn.
+- `show --raw` on every item, skill, role and operator prints plain markdown under a YAML front-matter header; `--raw --no-header` prints the body alone. The pointers render with `--raw --no-header`, so the text is the skill body only, whatever the terminal environment.
+- Each role gets one non-invocable skill, `sq-role-<slug>`, generated by `sq sync` and preloaded first by its agent file. It renders three lines, each with its own fallback: the role's body (`sq role <slug> show --raw --no-header`), the role's memory index and the board's current notices. The role body carries the role definition, then the role's playbook sections for the item types it works on. Neither `sq role <slug> show` nor the role body carries memory or board. An adopter's text in the role body is kept across syncs.
+- Every skill squads ships is prefixed `sq-`. `sq-how-to`, `sq-greeting` and `sq-memory` carry no text that the role skill, the managed `CLAUDE.md` section or `sq docs` already gives. No delivered text tells an agent to open an `sq-<type>` skill.
+- The main session invokes `sq-greeting` before its first reply and no subagent does. The managed `CLAUDE.md` section only directs the session to it; `sq-greeting` lists the startup steps as commands to run.
+- A migration retires the per-type skills and renames `greeting` and `squads`. It stops before writing anything when a per-type skill holds content beyond its view, when an `sq-role-<slug>` skill item exists, or when a project skill already holds `sq-greeting` or `sq-how-to`, and names each such skill.
+- The AGENTS.md backend gives each role the same role body and states the same startup steps.
+- The text each agent and the main session receive at startup is measured before and after, and the figures are recorded on the feature. No size budget applies yet.
+- Docs and CHANGELOG describe the role skill, the rendered pointers, the startup steps, the `--raw` output and the migration step for adopters.
 <!-- sq:body:end -->
 
 ## User Stories
@@ -63,10 +78,11 @@ _Add with `sq feature 1290 add-story "As a <role>, I want … so that …"`; tra
 As an agent, I start with the full text of every skill my agent file preloads, without having to run a command to read it.
 
 - Every squads-managed pointer renders its skill body with a `` !`…` `` command when the skill loads, including when it is preloaded into a subagent. No line asks the agent to run `sq skill <slug> show`.
-- The command prints the body only: no metadata panel, no ANSI codes, whatever the terminal environment (`FORCE_COLOR`, `NO_COLOR`, no tty).
-- When the command fails (`sq` not on the PATH, a schema refusal, any non-zero exit), the agent receives a one-line error naming the command to run by hand, and the spawn goes ahead. A failing render never stops an agent from starting.
-- The command runs unchanged under bash and zsh, and passes the host's permission check without a prompt; the pointer declares what the host needs for that and nothing wider.
-- The pointer's guidance lines are dropped. The file still states that `sq sync` regenerates it, in a form the agent does not receive as instructions.
+- The command renders the body alone (`--raw --no-header`): no metadata panel, no ANSI codes, whatever the terminal environment (`FORCE_COLOR`, `NO_COLOR`, no tty).
+- When the command fails (`sq` not on the PATH, a schema refusal, any non-zero exit), the agent receives a message naming the command to run by hand, and the spawn goes ahead. A failing render never stops an agent from starting.
+- A view that cannot read its source renders one line saying so and naming the command, and the rest of the body still renders.
+- The command runs unchanged under bash and zsh, and passes the host's permission check without a prompt, in a fresh clone too; the pointer declares exactly its own `sq` commands and nothing wider.
+- The pointer's guidance lines are dropped. The file states that `sq sync` regenerates it, as a comment the agent does not receive as an instruction; this holds for agent pointers too.
 - `sq check` keeps comparing each pointer with a fresh render, and reports no drift on a squad just synced.
 <!-- sq:story:US1:body:end -->
 
@@ -77,16 +93,20 @@ As an agent, I start with the full text of every skill my agent file preloads, w
 <!-- sq:story:US1:end -->
 
 <!-- sq:story:US2 -->
-### US2 — Each agent preloads its own role skill
+### US2 — Each agent preloads its own sq-role skill
 
 <!-- sq:story:US2:body -->
-As an agent, I start with my role and my part of the playbook for every item type I work on, and nothing written for the other roles.
+As an agent, I start with my role, my part of the playbook for every item type I work on, my role's memory index and the team's current notices, and nothing written for the other roles.
 
-- `sq sync` generates one skill per role, not invocable by the operator, and the role's agent file preloads it.
-- It renders the role definition (mission, responsibilities, working agreements) and, for each item type in that role's playbook, the type's overview, its lifecycle and that role's own Enter, Do, Hand off and Watch for section.
-- It holds no other role's section. A role whose playbook names no item type gets its role definition only.
-- An adopter can write text around the view in that skill's body, as in any skill body today; `sq sync` keeps it.
-- A role added, renamed or retired gets its skill created, renamed or retired with it, and no pointer is left behind.
+- `sq sync` generates one skill per live role, named `sq-role-<slug>`, not invocable by the operator, and the role's agent file preloads it first, before `sq-how-to` and `sq-memory`. It has no skill item behind it.
+- The skill renders three lines, each with its own fallback: the role's body (`sq role <slug> show --raw --no-header`), the role's memory index (`sq memory <slug> list`) and the board's current notices (`sq board list`). A failing line leaves one line naming the command to run, and the other two still render.
+- The role body carries the role definition (mission, responsibilities, working agreements), then the role's playbook: for each item type in the role's playbook, the type's overview, its lifecycle and this role's own Enter, Do, Hand off and Watch for section. It holds no other role's section; a role whose playbook names no item type gets its definition only.
+- `sq role <slug> show` prints the definition and the playbook for a person too; it never prints memory or board notices.
+- An adopter writes a squad's own text in the role body with `sq role <slug> body`; `sq sync` never overwrites it, and a squad can disable the playbook view for one role.
+- A role body that lacks the playbook view gets it placed by `sq repair`, unless the squad disabled it.
+- A role added or reactivated gets its skill with its agent file; a role retired loses both. A renamed role keeps its slug, so only the description changes. No pointer is left behind.
+- Adding a skill named `sq-role-<s>` for an existing role `<s>` is refused, and so is adding or activating a role whose `sq-role-<slug>` is an existing skill.
+- The agent file keeps the queue commands `sq mine` and `sq inbox` for the role, and no longer names the commands for the role, memory or board.
 <!-- sq:story:US2:body:end -->
 
 #### Discussion
@@ -96,15 +116,16 @@ As an agent, I start with my role and my part of the playbook for every item typ
 <!-- sq:story:US2:end -->
 
 <!-- sq:story:US3 -->
-### US3 — The squads and greeting skills carry only what is theirs
+### US3 — Base skills get sq- names and lose duplicated text
 
 <!-- sq:story:US3:body -->
-As an agent, the always-on skills I start with tell me something I do not already have.
+As an agent, the base skills I load tell me something I do not already have, and their names say they come from squads.
 
-- The `squads` and `greeting` skills are rendered at startup like every other preloaded skill.
-- Neither repeats what the role skill, the managed `CLAUDE.md` section or `sq docs` already gives; reference material moves behind `sq docs` and the skill names the topic.
-- No delivered text tells an agent to open an `sq-<type>` skill or to run `sq role <slug> show` to learn its own role.
-- The text an agent receives at startup from these two skills is measured before and after, and the difference is recorded on the feature.
+- The base skills are named `sq-how-to` (formerly `squads`), `sq-greeting` (formerly `greeting`) and `sq-memory`; every skill squads ships carries the `sq-` prefix.
+- A section stays in `sq-how-to` only when every agent needs it on every run and no other startup text carries it; reference material moves behind `sq docs`, and `sq-how-to` ends with one line per moved topic naming it and when to read it. The same rule trims `sq-memory` and `sq-greeting`.
+- Every agent file preloads `sq-role-<slug>`, `sq-how-to` and `sq-memory`; none preloads `sq-greeting`, and its description says it is for the main session.
+- The role definition no longer sends the agent to an `sq-<type>` skill or to the greeting skill, and names no command for reading its own role. Delivered text that mentions the `squads` skill says `sq-how-to`.
+- No delivered text tells an agent to open an `sq-<type>` skill.
 <!-- sq:story:US3:body:end -->
 
 #### Discussion
@@ -114,16 +135,17 @@ As an agent, the always-on skills I start with tell me something I do not alread
 <!-- sq:story:US3:end -->
 
 <!-- sq:story:US4 -->
-### US4 — A migration retires the per-type skills
+### US4 — A migration retires per-type skills and renames two
 
 <!-- sq:story:US4:body -->
-As an adopter, upgrading removes the per-type skills, and never loses text I wrote in one.
+As an adopter, upgrading removes the per-type skills and renames the two base skills, and never loses text I wrote in one.
 
-- A migration removes every per-type `sq-<type>` skill item, its `.claude/` pointer and its entry in each agent file's preload list.
-- Before writing anything, it stops when one of those skills holds content beyond its view, and names each such skill and what it holds. After the adopter moves that content (into a role skill, a project skill or the playbook override) and runs it again, it completes.
-- A stored operator-invocable choice on a retired skill is not carried over; the migration's manual step says so.
-- A fresh `sq init` creates no per-type skill.
-- The AGENTS.md backend gives each role the same content as the Claude Code role skill.
+- The 0.19 to 0.20 migration plans over every per-type skill item (a dropped type's stale skill included), every skill item named `sq-role-<s>` for a role `<s>`, and every skill item named `sq-greeting` or `sq-how-to`, before it writes anything.
+- It refuses the whole run, listing each skill and what it holds, when a per-type skill carries prose beyond its view tag, a discussion comment or a ref from another item; when an `sq-role-<s>` skill item exists; or when a project skill already holds `sq-greeting` or `sq-how-to`. Nothing is written on a refusal.
+- Otherwise it renames the `greeting` skill to `sq-greeting` and `squads` to `sq-how-to` (the item IDs and refs to them are unchanged), removes each per-type skill item, places the role playbook view on every role body, and ends with the same backend refresh as `sq sync`: per-type, `greeting` and `squads` pointers removed, new pointers written, every agent file's preload list, the managed `CLAUDE.md` section and the `settings.json` allow rules rewritten.
+- The manual step tells the adopter to move each listed skill's content first (into the role body of the role it addressed, a project skill or the playbook override) and re-point refs, to rename a project skill holding a new name, that a stored operator-invocable choice on a retired skill is not carried over, that the squad's own prose naming `greeting` or `squads` is not rewritten, and to commit `.claude/`.
+- After the adopter moves that content and runs the migration again, it completes.
+- A fresh `sq init` creates `sq-how-to`, `sq-greeting` and `sq-memory`, seeds every role body with the definition and playbook views, and writes one role skill pointer per activated role and no per-type skill.
 <!-- sq:story:US4:body:end -->
 
 #### Discussion
@@ -133,13 +155,14 @@ As an adopter, upgrading removes the per-type skills, and never loses text I wro
 <!-- sq:story:US4:end -->
 
 <!-- sq:story:US5 -->
-### US5 — Docs and changelog for role skills
+### US5 — Docs and changelog for role skills and startup
 
 <!-- sq:story:US5:body -->
-As an adopter, I find the role skill and the rendered pointers explained, and I know what to do before upgrading.
+As an adopter, I find the role skill, the rendered pointers and the startup steps explained, and I know what to do before upgrading.
 
-- Docs describe the role skill, what it renders and where to add a squad's own text, and that every pointer renders its skill at startup.
-- The migration guide states the hard stop and how to keep content held in a per-type skill.
+- Docs describe the role skill (what it renders, where to add a squad's own text), that every pointer renders its skill at startup, the `sq-` names, and the `--raw` and `--no-header` options on `show`.
+- Docs describe the main session's startup steps and how a squad changes the default role they adopt.
+- The migration guide states each hard stop and how to keep content held in a per-type skill.
 - CHANGELOG entry in the unreleased section, written for adopters, with no internal references.
 <!-- sq:story:US5:body:end -->
 
@@ -148,6 +171,80 @@ As an adopter, I find the role skill and the rendered pointers explained, and I 
 <!-- sq:story:US5:discussion -->
 <!-- sq:story:US5:discussion:end -->
 <!-- sq:story:US5:end -->
+
+<!-- sq:story:US6 -->
+### US6 — The main session starts from sq-greeting
+
+<!-- sq:story:US6:body -->
+As the operator, my main session starts by following the steps `sq-greeting` gives, and each step shows in the transcript.
+
+- The managed `CLAUDE.md` section carries one mandatory instruction: before its first reply the main session invokes `sq-greeting` and completes every step it gives; a subagent never does. The impersonation, start-of-run and operator-greeting text leaves that section for `sq-greeting`.
+- The `sq-greeting` pointer takes no argument and renders its own body, the same for every session of a squad; the model-invoked skills `sq-greeting` and `sq-how-to` are allowed in `settings.json` so neither prompts nor fails in a non-interactive session.
+- The body lists the steps as numbered commands to run, in this order: identify the operator (checked against the operators, registered only on a yes, asked when unsure); adopt the role; read the role with `sq role <slug> show --raw --no-header`; `sq mine <slug>`; `sq inbox <slug>`; `sq board list`; `sq memory <slug> list`, then `show` for each entry the request touches; greet in the operator's tone.
+- The adopted role is the agent the operator greets by name or function, matched to a live role; otherwise the squad's default role, named in the body with its full name and slug. A squad with no default gets one line naming `sq role set-default`. A greeting that matches no live role means asking. A person introducing themselves is the operator, not a role.
+- The steps are text: the render runs none of them, and each prints something no other step prints.
+- If `sq-greeting` fails to render, the session receives a line naming the command to run by hand and still starts.
+- `sq-greeting` carries no text that the role skill, the managed `CLAUDE.md` section or `sq docs` already gives.
+<!-- sq:story:US6:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US6:discussion -->
+<!-- sq:story:US6:discussion:end -->
+<!-- sq:story:US6:end -->
+
+<!-- sq:story:US7 -->
+### US7 — show --raw and --no-header on every item
+
+<!-- sq:story:US7:body -->
+As an agent or a person, I can print any item, skill, role or operator as plain markdown, with or without its header.
+
+- `--raw` on every `show` prints plain markdown: no panel, no colour, no wrapping and no emoji badge, whatever `FORCE_COLOR`, `NO_COLOR`, `TERM` or the tty say. `--full` and `--comments` render raw too, with sub-entity state as plain text.
+- Under `--raw`, the header is the item's frontmatter as a YAML front-matter block, without the sub-entities.
+- `--no-header`, valid only with `--raw`, prints the body alone with every view tag expanded. Used without `--raw` it is refused with one line.
+- `--raw` output writes nothing to stdout unless the whole render succeeded; on failure it exits non-zero with one error line on stderr.
+- There is no `--body` option.
+<!-- sq:story:US7:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US7:discussion -->
+<!-- sq:story:US7:discussion:end -->
+<!-- sq:story:US7:end -->
+
+<!-- sq:story:US8 -->
+### US8 — AGENTS.md gets the role bodies and startup steps
+
+<!-- sq:story:US8:body -->
+As an adopter on a host that cannot run a command at load, each agent still gets its role and the same startup steps.
+
+- The AGENTS.md backend writes each live role's body as `sq role <slug> show --raw --no-header` prints it, so each role gets the same definition, playbook sections and squad text as the Claude Code role skill.
+- The memory index and the board are not written into AGENTS.md.
+- The managed section states the same startup steps as `sq-greeting`, with the same commands, from one shared template, so the two hosts state one sequence.
+<!-- sq:story:US8:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US8:discussion -->
+<!-- sq:story:US8:discussion:end -->
+<!-- sq:story:US8:end -->
+
+<!-- sq:story:US9 -->
+### US9 — Startup size is measured before and after
+
+<!-- sq:story:US9:body -->
+As the operator, I can see what the change did to the size of what each agent and the main session receive at startup.
+
+- For each role and for the main session on this repository's squad, at the commit before the change and the commit after, the figures are read from the host transcript, not from the model's report.
+- The table gives the agent pointer body in characters; each preloaded or invoked skill as delivered (the pointer text before, the rendered text after, the role skill's three lines summed, echo lines included where a command failed); the total delivered at startup; and the effective total, which adds the output of every command the pointer or `sq-greeting` names.
+- The table is recorded on the feature as one comment. No size budget applies.
+<!-- sq:story:US9:body:end -->
+
+#### Discussion
+
+<!-- sq:story:US9:discussion -->
+<!-- sq:story:US9:discussion:end -->
+<!-- sq:story:US9:end -->
 <!-- sq:stories:end -->
 
 ## Discussion
@@ -172,4 +269,25 @@ As an adopter, I find the role skill and the rendered pointers explained, and I 
     @architect this needs an ADR before tasks: the pointer format (ADR-781), ADR-983's per-type default, the shape and naming of the role skill, how a pointer still says it is regenerated by `sq sync` (invariant 7) when the agent no longer sees guidance lines, and the never-fail render command.
 - [2026-11-04T14:32:26Z, edited 2026-11-04T14:33:44Z] `op-pierre` Pierre Chat:
   - Scope (2026-11-04): FEAT-1290 ships in 0.20 (MILE-1269). It starts on my go, after I re-read it with the manager, once the scoped sources (FEAT-1285) and the re-export sweep (FEAT-1288) are settled.
+- [2026-11-04T19:14:19Z, edited 2026-11-04T21:04:05Z] `op-pierre` Pierre Chat:
+  - Rulings, 2026-11-04 (read-through with the manager): the main session loads sq-greeting every time and subagents never do. The managed CLAUDE.md section only directs the session to sq-greeting; its body states the startup sequence as imperative, mandatory steps (operator, role, items, inbox, board, memory) for the session to run, not rendered (see ADR-1294). Each subagent's role skill renders that role's memory and the board notices, so it starts with them in context; we check the size budget later.
+- [2026-11-04T19:15:02Z] `product-owner` Nina Product:
+  - @architect the ADR should also cover how greeting resolves the adopted role (default Catherine, or the agent the operator greets) and how memory and board notices render in the role skill and in greeting, with the rule that a failed render never blocks a spawn or the session. Rulings are in the last op-pierre comment; US6 is new, US3 now covers the squads skill only.
+- [2026-11-04T19:28:11Z] `op-pierre` Pierre Chat:
+  - Go (2026-11-04): start the ADR.
+- [2026-11-04T19:43:23Z] `architect` Robert Architect:
+  - ADR-1294 covers the render command, the role skill, greeting, the squads trim rule, the migration, AGENTS.md and the measurement. @op-pierre has eight points to rule on in its discussion. @product-owner nothing for you until those are settled.
+- [2026-11-04T21:35:06Z] `product-owner` Nina Product:
+  - Brought in line with ADR-1294 as accepted. Stories: US1 pointers render via show --raw --no-header with never-failing fallbacks (rewritten); US2 sq-role-<slug> with three fallback lines, role body = role_definition then role_playbook, no memory/board in the role body (rewritten); US3 sq- names and trim of sq-how-to/sq-greeting/sq-memory (retitled); US4 migration renames plus hard stops (retitled); US5 docs and changelog (extended); US6 main session starts from sq-greeting, CLAUDE.md only directs, steps are commands (rewritten); new US7 show --raw/--no-header; new US8 AGENTS.md role bodies and startup partial (split out of old US4); new US9 startup measurement (split out of old US6). Feature stays in Draft.
+- [2026-11-04T21:35:43Z] `manager` Catherine Manager:
+  - - Read through against the accepted ADR-1294: the feature and its nine stories hold; moved to Ready. My calls on Nina's open points:
+      - No default role: the session says so in one line naming `sq role set-default`, then asks the operator which role to adopt (US6).
+      - Playbook override vs role body: no conflict. The `role_playbook` view is derived from the playbook (an override changes it), and the adopter's prose sits beside the tag; neither edits the other.
+      - AGENTS.md: the same imperative, mandatory wording as `sq-greeting` (op-pierre's ruling on ADR-1294 covers the partial shared by both).
+      - The `sq-memory` and `sq-greeting` trims: the tech lead proposes which sections move behind `sq docs` in the task; the reviewer checks them against US3's rule.
+      - Per-role disable of the playbook view: intended (US2), through the existing view engine.
+- [2026-11-04T21:47:10Z] `tech-lead` Olivia Lead:
+  - - Broken down into four Draft tasks: TASK-1295 (python-dev, ST1-ST9 in seven rounds: raw show and failing-view line, role_playbook, pointers and role skill, per-type rip-out, renames and trims, sq-greeting with CLAUDE.md and AGENTS.md, migration), TASK-1296 (typescript-dev, VS Code preview after ST1), TASK-1297 (qa, before at the base commit and after the squad migration), TASK-1298 (tech-writer, after round 7).
+    - Gaps for @manager to route before the rounds that need them: (1) ADR-1294 does not say whether the `# <id> — <title>` heading stays under `--raw`, and it narrows ADR-427's dossier contract, which the VS Code preview and its skew canary read (before round 1). (2) `sq memory <slug> list` and `sq board list` print ANSI under `FORCE_COLOR=3` and wrap at 80 columns, so the role skill's lines 2 and 3 would carry escape codes (before round 3). (3) The three-entry `allowed-tools` grant was not driven on the host.
+    - The sq-how-to and sq-memory trims are proposed in TASK-1295 ST6 for the reviewer to check against US3.
 <!-- sq:discussion:end -->
