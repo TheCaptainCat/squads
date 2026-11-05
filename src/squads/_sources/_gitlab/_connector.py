@@ -84,7 +84,7 @@ class GitLabConnector(Connector):
 
     def _parse_issue(self, record: Mapping[str, Any]) -> Issue:
         if record.get("confidential"):
-            raise RestrictedIssueError
+            raise RestrictedIssueError(f"{_GLOBAL_ID}{text(record, 'id')}")
         author_id, author_handle, _ = _user(record.get("author"))
         references = record.get("references")
         full = (
@@ -115,12 +115,14 @@ class GitLabConnector(Connector):
     def listing(self) -> list[Issue]:
         """Every issue of the project or group, closed ones included."""
         found: list[Issue] = []
-        self.restricted = 0
+        restricted: set[str] = set()
         for record in self._http.pages(self._listing_path, self._query()):
             try:
                 found.append(self._parse_issue(record))
-            except RestrictedIssueError:
-                self.restricted += 1
+            except RestrictedIssueError as exc:
+                restricted.add(exc.issue_id)
+        self.restricted = len(restricted)
+        self.restricted_ids = frozenset(restricted)
         return found
 
     def issue(self, issue_id: str, key: str) -> Issue | None:

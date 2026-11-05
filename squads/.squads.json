@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1309,
+  "counter": 1310,
   "padding": 6,
   "items": {
     "12": {
@@ -42538,7 +42538,7 @@
       "subentities": [],
       "path": "adrs/ADR-001172-cli-surface-tests-one-case-per-parameter-guarded-coverage.md",
       "created_at": "2026-10-27T21:25:41Z",
-      "updated_at": "2026-11-05T03:43:16Z",
+      "updated_at": "2026-11-05T04:23:06Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -66626,7 +66626,7 @@
       "subentities": [],
       "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
       "created_at": "2026-11-03T22:41:36Z",
-      "updated_at": "2026-11-04T15:34:34Z",
+      "updated_at": "2026-11-05T05:57:54Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68643,7 +68643,7 @@
       "title": "0.20 tests against the CLI surface test rules",
       "slug": "0-20-tests-against-the-cli-surface-test-rules",
       "status": "ChangesRequested",
-      "description": "0.20 tests vs ADR-1172: 12 findings (1 high, 7 medium, 4 low)",
+      "description": "0.20 tests vs ADR-1172: F15, F17 reopened (one site each); rest verified",
       "parent": null,
       "author": "reviewer",
       "assignee": null,
@@ -68655,7 +68655,7 @@
         {
           "local_id": "F1",
           "title": "Source CLI tests hard-code bundled vocabulary and fail on the override squad (142 failed, 118 errors)",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68666,7 +68666,7 @@
         {
           "local_id": "F2",
           "title": "Messages and refusals asserted by substring, prefix or one picked line instead of whole lines",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68677,7 +68677,7 @@
         {
           "local_id": "F3",
           "title": "test_source_record reads .squads.json to assert the rebuilt index's keys",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68688,7 +68688,7 @@
         {
           "local_id": "F4",
           "title": "Item files hand-written to arrange states that source pull produces",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68699,7 +68699,7 @@
         {
           "local_id": "F5",
           "title": "Credential store read directly and its path computed through CredentialStore from src",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68710,7 +68710,7 @@
         {
           "local_id": "F6",
           "title": "covers markers declare a parameter the case is not about, on refusals and effect cases",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68721,7 +68721,7 @@
         {
           "local_id": "F7",
           "title": "Shape tables of sources.toml grammar refusals and author-name escapes in tests/cli",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68732,7 +68732,7 @@
         {
           "local_id": "F8",
           "title": "Source tests split into 11 feature modules that hold cases of other command groups",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68743,7 +68743,7 @@
         {
           "local_id": "F9",
           "title": "Several refusals batched in one case under multi-parameter markers and a vague name",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68754,7 +68754,7 @@
         {
           "local_id": "F10",
           "title": "JSON field projections asserted instead of the whole --json object",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68765,7 +68765,7 @@
         {
           "local_id": "F11",
           "title": "Check-rule tests: an unmarked case, two breaches in one case, partial issue assertions",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68776,6 +68776,83 @@
         {
           "local_id": "F12",
           "title": "declare_stored_view overwrites the override, so nine stored-view cases opt out as bundled_only",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F13",
+          "title": "Coverage guard requires only the bundled tree's pairs, though each test squad's tree has its own",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F14",
+          "title": "Custom type groups list Typer's completion options in their help",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F15",
+          "title": "Pull report counts pinned from observed output contradict the report's own definition",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F16",
+          "title": "Twin-holder case branches its expected output on profile.host_has_badge",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F17",
+          "title": "Later 0.20 tests add 84 substring asserts and two check cases without breaches markers",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F18",
+          "title": "Windows CI: self-skipping credential cases failed the coverage teardown",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F19",
+          "title": "Pull counts kept by per-path bookkeeping instead of one count after the pre-pass",
           "status": "Fixed",
           "assignee": null,
           "maps_to": null,
@@ -68787,7 +68864,7 @@
       ],
       "path": "reviews/REV-001299-0-20-tests-against-the-cli-surface-test-rules.md",
       "created_at": "2026-11-04T22:05:56Z",
-      "updated_at": "2026-11-05T04:10:58Z",
+      "updated_at": "2026-11-05T06:12:37Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -69256,10 +69333,10 @@
         {
           "local_id": "F4",
           "title": "A line break in a title splits the raw heading",
-          "status": "Deferred",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
-          "deferred_to": "TASK-1309",
+          "deferred_to": null,
           "attributes": {
             "severity": "low"
           }
@@ -69267,10 +69344,32 @@
         {
           "local_id": "F5",
           "title": "The raw row join keeps CR and runs of spaces",
-          "status": "Deferred",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
-          "deferred_to": "TASK-1309",
+          "deferred_to": null,
+          "attributes": {
+            "severity": "info"
+          }
+        },
+        {
+          "local_id": "F6",
+          "title": "Role update --title still accepts a line break",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F7",
+          "title": "Pull and changelog messages name --title for a tracker title",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
           "attributes": {
             "severity": "info"
           }
@@ -69278,7 +69377,7 @@
       ],
       "path": "reviews/REV-001307-vs-code-preview-reads-the-raw-panel-rows.md",
       "created_at": "2026-11-05T03:07:07Z",
-      "updated_at": "2026-11-05T04:04:16Z",
+      "updated_at": "2026-11-05T05:56:52Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -69335,7 +69434,7 @@
       "type": "task",
       "title": "Keep titles and raw row values on one line",
       "slug": "keep-titles-and-raw-row-values-on-one-line",
-      "status": "Ready",
+      "status": "Done",
       "description": "Refuse a line break in a title; tidy the raw row join",
       "parent": "FEAT-1290",
       "author": "tech-lead",
@@ -69348,7 +69447,7 @@
         {
           "local_id": "ST1",
           "title": "Refuse a line break in a title",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -69357,7 +69456,7 @@
         {
           "local_id": "ST2",
           "title": "Join raw row lines with splitlines and strip",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": null,
           "deferred_to": null,
@@ -69366,12 +69465,86 @@
       ],
       "path": "tasks/TASK-001309-keep-titles-and-raw-row-values-on-one-line.md",
       "created_at": "2026-11-05T04:04:09Z",
-      "updated_at": "2026-11-05T04:12:52Z",
+      "updated_at": "2026-11-05T04:35:39Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "TASK-1309"
+    },
+    "1310": {
+      "sequence_id": 1310,
+      "type": "task",
+      "title": "Fix REV-1299 findings F13 to F17",
+      "slug": "fix-rev-1299-findings-f13-to-f17",
+      "status": "Done",
+      "description": "Override-tree coverage, custom-type help, pull report counters, then test fixes",
+      "parent": "FEAT-1173",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1299:addresses",
+        "ADR-1172",
+        "ADR-1274"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Drop the completion options from custom type groups",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Require every test squad's tree in the coverage guard",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Count every pulled issue in exactly one counter",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Split the twin-holder case and compare whole objects",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Replace substring asserts; fold two check cases",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001310-fix-rev-1299-findings-f13-to-f17.md",
+      "created_at": "2026-11-05T04:27:13Z",
+      "updated_at": "2026-11-05T06:12:37Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1310"
     }
   }
 }

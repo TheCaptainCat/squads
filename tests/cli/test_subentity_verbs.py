@@ -255,6 +255,30 @@ async def test_add_refuses_a_missing_or_blank_title(populated_project, invoke) -
     assert (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1] == before
 
 
+@pytest.mark.covers("<type> add-<kind>", "title")
+@pytest.mark.parametrize("separator", ["\n", "\r", "\u2028"], ids=["LF", "CR", "U+2028"])
+async def test_add_refuses_a_title_with_a_line_break_and_writes_nothing(
+    populated_project, invoke, separator
+) -> None:
+    before = (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1]
+    out = await _ran(invoke, [P.ref, str(TASK), f"add-{P.kind}", f"Index{separator}tokens"])
+    assert out == (1, "error: title must be a single line\n")
+    assert (await _ran(invoke, [P.ref, str(TASK), "show", "--full"]))[1] == before
+
+
+@pytest.mark.covers("<type> <kind> update", "--title")
+@pytest.mark.parametrize("separator", ["\n", "\r", "\u2028"], ids=["LF", "CR", "U+2028"])
+async def test_update_refuses_a_title_with_a_line_break_and_writes_nothing(
+    populated_project, invoke, separator
+) -> None:
+    before = await _subtask(invoke, 1)
+    out = await _ran(
+        invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", f"Tokenise{separator}input"]
+    )
+    assert out == (1, "error: title must be a single line\n")
+    assert await _subtask(invoke, 1) == before
+
+
 @pytest.mark.covers("<type> <kind> update", "--title")
 async def test_update_refuses_a_blank_title(populated_project, invoke) -> None:
     assert await _ran(invoke, [P.ref, str(TASK), P.kind, "1", "update", "--title", " "]) == (
@@ -1081,7 +1105,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
         in update_item_help
     )
     assert (
-        "│    --owner-team                  <str>  job attribute: owner team.           │"
+        "│    --owner-team          <str>  job attribute: owner team.                   │"
         in create_help
     )
     assert (
@@ -1091,6 +1115,7 @@ async def test_the_help_the_column_and_the_show_line_name_the_target_kind(
 
 
 @pytest.mark.covers("<type> <kind>", "local-id")
+@pytest.mark.covers("<type> <kind> update", "--no-<field>")
 async def test_a_clear_flag_removes_an_optional_field_and_is_refused_beside_its_value(
     override_project, invoke
 ) -> None:

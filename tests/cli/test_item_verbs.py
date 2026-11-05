@@ -16,7 +16,7 @@ import pytest
 from squads import __version__
 from tests import _stored_view as stored
 from tests._populated import FEATURE, REVIEW, TASK
-from tests._profile import selected
+from tests._profile import REFERENCE, selected
 from tests.cli import _source_ownership as source_ownership
 from tests.cli._output import read_json, unknown_option
 from tests.cli._roster import forced_colour
@@ -78,6 +78,29 @@ async def _actors(invoke, target: str, op: str) -> list[str]:
 
 
 @pytest.mark.covers("<type>", "n")
+async def test_the_item_group_help_lists_the_number_argument_and_help_option_only(
+    populated_project, invoke
+) -> None:
+    result = await invoke([P.ref, "--help"])
+    shown = result.output.splitlines()
+    start = next(i for i, line in enumerate(shown) if line.startswith("╭─ Arguments"))
+    end = next(i for i, line in enumerate(shown) if line.startswith("╭─ Commands"))
+    rows = ["*    n      <str>  Number or ID of the " + P.ref + ". [required]", ""]
+    rows[1:] = ["--help          Show this message and exit."]
+    assert (result.exit_code, shown[start + 1 : end]) == (
+        0,
+        [
+            f"│ {rows[0]:<76} │",
+            "╰" + "─" * 78 + "╯",
+            "╭─ Options " + "─" * 68 + "╮",
+            f"│ {rows[1]:<76} │",
+            "╰" + "─" * 78 + "╯",
+        ],
+    )
+    assert (await invoke([P.ref, str(REFERENCE), "show", "--json"])).exit_code == 0
+
+
+@pytest.mark.covers("<type>", "n")
 async def test_the_item_group_addresses_the_item_by_its_number(populated_project, invoke) -> None:
     loose = await _create_task(invoke)
     by_number = await _show(invoke, loose)
@@ -105,6 +128,17 @@ async def test_the_item_group_refuses_a_number_no_item_has(populated_project, in
 
 
 # --- update ---------------------------------------------------------------------------------
+
+
+@pytest.mark.covers("<type> update", "--title")
+@pytest.mark.parametrize("separator", ["\n", "\r", "\u2028"], ids=["LF", "CR", "U+2028"])
+async def test_update_refuses_a_title_with_a_line_break_and_writes_nothing(
+    populated_project, invoke, separator
+) -> None:
+    before = await _show(invoke)
+    out = await _ran(invoke, [P.ref, str(TASK), "update", "--title", f"Parse{separator}query"])
+    assert out == (1, "error: title must be a single line\n")
+    assert await _show(invoke) == before
 
 
 @pytest.mark.covers("<type> update", "--title")
@@ -792,7 +826,7 @@ async def test_show_raw_is_never_coloured_or_wrapped(
     forced_colour(monkeypatch)
     output = await _ok(invoke, [P.ref, str(TASK), "show", "--raw"])
     assert "\x1b" not in output
-    assert f"- **file:** {TASK_PATH}\n" in output
+    assert f"- **file:** {TASK_PATH}" in output.splitlines()
     assert max(len(line) for line in output.splitlines()) > 40
 
 
@@ -807,8 +841,15 @@ async def test_show_raw_leaves_the_session_rows_to_the_styled_panel(
     await _ok(invoke, [P.ref, number, "status", "Ready"])
     panel = await _ok(invoke, [P.ref, number, "show"])
     raw = await _ok(invoke, [P.ref, number, "show", "--raw"])
-    assert "last-modified session: session-under-test" in " ".join(panel.split())
-    assert "@ session-under-test" in panel
+    assert [line[1:-1].strip() for line in panel.splitlines() if line.startswith("│")] == [
+        f"{seen}  ({P.ref})",
+        "title: Seen",
+        "status: Ready",
+        *([f"parent: {P.host_id(2)}"] if P.ref in P.needs_parent else []),
+        "author: manager @ session-under-test (best-effort session, untrusted)",
+        "last-modified session: session-under-test (best-effort, untrusted)",
+        f"file: {P.ref_path(int(number), 'seen')}",
+    ]
     assert "session" not in raw
 
 
@@ -850,8 +891,14 @@ async def test_show_raw_full_comments_prints_sub_entity_state_as_plain_text(
 ) -> None:
     out = await _ok(invoke, [P.ref, str(TASK), "show", "--raw", "--full", "--comments"])
     heading = f"## {P.kind.capitalize()} {P.kind_prefix}1 — Tokenise the input"
-    assert f"{heading}\n\nstatus: {P.kind_initial}; maps to: " in out
-    assert out.endswith("## Discussion\n\n_(no discussion)_\n")
+    lines = out.splitlines()
+    at = lines.index(heading)
+    assert lines[at : at + 3] == [
+        heading,
+        "",
+        f"status: {P.kind_initial}; maps to: {P.target_prefix}1",
+    ]
+    assert lines[-3:] == ["## Discussion", "", "_(no discussion)_"]
     assert "⚪" not in out
 
 
@@ -866,8 +913,11 @@ async def test_show_raw_full_comments_prints_the_discussion_of_a_sub_entity(
     out = await _ok(invoke, [P.ref, str(TASK), "show", "--raw", "--full", "--comments"])
     heading = f"## {P.kind.capitalize()} {sub} — Tokenise the input"
     section = out.split(heading)[1].split("\n## ")[0]
-    assert "### Discussion" in section
-    assert "sub note" in section
+    *_, discussion, blank, note, blank_after, bullet = section.splitlines()
+    assert (discussion, blank, blank_after, bullet) == ("### Discussion", "", "", "- sub note")
+    assert re.fullmatch(
+        r"#### [0-9a-f]{7} Catherine Manager \(manager\) \u2014 2026-06-07T10:00:00Z", note
+    )
 
 
 @pytest.mark.covers("<type> show", "--raw")
@@ -899,7 +949,10 @@ async def test_a_view_whose_template_fails_leaves_one_line_naming_the_command(
         0,
         MILESTONE_SCOPE + _failing_rollup_line() + "\n",
     )
-    assert "failed to render" in result.stderr
+    assert result.stderr == (
+        "warning: view 'milestone_rollup' failed to render on MILE-5: template "
+        "'views/milestone_rollup.md.j2' failed to render: 'nothing' is undefined\n"
+    )
 
 
 @pytest.mark.covers("<type> show")
@@ -919,9 +972,33 @@ async def test_a_view_whose_transform_raises_leaves_the_same_line_in_the_styled_
         encoding="utf-8",
     )
     result = await invoke(["milestone", str(MILESTONE), "show"])
-    assert result.exit_code == 0, result.output
-    assert _failing_rollup_line() in " ".join(result.stdout.split())
-    assert "Scope boundary" in result.stdout
+    assert (result.exit_code, result.stdout) == (
+        0,
+        "╭──────────────────────────────────────╮\n"
+        "│ MILE-5  (milestone)                  │\n"
+        "│ title: Beta                          │\n"
+        "│ status: Draft                        │\n"
+        "│ target date: 2026-12-01              │\n"
+        "│ author: manager                      │\n"
+        "│ file: milestones/MILE-000005-beta.md │\n"
+        "╰──────────────────────────────────────╯\n"
+        "\n"
+        "## Objective\n"
+        "\n"
+        "_TODO: what reaching this milestone means — the outcome it marks, in one or two \n"
+        "sentences._\n"
+        "\n"
+        "## Scope boundary\n"
+        "\n"
+        "_TODO: what counts toward this milestone and what doesn't. Membership itself is \n"
+        "never listed\n"
+        "here — join work to it with `ref add MILE-… --kind targets` and read `sq \n"
+        "milestone <n> show`\n"
+        "for the current roll-up, computed fresh from the corpus every time._\n"
+        "\n"
+        "The `milestone_rollup` view could not be rendered; run `sq workflow view \n"
+        "milestone_rollup MILE-5` to see why.\n",
+    )
 
 
 @pytest.mark.covers("<type> show", "--full")
@@ -1814,16 +1891,18 @@ async def test_a_map_attribute_option_sets_and_removes_keys(
 ) -> None:
     mapped = await _mapped(populated_project, invoke, profile)
     flag = profile.attr_flag(profile.map_attr)
+    before = await read_json(invoke, [profile.map_type, mapped, "show", "--json"])
     done = await invoke([profile.map_type, mapped, "update", flag, "a=b", flag, "c=d"])
     shown = await read_json(invoke, [profile.map_type, mapped, "show", "--json"])
     removed = await invoke([profile.map_type, mapped, "update", flag, "a="])
+    after = await read_json(invoke, [profile.map_type, mapped, "show", "--json"])
 
     assert done.exit_code == 0, done.output
-    assert shown[profile.map_attr] == {"a": "b", "c": "d"}
     assert removed.exit_code == 0, removed.output
-    assert (await read_json(invoke, [profile.map_type, mapped, "show", "--json"]))[
-        profile.map_attr
-    ] == {"c": "d"}
+    moved = {"etag": shown["etag"], "display": shown["display"]}
+    assert shown == {**before, **moved, profile.map_attr: {"a": "b", "c": "d"}}
+    moved = {"etag": after["etag"], "display": after["display"]}
+    assert after == {**shown, **moved, profile.map_attr: {"c": "d"}}
 
 
 @pytest.mark.covers("<type> update", "--title")

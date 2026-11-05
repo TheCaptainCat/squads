@@ -56,7 +56,11 @@ async def test_credential_set_reads_each_value_from_stdin_and_stores_it_privatel
         "platform token: ",
     )
     assert modes == (0o600, 0o700)
-    assert removed["removed"] is True
+    assert removed == {
+        "source": "platform",
+        "base_url": f"{source_declared.TRACKER}/",
+        "removed": True,
+    }
 
 
 @pytest.mark.covers("source credential set", "source")

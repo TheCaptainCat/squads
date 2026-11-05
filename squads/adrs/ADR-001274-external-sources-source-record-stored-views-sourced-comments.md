@@ -23,7 +23,7 @@ description: Source record and derived lookup, nested records, stored view bodie
   comment attributes, namespaced authors, server-side credentials, sources.toml, pull
   as import events, schema 0.20
 created_at: '2026-11-03T22:41:36Z'
-updated_at: '2026-11-04T15:34:34Z'
+updated_at: '2026-11-05T05:57:54Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -588,6 +588,26 @@ The guard against a mistyped map is `sq source check`, not the pull: its probes 
 - **A link to a restricted issue makes no line** (F5). A restricted issue is never pulled, so the dropped-link line's promise, that the ref follows when the other end is pulled, cannot hold for it, and the line would name it on every report. A connector drops a link whose record marks its other end restricted, as its listing drops such an issue: no ref, no line, no count. GitLab's link record is an issue record and carries `confidential`. Jira's link record carries no security level, and reading each target to learn it would cost one request per link, so a Jira link to an issue under a security level stays on the dropped-link line, by key only (no title or text); that limit is documented. GitHub has no per-issue restriction.
 - Delivered text owed: `docs/sources.md` (the scope shapes, the Jira scope bullet's `ORDER BY` refusal, the GitLab case rule, the characters a quoted value refuses, the restricted-link rule and its Jira limit beside the dropped-link line), `docs/stability.md` (the scope shapes and the quoted-character rule in the `sources.toml` grammar), and the CHANGELOG external-sources entry where it states the scope keys or the filter grammar.
 
+**The pull report's counters** (Narrowed 2026-11-05: §14 named the `filtered out` and `skipped (no type)` counts only; this sets every counter of a source's line and of `--json`).
+
+Every issue a pull sees lands in exactly one counter, and the counters sum to the issues seen: the listed issues, plus each held item's issue that the listing did not return. A counter counts issues, not items: an issue that two items of one source hold counts once, as refreshed if either was refreshed. A counter that is zero is not printed. In the order the line prints them:
+
+| Counter | `--json` | The issue |
+|---|---|---|
+| created | `created`, the ids of the items made | No item holds it, and the pull made at least one item for it. |
+| refreshed | `refreshed` | An item holds it, and the pull applied at least one change: title, mapped field, record, description, comment, or a state change to `open`, `closed` or `out-of-filter`. An issue with some events applied and some dropped is refreshed, and the drop is named on its line. |
+| unchanged | `unchanged` | An item holds it, and the pull wrote nothing for it: the listed values equal the record. An `out-of-filter` item whose issue has not changed is unchanged. |
+| dropped | `dropped` | The squad refused every event the pull compiled for it, so nothing was written, whether or not an item holds it. It is not created or refreshed; the line names why, and the next pull retries. |
+| gone | `gone` | An item holds it, and it is neither listed nor returned by ID (deleted, or now restricted to the token). The record is rewritten to state `gone`, and the issue counts here only. |
+| restricted | `restricted` | The listing dropped it as restricted, and no item holds it. A held one is gone. |
+| held elsewhere | `held_elsewhere` | An item of another source of the tracker holds it, and this source has no item for it. It costs only its listing row and counts nowhere else. It is named on a held-by line when this source's filter accepts it; one the filter rejects is counted and not named. Aligned 2026-11-05: only an issue the filter accepts is named. |
+| filtered out | `filtered_out` | The filter rejects it, and no item of any source holds it. It is never named. |
+| skipped (no type) | `skipped_no_type` | The filter accepts it, no item holds it, and the type map gives it no type or two. It is never named. |
+
+An issue the filter rejects while this source's own item holds it is not filtered out: it is refreshed or unchanged, and its out-of-filter line stays. So is an item whose issue left the scope but is returned by ID.
+
+`gone`, `dropped` and `held_elsewhere` are new in the report (`SourcePullReport`), on the summary line and in `--json`; the DTO docstrings state these definitions. Delivered text owed: `docs/sources.md` (the summary line, the paragraph on what the line counts, and the `--json` key list).
+
 ## Rejected
 
 - **A locked item body for the description.** Ruled out (ruling ec05545): the description is a view's stored body, refreshed by an operation.
@@ -745,4 +765,32 @@ The guard against a mistyped map is `sq source check`, not the pull: its probes 
     - F11: a quoted value refuses only Unicode Cc controls (U+0000-U+001F, U+007F-U+009F) besides an unescaped `"` or `\`; format characters and separators stand for themselves; EBNF aligned.
     - F5: a link whose record marks its other end restricted (GitLab `confidential`) is dropped with no ref, no line, no count; Jira's link record cannot tell, so its key stays on the not-followed line, a documented limit.
     - F12: scope shapes checked at load: ASCII segments of letters, digits, `_`, `-`, `.`, not `.` or `..`; GitLab `project` two or more, `group` one or more, GitHub `repository` exactly two; no empty, leading or trailing `/`, no whitespace.
+- [2026-11-05T04:22:45Z] `product-owner` Nina Product:
+  - Pull report counters (product ruling, 2026-11-05, answering REV-1299 F15).
+    
+    Rule: every issue the pull sees lands in exactly one counter, and the counters sum to the issues seen (listed issues, plus each held item's issue that the listing did not return). A counter counts issues, not items: an issue two items of one source hold counts once, as refreshed if either was refreshed. ADR-1274 §14 names no counters, so this adds them; a counter that is zero is not printed.
+    
+    Definitions, in the order the line prints them:
+    - created: no item holds the issue and the pull made at least one item for it.
+    - refreshed: an item holds the issue and the pull applied at least one change to it (title, mapped field, record, description, comment, or a state change to open, closed or out-of-filter). An issue with some events applied and some dropped is refreshed; the drop is named on its line.
+    - unchanged: an item holds the issue and the pull wrote nothing for it (listed values equal the record). An out-of-filter item whose issue has not changed is unchanged.
+    - dropped: the squad refused every event the pull compiled for the issue, so nothing was written for it, whether or not an item holds it. It is not created or refreshed. The line names why and the next pull retries.
+    - gone: an item holds the issue and the issue is neither listed nor returned by ID (deleted, or now restricted to the token). The record is rewritten to state gone, and the issue counts here and nowhere else.
+    - restricted: the listing dropped the issue as restricted and no item holds it. A held one is gone.
+    - held elsewhere: an item of another source of the tracker holds the issue and this source has no item for it. It costs only its listing row, is named on a held-by line and counts in nothing else.
+    - filtered out: the filter rejects the listed issue and no item of any source holds it. It is never named.
+    - skipped (no type): the filter accepts the issue, no item holds it, and the type map gives it no type or two. It is never named.
+    
+    Where the three cases of F15 land:
+    - Item whose issue is gone: gone (new counter), not refreshed or unchanged.
+    - Issue whose every event was dropped: dropped (new counter), not refreshed.
+    - Issue another source's item holds: held elsewhere (new counter), not filtered out. Filtered out then matches the report docstring: no item holds it.
+    
+    An issue the filter rejects while this source's own item holds it is not filtered out: it is refreshed or unchanged, and its out-of-filter line stays. Same for an item whose issue left the scope but is returned by ID.
+    
+    Consequences: SourcePullReport gains gone, dropped and held_elsewhere, shown in --json and the summary line, and the DTO docstrings state these definitions. docs/sources.md (summary line, the paragraph on what the line counts, the --json key list) changes with them.
+    
+    @architect: please narrow ADR-1274 §14 in place to carry this table, so the adopter docs and the code cite one source.
+- [2026-11-05T04:24:26Z] `architect` Robert Architect:
+  - Narrowed in place 2026-11-05 per the product ruling 8c23fed (REV-1299 F15), status unchanged. §14 gains "The pull report's counters": one counter per issue seen, counters sum to the issues seen, zero counters not printed, and a table of the nine counters with their --json keys. gone, dropped and held_elsewhere are new in SourcePullReport, the summary line and --json; docs/sources.md is owed.
 <!-- sq:discussion:end -->

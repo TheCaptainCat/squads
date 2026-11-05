@@ -59,22 +59,34 @@ class SourcePullRequest(DTO):
 
 
 class SourcePullReport(DTO):
-    """What a pull did for one source: the items it created, how many it refreshed or left as
-    they were, why it skipped the source if it did, and a line for every case worth reporting."""
+    """What a pull did for one source: the items it created, why it skipped the source if it did,
+    and a line for every case worth reporting. Every issue the pull sees lands in exactly one
+    counter (``created`` counts the issues it made items for), so the counters sum to the issues
+    seen."""
 
     name: str
     created: list[str]
+    #: Issues an item holds that the pull changed in at least one way; an issue two items of the
+    #: source hold counts once.
     refreshed: int
+    #: Issues an item holds that the pull wrote nothing for.
     unchanged: int
     left_out: str | None
     lines: list[str]
     #: Whether the source was left out because it failed its access probes.
     failed: bool = False
-    #: How many restricted issues the listing dropped.
+    #: Issues the squad refused every event for, so nothing was written; the next pull retries.
+    dropped: int = 0
+    #: Issues an item holds that the tracker neither lists nor returns by ID; the record is
+    #: rewritten to state ``gone``.
+    gone: int = 0
+    #: Issues the listing dropped as restricted that no item holds.
     restricted: int = 0
-    #: How many listed issues the filter rejected that no item holds.
+    #: Issues an item of another source of the tracker holds, with no item of this source.
+    held_elsewhere: int = 0
+    #: Listed issues the filter rejects that no item of any source holds.
     filtered_out: int = 0
-    #: How many selected issues map to no item type.
+    #: Selected issues no item holds whose type map gives no type or two.
     skipped_no_type: int = 0
 
 

@@ -250,6 +250,66 @@ async def test_a_title_missing_selected_at_error_fails_the_check(
     )
 
 
+# title_single_line
+
+
+@pytest.mark.breaches("title_single_line")
+async def test_an_item_title_and_a_subtask_title_with_a_line_break_are_reported(
+    squad, project, invoke, check_json
+) -> None:
+    assert await check_json() == ([], 0)
+
+    # the CLI refuses a line break in a title: edit the file and re-index
+    edit_item_file(project, squad.task, "title: Build\n", 'title: "Build\\nsecond"\n')
+    edit_item_file(project, squad.task, "title: Parse\n", 'title: "Parse\\u2028second"\n')
+    await repair(invoke)
+
+    address_words = " ".join(address(squad.task))
+    assert await check_json() == (
+        [
+            issue(
+                "title_single_line",
+                "warn",
+                squad.task,
+                "subtask ST1 title holds a line break"
+                f' — set a one-line title with `sq {address_words} subtask ST1 update --title "…"`',
+            ),
+            issue(
+                "title_single_line",
+                "warn",
+                squad.task,
+                "title holds a line break"
+                f' — set a one-line title with `sq {address_words} update --title "…"`',
+            ),
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("title_single_line@error")
+async def test_a_title_with_a_line_break_selected_at_error_fails_the_check(
+    squad, project, invoke, check_json, select_validators
+) -> None:
+    select_validators("title_single_line@error", on="task")
+    assert await check_json() == ([], 0)
+
+    edit_item_file(project, squad.task, "title: Build\n", 'title: "Build\\nsecond"\n')
+    await repair(invoke)
+
+    assert await check_json() == (
+        [
+            issue(
+                "title_single_line",
+                "error",
+                squad.task,
+                "title holds a line break — set a one-line title with"
+                f' `sq {" ".join(address(squad.task))} update --title "…"`',
+            )
+        ],
+        3,
+    )
+
+
 # subentity_title_max
 
 

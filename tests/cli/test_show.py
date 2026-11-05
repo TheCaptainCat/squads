@@ -93,6 +93,24 @@ async def _show(invoke, *args: str) -> tuple[int, list[str]]:
     return result.exit_code, lines(result.output)
 
 
+def _reference_raw(summary: str) -> list[str]:
+    """The raw dossier of the populated squad's reference item once its summary is *summary*."""
+    return [
+        f"# {P.ref_prefix}-{REFERENCE} — {P.ref_title}",
+        "",
+        f"- **type:** {P.ref}",
+        "- **status:** Draft",
+        f"- **summary:** {summary}",
+        f"- **parent:** {P.host_prefix}-{HOST}",
+        "- **author:** manager",
+        f"- **file:** {P.ref_folder}/{P.ref_prefix}-{REFERENCE:06d}-{P.ref_slug}.md",
+        "",
+        "## Description",
+        "",
+        f"_TODO: describe this {P.ref}._",
+    ]
+
+
 @pytest.mark.covers("show", "id")
 @pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
 async def test_show_addresses_the_item_by_number_or_full_id(readable, invoke) -> None:
@@ -158,9 +176,34 @@ async def test_raw_joins_a_multi_line_row_value_so_the_later_rows_stay_in_the_li
 
     head = (await _show(invoke, "4", "--raw"))[1][2:]
     rows = head[: head.index("")]
-    assert "- **summary:** line one line two" in rows
-    assert all(row.startswith("- **") for row in rows)
-    assert rows[-1].startswith("- **file:**")
+    assert rows == [
+        "- **type:** task",
+        "- **status:** Draft",
+        "- **priority:** low",
+        "- **summary:** line one line two",
+        "- **parent:** FEAT-2",
+        "- **author:** manager",
+        "- **refs:** TASK-3 (depends-on), REV-7",
+        "- **file:** tasks/TASK-000004-rank-results.md",
+    ]
+
+
+@pytest.mark.covers("show", "--raw")
+async def test_raw_joins_the_lines_of_a_row_value_with_one_space_each(
+    populated_project, invoke
+) -> None:
+    update = await invoke([P.ref, str(REFERENCE), "update", "--desc", "a\r\nb\n\nc\n  d"])
+    assert update.exit_code == 0, update.output
+
+    assert await _show(invoke, str(REFERENCE), "--raw") == (0, _reference_raw("a b c d"))
+
+
+@pytest.mark.covers("show", "--raw")
+async def test_raw_keeps_a_tab_inside_a_line_of_a_row_value(populated_project, invoke) -> None:
+    update = await invoke([P.ref, str(REFERENCE), "update", "--desc", "a\tb"])
+    assert update.exit_code == 0, update.output
+
+    assert await _show(invoke, str(REFERENCE), "--raw") == (0, _reference_raw("a\tb"))
 
 
 @pytest.mark.covers("show", "--no-header")

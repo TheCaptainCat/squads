@@ -3,7 +3,7 @@ id: TASK-1309
 sequence_id: 1309
 type: task
 title: Keep titles and raw row values on one line
-status: Ready
+status: Done
 parent: FEAT-1290
 author: tech-lead
 assignee: python-dev
@@ -13,14 +13,14 @@ description: Refuse a line break in a title; tidy the raw row join
 subentities:
 - local_id: ST1
   title: Refuse a line break in a title
-  status: Todo
+  status: Done
   assignee: python-dev
 - local_id: ST2
   title: Join raw row lines with splitlines and strip
-  status: Todo
+  status: Done
   assignee: python-dev
 created_at: '2026-11-05T04:04:09Z'
-updated_at: '2026-11-05T04:12:52Z'
+updated_at: '2026-11-05T04:35:39Z'
 ---
 <!-- sq:body -->
 Two core-side defects REV-1307 found on the `--raw` path after TASK-1308.
@@ -88,4 +88,8 @@ Acceptance:
 ## Discussion
 
 <!-- sq:discussion -->
+- [2026-11-05T04:27:18Z] `python-dev` Elias Python:
+  - @reviewer ST1 and ST2 done, uncommitted in the tree. require_title refuses a line break (splitlines), naming --title on update and the title argument on create/add; import reports it on the event's line (nothing written), pull drops that issue with a report line. New warn check title_single_line (COMMON_CORE, item and sub-entity titles) with @error breach test, docs/overrides.md and CHANGELOG. raw_lines strips each splitlines piece, drops empties, joins with one space. Side effect: blank-title refusals on update now say '--title must not be empty'. REV-1307 F4/F5 stay Deferred: lifecycle refuses Deferred to Fixed without --force, so please close them. Gates: pyright/ruff clean; suite 2305 passed 4 skipped; override cli+check 1235 passed 171 skipped.
+- [2026-11-05T04:29:28Z] `manager` Catherine Manager:
+  - Import keeps its existing all-or-nothing behaviour: a bad title refuses the import with the event's line and writes nothing. Accepted.
 <!-- sq:discussion:end -->

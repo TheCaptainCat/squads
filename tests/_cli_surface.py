@@ -199,8 +199,6 @@ class Surface:
 
     pairs: frozenset[Pair]
     leaves: frozenset[str]
-    #: Pairs a marker may name that the bundled tree lacks: the options another test squad derives.
-    other_squads: frozenset[Pair] = frozenset()
 
     @property
     def parameterless_leaves(self) -> frozenset[str]:
@@ -215,7 +213,7 @@ class Surface:
     @property
     def known(self) -> frozenset[Pair]:
         """The pairs a marker may name: every pair, and the bare call of any leaf."""
-        return self.pairs | {(key, None) for key in self.leaves} | self.other_squads
+        return self.pairs | {(key, None) for key in self.leaves}
 
 
 def node_params(node: Node) -> list[Any]:
@@ -240,14 +238,12 @@ def reached_pairs(
     args: list[str],
     spec: WorkflowSpec,
     refusal: str | None = None,
-    known: frozenset[Pair] | None = None,
 ) -> set[Pair]:
     """The (key, parameter) pairs the argument list *args* names on the live tree.
 
     Each level is parsed with Click's parser, an unknown token routed to the address subgroup. A
     parameter counts when the call gives it a value, when Click's missing-parameter error names it,
     or when a flag appears in the *refusal* of a failed call; a leaf given none adds `(key, None)`.
-    A parameter outside *known* (the bundled tree's pairs) is not reached, nor is it a bare call.
     """
     root = typer.main.get_command(app)
     ctx = Context(root, info_name="sq")
@@ -270,8 +266,7 @@ def reached_pairs(
             if given.get(p.name) not in (None, ())
             and (key, param_name(p, spec, key)) not in EXCLUDED_PARAMS
         }
-        level = {pair for pair in given_pairs if known is None or pair in known}
-        reached |= level
+        reached |= given_pairs
         if not hasattr(command, "list_commands") or not rest:
             if not hasattr(command, "list_commands"):
                 reached |= {(key, None)} if not given_pairs else set()
@@ -322,35 +317,39 @@ def declared_pairs(arguments: tuple[str, ...]) -> set[Pair]:
     return {(key, p) for p in params} or {(key, None)}
 
 
-@functools.cache
-def bundled_known() -> frozenset[Pair]:
-    """Every pair a marker may name: the pairs of the bundled tree and the bare call of its
-    leaves, read from a directory outside any squad with no active spec bound, so the options the
-    caller's squad derives never enter the cached answer."""
+def _tree_surface(root: Path, spec: WorkflowSpec | None) -> Surface:
+    """The surface of the tree built from the directory *root* with *spec* bound (none for the
+    bundled tree), so the options the caller's squad derives never enter the answer."""
     prior = get_context()
-    bind_context(replace(prior, active_spec=None))
+    bind_context(replace(prior, active_spec=spec))
     try:
-        with tempfile.TemporaryDirectory() as empty, contextlib.chdir(empty):
-            return surface_of(command_nodes(include_hidden=True), bundled_spec()).known
+        with contextlib.chdir(root):
+            return surface_of(command_nodes(include_hidden=True), spec or bundled_spec())
     finally:
         bind_context(prior)
-        # the tree built outside any squad must not be the one the next command is run on
+        # the tree built here must not be the one the next command is run on
         getattr(typer.main.get_command, "cache_clear", lambda: None)()
 
 
 @functools.cache
-def squad_known() -> frozenset[Pair]:
-    """Every pair a marker may name: the bundled tree's, and the `<type> update` option the
-    permanent override test squad derives for a map attribute, which the bundled squad declares
-    none of. A call that reaches it proves the live command takes the option."""
-    from tests._override_populated import OVERRIDE
-
+def squad_surface(squad: str) -> Surface:
+    """The surface of the tree of the test squad named *squad* (`bundled` or `override`), built with
+    that squad's spec bound."""
     with tempfile.TemporaryDirectory() as tmp:
-        overrides = Path(tmp) / "squads" / ".overrides"
-        overrides.mkdir(parents=True)
-        for document in OVERRIDE.glob("*.toml"):
-            text = document.read_text(encoding="utf-8")
-            (overrides / document.name).write_text(f"# squads:override-base:0.19.0\n{text}")
-        spec = load_workflow_spec(Path(tmp) / "squads")
-    maps = {name for name in derived_names(spec).values() if name == MAP_ATTRIBUTE}
-    return bundled_known() | {(f"{TYPE} update", name) for name in maps}
+        root = Path(tmp)
+        if squad == "bundled":
+            return _tree_surface(root, None)
+        from tests._override_populated import OVERRIDE
+        from tests._squads import init_overridden, paths_of
+
+        init_overridden(root, OVERRIDE, seed_skills=False)
+        return _tree_surface(root, load_workflow_spec(paths_of(root).squad_dir))
+
+
+def all_squads_surface() -> Surface:
+    """The union of every test squad's surface: each pair and leaf some squad's tree has."""
+    surfaces = [squad_surface(name) for name in ("bundled", "override")]
+    return Surface(
+        frozenset().union(*(s.pairs for s in surfaces)),
+        frozenset().union(*(s.leaves for s in surfaces)),
+    )

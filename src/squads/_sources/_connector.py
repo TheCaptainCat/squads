@@ -18,7 +18,11 @@ TYPE = "type"
 
 class RestrictedIssueError(Exception):
     """An issue the tracker marks restricted (confidential, or under a security level): squads
-    treats it as not returned."""
+    treats it as not returned. ``issue_id`` is the ID it would have, or empty when unknown."""
+
+    def __init__(self, issue_id: str = "") -> None:
+        super().__init__(issue_id)
+        self.issue_id = issue_id
 
 
 @dataclass(frozen=True)
@@ -107,11 +111,13 @@ class SourceFetch:
     )
     #: One line for each listed issue the tracker stopped returning while it was read.
     skipped: tuple[str, ...] = ()
-    #: How many restricted issues the listing dropped.
+    #: How many restricted issues the listing dropped that no item holds.
     restricted: int = 0
     #: How many unheld listed issues the filter rejected, and how many accepted ones map to no type.
     filtered_out: int = 0
     skipped_no_type: int = 0
+    #: How many unheld listed issues an item of another source of the tracker holds.
+    held_elsewhere: int = 0
 
 
 class Connector(ABC):
@@ -120,8 +126,9 @@ class Connector(ABC):
     #: The fields of the credential entry this connector reads, in the order they are asked for.
     credential_fields: tuple[str, ...]
 
-    #: How many restricted issues the last :meth:`listing` dropped.
+    #: How many restricted issues the last :meth:`listing` dropped, and their IDs.
     restricted: int = 0
+    restricted_ids: frozenset[str] = frozenset()
 
     @abstractmethod
     def __init__(self, base_url: str, scope: SourceScope, credential: Mapping[str, str]) -> None:

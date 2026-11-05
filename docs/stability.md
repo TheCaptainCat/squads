@@ -1412,7 +1412,7 @@ The frozen surface includes:
 - **Sources:** `sq source list --json` is `{sources}`, each
   `{name, connector, version, enabled, credential, items, newest_updated_at}`; `sq source pull
   --json` is `{dry_run, sources}`, each `{name, created, refreshed, unchanged, left_out, lines,
-  failed, restricted, filtered_out, skipped_no_type}`;
+  failed, dropped, gone, restricted, held_elsewhere, filtered_out, skipped_no_type}`;
   `sq source check --json` is `{ok, sources}`, each `{name, connector, version, enabled, ok,
   lines}` with lines `{family, verdict, text, fix}`; `credential set --json` is
   `{source, base_url, fields, path}`; `source unlink --json` is `{id, source, key}` and

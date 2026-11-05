@@ -1121,6 +1121,15 @@ async def test_update_title_renames_the_role_and_its_pointer(project, invoke) ->
     ).read_text(encoding="utf-8")
 
 
+@pytest.mark.covers("role update", "--title")
+async def test_update_title_refuses_a_line_break_and_keeps_the_name(project, invoke) -> None:
+    await _activate(invoke)
+    before = (await _role(invoke, "architect"))["full_name"]
+    result = await invoke(["role", "architect", "update", "--title", "Rob\nert"])
+    assert (result.exit_code, result.output) == (1, "error: title must be a single line\n")
+    assert (await _role(invoke, "architect"))["full_name"] == before
+
+
 @pytest.mark.covers("role update", "--pronouns")
 async def test_update_pronouns_sets_them_and_a_blank_value_clears_them(project, invoke) -> None:
     await _activate(invoke)
@@ -1343,7 +1352,7 @@ async def test_role_body_edits_refresh_the_agents_md_section(invoke) -> None:
     result = await invoke(["role", "tech-lead", "body", "-m", "Kept in AGENTS.md.", "--append"])
 
     assert result.exit_code == 0, result.output
-    assert "Kept in AGENTS.md." in _text(agents)
+    assert "Kept in AGENTS.md." in _text(agents).splitlines()
 
 
 @pytest.mark.covers("role view add", "name")
@@ -1566,7 +1575,7 @@ async def test_show_gives_the_definition_then_the_roles_own_section_of_each_play
     await _activate(invoke, "tech-lead")
     out = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
     definition, _, playbook = out.partition("\n## Epic items\n")
-    assert definition.startswith("# Olivia Lead\n")
+    assert definition.splitlines()[0] == "# Olivia Lead"
     assert [line for line in playbook.splitlines() if line.startswith("## ")] == [
         "## Feature items",
         "## Task items",
@@ -1589,11 +1598,15 @@ async def test_show_gives_the_manager_the_squads_own_types_after_its_definition(
 ) -> None:
     out = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
     definition, _, playbook = out.partition(f"\n## {profile.host.title()} items\n")
-    assert definition.startswith("# Catherine Manager\n")
+    assert definition.splitlines()[0] == "# Catherine Manager"
     headings = [line for line in playbook.splitlines() if line.startswith("## ")]
     assert headings[0] == f"## {profile.ref.title()} items"
-    assert f"`sq {profile.ref} <n> show --full --comments`" in playbook
-    assert "- author the job and break it into actions" in playbook
+    lines = playbook.splitlines()
+    assert (
+        f"- Read the full item dossier: `sq {profile.ref} <n> show --full --comments` "
+        "(decisions and"
+    ) in lines
+    assert f"- author the {profile.ref} and break it into actions" in lines
     assert "Epic" not in out
 
 
@@ -1609,9 +1622,9 @@ async def test_view_disable_turns_the_squads_own_playbook_sections_off(
         "ROLE-1: view role_playbook disabled in sq:body\n",
     )
     after = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
-    assert f"## {profile.host.title()} items" in before
+    assert f"## {profile.host.title()} items" in before.splitlines()
     assert f"## {profile.host.title()} items" not in after
-    assert after.startswith("# Catherine Manager\n")
+    assert after.splitlines()[0] == "# Catherine Manager"
 
 
 @pytest.mark.covers("role show", "--no-header")
@@ -1623,8 +1636,10 @@ async def test_show_gives_a_developer_the_capability_guide_as_its_own_section(
     assert result.exit_code == 0, result.output
     out = await printed(invoke, ["role", "python-dev", "show", "--raw", "--no-header"])
     task_section = out.partition("## Task items\n")[2].partition("\n## Bug items")[0]
-    assert "For every `*dev` role:\n\n**Enter** — before you act:" in task_section
-    assert "- implement with tests; tick subtasks" in task_section
+    lines = task_section.splitlines()
+    at = lines.index("For every `*dev` role:")
+    assert lines[at : at + 3] == ["For every `*dev` role:", "", "**Enter** — before you act:"]
+    assert "- implement with tests; tick subtasks (`subtask <k> update --status …`)" in lines
     assert "author the task" not in task_section
 
 
@@ -1635,7 +1650,7 @@ async def test_show_gives_a_role_with_no_playbook_type_its_definition_alone(
     await _add_scout(invoke)
     out = await printed(invoke, ["role", "scout", "show", "--raw", "--no-header"])
     assert out == SCOUT_BODY + "\n"
-    assert "<!-- sq:view:role_playbook -->" in await _scout_body(invoke)
+    assert "<!-- sq:view:role_playbook -->" in (await _scout_body(invoke)).splitlines()
 
 
 @pytest.mark.covers("role view disable", "name")
@@ -1651,9 +1666,9 @@ async def test_view_disable_turns_the_playbook_sections_off_for_one_role(project
     off = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
     on = await printed(invoke, ["role", "reviewer", "show", "--raw", "--no-header"])
     assert "## Task items" not in off
-    assert off.startswith("# Olivia Lead\n")
-    assert "## Task items" in on
-    assert "<!-- sq:view:role_playbook:disabled -->" in await body_of(invoke, 2)
+    assert off.splitlines()[0] == "# Olivia Lead"
+    assert "## Task items" in on.splitlines()
+    assert "<!-- sq:view:role_playbook:disabled -->" in (await body_of(invoke, 2)).splitlines()
 
 
 @pytest.mark.covers("role view add", "name")
@@ -1667,7 +1682,7 @@ async def test_view_add_turns_the_playbook_sections_back_on(project, invoke) -> 
         "ROLE-2: view role_playbook placed in sq:body\n",
     )
     out = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
-    assert "## Task items" in out
+    assert "## Task items" in out.splitlines()
 
 
 @pytest.mark.covers("role body", "--message")
@@ -1679,7 +1694,7 @@ async def test_body_prose_sits_beside_the_rendered_playbook_sections(project, in
     assert await body_of(invoke, 2) == f"{VIEW_TAGS}\n\nOur own rule."
     out = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
     assert out.index("# Olivia Lead") < out.index("## Epic items") < out.index("Our own rule.")
-    assert out.endswith("Our own rule.\n")
+    assert out.splitlines()[-1] == "Our own rule."
 
 
 @pytest.mark.covers("role show", "--raw")
@@ -1687,7 +1702,10 @@ async def test_body_prose_sits_beside_the_rendered_playbook_sections(project, in
 async def test_playbook_guides_point_to_the_agents_doc_not_to_a_skill(project, invoke) -> None:
     await _activate(invoke, "tech-lead")
     out = await printed(invoke, ["role", "tech-lead", "show", "--raw", "--no-header"])
-    assert 'see "Scope the comment to the right discussion" in `sq docs agents`' in out
+    assert (
+        "- use `sq feature <n> story <k> comment` for story-scoped questions "
+        '(see "Scope the comment to the right discussion" in `sq docs agents`)'
+    ) in out.splitlines()
     assert "sq skill sq-how-to" not in out
 
 
@@ -1696,7 +1714,14 @@ async def test_show_raw_points_to_the_how_to_through_a_command_and_names_no_skil
     project, invoke
 ) -> None:
     out = await printed(invoke, ["role", "manager", "show", "--raw", "--no-header"])
-    assert "**Scope the comment to the\nright discussion** in `sq docs agents`" in out
+    lines = out.splitlines()
+    at = lines.index(
+        "notes, `sq <type> <n> comment` for cross-cutting material — see **Scope the comment to the"
+    )
+    assert lines[at + 1] == (
+        "right discussion** in `sq docs agents` for the full rule. Correct or withdraw your own "
+        "comment by its hash:"
+    )
     assert re.findall(r"`sq-[a-z][a-z-]*`", out) == []
     assert "`greeting`" not in out
     assert "sq role manager show" not in out

@@ -59,6 +59,13 @@ class Compiled:
     handle_of: dict[str, str] = field(default_factory=dict[str, str])
     refreshed: int = 0
     unchanged: int = 0
+    gone: int = 0
+    held_elsewhere: int = 0
+    #: The labels of the held issues compiled, which count as refreshed or unchanged once the
+    #: pre-pass has settled which events survive.
+    held_labels: list[str] = field(default_factory=list[str])
+    #: The labels of the issues counted as gone, so a drop can uncount them.
+    gone_labels: set[str] = field(default_factory=set[str])
     restricted: int = 0
     filtered_out: int = 0
     skipped_no_type: int = 0
@@ -68,8 +75,15 @@ class Compiled:
     unfollowed: list[tuple[str, list[tuple[str, str]]]] = field(
         default_factory=list[tuple[str, list[tuple[str, str]]]]
     )
+
     #: The sources on the tracker, whose items may hold a link's target.
     peers: frozenset[str] = frozenset()
+
+    def uncount(self, label: str) -> None:
+        """Take the issue *label* out of the gone counter once it is dropped."""
+        if label in self.gone_labels:
+            self.gone -= 1
+            self.gone_labels.discard(label)
 
 
 @dataclass
@@ -139,7 +153,7 @@ class Compiler:
         it."""
         events = len(self.out.events)
         created, handles = set(self.out.created), dict(self.out.handle_of)
-        counts = (self.out.refreshed, self.out.unchanged)
+        held_elsewhere = self.out.held_elsewhere
         try:
             await self.issue(fetched, state, why)
         except ConversionError as exc:
@@ -147,7 +161,7 @@ class Compiler:
             for line in [n for n in self.out.issue_of if n > events]:
                 del self.out.issue_of[line]
             self.out.created, self.out.handle_of = created, handles
-            self.out.refreshed, self.out.unchanged = counts
+            self.out.held_elsewhere = held_elsewhere
             key = fetched.issue.key
             self.out.dropped[key] = str(exc)
             self.say(f"{key}: dropped, {exc}")
@@ -208,9 +222,11 @@ class Compiler:
                 self.say(f"{issue.key}: held by {ids}; each is refreshed")
             for item in held:
                 await self.refresh(label, item, fetched, state, why)
+            self.out.held_labels.append(label)
             return
         if holder := self.other_holder(issue.id):
             self.say(f"{issue.key}: held by {holder}")
+            self.out.held_elsewhere += 1
             return
         await self.create(label, fetched, state)
 
@@ -263,8 +279,8 @@ class Compiler:
     async def refresh(
         self, label: str, item: Item, fetched: FetchedIssue, state: str, why: str = ""
     ) -> None:
+        """Compile the changes of *item* from its issue."""
         issue = fetched.issue
-        before = len(self.out.events)
         title_changed = item.title != issue.title
         declared = {f.code for f in self.service.spec.fields_for(item.type)}
         fields: dict[str, str] = {}
@@ -293,10 +309,6 @@ class Compiler:
         self.comments(
             label, item.id, fetched.comments, existing=existing, seq=item, issue_key=issue.key
         )
-        if len(self.out.events) > before:
-            self.out.refreshed += 1
-        else:
-            self.out.unchanged += 1
 
     def comments(
         self,
@@ -524,6 +536,9 @@ class PullMixin(ImportMixin):
                     created=created,
                     refreshed=compiled.refreshed,
                     unchanged=compiled.unchanged,
+                    dropped=len(compiled.dropped),
+                    gone=compiled.gone,
+                    held_elsewhere=compiled.held_elsewhere,
                     restricted=compiled.restricted,
                     filtered_out=compiled.filtered_out,
                     skipped_no_type=compiled.skipped_no_type,
@@ -583,6 +598,7 @@ class PullMixin(ImportMixin):
         compiler.out.restricted = fetch.restricted
         compiler.out.filtered_out = fetch.filtered_out
         compiler.out.skipped_no_type = fetch.skipped_no_type
+        compiler.out.held_elsewhere = fetch.held_elsewhere
         for line in fetch.skipped:
             compiler.say(line)
         by_id = {fi.issue.id: fi for fi in fetch.changed}
@@ -596,8 +612,14 @@ class PullMixin(ImportMixin):
                 by_id[issue_id] = found
                 await compiler.attempt(found, OUT_OF_FILTER, OUTSIDE_THE_SCOPE)
                 continue
-            for seq in compiler.by_id.get((entry.source.name, issue_id), []):
-                item = db.items[seq]
+            held = [db.items[seq] for seq in compiler.by_id.get((entry.source.name, issue_id), [])]
+            linked_key = next((it.source.key for it in held if it.source is not None), "")
+            if held and all(it.source is not None and it.source.state == GONE for it in held):
+                compiler.out.unchanged += 1
+            elif held:
+                compiler.out.gone += 1
+                compiler.out.gone_labels.add(f"{entry.source.name} {linked_key}")
+            for item in held:
                 assert item.source is not None
                 if item.source.state != GONE:
                     compiler.say(
@@ -615,10 +637,11 @@ class PullMixin(ImportMixin):
     @staticmethod
     def _keeping_stored_time(
         db: SquadsDB, pair: tuple[ResolvedEvent, str]
-    ) -> tuple[ResolvedEvent, str]:
+    ) -> tuple[ResolvedEvent, str] | None:
         """*pair* with the ``updated_at`` of its ``source`` event set back to the stored one, or to
         ``""`` for an item this pull creates, so the next pull fetches the issue again and retries
-        what was dropped."""
+        what was dropped; ``None`` when the record then equals the stored one, so nothing is
+        written."""
         ev, label = pair
         event = ev.event
         if not isinstance(event, SourceEvent):
@@ -628,6 +651,8 @@ class PullMixin(ImportMixin):
         item = db.get(event.target)
         kept_time = item.source.updated_at if item is not None and item.source else ""
         record = {**event.record, "updated_at": kept_time}
+        if item is not None and item.source is not None and item.source.model_dump() == record:
+            return None
         kept = ResolvedEvent(
             line=ev.line,
             event=event.model_copy(update={"record": record}),
@@ -636,6 +661,19 @@ class PullMixin(ImportMixin):
             actor=ev.actor,
         )
         return kept, label
+
+    @staticmethod
+    def _count_held(reports: list[tuple[SourceSpec, Compiled]], written: set[str]) -> None:
+        """Count each held issue that was not dropped as refreshed when an event of it survives
+        the pre-pass, else as unchanged."""
+        for source, compiled in reports:
+            for label in compiled.held_labels:
+                if label[len(source.name) + 1 :] in compiled.dropped:
+                    continue
+                if label in written:
+                    compiled.refreshed += 1
+                else:
+                    compiled.unchanged += 1
 
     async def _without_failing_issues(
         self,
@@ -670,13 +708,16 @@ class PullMixin(ImportMixin):
                     if label.startswith(f"{source.name} "):
                         key = label[len(source.name) + 1 :]
                         compiled.dropped[key] = message
+                        compiled.uncount(label)
                         compiled.lines.append(f"{key}: dropped, {message}")
                         compiled.created.discard(compiled.handle_of.get(label, ""))
             held_back = {pairs[i][1] for i in dangling}
-            pairs = [
+            kept = (
                 self._keeping_stored_time(db, pair) if pair[1] in held_back else pair
                 for i, pair in enumerate(pairs)
                 if i not in dangling and pair[1] not in bad
-            ]
+            )
+            pairs = [pair for pair in kept if pair is not None]
             live = [renumbered(ev, n) for n, (ev, _label) in enumerate(pairs, 1)]
+        self._count_held(reports, {label for _ev, label in pairs})
         return live

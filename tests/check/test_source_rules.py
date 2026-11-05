@@ -552,6 +552,10 @@ async def test_a_sources_document_that_is_not_toml_does_not_load(squad, check_js
 async def test_an_author_naming_no_declared_source_is_a_warning(squad, invoke, check_json) -> None:
     task = await create(invoke, "task", "Mirror", "tech-lead", desc="d")
     await ok(invoke, *address(task), "comment", "--as", "tech-lead", "-m", "Noted.")
+    # A body that quotes a comment by an undeclared source author is not a comment.
+    example = await create(invoke, "task", "Example", "tech-lead", desc="d")
+    quoted = "Example of a comment:\n\n```\n- [2026-11-02T09:14:00Z] `source:nowhere` Ghost:\n```"
+    await ok(invoke, *address(example), "body", "-m", quoted)
     assert await check_json() == ([], 0)
 
     edit_item_file(squad, task, "author: tech-lead", "author: source:phantom")
@@ -635,6 +639,25 @@ async def test_a_comment_whose_attribute_line_is_not_a_json_object_of_strings_is
 ) -> None:
     task = await create(invoke, "task", "Mirror", "tech-lead", desc="d")
     await ok(invoke, *address(task), "comment", "--as", "tech-lead", "-m", "Noted.")
+    # Prose that names the attribute tag is not an attribute line.
+    prose = await create(invoke, "task", "Prose", "tech-lead", desc="d")
+    await ok(
+        invoke,
+        *address(prose),
+        "comment",
+        "--as",
+        "tech-lead",
+        "-m",
+        "The sq:attrs line is the payload under a header.",
+    )
+    quoted = (
+        "Example of a comment:\n\n```\n"
+        "- [2026-11-02T09:14:00Z] `tech-lead` Olivia Lead:\n"
+        "  sq:attrs not-json\n```"
+    )
+    await ok(invoke, *address(prose), "body", "-m", quoted)
+    # The marker guard refuses the wrapped form through the CLI, so the file is edited directly.
+    edit_item_file(squad, prose, "  sq:attrs not-json", "  <!-- sq:attrs not-json -->")
     assert await check_json() == ([], 0)
 
     edit_item_file(squad, task, ":\n  - Noted.", ':\n  <!-- sq:attrs {"n":1} -->\n  - Noted.')
@@ -652,41 +675,6 @@ async def test_a_comment_whose_attribute_line_is_not_a_json_object_of_strings_is
         ],
         3,
     )
-
-
-async def test_prose_that_names_the_attribute_tag_is_not_an_attribute_line(
-    squad, invoke, check_json
-) -> None:
-    task = await create(invoke, "task", "Mirror", "tech-lead", desc="d")
-    await ok(
-        invoke,
-        *address(task),
-        "comment",
-        "--as",
-        "tech-lead",
-        "-m",
-        "The sq:attrs line is the payload under a header.",
-    )
-    body = (
-        "Example of a comment:\n\n```\n"
-        "- [2026-11-02T09:14:00Z] `tech-lead` Olivia Lead:\n"
-        "  sq:attrs not-json\n```"
-    )
-    await ok(invoke, *address(task), "body", "-m", body)
-    # The marker guard refuses the wrapped form through the CLI, so the file is edited directly.
-    edit_item_file(squad, task, "  sq:attrs not-json", "  <!-- sq:attrs not-json -->")
-
-    assert await check_json() == ([], 0)
-
-
-async def test_a_body_example_naming_an_undeclared_source_author_is_not_a_comment(
-    squad, invoke, check_json
-) -> None:
-    task = await create(invoke, "task", "Mirror", "tech-lead", desc="d")
-    body = "Example of a comment:\n\n```\n- [2026-11-02T09:14:00Z] `source:nowhere` Ghost:\n```"
-    await ok(invoke, *address(task), "body", "-m", body)
-
-    assert await check_json() == ([], 0)
 
 
 @pytest.mark.breaches("source_id_unique")

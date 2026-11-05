@@ -466,7 +466,6 @@ class SubentitiesMixin(ServiceCore):
         """The sub-entity metadata-update mutation core: takes an already-open ``db``."""
         if title is not None:
             require_title(title)
-            reject_markers(title, "title")
         item = self._require_parent(db, parent_id, kind)
         sub = self._find(item, kind, local_id)
         base = item.model_copy(deep=True)

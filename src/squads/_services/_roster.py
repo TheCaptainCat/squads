@@ -32,7 +32,7 @@ from squads._roles import (
     role_from_definition,
     takes_parameter,
 )
-from squads._services._base import ServiceCore
+from squads._services._base import ServiceCore, require_title
 from squads._services._results import (
     DefaultRoleMoveResult,
     MineRow,
@@ -366,6 +366,8 @@ class RosterMixin(ServiceCore):
             raise SquadsError(f"{item.id} is not a role")
         if title is not None and not title.strip():
             raise SquadsError("a role's name cannot be blank")
+        if title is not None:
+            require_title(title)
         own_pronouns = checked_pronouns(pronouns) if pronouns is not None else None
         if model:
             self._refuse_invalid_model(model)
