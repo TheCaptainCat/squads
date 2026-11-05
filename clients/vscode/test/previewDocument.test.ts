@@ -71,6 +71,14 @@ describe('splitDossierMarkdown', () => {
     expect(body).toBe('Body.');
   });
 
+  it('keeps rows whose label has non-ASCII letters or punctuation in the header', () => {
+    const text =
+      "# MS-9 — Title\n\n- **type:** milestone\n- **échéance (UTC):** 2026-12-01\n- **owner's team:** core\n- **status:** Ready\n\nBody.";
+    const { header, body } = splitDossierMarkdown(text);
+    expect(header).toBe(text.slice(0, text.indexOf('\n\nBody.')));
+    expect(body).toBe('Body.');
+  });
+
   it('does not take a body that opens with a metadata-looking bullet for the header', () => {
     const text = '# TASK-1 — Title\n\n- **status:** Ready\n\n- **note to self:** body text';
     const { header, body } = splitDossierMarkdown(text);

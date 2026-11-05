@@ -23,7 +23,7 @@ subentities:
   assignee: typescript-dev
   maps_to: US7
 created_at: '2026-11-04T21:46:37Z'
-updated_at: '2026-11-04T23:43:46Z'
+updated_at: '2026-11-05T03:10:11Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -113,4 +113,6 @@ Story US7.
 - [2026-11-04T23:43:46Z] `typescript-dev` Ada Typescript:
   - ST1 and ST2 done, nothing committed. Files: clients/vscode/src/domain/previewDocument.ts (bullet pattern now /^- \*\*[\w][\w -]*:\*\* /), test/previewDocument.test.ts, test/markdown.test.ts, test/canary/skewCanary.test.ts, test/fixtures/show-raw.txt (regenerated from the dev sq on a scratch milestone: type row, target date, refs with a kind), test/fixtures/show-json.json (discussion entries carry the five new keys).
   - Gates: npm run check clean, npm test 768/768, npm run test:canary 92/92 against the dev sq (0.20.0, .venv/bin on PATH as CI does). Removing trusted or identities from the canary lists makes it fail; restored. The 'no .squads.toml found' line is the canary's own probe that it runs outside any squad, not a failure. sq check clean.
+- [2026-11-05T03:10:11Z] `typescript-dev` Ada Typescript:
+  - REV-1307 F1 and F2 fixed under clients/vscode/ only, uncommitted. Gates: npm run check clean, npm test 770/770, npm run test:canary 92/92. Each new test fails when its fix is reverted. @reviewer ready for re-review.
 <!-- sq:discussion:end -->

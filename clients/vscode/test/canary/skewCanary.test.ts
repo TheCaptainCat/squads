@@ -300,12 +300,12 @@ function assertListRowKeys(row: object, attributes: AttributeNamesByType): void 
 }
 
 /** The ADR-427 #2/US2 contract for `sq show --raw`: an H1 title, then a metadata block of
- * bold-label bullets (a label may hold spaces) led by the `type` row, with no glyph on a badge
+ * bold-label bullets (a label is any text without `*`) led by the `type` row, with no glyph on a badge
  * row, and none of `sq show`'s default Rich box-drawing chrome. */
 function assertCleanMarkdownDossier(text: string): void {
   const lines = text.split('\n');
   expect(lines[0]).toMatch(/^# \S/);
-  const bullets = lines.filter((line) => /^- \*\*[\w][\w -]*:\*\* /.test(line));
+  const bullets = lines.filter((line) => /^- \*\*[^*\n]+?:\*\* /.test(line));
   expect(bullets.length).toBeGreaterThan(0);
   expect(bullets).toContainEqual(expect.stringMatching(/^- \*\*type:\*\* \S/));
   // A badge row carries its plain text; the glyph is display chrome, not raw content.
@@ -778,10 +778,26 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
       });
 
       it('the committed fixture still conforms to the shape the adapter accepts', () => {
-        const parsed = JSON.parse(fixture('show-json.json')) as { discussion: unknown[] };
+        const parsed = JSON.parse(fixture('show-json.json')) as {
+          discussion: object[];
+          subentities: { discussion: object[] }[];
+        };
+        const live = JSON.parse(runSq(['show', taskId, '--json'])) as object;
+        // `priority` is an attribute key: the live task above sets none, the fixture's does.
+        const keys = (value: object): string[] =>
+          Object.keys(value)
+            .filter((key) => key !== 'priority')
+            .sort();
+        expect(keys(parsed)).toEqual(keys(live));
         expect(parsed.discussion.length).toBeGreaterThan(0);
-        for (const entry of parsed.discussion) {
-          expect(isSqDiscussionEntry(entry)).toBe(true);
+        expect(parsed.subentities.length).toBeGreaterThan(0);
+        const entries = [
+          ...parsed.discussion,
+          ...parsed.subentities.flatMap((sub) => sub.discussion),
+        ];
+        expect(entries.length).toBeGreaterThan(parsed.discussion.length);
+        for (const entry of entries) {
+          assertDiscussionEntryKeys(entry);
         }
       });
     });
