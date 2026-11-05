@@ -98,6 +98,40 @@ async def test_ui_runs_the_terminal_browser_over_the_squad(
 
 
 @pytest.mark.covers("ui")
+async def test_ui_board_screen_shows_each_notice_in_full_newest_first(
+    squads_app, project, invoke, monkeypatch
+) -> None:
+    from textual.widgets import Markdown
+
+    posts = [
+        ("2026-06-07T09:00:00Z", ["board", "post", "Freeze", "-m", "Merge before noon"]),
+        (
+            "2026-06-07T10:00:00Z",
+            ["board", "post", "First\n\nSecond *kept*", "--until", "2999-01-01"],
+        ),
+    ]
+    for at, post in posts:
+        assert (await invoke(["--at", at, *post, "--as", "manager"])).exit_code == 0
+    runs: list[SquadsApp] = []
+    monkeypatch.setattr(squads_app, "run", lambda self, *a, **k: runs.append(self))
+    assert (await invoke(["ui"])).exit_code == 0
+
+    async with runs[0].run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("b")
+        await pilot.pause()
+        await pilot.pause()
+        source = pilot.app.screen.query_one(Markdown).source
+
+    assert source == (
+        "**manager** \u2014 2026-06-07T10:00:00Z (expires 2999-01-01T00:00:00Z)\n\n"
+        "**First**\n\n**Second \\*kept\\***"
+        "\n\n---\n\n"
+        "**manager** \u2014 2026-06-07T09:00:00Z\n\n**Freeze**\n\nMerge before noon"
+    )
+
+
+@pytest.mark.covers("ui")
 async def test_ui_refuses_to_start_outside_a_squad(squads_app, invoke, monkeypatch) -> None:
     monkeypatch.setattr(squads_app, "run", lambda self, *a, **k: pytest.fail("the app started"))
     result = await invoke(["ui"])

@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   NAVIGATE_HISTORY_COMMAND,
   OPEN_ITEM_COMMAND,
+  OPEN_NOTICE_COMMAND,
   parseNavigateHistoryMessage,
   parseOpenItemMessage,
+  parseOpenNoticeMessage,
   parseRefreshMessage,
   parseRenderReportMessage,
   parseToggleFoldMessage,
@@ -199,5 +201,24 @@ describe('parseRenderReportMessage', () => {
     ['a non-string violation', { ...valid, violations: [1] }],
   ])('rejects %s', (_label, value) => {
     expect(parseRenderReportMessage(value)).toBeNull();
+  });
+});
+
+describe('parseOpenNoticeMessage', () => {
+  it('parses a well-formed message', () => {
+    expect(
+      parseOpenNoticeMessage({ command: OPEN_NOTICE_COMMAND, n: 3, id: 'd585a0a805' }),
+    ).toEqual({ command: 'openNotice', n: 3, id: 'd585a0a805' });
+  });
+
+  it('rejects a non-object, a wrong command, and a bad n or id', () => {
+    const good = { command: OPEN_NOTICE_COMMAND, n: 1, id: 'a' };
+    expect(parseOpenNoticeMessage(null)).toBeNull();
+    expect(parseOpenNoticeMessage({ ...good, command: 'openItem' })).toBeNull();
+    expect(parseOpenNoticeMessage({ ...good, n: '1' })).toBeNull();
+    expect(parseOpenNoticeMessage({ ...good, n: 0 })).toBeNull();
+    expect(parseOpenNoticeMessage({ ...good, n: 1.5 })).toBeNull();
+    expect(parseOpenNoticeMessage({ ...good, id: '' })).toBeNull();
+    expect(parseOpenNoticeMessage({ ...good, id: 7 })).toBeNull();
   });
 });

@@ -24,6 +24,7 @@ from squads import _discussion as discussion
 from squads import _sections as sections
 from squads import _view_tags as view_tags
 from squads._backends import AgentBackend, BackendContext
+from squads._board import multi_line_summary_warnings as board_summary_warnings
 from squads._config import CONFIG_FILENAME
 from squads._endpoint import DAEMON_ENV, daemon_override
 from squads._errors import InvalidIdError, SquadsError
@@ -39,6 +40,7 @@ from squads._interactions import (
     unheld_capability_tokens,
 )
 from squads._language import resolve_working_language
+from squads._memory import multi_line_summary_warnings as memory_summary_warnings
 from squads._models import (
     ORIGIN_VALUES,
     AttributeKey,
@@ -71,6 +73,7 @@ from squads._services._results import CheckIssue
 from squads._services._roster_projection import is_live_roster_entry
 from squads._specload import OverrideFiles
 from squads._transform import check_view_transforms
+from squads._util import has_line_break
 from squads._workflow import (
     DEFAULT_SQUAD_GLOBAL_LEVEL,
     DEFAULT_VALIDATOR_LEVEL,
@@ -678,18 +681,13 @@ def _subentity_title_max(ctx: ValidatorContext) -> list[CheckIssue]:
     ]
 
 
-def _has_line_break(title: str) -> bool:
-    """Whether *title* holds a separator ``str.splitlines`` splits on; an empty title has none."""
-    return bool(title) and title.splitlines() != [title]
-
-
 def _title_single_line(ctx: ValidatorContext) -> list[CheckIssue]:
     """An item title or a sub-entity title holding a line break, written by hand or before the
     input guard refused it. A line break is any separator ``str.splitlines`` splits on."""
     item = ctx.item
     level = _resolved_level(ctx, "title_single_line")
     issues: list[CheckIssue] = []
-    if _has_line_break(item.title):
+    if has_line_break(item.title):
         issues.append(
             CheckIssue(
                 level,
@@ -710,7 +708,7 @@ def _title_single_line(ctx: ValidatorContext) -> list[CheckIssue]:
             rule="title_single_line",
         )
         for sub in item.subentities
-        if _has_line_break(sub.title)
+        if has_line_break(sub.title)
     )
     return issues
 
@@ -1633,6 +1631,24 @@ def _display_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     ]
 
 
+def _notice_summary_single_line(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each live board notice whose summary holds a line break, with the commands that repost it."""
+    level = squad_global_level(ctx.spec, "notice_summary_single_line")
+    return [
+        CheckIssue(level, notice_id, message, rule="notice_summary_single_line")
+        for notice_id, message in board_summary_warnings(ctx.paths, ctx.now)
+    ]
+
+
+def _memory_summary_single_line(ctx: SquadGlobalContext) -> list[CheckIssue]:
+    """Each memory, in any role's or operator's notebook, whose summary holds a line break."""
+    level = squad_global_level(ctx.spec, "memory_summary_single_line")
+    return [
+        CheckIssue(level, subject, message, rule="memory_summary_single_line")
+        for subject, message in memory_summary_warnings(ctx.paths)
+    ]
+
+
 def _daemon_config_valid(ctx: SquadGlobalContext) -> list[CheckIssue]:
     """Each part of the ``[daemon]`` table in ``.squads.toml`` that is not usable (an unknown key,
     a value of the wrong kind, a non-table) and an unusable ``SQUADS_DAEMON``; each finding says
@@ -2153,6 +2169,8 @@ SQUAD_GLOBAL_CATALOG: dict[str, SquadGlobalValidator] = {
     "daemon_config_valid": _daemon_config_valid,
     "working_language_valid": _working_language_valid,
     "view_transform_resolves": _view_transform_resolves,
+    "notice_summary_single_line": _notice_summary_single_line,
+    "memory_summary_single_line": _memory_summary_single_line,
     "type_has_live_author": _type_has_live_author,
     "children_settled_with_parent": _children_settled_with_parent,
     "dependency_acyclic": _dependency_acyclic,

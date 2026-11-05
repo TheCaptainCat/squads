@@ -8,6 +8,7 @@ import type { ProcessResult, ProcessRunner } from '../src/processRunner';
 import {
   describeFailure,
   getBoardList,
+  getBoardNotice,
   getCollectionsCatalog,
   getGraph,
   getList,
@@ -23,6 +24,8 @@ import {
   getTree,
   getTypeCatalog,
   getWorkflowRaw,
+  isSqBoardNotice,
+  isSqBoardNoticeDetail,
   isSqDiscussionEntry,
   isSqRoleCatalogEntry,
   isSqRoleListRow,
@@ -1472,5 +1475,73 @@ describe('roster identity fetches', () => {
     expect(
       isSqRoleListRow({ id: 'ROLE-1', type: 'role', slug: 'manager', title: 'Catherine Manager' }),
     ).toBe(false);
+  });
+});
+
+describe('the board guards and getBoardNotice', () => {
+  const BOARD_LIST_FIXTURE = fixture('board-list.json');
+  const BOARD_SHOW_FIXTURE = fixture('board-show.json');
+  const row = (JSON.parse(BOARD_LIST_FIXTURE) as Record<string, unknown>[])[1] ?? {};
+  const detail = JSON.parse(BOARD_SHOW_FIXTURE) as Record<string, unknown>;
+
+  it('getBoardList parses the committed board list fixture', async () => {
+    const runner = stubRunner({ stdout: BOARD_LIST_FIXTURE, stderr: '', exitCode: 0 });
+    const outcome = await getBoardList(runner, VENV_INVOCATION, WORKSPACE_ROOT);
+
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.map((notice) => notice.summary)).toEqual([
+      'A notice without a body',
+      'Run board ops through the released tool',
+    ]);
+  });
+
+  it('getBoardNotice runs board show <n> --json and parses the committed fixture', async () => {
+    const { runner, calls } = recordingRunner({
+      stdout: BOARD_SHOW_FIXTURE,
+      stderr: '',
+      exitCode: 0,
+    });
+    const outcome = await getBoardNotice(runner, VENV_INVOCATION, WORKSPACE_ROOT, 2);
+
+    expect(calls[0]?.args).toEqual(['board', 'show', '2', '--json']);
+    expect(outcome.kind).toBe('success');
+    if (outcome.kind !== 'success') {
+      throw new Error('expected success');
+    }
+    expect(outcome.data.body).toBe('Use ~/.local/bin/sq with -C.\n\nSecond paragraph.');
+  });
+
+  it("getBoardNotice surfaces a failed show (exit 1) as a runtime-error with sq's message", async () => {
+    const runner = stubRunner({
+      stdout: '',
+      stderr: 'error: no notice at position 9',
+      exitCode: 1,
+    });
+    const outcome = await getBoardNotice(runner, VENV_INVOCATION, WORKSPACE_ROOT, 9);
+
+    expect(outcome).toEqual({
+      kind: 'runtime-error',
+      message: 'error: no notice at position 9',
+      exitCode: 1,
+    });
+  });
+
+  it('the list guard accepts a row and rejects a missing or non-string summary', () => {
+    expect(isSqBoardNotice(row)).toBe(true);
+    const { summary: _summary, ...withoutSummary } = row;
+    expect(isSqBoardNotice(withoutSummary)).toBe(false);
+    expect(isSqBoardNotice({ ...row, summary: 3 })).toBe(false);
+  });
+
+  it('the detail guard accepts a notice with a body, "" included, and rejects a missing or non-string body', () => {
+    expect(isSqBoardNoticeDetail(detail)).toBe(true);
+    expect(isSqBoardNoticeDetail({ ...detail, body: '' })).toBe(true);
+    const { body: _body, ...withoutBody } = detail;
+    expect(isSqBoardNoticeDetail(withoutBody)).toBe(false);
+    expect(isSqBoardNoticeDetail({ ...detail, body: 3 })).toBe(false);
+    expect(isSqBoardNoticeDetail({ ...detail, summary: undefined })).toBe(false);
   });
 });

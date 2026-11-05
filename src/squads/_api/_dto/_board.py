@@ -12,9 +12,15 @@ class NoticeRow(DTO):
 
     n: int
     id: str
+    summary: str
     author: str
     posted_at: str
     until: str | None
+
+
+class NoticeDetail(NoticeRow):
+    """One notice in full: the listing row and its body, empty when the notice has none."""
+
     body: str
 
 
@@ -25,10 +31,17 @@ class NoticeList(DTO):
 
 
 class BoardPostRequest(DTO):
-    """Post *body* as the request's actor, hidden after *until* when given."""
+    """Post *summary* over an optional *body* as the request's actor, hidden after *until*."""
 
-    body: str
+    summary: str
+    body: str | None = None
     until: str | None = None
+
+
+class BoardShowRequest(DTO):
+    """Read the notice at position *n* of the current listing."""
+
+    n: int
 
 
 class BoardClearRequest(DTO):
@@ -38,9 +51,10 @@ class BoardClearRequest(DTO):
 
 
 class Notice(DTO):
-    """A notice: its id, author, times and text."""
+    """A notice: its id, summary, author, times and body."""
 
     id: str
+    summary: str
     author: str
     posted_at: str
     until: str | None

@@ -35,7 +35,9 @@ sq memory <role> forget <slug>                      # prune a stale or wrong one
 
 `add` takes the positional argument as the memory's one-line **summary**, the line `list` and
 `search` show. The detailed write-up goes in the body, through `--file` (a path, or `-` for stdin);
-name the handle with `--slug` rather than letting it be derived from the summary.
+name the handle with `--slug` rather than letting it be derived from the summary. A summary is
+one line: a summary that spans several lines is still saved, with a warning, and `sq check` flags
+it until you file the memory again with a one-line summary.
 
 `<role>` is a positional subject, consistent with `sq inbox <role>` /
 `sq mine <role>`. Memory is addressed by its own stable slug, not by position in the index.
@@ -46,18 +48,24 @@ When something belongs on the shared side of the boundary above, it goes on the 
 board**, not into anyone's memory — a single announcement everyone sees, not one entry copy-pasted
 into every role's pool.
 
-A good notice is **short and prescriptive** — a sentence or two saying what to do or watch out for,
-not a narrative. Set `--until` whenever the notice has a natural expiry (a freeze, a temporary
+A notice has a **summary** and an optional **body**. The summary is one line that tells the team
+what to do or watch out for; the detail, if any, goes in the body. Keep it prescriptive, not a
+narrative. `sq board list` shows only the summaries, so a reader opens the body with
+`sq board show <n>` when it matters. A summary that spans several lines is still posted, with a
+warning, and `sq check` flags it until you post the notice again with a one-line summary and
+`clear` the old one. Set `--until` whenever the notice has a natural expiry (a freeze, a temporary
 heads-up) so it comes down on its own instead of turning into stale clutter someone else has to
 notice and remove. If a notice stops applying before its `--until` (or has none), `clear` it
 yourself rather than leaving it for someone else to puzzle over.
 
 ```
-sq board post -m "<notice>" --as <slug> [--until <date>]  # post a notice
-sq board list                                              # current (unexpired) notices
+sq board post "<summary>" [-m … | --file f] --as <slug> [--until <date>]  # post a notice
+sq board list                                              # current notices, summaries only
+sq board show <n>                                          # read one notice in full
 sq board clear <n>                                         # take one down
 ```
 
 `--as` is required — it attributes the post (an agent role slug, or `op-<slug>` for a human);
-`<n>` in `clear` is the notice's positional ordinal from the current `sq board list`, not a
-stored id.
+the detail goes in the body through `-m` (repeatable) or `--file` (a path, or `-` for stdin).
+`<n>` in `show` and `clear` is the notice's position in the latest `sq board list`, not a stored
+id.

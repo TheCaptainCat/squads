@@ -237,8 +237,11 @@ the paired tag of a stored view (see
 [stability.md § "View tags and stored view bodies"](stability.md#view-tags-and-stored-view-bodies)),
 and it retires the per-type `sq-<type>` skills: each role's own skill, `sq-role-<slug>`, now
 carries the guidance for the item types that role works with (see
-[roles.md § "The role skill"](roles.md#the-role-skill)). So 0.20 moves the schema from 0.19 to
-0.20, and until the squad is migrated it stops every command with:
+[roles.md § "The role skill"](roles.md#the-role-skill)). A board notice gains a one-line summary
+over its body (see
+[workflow.md § "Memories and board notices"](workflow.md#memories-and-board-notices-a-summary-over-a-body)).
+So 0.20 moves the schema from 0.19 to 0.20, and until the squad is migrated it stops every command
+with:
 
 ```text
 error: this squad is at schema v0.19; squads 0.20.0 expects v0.20. Run sq migrate up to upgrade it (see `sq migrate help`).
@@ -292,6 +295,10 @@ as `playbook_loads`.
 - renames the `greeting` skill to `sq-greeting` and `squads` to `sq-how-to`: the slug, the title
   and the file name change, the item ID does not, so a ref to either still resolves;
 - places the `role_playbook` view tag after `role_definition` in every role body;
+- copies each board notice's text into its new `summary` key, expired notices included, and keeps
+  the text as the notice's body. The file keeps its name, so the notice keeps its id and its place
+  in the listing; a notice that already has a summary is left as it is. A notice file that cannot
+  be read is left as it was and named in the output (`left notice board/<file> as it was: …`);
 - ends with the refresh `sq sync` performs: it writes the `sq-greeting`, `sq-how-to` and
   `sq-role-<slug>` pointers, removes the `greeting` and `squads` pointer directories, rewrites every
   agent pointer's preload list, the managed `CLAUDE.md` and `AGENTS.md` sections and the
@@ -308,17 +315,40 @@ git add .claude CLAUDE.md squads   # and AGENTS.md if you use it; review, then c
 ```
 
 ```text
-  0.20.0 (schema v0.19→v0.20): `source` becomes a core item key and a reserved role slug, a line shaped like a comment attribute under a comment header is read as one, and the per-type skills retire: their items and `.claude/skills` pointers are removed, `greeting` and `squads` become `sq-greeting` and `sq-how-to`, every role body gains the playbook tag and the run ends with the backend refresh. The run refuses a squad that holds a case it cannot carry. — 11 changed
+  0.20.0 (schema v0.19→v0.20): `source` becomes a core item key and a reserved role slug, a line shaped like a comment attribute under a comment header is read as one, and the per-type skills retire: their items and `.claude/skills` pointers are removed, `greeting` and `squads` become `sq-greeting` and `sq-how-to`, every role body gains the playbook tag and the run ends with the backend refresh. Every board notice takes its body as its summary. The run refuses a squad that holds a case it cannot carry. — 14 changed
     removed skill SKILL-<n> sq-bug
     …
     renamed skill SKILL-<n> greeting to sq-greeting
     renamed skill SKILL-<n> squads to sq-how-to
+    summarised notice 732062c101
+    …
 migrated to schema v0.20; index rebuilt — agent files regenerated
 manual steps remain — read them with `sq migrate chlog v0.19.0..v0.20.0`
 ```
 
 The run has already refreshed the agent files, so a `sq sync` after it changes nothing. Commit
 `.claude/` with the rest: the pointer directories it removed and wrote are part of the change.
+
+**Then rewrite each multi-line notice.** A migrated notice lists its whole text as its summary, so
+a notice of several lines fills `sq board list` and the board section of every role skill as
+before. `sq check` warns on each one:
+
+```text
+warn 732062c101: notice 1 (732062c101) has a multi-line summary; post it again with a one-line summary: `sq board post "<summary>" --file <body> --as manager --until 2027-01-01T00:00:00Z`, then `sq board clear 1`
+```
+
+For each, read it with `sq board show <n>`, post it again with a one-line summary and the rest as
+its body, keeping its author and its `--until` when it has one, then clear the old number:
+
+```bash
+sq board show 1 --json | jq -r .body > notice.md   # edit it down to the detail
+sq board post "Freeze on main until Friday" --file notice.md --as manager --until 2027-01-01T00:00:00Z
+sq board clear 1
+```
+
+The new post lists after every existing notice, so `<n>` still names the old one; the numbers after
+it shift down by one once it is cleared, so re-read `sq board list` before the next. The new notice
+has a new id and a new posting time. Memories are not migrated: each already has a summary.
 
 **What it refuses.** A squad holding any of the cases below stops the run with exit `1` before
 the stamp, with nothing written and the schema left at 0.19. Every case is listed:

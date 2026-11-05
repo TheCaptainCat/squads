@@ -30,7 +30,8 @@ commands the session runs itself, in this order:
 3. **Read the role**: `sq role <slug> show --raw --no-header`.
 4. **Read the queue**: `sq mine <slug>`.
 5. **Read the mentions**: `sq inbox <slug>`.
-6. **Read the board**: `sq board list --raw`.
+6. **Read the board**: `sq board list --raw`, which lists each notice's summary and ends with the
+   line naming `sq board show <n>`.
 7. **Read the memory**: `sq memory <slug> list --raw`, then `sq memory <slug> show <entry>` for each
    entry the request touches.
 8. **Greet**, matching the operator's tone ("Hello Robert" → "Good morning, Alice"; "Hi Mara!" →
@@ -60,8 +61,9 @@ first message, so the agent starts with:
   with: the type's overview, its lifecycle, and this role's own Enter, Do, Hand off and Watch for
   guidance. No other role's guidance is in it;
 - **its memory index**, under a `## Memory` heading (`sq memory <slug> list --raw`);
-- **the board's current notices**, under a `## Board` heading (`sq board list --raw`), each with
-  its full text;
+- **the board's current notices**, under a `## Board` heading (`sq board list --raw`): one line per
+  notice, its summary, author and expiry. The agent reads a notice's body with `sq board show <n>`
+  (see [workflow.md § "Memories and board notices"](workflow.md#memories-and-board-notices-a-summary-over-a-body));
 - **how to use `sq`** (`sq-how-to`) and **its memory notebook and the board** (`sq-memory`).
 
 The agent file itself names the two commands left to run: `sq mine <slug>` and `sq inbox <slug>`.

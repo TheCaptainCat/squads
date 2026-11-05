@@ -1,6 +1,7 @@
 """The board screen: current notices, newest-first — a modal peer to `FilterScreen`/
 `SearchScreen`, opened by a keybinding on `BrowseScreen`. Read-only: no post/clear path."""
 
+import re
 from typing import ClassVar
 
 from textual.app import ComposeResult
@@ -10,27 +11,36 @@ from textual.content import Content
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Markdown, Static
 
-from squads._api import BoardListRequest, NoticeRow, ops
+from squads._api import BoardListRequest, BoardShowRequest, NoticeDetail, ops
+from squads._errors import SquadsError
 from squads._tui._session import Session
 
 _EMPTY = "*(no notices)*"
 
 
 def _skipped_note(count: int) -> Content:
-    """Mirrors `_search.py`'s `_skipped_note`: the notices shown are real but partial."""
-    files = "file" if count == 1 else "files"
+    """The notices shown are real but partial: *count* could not be read or changed meanwhile."""
+    notices = "notice" if count == 1 else "notices"
     return Content.from_markup(
-        "[yellow]$count notice $files could not be read — listing partial[/yellow]",
+        "[yellow]$count $notices could not be shown — listing partial[/yellow]",
         count=str(count),
-        files=files,
+        notices=notices,
     )
 
 
-def _notice_block(notice: NoticeRow) -> str:
+def _bold_lines(text: str) -> str:
+    """*text* as markdown with each non-blank line bold on its own, so a blank line cannot break
+    the emphasis; markdown punctuation is escaped."""
+    escaped = re.sub(r"([\\`*_\[\]<>#])", r"\\\1", text)
+    return "\n".join(f"**{line}**" if line.strip() else "" for line in escaped.splitlines())
+
+
+def _notice_block(notice: NoticeDetail) -> str:
     header = f"**{notice.author}** — {notice.posted_at}"
     if notice.until:
         header += f" (expires {notice.until})"
-    return f"{header}\n\n{notice.body}"
+    text = f"{header}\n\n{_bold_lines(notice.summary)}".rstrip("\n")
+    return f"{text}\n\n{notice.body}" if notice.body else text
 
 
 class BoardScreen(ModalScreen[None]):
@@ -59,11 +69,22 @@ class BoardScreen(ModalScreen[None]):
 
     async def on_mount(self) -> None:
         listed = await self._session.call(ops.BOARD_LIST, BoardListRequest())
-        unreadable = listed.omitted
-        newest_first = sorted(listed.data.items, key=lambda n: (n.posted_at, n.id), reverse=True)
+        skipped = len(listed.omitted)
+        notices: list[NoticeDetail] = []
+        for row in listed.data.items:
+            try:
+                shown = await self._session.call(ops.BOARD_SHOW, BoardShowRequest(n=row.n))
+            except SquadsError:
+                skipped += 1
+                continue
+            if shown.data.id == row.id:
+                notices.append(shown.data)
+            else:
+                skipped += 1
+        newest_first = sorted(notices, key=lambda n: (n.posted_at, n.id), reverse=True)
         md = "\n\n---\n\n".join(_notice_block(n) for n in newest_first) if newest_first else _EMPTY
         await self._body.update(md)
-        self._status.update(_skipped_note(len(unreadable)) if unreadable else "")
+        self._status.update(_skipped_note(skipped) if skipped else "")
 
     def action_close(self) -> None:
         self.dismiss()

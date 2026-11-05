@@ -1,0 +1,18 @@
+[
+  {
+    "n": 1,
+    "id": "8601122378",
+    "summary": "A notice without a body",
+    "author": "manager",
+    "posted_at": "2026-11-05T07:37:01Z",
+    "until": null
+  },
+  {
+    "n": 2,
+    "id": "d585a0a805",
+    "summary": "Run board ops through the released tool",
+    "author": "manager",
+    "posted_at": "2026-11-05T07:37:01Z",
+    "until": "2026-12-01T00:00:00Z"
+  }
+]

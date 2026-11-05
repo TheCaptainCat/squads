@@ -889,6 +889,16 @@ operations of the HTTP API. Their human output is display text.
 
 `source` is a command name of `sq`, so no item type or alias can be named `source`.
 
+### The board commands
+
+`sq board post "<summary>" [-m <text>]… [--file <path>] [--until <date>] --as <slug> [--json]`,
+`sq board list [--raw] [--json]`, `sq board show <n> [--json]` and `sq board clear <n> [--json]`
+are the `sq board` group (see
+[workflow.md § "Memories and board notices"](workflow.md#memories-and-board-notices-a-summary-over-a-body)).
+The summary is `post`'s one positional argument and is required: `sq board post -m "<text>"`
+without it is a usage error, exit `2`. `<n>` is a position in the current listing, never a stored
+id; outside the listing, `show` and `clear` exit `1`.
+
 ### Bulk import
 
 `sq import <file>` loads a JSONL event stream in one process — the supported path for bringing
@@ -1350,7 +1360,10 @@ The frozen surface includes:
   `{v, ts, actor, op, target, delta, session_id, parent_session_id}`. Note the difference from the
   file: the two session fields are always *present* here, `null` when absent, where on disk they
   are omitted. They carry the same untrusted, observability-only caveat either way
-- **Notices and memory:** `board list --json`, `memory list --json`, `memory search --json`, and
+- **Notices and memory:** `board list --json` — an array of `{n, id, summary, author, posted_at,
+  until}`, one row per current notice, with no body; `board show <n> --json` — one object for the
+  notice you addressed, `{n, id, summary, author, posted_at, until, body}`, `body` being `""` when
+  the notice has none; `memory list --json`, `memory search --json`, and
   `memory show --json` — one object for the memory you addressed, `{slug, summary, created_at,
   tags, body}`, the whole entry including its body text. A `memory list --json` row carries
   `created_at` alongside `slug`, `filename` and `description`. That is a field addition, which this

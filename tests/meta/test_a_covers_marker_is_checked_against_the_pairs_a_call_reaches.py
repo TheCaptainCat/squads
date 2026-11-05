@@ -124,5 +124,11 @@ def test_an_unknown_command_reaches_nothing_beyond_the_root() -> None:
 
 def test_a_failed_call_reaches_the_options_its_output_names_by_any_flag() -> None:
     refusal = "error: provide the body via -m (repeatable); --as-slug and x-file are not flags\n"
-    reached = reached_pairs(["board", "post", "--until", "2999-01-01"], bundled_spec(), refusal)
-    assert reached == {("board post", "--until"), ("board post", "--message")}
+    reached = reached_pairs(
+        ["board", "post", "Notice", "--until", "2999-01-01"], bundled_spec(), refusal
+    )
+    assert reached == {
+        ("board post", "summary"),
+        ("board post", "--until"),
+        ("board post", "--message"),
+    }

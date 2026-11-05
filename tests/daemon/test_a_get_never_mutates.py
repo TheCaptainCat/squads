@@ -35,12 +35,13 @@ def seed(daemon: Served) -> dict[str, str]:
     task = created.json()["data"]["id"]
     daemon.request("POST", f"/v1/items/{task}/subentities", {"kind": "subtask", "title": "Step"})
     daemon.request("POST", "/v1/operators", {"name": "Op Person"})
-    daemon.request("POST", "/v1/board", {"body": "A notice"}, MANAGER)
+    daemon.request("POST", "/v1/board", {"summary": "A notice"}, MANAGER)
     daemon.request(
         "POST", "/v1/memory/manager", {"role": "manager", "summary": "A fact", "slug": "fact"}
     )
     return {
         "id": task,
+        "n": "1",
         "local": "ST1",
         "slug": "manager",
         "role": "manager",

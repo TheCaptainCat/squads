@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         BOARD_CLEAR,
         BOARD_LIST,
         BOARD_POST,
+        BOARD_SHOW,
     )
     from squads._api._ops_item_writes import (
         ITEM_BODY,
@@ -176,6 +177,7 @@ __all__ = (
     "BOARD_CLEAR",
     "BOARD_LIST",
     "BOARD_POST",
+    "BOARD_SHOW",
     "CHECK",
     "CONDITIONAL_WRITES",
     "DEVELOPERS_LIST",
@@ -320,6 +322,7 @@ _GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
         (
             "BOARD_LIST",
             "BOARD_POST",
+            "BOARD_SHOW",
             "BOARD_CLEAR",
         ),
     ),
@@ -588,6 +591,7 @@ _ORDER: tuple[str, ...] = (
     "OPERATOR_COMMENT_REMOVE",
     "BOARD_LIST",
     "BOARD_POST",
+    "BOARD_SHOW",
     "BOARD_CLEAR",
     "MEMORY_LIST",
     "MEMORY_SEARCH",

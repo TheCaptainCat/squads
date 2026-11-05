@@ -151,6 +151,7 @@ BINDINGS = (
     # --- squad state
     bind(ops.BOARD_LIST, Service.list_board),
     bind(ops.BOARD_POST, Service.post_to_board),
+    bind(ops.BOARD_SHOW, Service.show_board_notice),
     bind(ops.BOARD_CLEAR, Service.clear_from_board),
     bind(ops.MEMORY_LIST, Service.list_memories),
     bind(ops.MEMORY_SEARCH, Service.search_memories),

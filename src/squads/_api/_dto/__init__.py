@@ -3,7 +3,9 @@
 from squads._api._dto._board import BoardClearRequest as BoardClearRequest
 from squads._api._dto._board import BoardListRequest as BoardListRequest
 from squads._api._dto._board import BoardPostRequest as BoardPostRequest
+from squads._api._dto._board import BoardShowRequest as BoardShowRequest
 from squads._api._dto._board import Notice as Notice
+from squads._api._dto._board import NoticeDetail as NoticeDetail
 from squads._api._dto._board import NoticeList as NoticeList
 from squads._api._dto._board import NoticeRow as NoticeRow
 from squads._api._dto._board import NoticeWrite as NoticeWrite

@@ -31,8 +31,8 @@
  * Alongside the per-item panel pool, this also owns a single, separate panel for the workflow
  * cheatsheet (`sq workflow --raw`, `openWorkflow`) — tracked independently of
  * `activePanel`/`openPanels`, so opening one never steals the other's slot. Two more single-slot
- * panels follow the exact same shape: the team board (`openBoard`, `sq board list --json`, no
- * CLI dependency) and one Roster memory entry's full body (`openMemoryEntry`,
+ * panels follow the exact same shape: the team board (`openBoard`: the notices' summaries from
+ * `sq board list --json`, and the body of a clicked notice from `sq board show <n> --json`) and one Roster memory entry's full body (`openMemoryEntry`,
  * `sq memory <role> show <slug> --json`) — neither is an item, so neither belongs in the
  * per-item `openPanels` pool, and unlike that pool (which supports many open tabs at once plus
  * back/forward history) each of these three is a single reused slot: re-invoking reveals and
@@ -45,7 +45,7 @@ import * as vscode from 'vscode';
 import { REFRESH_ALL_COMMAND } from './commandIds';
 import { describeTriedOrder, type SqDiscovery } from './discovery';
 import { buildSubEntityFieldBindings, NO_FIELD_BINDINGS } from './domain/badgeCatalog';
-import { renderBoardHtml } from './domain/boardView';
+import { BOARD_CHANGED_NOTE, type NoticeBody, renderBoardHtml } from './domain/boardView';
 import { ExpansionTracker } from './domain/expansionTracker';
 import { buildRefGraphMermaid, buildSubtreeMermaid } from './domain/graphDiagrams';
 import { buildItemDirectory, type ItemDirectory, NO_ITEM_DIRECTORY } from './domain/itemDirectory';
@@ -89,6 +89,7 @@ import {
 import {
   parseNavigateHistoryMessage,
   parseOpenItemMessage,
+  parseOpenNoticeMessage,
   parseRefreshMessage,
   parseRenderReportMessage,
   parseToggleFoldMessage,
@@ -120,6 +121,7 @@ import type { ProcessRunner } from './processRunner';
 import {
   describeFailure,
   getBoardList,
+  getBoardNotice,
   getGraph,
   getList,
   getMemoryShow,
@@ -136,6 +138,7 @@ import {
   type SqOutcome,
 } from './sqAdapter';
 import type {
+  SqBoardNotice,
   SqGraphNode,
   SqListItem,
   SqRoleCatalogEntry,
@@ -266,6 +269,10 @@ export class ItemPreviewManager {
   private activeWorkflowPanel: vscode.WebviewPanel | undefined;
   private activeBoardPanel: vscode.WebviewPanel | undefined;
   private activeMemoryPanel: vscode.WebviewPanel | undefined;
+  // The board panel's last listing and the notices the reader has opened (by notice `id`, with
+  // the body or failure shown under the entry). The panel is a single slot, so one of each.
+  private boardList: SqOutcome<SqBoardNotice[]> | undefined;
+  private readonly boardOpened = new Map<string, NoticeBody>();
   // Every currently-open item-preview panel (there may be more than one — middle-click opens a
   // new tab alongside the reused `activePanel`), mapped to the item id it currently shows. Lets
   // the `.squads.json` watcher refresh every open preview, not just the reused one.
@@ -397,6 +404,7 @@ export class ItemPreviewManager {
    * `openWorkflow` against its own panel slot: re-invoking reveals and re-fetches the existing
    * board panel rather than opening a second one. */
   async openBoard(): Promise<void> {
+    this.boardOpened.clear();
     if (this.activeBoardPanel !== undefined) {
       const panel = this.activeBoardPanel;
       await this.renderBoard(panel);
@@ -414,9 +422,14 @@ export class ItemPreviewManager {
       },
     );
     panel.iconPath = panelIconPath(this.extensionUri);
+    panel.webview.onDidReceiveMessage((raw: unknown) => {
+      void this.handleBoardMessage(panel, raw);
+    });
     panel.onDidDispose(() => {
       if (this.activeBoardPanel === panel) {
         this.activeBoardPanel = undefined;
+        this.boardList = undefined;
+        this.boardOpened.clear();
       }
     });
     this.activeBoardPanel = panel;
@@ -760,26 +773,55 @@ export class ItemPreviewManager {
     });
   }
 
-  /** Fetches and renders the team board into the owned board panel — same shape as
-   * `renderWorkflow` (no graphs/sub-entities/discussion sections; `renderBoardHtml` covers
-   * both the success and failure content). */
-  private async renderBoard(panel: vscode.WebviewPanel): Promise<void> {
+  /** Lists the board (`sq board list --json`) and paints it into the owned board panel: a fresh
+   * listing, so no notice is shown open. `note` is the one-line reason for a re-list. */
+  private async renderBoard(
+    panel: vscode.WebviewPanel,
+    note?: string,
+    mode: 'reload' | 'patch' = 'reload',
+  ): Promise<void> {
+    this.boardOpened.clear();
     const resolution = this.discovery.resolve();
-    let bodyHtml: string;
     if (!resolution.ok) {
       const message = `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`;
       this.notifyError(`Squads: ${message}`);
-      bodyHtml = renderBoardHtml({ kind: 'spawn-error', message });
+      this.boardList = { kind: 'spawn-error', message };
     } else {
-      const { invocation } = resolution;
-      const outcome = await getBoardList(this.runner, invocation, this.workspaceRoot);
+      const outcome = await getBoardList(this.runner, resolution.invocation, this.workspaceRoot);
       if (outcome.kind !== 'success') {
         if (outcome.kind === 'spawn-error') {
           this.discovery.invalidate();
         }
         this.notifyError(`Squads: ${describeFailure(outcome)}`);
       }
-      bodyHtml = renderBoardHtml(outcome);
+      this.boardList = outcome;
+    }
+    await this.paintBoard(panel, mode, note);
+  }
+
+  /** Paints the last board listing with the opened notices under their entries — a full page
+   * load, or (`'patch'`) an in-place content swap that keeps the reader's scroll position. */
+  private async paintBoard(
+    panel: vscode.WebviewPanel,
+    mode: 'reload' | 'patch',
+    note?: string,
+  ): Promise<void> {
+    const bodyHtml = renderBoardHtml(
+      this.boardList ?? { kind: 'spawn-error', message: 'The board has not been listed.' },
+      {
+        opened: this.boardOpened,
+        note,
+      },
+    );
+    if (mode === 'patch') {
+      await panel.webview.postMessage({
+        command: UPDATE_CONTENT_COMMAND,
+        title: BOARD_TITLE,
+        articleHtml: buildArticleHtml('', '', '', bodyHtml),
+        subEntitiesHtml: '',
+        discussionHtml: '',
+      } satisfies UpdateContentMessage);
+      return;
     }
     const nonce = randomUUID();
     const mermaidScriptUri = panel.webview
@@ -796,6 +838,50 @@ export class ItemPreviewManager {
       nonce,
       mermaidScriptUri,
     });
+  }
+
+  /** A click on a notice's entry: closes it if it is open, else loads its body through `sq board
+   * show <n> --json`. `n` is a position in the listing the row came from, so a returned `id`
+   * that differs from the row's means the board changed: re-list, with a one-line note, rather
+   * than show the wrong body. */
+  private async handleBoardMessage(panel: vscode.WebviewPanel, raw: unknown): Promise<void> {
+    const message = parseOpenNoticeMessage(raw);
+    if (message === null) {
+      return;
+    }
+    if (this.boardOpened.delete(message.id)) {
+      await this.paintBoard(panel, 'patch');
+      return;
+    }
+    const resolution = this.discovery.resolve();
+    if (!resolution.ok) {
+      this.boardOpened.set(message.id, {
+        kind: 'failure',
+        message: `No sq invocation found. Tried, in order: ${describeTriedOrder(resolution.triedOrder)}.`,
+      });
+      await this.paintBoard(panel, 'patch');
+      return;
+    }
+    const outcome = await getBoardNotice(
+      this.runner,
+      resolution.invocation,
+      this.workspaceRoot,
+      message.n,
+    );
+    if (outcome.kind === 'success' && outcome.data.id !== message.id) {
+      await this.renderBoard(panel, BOARD_CHANGED_NOTE, 'patch');
+      return;
+    }
+    if (outcome.kind === 'spawn-error') {
+      this.discovery.invalidate();
+    }
+    this.boardOpened.set(
+      message.id,
+      outcome.kind === 'success'
+        ? { kind: 'body', body: outcome.data.body }
+        : { kind: 'failure', message: describeFailure(outcome) },
+    );
+    await this.paintBoard(panel, 'patch');
   }
 
   /** Fetches and renders one memory entry's full body into the owned memory panel — same shape

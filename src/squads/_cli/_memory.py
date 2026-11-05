@@ -75,7 +75,8 @@ def list_memories(
         calls.print_json(ops.MEMORY_LIST, response)
     else:
         calls.print_warnings(response)
-        render_memories(response.data, console, raw=raw)
+        if not (raw and response.omitted):
+            render_memories(response.data, console, raw=raw)
     calls.finish(response, json_out=json_out)
 
 

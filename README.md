@@ -88,8 +88,8 @@ Each role's agent, `.claude/agents/<slug>.md`, preloads (via `skills:`) its own 
 loads, so a spawned agent starts with its role definition, its part of the team playbook for each
 item type it works with (the product owner's epic, feature, contract and milestone guidance, a
 developer's task, bug, contract and review guidance; the manager, who triages, gets its definition
-alone), its memory index and the board's notices, with no command to run first. A squad adds its
-own text for a role with `sq role <slug> body`. Run `sq workflow` for the cheatsheet.
+alone), its memory index and the summaries of the board's notices, with no command to run first. A
+squad adds its own text for a role with `sq role <slug> body`. Run `sq workflow` for the cheatsheet.
 
 ### Team workflow
 
@@ -345,7 +345,7 @@ discussion — all written through commands.
 - Archiving a roster entry **retires** it: its generated files are withdrawn, the transition is refused where the generated config couldn't survive it, and `--unlink` severs a severable dependency so the ordinary check can pass — see [docs/roles.md](docs/roles.md#retiring-a-roster-entry)
 - `sq create guide <title> --author <slug> [--tech] [--tags]` — tech/tag-labelled guides, taking the shared `sq create` options too; list them with `sq list --type guide`
 - `sq memory <role> list [--raw]|search|show|add|forget` — a role's committed notebook: facts it learned and should carry into the next session
-- `sq board post|list [--raw]|clear` — the team bulletin board: notices every agent reads at the start of a run
+- `sq board post "<summary>" [-m|--file] [--until] --as <slug>|list [--raw]|show <n>|clear <n>` — the team bulletin board: notices every agent reads at the start of a run, each a one-line summary over an optional body; `list` prints the summaries, `show` one notice in full
 - `sq role|skill|operator <slug> show --raw [--no-header]` — the same plain-markdown output as an item's `show --raw`
 
 **Maintenance**

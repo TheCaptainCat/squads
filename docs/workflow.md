@@ -127,17 +127,64 @@ squad that cannot be read exits non-zero with one error line on standard error. 
 body that cannot be rendered does not fail the command; its place holds one line naming the
 command that shows why (see [§ "Derived views"](#derived-views)).
 
-Two lists follow the same contract. `sq memory <role> list --raw` prints one bullet per memory,
-``- `<slug>`: <summary>``, or `no memories for <role>`. `sq board list --raw` prints each current
-notice as a numbered item, its number the one `sq board clear <n>` takes, with its full text and
-then its author, timestamp and expiry:
+Two lists take `--raw` too, and neither takes `--no-header`. `sq memory <role> list --raw` prints
+one bullet per memory, ``- `<slug>`: <summary>``, or `no memories for <role>`. `sq board list --raw`
+prints one numbered item per current notice, its number the one `sq board show <n>` and
+`sq board clear <n>` take: the notice's summary, its author and, when it has one, its expiry, then
+a closing line naming the command that prints a notice in full:
 
 ```
-1. Freeze on main until Friday.
-   — manager, 2026-11-05T01:31:31Z, until 2099-01-01T00:00:00Z
+1. Freeze on main until Friday — manager, until 2099-01-01T00:00:00Z
+2. Run board commands through the released tool — op-alice
+
+Read a notice in full with `sq board show <n>`.
 ```
 
-or `no current notices`. Neither list takes `--no-header`.
+or `no current notices`. A summary that spans several lines prints each further line indented
+three spaces, so each notice stays one markdown item. A raw list that cannot read one of its files
+prints nothing on standard output, names the file on standard error and exits `4` (see
+[faq.md § "What exit codes does `sq` use?"](faq.md#what-exit-codes-does-sq-use)).
+
+### Memories and board notices: a summary over a body
+
+A role's memory and a board notice each hold a one-line **summary** over a **body**. A listing
+prints the summaries only; `show` prints one entry whole.
+
+```bash
+sq board post "Freeze on main until Friday" -m "The release branch is being cut." --until 2026-11-07 --as manager
+sq board list                            # numbered summaries, with author and expiry
+sq board show 1                          # one notice: summary, author, posted, until, then its body
+sq board clear 1                         # take it down
+sq memory tech-lead add "Run the suite with four workers" --file note.md --slug suite-workers
+sq memory tech-lead list                 # one line per memory: its slug and summary
+sq memory tech-lead show suite-workers   # one memory in full
+```
+
+- `sq board post` takes the summary as its argument, required and not blank. The body comes from
+  `-m` (repeatable, one paragraph each) or `--file` (`-` reads standard input), and a notice may
+  have none. `sq memory <role> add` takes its summary the same way; with no `--file`, the summary
+  is also the memory's body.
+- `<n>` is the notice's position in the current `sq board list`: unexpired notices, oldest first.
+  `show` and `clear` with a number outside that listing exit `1`:
+
+  ```text
+  error: no notice at position 9 (the board currently lists 3 notice(s))
+  ```
+
+- **A summary is one line.** A summary that spans several lines is still written, and the command
+  warns on standard error with the way to write it again:
+
+  ```text
+  warning: notice 3 (f360a328aa) has a multi-line summary; post it again with a one-line summary: `sq board post "<summary>" --file <body> --as manager`, then `sq board clear 3`
+  ```
+
+  `sq check` reports the same at `warn` until the entry is written again (the
+  `notice_summary_single_line` and `memory_summary_single_line` checks in
+  [overrides.md § "Squad-wide checks"](overrides.md#squad-wide-checks-the-squad-table)). Nothing
+  edits a notice or a memory in place: post the notice again with a one-line summary and the rest
+  as its body, then `sq board clear <n>` the old one (the new post lists after every existing
+  notice, so `<n>` still names the old one); for a memory, `sq memory <role> forget <slug>`, then
+  `add` it again with the same `--slug`.
 
 ### Addressing a comment by its hash
 

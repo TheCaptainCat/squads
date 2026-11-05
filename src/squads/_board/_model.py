@@ -1,8 +1,8 @@
 """The board-notice model, deliberately not the ``Item`` model.
 
-A notice is a short prescriptive team broadcast: light frontmatter (author, posted-at, an
-optional ``until`` expiry) over a freeform author-owned body, the notice text. It has no schema
-version, workflow, sub-entities or refs, and no counter id; it is identified by a stable
+A notice is a short prescriptive team broadcast: light frontmatter (a one-line summary, author,
+posted-at, an optional ``until`` expiry) over an optional freeform author-owned body. It has no
+schema version, workflow, sub-entities or refs, and no counter id; it is identified by a stable
 short-hash id derived from its content (see :mod:`squads._board._store`). Content files are
 marker-free: nothing in a body is regenerated, so it carries no ``<!-- sq:... -->`` markers.
 """
@@ -17,6 +17,7 @@ class BoardNotice:
     counter id."""
 
     id: str
+    summary: str
     author: str
     posted_at: str  # ISO-8601 (via squads._clock.iso), the frontmatter's posted_at
     body: str
@@ -30,7 +31,11 @@ class BoardNotice:
         the frontmatter, so storing it would be redundant (mirrors the memory store, which
         likewise omits its slug from frontmatter for the same reason).
         """
-        data: dict[str, Any] = {"author": self.author, "posted_at": self.posted_at}
+        data: dict[str, Any] = {
+            "summary": self.summary,
+            "author": self.author,
+            "posted_at": self.posted_at,
+        }
         if self.until:
             data["until"] = self.until
         return data
@@ -44,6 +49,7 @@ class BoardNotice:
         until = frontmatter.get("until")
         return cls(
             id=notice_id,
+            summary=str(frontmatter.get("summary", "")),
             author=str(frontmatter.get("author", "")),
             posted_at=str(frontmatter.get("posted_at", "")),
             body=body,

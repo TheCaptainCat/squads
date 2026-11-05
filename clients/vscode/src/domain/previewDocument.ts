@@ -23,6 +23,7 @@ import { escapeHtml, renderMarkdownToHtml } from './markdown';
 import {
   NAVIGATE_HISTORY_COMMAND,
   OPEN_ITEM_COMMAND,
+  OPEN_NOTICE_COMMAND,
   REFRESH_COMMAND,
   RENDER_REPORT_COMMAND,
   TOGGLE_FOLD_COMMAND,
@@ -106,6 +107,16 @@ details.sq-graph .sq-graph-empty {
 .sq-graph-output .node[data-item-id] {
   cursor: pointer;
 }
+.sq-notice {
+  margin: 0.9rem 0;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.sq-notice-head { cursor: pointer; }
+.sq-notice-summary { font-weight: 600; }
+.sq-notice-summary p { margin: 0.2rem 0; }
+.sq-notice-meta, .sq-notice-empty, .sq-notice-note { color: var(--vscode-descriptionForeground); }
+.sq-notice-body { margin: 0.5rem 0 0 1rem; }
 .sq-comment {
   margin: 0.9rem 0;
   padding-top: 0.6rem;
@@ -254,6 +265,7 @@ function clientScript(
   navCommand: string,
   refreshCommand: string,
   toggleFoldCommand: string,
+  openNoticeCommand: string,
 ): string {
   return `(function () {
   window.scrollTo(0, 0);
@@ -280,6 +292,16 @@ function clientScript(
     if (refreshTarget) {
       event.preventDefault();
       vscode.postMessage({ command: '${refreshCommand}' });
+      return;
+    }
+    const noticeTarget = event.target.closest('[data-sq-notice-id]');
+    if (noticeTarget && !event.target.closest('a')) {
+      event.preventDefault();
+      vscode.postMessage({
+        command: '${openNoticeCommand}',
+        n: Number(noticeTarget.getAttribute('data-sq-notice-n')),
+        id: noticeTarget.getAttribute('data-sq-notice-id'),
+      });
       return;
     }
     post(event, event.ctrlKey || event.metaKey);
@@ -992,7 +1014,7 @@ export function buildPreviewHtml(params: PreviewDocumentParams): string {
 <div id="${SUBENTITIES_MOUNT_ID}">${params.subEntitiesHtml}</div>
 <div id="${DISCUSSION_MOUNT_ID}">${params.discussionHtml}</div>
 <script nonce="${params.nonce}" src="${params.mermaidScriptUri}"></script>
-<script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND, UPDATE_CONTENT_COMMAND, NAVIGATE_HISTORY_COMMAND, REFRESH_COMMAND, TOGGLE_FOLD_COMMAND)}
+<script nonce="${params.nonce}">${clientScript(OPEN_ITEM_COMMAND, UPDATE_CONTENT_COMMAND, NAVIGATE_HISTORY_COMMAND, REFRESH_COMMAND, TOGGLE_FOLD_COMMAND, OPEN_NOTICE_COMMAND)}
 ${mermaidRenderScript(params.nonce)}</script>
 </body>
 </html>`;
