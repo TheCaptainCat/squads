@@ -734,6 +734,17 @@ transform = { module = "squads._view_transforms", function = "status_rollup" }
 source = { kind = "role" }
 position = "top"
 
+[views.role_playbook]
+# Source: the playbook, whose lane for a role host is empty: the template reads the live roster
+# and the merged playbook, and picks the host's own guides through the `role_playbook_sections`
+# filter. `agents/role.md.j2` seeds the tag after `role_definition`, which it follows because
+# both sit at the top and declaration order settles ties; `sq repair`'s corpus sweep places it
+# on a role body that has the definition tag and not this one.
+# Seeded: authored prose follows both tags; `body` replace and append keep them in place, and
+# `sq role <slug> view disable role_playbook` turns it off for one role.
+source = { kind = "playbook" }
+position = "top"
+
 [views.squads_skill]
 # Source: the playbook lane of the projecting item's own type — `name` is deliberately unset,
 # so a `squads` skill item (roster type `skill`, no playbook lane of its own) resolves against

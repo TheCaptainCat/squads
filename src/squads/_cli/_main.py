@@ -853,12 +853,14 @@ def show_any(
     ),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the item."),
     raw: bool = common.raw_option(),
+    no_header: bool = common.no_header_option(),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comment panes."
     ),
     full: bool = typer.Option(False, "--full", help="Add one pane per sub-entity (body + badges)."),
 ):
     """Show any item by ID or number, whatever its type."""
+    common.require_raw_for_no_header(raw=raw, no_header=no_header)
     from squads._api import ItemShowRequest
     from squads._cli._render import render_show
 
@@ -867,7 +869,9 @@ def show_any(
         calls.print_json(ops.ITEM_SHOW, response)
     else:
         calls.print_warnings(response)
-        render_show(response.data, console, raw=raw, comments=comments, full=full)
+        render_show(
+            response.data, console, raw=raw, no_header=no_header, comments=comments, full=full
+        )
     calls.finish(response, json_out=json_out)
 
 

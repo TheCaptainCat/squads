@@ -15,7 +15,7 @@ description: 'CLI tests in-process on the bundled squad and a full-override squa
   one case per parameter, shared registrations tested once, a marker-based coverage
   guard'
 created_at: '2026-10-27T21:25:41Z'
-updated_at: '2026-10-31T08:33:48Z'
+updated_at: '2026-11-04T22:19:17Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -48,6 +48,8 @@ Two parameters of one command **genuinely interact** when the outcome for one de
 - they touch the same value, so order or precedence decides the result (`--add-label` and `--rm-label` naming the same label, `--set` and `--unset` naming the same attribute).
 
 Two filters that narrow the same listing independently do not interact: each is tested alone, and their intersection is not a row. A combination test names the interaction in its function name (`test_update_refuses_parent_with_no_parent`), never only the parameters.
+
+Amended 2026-11-04: an override document that does not load (`workflow.toml`, `playbook.toml`, `roles.toml`, `sources.toml` under `.overrides/`) is not a boundary refusal of each command that reads it. Its load and grammar refusals are tested in `tests/check`, one case per distinct message, each declared with `breaches(<the load rule>)`: for `sources.toml`, `breaches("sources_loads")`. `tests/cli` keeps one case per document showing that a command refuses when that document does not load; it does not repeat the messages.
 
 ### 2. A shared registration is tested once, on one host
 
@@ -107,6 +109,8 @@ Every CLI test runs `sq` in-process through Typer's `CliRunner` (the `runner`/`i
 
 A case asserts the exit code and the composed output: the whole message line or the JSON object, not a substring that would survive a wrong message. State is read back through the CLI: `sq <type> <n> show --json`, or the `--json` form of the listing or command concerned. A test never opens `.squads.json`, and opens an item file only for the hint named below. A test reads a file directly only when that file is the output the command under test produces for the user: the generated agent-facing files (`.claude/` pointers, the managed `CLAUDE.md` and `AGENTS.md` regions) written by `init`, `adopt`, `sync` and the roster verbs that regenerate pointers, and the override files that `sq override` scaffolds or restamps. Two item-file reads are allowed. A test may read the add and track hint that an item template scaffolds above the sub-entity region, since no sq output carries it. A migration test may read the item files `sq migrate up` rewrote, since those files are the output the command produces; it reads them as plain text and compares whole files or the whole frontmatter, never through an internal function such as a frontmatter parser. No other file is read; any other state goes through the CLI. A refusal is asserted by its whole message lines, never by a substring. A test writes an item file or `.squads.json` directly only to arrange a state that no CLI path can produce (a corrupt, legacy or drifted corpus for `repair`, `check`, `migrate`, `adopt` or `renumber`); its assertions still read state through the CLI.
 
+Amended 2026-11-04: a stored credential is read back through the `--json` output of `sq source credential …`. A test reads the per-user credential file directly only for what no command shows, its permission mode, and takes the file's path from its own fixture, never from a `src` class such as `CredentialStore`.
+
 ### 6. Layout and names
 
 CLI tests live in `tests/cli/`, one module per command group, named for that group's behaviour:
@@ -117,7 +121,7 @@ CLI tests live in `tests/cli/`, one module per command group, named for that gro
 - `test_comment_verbs.py` for `<host> comment …`;
 - `test_create.py`, `test_list.py`, `test_role.py` and so on, one per remaining top-level group.
 
-A top-level group with a single leaf may share a module with its nearest neighbour when both read the same squad fixture. Test function names state the behaviour. `test_test_names_carry_no_ticket_ids_or_process_words` and the ticket-reference guard already scan `tests/` and apply unchanged.
+A top-level group with a single leaf may share a module with its nearest neighbour when both read the same squad fixture. Amended 2026-11-04: a large command group may instead have one module per leaf command, named for it (`test_source_pull.py`, `test_source_check.py`). Either way, each case lives in the module of the command it declares, so a case about another command group belongs in that group's module. Test function names state the behaviour. `test_test_names_carry_no_ticket_ids_or_process_words` and the ticket-reference guard already scan `tests/` and apply unchanged.
 
 ### Root and shared options
 
@@ -281,4 +285,6 @@ Every CI test job runs in under 10 minutes; Windows, running the full suite, in 
   - Argument names use hyphens, never underscores (2026-10-31): normalize every CLI argument name that has an underscore (old_status, new_status, root_id and the like) to hyphens.
 - [2026-10-31T08:33:48Z] `architect` Robert Architect:
   - Amended in place 2026-10-31 per op-pierre 2539a8b (board rule 6, status unchanged). Rule "Parameter name": argument names are lower case and join words with hyphens, never underscores; an argument whose parameter name has an underscore declares a hyphenated metavar, and a tests/meta guard over the command tree holds it (TASK-1267).
+- [2026-11-04T22:19:17Z] `architect` Robert Architect:
+  - Amended in place 2026-11-04 per op-pierre 5673927 on REV-1299 (board rule 6), status unchanged: rule 1 sends override-document load and grammar refusals to tests/check (one case per message, under the load rule; one CLI case per document); rule 5 reads credentials back through sq source credential --json, the file only for its mode, path from the fixture; rule 6 allows one module per leaf of a large group.
 <!-- sq:discussion:end -->

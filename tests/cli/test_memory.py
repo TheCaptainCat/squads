@@ -5,7 +5,7 @@ import json
 import pytest
 
 from tests.cli._output import read_json
-from tests.cli._roster import usage_error
+from tests.cli._roster import forced_colour, usage_error
 
 pytestmark = pytest.mark.anyio
 
@@ -166,6 +166,32 @@ async def test_list_json_lists_the_notebook_and_is_empty_before_the_first_fact(
             }
         ]
     )
+
+
+@pytest.mark.covers("memory list", "--raw")
+async def test_list_raw_prints_one_plain_bullet_per_memory(project, invoke, monkeypatch) -> None:
+    long_fact = "Keep every reply to the point and never wrap a long line of a summary"
+    await _remember(invoke, long_fact, "--slug", "terse")
+    await _remember(invoke, "Prefer uv over pip")
+    forced_colour(monkeypatch)
+    result = await invoke(["memory", "manager", "list", "--raw"])
+    assert (result.exit_code, result.output) == (
+        0,
+        f"- `prefer-uv-over-pip`: Prefer uv over pip\n- `terse`: {long_fact}\n",
+    )
+
+
+@pytest.mark.covers("memory list", "--raw")
+async def test_list_raw_of_a_role_without_memory_prints_one_line(project, invoke) -> None:
+    result = await invoke(["memory", "manager", "list", "--raw"])
+    assert (result.exit_code, result.output) == (0, "no memories for manager\n")
+
+
+@pytest.mark.covers("memory list", "--raw")
+async def test_list_raw_of_an_unknown_role_prints_nothing_but_the_error(project, invoke) -> None:
+    result = await invoke(["memory", "nobody", "list", "--raw"])
+    assert (result.exit_code, result.stdout) == (1, "")
+    assert result.stderr == "error: unknown slug 'nobody'; valid slugs: manager\n"
 
 
 # ------------------------------------------------------------------------------------ show

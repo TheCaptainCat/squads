@@ -199,8 +199,13 @@ async def test_up_flattens_entries_and_puts_item_keys_in_the_writers_order(
 
     for name, head in ((TASK_FILE, TASK_HEAD), (REVIEW_FILE, REVIEW_HEAD), (BUG_FILE, BUG_HEAD)):
         assert after[name].decode() == head + _tail(before[name].decode()), name
-    for untouched in ("features/FEAT-000002-user-login.md", "agents/roles/ROLE-000001-manager.md"):
-        assert after[untouched] == before[untouched], untouched
+    untouched = "features/FEAT-000002-user-login.md"
+    assert after[untouched] == before[untouched], untouched
+    role = "agents/roles/ROLE-000001-manager.md"
+    assert after[role] == before[role].replace(
+        b"<!-- sq:view:role_definition -->\n",
+        b"<!-- sq:view:role_definition -->\n\n<!-- sq:view:role_playbook -->\n",
+    )
 
     subtask = json.loads((await invoke(["task", "3", "subtask", "1", "show", "--json"])).output)
     assert subtask["maps_to"] == "US1"
@@ -286,7 +291,7 @@ async def test_up_flattens_the_mapping_of_a_squad_with_its_own_vocabulary(
 
 
 @pytest.mark.covers("migrate up")
-async def test_up_stamps_a_clean_0_19_squad_and_leaves_every_item_file_as_it_was(
+async def test_up_stamps_a_clean_0_19_squad_and_adds_only_the_playbook_tag_to_each_role_body(
     tmp_path, monkeypatch, invoke
 ) -> None:
     squad = shutil.copytree(SCHEMA_19_SQUAD, tmp_path / "old")
@@ -299,7 +304,11 @@ async def test_up_stamps_a_clean_0_19_squad_and_leaves_every_item_file_as_it_was
     assert f'schema_version = "{SCHEMA_VERSION}"' in _text(squad / ".squads.toml")
     after = _snapshot(squad)
     after.pop(".reflog.jsonl", None)
-    assert {k: v for k, v in after.items() if k != ".squads.toml"} == {
+    placed = b"\n<!-- sq:view:role_playbook -->\n"
+    roles = [name for name in after if name.startswith("agents/roles/")]
+    assert roles
+    assert all(placed in after[name] for name in roles)
+    assert {k: v.replace(placed, b"") for k, v in after.items() if k != ".squads.toml"} == {
         k: v for k, v in before.items() if k != ".squads.toml"
     }
 
@@ -729,7 +738,7 @@ async def test_up_json_reports_each_migration_run_on_an_older_squad(
                 ],
                 "reconciled": {"indexed": [], "missing": []},
                 "config_dropped": ["squads_version"],
-                "notice": "stripped retired regions from 3 item files — review the diff",
+                "notice": "stripped retired regions from 4 item files — review the diff",
                 "unreadable": [],
                 "manual_span": "v0.14.0..v0.20.0",
             }

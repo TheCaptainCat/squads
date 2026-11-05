@@ -7,7 +7,12 @@ import pytest
 
 from tests._profile import selected
 from tests.cli._output import entry_text, printed, read_json
-from tests.cli._roster import actors_of, body_of, forced_terminal, usage_error
+from tests.cli._roster import (
+    actors_of,
+    body_of,
+    raw_forms,
+    usage_error,
+)
 
 P = selected()
 
@@ -238,18 +243,16 @@ async def test_show_json_describes_the_operator(project, invoke) -> None:
 
 
 @pytest.mark.covers("operator show", "--raw")
-@pytest.mark.bundled_only("the operator text names the bundled review points")
-async def test_show_raw_prints_the_body_unrendered_where_a_terminal_would_render_it(
+@pytest.mark.covers("operator show", "--no-header")
+async def test_show_raw_lists_the_panel_rows_then_the_body_and_no_header_prints_the_body_alone(
     project, invoke, monkeypatch
 ) -> None:
     await _add_alice(invoke)
-    piped = await invoke(["operator", "op-alice", "show"])
-    assert (piped.exit_code, piped.output) == (0, PANEL + PROFILE)
-    forced_terminal(monkeypatch)
-    raw = await invoke(["operator", "op-alice", "show", "--raw"])
-    rendered = await invoke(["operator", "op-alice", "show"])
-    assert (raw.exit_code, raw.output) == (0, piped.output)
-    assert rendered.output != piped.output
+    body = (await _operator(invoke))["display"]["body"]
+    rows, raw, bare = await raw_forms(invoke, monkeypatch, ["operator", "op-alice", "show"])
+    assert raw == f"{rows}\n\n{body}\n"
+    assert bare == body + "\n"
+    assert "\x1b" not in raw
 
 
 @pytest.mark.covers("operator show", "--comments")

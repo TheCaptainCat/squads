@@ -141,25 +141,13 @@ def item_types_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSp
 
 
 def skills_for_role(role: RoleLike, spec: WorkflowSpec, playbook: PlaybookSpec) -> list[str]:
-    """Skill names a role's pointer preloads: the always-on skills + the role's item skills.
+    """Skill names a role's pointer preloads: its role skill, then the two always-on skills.
 
-    See :func:`item_types_for_role` for how *spec*/*playbook* keep this list correct — a
-    dropped/renamed type's skill never lingers, and a project override's guidance changes are
-    reflected once the caller threads the active/merged playbook.
+    A skill scoped to the role is added after these by the caller.
     """
-    from squads._interactions._skills import (
-        GREETING_SKILL,
-        MEMORY_SKILL,
-        SQUADS_SKILL,
-        item_skill_name,
-    )
+    from squads._interactions._skills import MEMORY_SKILL, SQUADS_SKILL, role_skill_name
 
-    return [
-        SQUADS_SKILL,
-        GREETING_SKILL,
-        MEMORY_SKILL,
-        *(item_skill_name(t) for t in item_types_for_role(role, spec, playbook)),
-    ]
+    return [role_skill_name(role.slug), SQUADS_SKILL, MEMORY_SKILL]
 
 
 #: A role named as the subject of a command flag or a mention in playbook text.
@@ -259,6 +247,45 @@ def item_skill_role_sections(
             }
         )
     return out
+
+
+def role_playbook_sections(
+    slug: str, roster: Iterable[RoleView], spec: WorkflowSpec, playbook: PlaybookSpec
+) -> list[dict[str, Any]]:
+    """The playbook sections the role *slug* reads, one per item type it works with, in
+    :func:`item_types_for_role` order: the type, its overview, and the guides that address the
+    role, a capability guide among them, with the live roster's names in their text.
+
+    Empty for a role whose playbook names no type. A role missing from *roster* is judged by its
+    slug alone. It is a Jinja filter (``_rendering/_engine.py``), so the lookup stays in Python.
+    """
+    roles = list(roster)
+    role = next((r for r in roles if r.slug == slug), None) or slug_only_role(slug)
+
+    def live(lines: list[str]) -> list[str]:
+        return live_roster_text(lines, roles, playbook)
+
+    return [
+        {
+            "item_type": item_type,
+            "overview": live([lane.overview])[0] if lane.overview else "",
+            "guides": [
+                {
+                    "capability": guide.slug.removeprefix(CAPABILITY_SUBJECT_PREFIX)
+                    if guide.slug.startswith(CAPABILITY_SUBJECT_PREFIX)
+                    else None,
+                    "enter": live(guide.enter),
+                    "do": live(guide.do),
+                    "handoff": live(guide.handoff),
+                    "watch": live(guide.watch),
+                }
+                for guide in lane.roles
+                if addresses(guide.slug, role)
+            ],
+        }
+        for item_type in item_types_for_role(role, spec, playbook)
+        for lane in (playbook.types[item_type],)
+    ]
 
 
 def developer_roles[R: RoleLike](roster: Iterable[R], catalog: RoleCatalogSpec) -> list[R]:

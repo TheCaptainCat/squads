@@ -20,7 +20,7 @@ refs:
 - ADR-422
 - BUG-784
 created_at: '2026-08-22T09:44:15Z'
-updated_at: '2026-10-25T21:49:21Z'
+updated_at: '2026-11-04T19:43:22Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -345,4 +345,6 @@ regenerated, never migrated, so a runner is never "fixed" by pinning a copy of a
   - Narrow 2c to the sq check presence/currency checks and the sq sync regeneration report; drop the unprompted per-command notice.
 - [2026-10-25T21:49:21Z] `architect` Robert Architect:
   - 2026-10-25: body rewritten in present tense per the op-pierre ruling aa03f96. Section 2c narrowed to sq check presence/currency and the sq sync regeneration report, with no per-command notice; the 2026-09-01 amendment folded (show renders the resolved definition, the card drops mission and responsibilities); the deleted agents_md entry templates, squad_path producers, version_notice and the 0.13.0 version facts removed; the skill pointer user-invocable key (ADR-983) added. Decision otherwise unchanged.
+- [2026-11-04T19:43:22Z] `architect` Robert Architect:
+  - ADR-1294 narrows sections 2, 2a, 3 and 5 here: a skill pointer renders its body with a never-failing `!` command and an `allowed-tools` grant instead of naming the command; the agent pointer keeps only `sq mine` and `sq inbox`; a role skill pointer per live role joins the table; AGENTS.md compiles the role skill static parts. Invariant 5 holds as written. Linked related, not superseded (notice 6); the in-place amendment goes in with that decision.
 <!-- sq:discussion:end -->

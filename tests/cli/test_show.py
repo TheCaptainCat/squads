@@ -10,6 +10,7 @@ import pytest
 from tests import _stored_view as stored
 from tests._profile import selected
 from tests._readable import init_readable, lines
+from tests.cli._roster import as_bullets, forced_colour, panel_rows
 
 P = selected()
 
@@ -35,6 +36,18 @@ PARSER_PANEL = [
     "Subtask  Status  Assignee  Title                Story",
     f"{P.kind_prefix}1      Todo              Tokenise the input   {P.target_prefix}1",
     f"{P.kind_prefix}2      Done              Parse the operators",
+]
+RANK_RESULTS_RAW_HEAD = [
+    f"# {P.ref_prefix}-4 — Rank results",
+    "",
+    f"- **type:** {P.ref}",
+    "- **status:** Draft",
+    "- **priority:** low",
+    f"- **parent:** {P.host_prefix}-2",
+    "- **author:** manager",
+    f"- **refs:** {P.ref_prefix}-3 (depends-on), {P.third_prefix}-7",
+    f"- **file:** {P.ref_folder}/{P.ref_prefix}-000004-rank-results.md",
+    "",
 ]
 PARSER_COMMENT = [
     "",
@@ -107,22 +120,37 @@ async def test_show_refuses_text_that_is_not_an_id(readable, invoke) -> None:
 
 @pytest.mark.covers("show", "--raw")
 @pytest.mark.bundled_only("the rendered panel and its notices are the bundled task's")
-async def test_raw_prints_plain_text_instead_of_the_rendered_panel(readable, invoke) -> None:
-    assert await _show(invoke, "4", "--raw") == (
-        0,
-        [
-            f"# {P.ref_prefix}-4 — Rank results",
-            "",
-            "- **status:** Draft",
-            "- **priority:** 🟢 low",
-            f"- **parent:** {P.host_prefix}-2",
-            "- **author:** manager",
-            f"- **refs:** {P.ref_prefix}-3 (depends-on), {P.third_prefix}-7",
-            "",
-            "## Description",
-            "",
-            f"_TODO: describe this {P.ref}._",
-        ],
+async def test_raw_lists_the_panel_rows_under_the_heading_in_plain_text(
+    readable, invoke, monkeypatch
+) -> None:
+    panel = await invoke(["show", "4"])
+    forced_colour(monkeypatch)
+    raw = await invoke(["show", "4", "--raw"])
+    rows = as_bullets(panel_rows(panel.output)[2:], unlabelled_first=False).replace("🟢 ", "")
+    assert lines(raw.output) == [
+        f"# {P.ref_prefix}-4 — Rank results",
+        "",
+        f"- **type:** {P.ref}",
+        *rows.splitlines(),
+        "",
+        "## Description",
+        "",
+        f"_TODO: describe this {P.ref}._",
+    ]
+    assert "\x1b" not in raw.output
+
+
+@pytest.mark.covers("show", "--no-header")
+async def test_no_header_prints_the_body_alone_under_raw_and_is_refused_without_it(
+    readable, invoke
+) -> None:
+    body = json.loads((await invoke(["show", "4", "--json"])).output)["body"]
+    bare = await invoke(["show", "4", "--raw", "--no-header"])
+    assert (bare.exit_code, bare.output) == (0, body + "\n")
+    refused = await invoke(["show", "4", "--no-header"])
+    assert (refused.exit_code, refused.output) == (
+        1,
+        "error: --no-header is valid only with --raw\n",
     )
 
 
@@ -295,14 +323,7 @@ async def test_a_template_reads_the_stored_body_with_its_comment_openers_restore
     assert await _show(invoke, "4", "--raw") == (
         0,
         [
-            f"# {P.ref_prefix}-4 — Rank results",
-            "",
-            "- **status:** Draft",
-            "- **priority:** 🟢 low",
-            f"- **parent:** {P.host_prefix}-2",
-            "- **author:** manager",
-            f"- **refs:** {P.ref_prefix}-3 (depends-on), {P.third_prefix}-7",
-            "",
+            *RANK_RESULTS_RAW_HEAD,
             "## Description",
             "",
             f"_TODO: describe this {P.ref}._",

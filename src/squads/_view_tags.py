@@ -27,6 +27,7 @@ from squads._views import (
     render_resolved_source_or_raise,
     resolve_source,
     resolve_view_target,
+    view_failure_line,
 )
 from squads._workflow import ROSTER_ROLE, ROSTER_SKILL, WorkflowSpec, parse_view_position
 
@@ -513,8 +514,8 @@ def _without_disabled_pair_bodies(text: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class ExpandedBody:
-    """A body as it reads with its view tags expanded, and a warning for each view whose
-    template failed to render, its tag left as written."""
+    """A body as it reads with its view tags expanded, and a warning for each view that failed
+    to render, whose tag a line naming the command that shows why replaces."""
 
     text: str
     warnings: tuple[str, ...] = ()
@@ -537,12 +538,12 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
     """*text* with every well-formed ``sq:view:<name>`` tag replaced by that view's rendered
     output, in place, except the tag of the view *keep* names, which stays as written. A disabled
     tag is removed the way ``strip_marker_lines`` removes a marker, never left as a blank line; an
-    unresolvable enabled tag stays literal. A tag whose template fails to render stays as written
-    too, with one warning per such view. A pair is replaced whole, and the view's transform and
-    template receive its unescaped stored body as ``body`` (empty for an empty pair or a view not
-    declared stored); a disabled pair is removed with its body. Read-only, and pads a rendered
-    view with a blank line against neighbouring prose. A view that declares a transform runs it
-    once per tag; a failing transform raises rather than leaving the tag."""
+    unresolvable enabled tag stays literal. A tag whose source, transform or template fails is
+    replaced by :func:`view_failure_line`, with one warning per such view. A pair is replaced
+    whole, and the view's transform and template receive its unescaped stored body as ``body``
+    (empty for an empty pair or a view not declared stored); a disabled pair is removed with its
+    body. Read-only, and pads a rendered view with a blank line against neighbouring prose. A
+    view that declares a transform runs it once per tag."""
     text, _ = strip_marker_lines(
         _without_disabled_pair_bodies(text), _keep_unless_disabled_view_tag
     )
@@ -561,8 +562,8 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         if parts is None:
             continue  # not a view tag — left literal
         name = parts.name
-        if name == keep or name in failed:
-            continue  # the view being resolved, or one that already failed: left as written
+        if name == keep:
+            continue  # the view being resolved: left as written
         reason = resolve_view_target(name, item.type, spec, playbook, from_squad=squad_dir)
         if reason is not None:
             continue  # undeclared, template missing, or source inapplicable — left literal
@@ -571,15 +572,15 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         body = pair.body if pair is not None and view.stored else ""
         if pair is not None:
             end = pair.end
-        result = resolve_source(
-            view, name, item, db, spec, playbook, roster, squad_dir, catalog, described, body
-        )
-        data = (
-            loader.run(name, view.transform, result, item=item, spec=spec, body=body)
-            if view.transform is not None
-            else None
-        )
         try:
+            result = resolve_source(
+                view, name, item, db, spec, playbook, roster, squad_dir, catalog, described, body
+            )
+            data = (
+                loader.run(name, view.transform, result, item=item, spec=spec, body=body)
+                if view.transform is not None
+                else None
+            )
             rendered = render_resolved_source_or_raise(
                 name,
                 result,
@@ -592,8 +593,8 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
                 body=body,
             )
         except SquadsError as exc:
-            failed[name] = f"{exc} -- its tag is shown as written"
-            continue
+            failed.setdefault(name, str(exc))
+            rendered = view_failure_line(name, item.id)
         pending += text[last:start]
         segments.append(("literal", pending))
         # Stripped of its own leading/trailing newlines so the padding this function adds is
@@ -608,7 +609,26 @@ def expand_view_tags(  # noqa: PLR0913 — read-time expansion needs the whole s
         return ExpandedBody(text, warnings)
     pending += text[last:]
     segments.append(("literal", pending))
-    return ExpandedBody(_assemble_padded_expansion(segments), warnings)
+    return ExpandedBody(_assemble_padded_expansion(_without_empty_views(segments)), warnings)
+
+
+def _without_empty_views(segments: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """*segments* with each rendered segment that came out empty removed and the two literal
+    segments around it joined by one blank line, or by none at a body edge, so a view that has
+    nothing to say leaves no gap, as a disabled tag leaves none."""
+    out: list[tuple[str, str]] = []
+    skipped = False
+    for kind, content in segments:
+        if kind == "rendered" and not content:
+            skipped = True
+            continue
+        if skipped:
+            before, after = out[-1][1].rstrip("\n"), content.lstrip("\n")
+            out[-1] = ("literal", before + ("\n\n" if before and after else "") + after)
+            skipped = False
+            continue
+        out.append((kind, content))
+    return out
 
 
 def _pad_between(chunk: str, *, pad_before: bool, pad_after: bool) -> str:

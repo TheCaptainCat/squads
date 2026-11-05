@@ -151,18 +151,20 @@ def _resolve_addr(
 def skill_show(
     ctx: typer.Context,
     raw: bool = common.raw_option(),
+    no_header: bool = common.no_header_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the skill."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
     ),
 ) -> None:
     """Show a skill's metadata panel and body."""
+    common.require_raw_for_no_header(raw=raw, no_header=no_header)
     response = calls.call(ops.SKILL_SHOW, RosterAddress(addr=address_of(ctx)))
     if json_out:
         calls.print_json(ops.SKILL_SHOW, response)
         return
     calls.print_warnings(response)
-    render_skill_show(response.data, console, raw=raw, comments=comments)
+    render_skill_show(response.data, console, raw=raw, no_header=no_header, comments=comments)
 
 
 @_addr.command("refs")

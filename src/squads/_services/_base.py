@@ -666,7 +666,8 @@ class ServiceCore:
         if fields is not None and set(fields) <= ROSTER_UPDATE_EXEMPT.get(item.type, frozenset()):
             return
         roster_view = self._classified_view(item)
-        if roster_view is None or roster_view == allow_view:
+        companions = views.roster_companion_view_names(item.type, self.spec)
+        if roster_view is None or allow_view in (roster_view, *companions):
             return
         authoring_surface = (
             f"`{ROLES_OVERRIDE_FILENAME}` (or `.overrides/roles/<slug>.toml`), or `sq role "

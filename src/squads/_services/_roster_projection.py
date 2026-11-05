@@ -300,7 +300,15 @@ class RosterProjection:
         skill_slugs = {it.slug for it in all_skills} | active_skill_slugs(self.spec)
         roster = await self.roster_all()
         ctx = BackendContext(
-            paths=self.paths, spec=self.spec, playbook=self.playbook, catalog=self.catalog
+            paths=self.paths,
+            spec=self.spec,
+            playbook=self.playbook,
+            catalog=self.catalog,
+            live_role_slugs=frozenset(
+                it.slug
+                for it in await self._items_of(ROSTER_ROLE)
+                if is_live_roster_entry(it, self.spec)
+            ),
         )
         orphans: list[str] = []
         for backend in self._backends():

@@ -17,7 +17,7 @@ description: squads reads optional SQUADS_SESSION_ID/PARENT from its own invocat
   best-effort, untrusted, observability-only — not verified identity; lane enforcement
   on it is advisory.
 created_at: '2026-06-22T07:44:10Z'
-updated_at: '2026-10-25T21:36:49Z'
+updated_at: '2026-11-04T22:30:57Z'
 priority: medium
 ---
 <!-- sq:body -->
@@ -226,4 +226,6 @@ actor (slug or session) is **inherently advisory**:
   - One Context sentence annotated: `_actor.py` no longer holds a module-global string — since ADR-534 it reads and rebinds the ambient `RequestContext`. Everything decided here verified in force: `session_from_env()` off the two env vars read once at the root callback, flat `actor` kept with additive optional `session_id`/`parent_session_id` and legacy-line tolerance, optional `created_session`/`modified_session` omitted when unset, `sq reflog --tree`, and the show surface carrying the literal "(best-effort session, untrusted)" label this decision demanded.
 - [2026-10-25T21:36:49Z] `architect` Robert Architect:
   - 2026-10-25 audit: rewritten; decision unchanged. Replaced the 'today there is no env path' and 'extend _actor.py' passages with what ships: `session_from_env()`, the optional reflog fields, and `created_session`/`modified_session` holding a session id string. Removed the correction note and the tech-lead follow-ups.
+- [2026-11-04T22:30:57Z] `op-pierre` Pierre Chat:
+  - Ruling (2026-11-04): session lineage is removed after FEAT-1290 lands — SQUADS_SESSION_ID/SQUADS_PARENT_SESSION_ID, the created_session/modified_session item fields and panel rows, the reflog session fields and the reflog tree view. Nothing ever set the variables; the reflog holds one test value. This decision is superseded when that removal lands.
 <!-- sq:discussion:end -->

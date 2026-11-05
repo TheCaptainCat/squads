@@ -104,7 +104,10 @@ class ViewsMixin(ServiceCore):
         reinstatement as :meth:`add_view` for a roster host with no ``sq:body`` region."""
 
         def mutate(text: str, item: Item) -> tuple[str, bool]:
-            self._refuse_classified_roster_write(item_id, item, "A view edit")
+            companions = views.roster_companion_view_names(item.type, self.spec)
+            self._refuse_classified_roster_write(
+                item_id, item, "A view edit", allow_view=name if name in companions else None
+            )
             if (stray := view_tags.out_of_region_view_error(item_id, name, text)) is not None:
                 raise SquadsError(stray)
             reinstating = False

@@ -1,0 +1,48 @@
+{% filter trim %}
+{% for section in item.slug | role_playbook_sections(source.roster, spec, source.playbook) %}
+{% set item_type = section.item_type %}
+## {{ item_type | label_for("singular", spec) }} items
+
+{{ section.overview }}
+
+**Lifecycle:** {{ spec.machine_for(item_type) | linearize_lifecycle }}
+{% for part in section.guides %}
+{% if part.capability %}
+
+For every `*{{ part.capability }}` role:
+{% endif %}
+{% if part.enter %}
+
+**Enter** — before you act:
+- Read the full item dossier: `sq {{ item_type }} <n> show --full --comments` (decisions and
+  refinements often live in discussion comments, not the body — skipping this is how context
+  gets missed).
+{% for x in part.enter %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if part.do %}
+
+**Do:**
+{% for x in part.do %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if part.handoff %}
+
+**Hand off:**
+{% for x in part.handoff %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% if part.watch %}
+
+**Watch for:**
+{% for x in part.watch %}
+- {{ x }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+{% endfilter %}

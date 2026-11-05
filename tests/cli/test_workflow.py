@@ -253,6 +253,7 @@ async def test_views_lists_every_declared_view(project, invoke) -> None:
             "memory_skill        self",
             "milestone_rollup    ref          targets",
             "role_definition     role",
+            "role_playbook       playbook",
             "source_description  source",
             "squads_skill        playbook",
         ],
@@ -642,7 +643,7 @@ MANAGER_ROLE_SOURCE = {
         "Keep the backlog and statuses honest",
         "Summarise progress for the operator",
     ],
-    "skills": ["squads", "greeting", "sq-memory"],
+    "skills": ["sq-role-manager", "squads", "sq-memory"],
     "display": {
         "name": "Catherine Manager",
         "pronouns": None,
@@ -689,7 +690,7 @@ GREETING_SKILL_SOURCE = {
     "spec": {
         "schema_version": "0.20",
         "override": False,
-        "digest": "677ea0ca249f8a8c6d395c41f7dd7eae7fc6baafb412d30542b294a063ac3b0f",
+        "digest": "5d919e5adddb3f98b89e8ce4a201bbb56738a55e9a92fcc2961fb375a8ae397e",
     },
     "display": {
         "type": "Skill",

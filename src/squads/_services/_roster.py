@@ -8,6 +8,7 @@ from squads import _clock as clock
 from squads import _pronouns
 from squads._errors import RoleNotFoundError, SquadsError
 from squads._index import item_file, require_item
+from squads._interactions import role_skill_name, role_slug_of_skill
 from squads._itemfile import update_frontmatter
 from squads._models import ORIGIN_PROJECT, AttributeKey, Item, attrs, parse_invocable_choice
 from squads._paths import path_from_process_dir
@@ -306,6 +307,12 @@ class RosterMixin(ServiceCore):
         """Create the role item and materialise its entry in every backend when it is live:
         the one creation path every role verb ends in."""
         refuse_blank_name(name)
+        skill_name = role_skill_name(slug)
+        if await self.roster_item(ROSTER_SKILL, skill_name) is not None:
+            raise SquadsError(
+                f"cannot create role {slug!r}: the skill {skill_name!r} exists and its name is "
+                "the role's own skill; rename or remove that skill first"
+            )
         res = await self.create(
             ROSTER_ROLE,
             name,
@@ -626,6 +633,12 @@ class RosterMixin(ServiceCore):
         chosen = None if operator_invocable is None else parse_invocable_choice(operator_invocable)
         slug = slugify(name)
         await self._refuse_duplicate_slug(ROSTER_SKILL, "a skill", slug, legacy_slugify(name))
+        role_slug = role_slug_of_skill(slug)
+        if role_slug is not None and await self.roster_item(ROSTER_ROLE, role_slug) is not None:
+            raise SquadsError(
+                f"cannot add skill {slug!r}: that name is the skill of role {role_slug!r}; "
+                "pick another name"
+            )
         res = await self.create(
             ROSTER_SKILL,
             name,

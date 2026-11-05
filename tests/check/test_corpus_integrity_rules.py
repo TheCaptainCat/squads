@@ -135,6 +135,34 @@ async def test_a_missing_pointer_of_a_live_role_is_a_warning(project, invoke, ch
     )
 
 
+@pytest.mark.breaches("backend_reconciled")
+async def test_a_hand_edited_role_skill_pointer_is_a_warning_until_sync_rewrites_it(
+    project, invoke, check_json
+) -> None:
+    await _task(invoke)
+    pointer = ".claude/skills/sq-role-tech-lead/SKILL.md"
+    assert await check_json() == ([], 0)
+
+    # `sync` is the command that writes it, and none edits it
+    path = project.root / pointer
+    path.write_text(path.read_text(encoding="utf-8") + "HAND EDIT\n", encoding="utf-8")
+
+    assert await check_json() == (
+        [
+            issue(
+                "backend_reconciled",
+                "warn",
+                pointer,
+                "managed pointer is out of date or edited by hand — run `sq sync` "
+                "(backend: claude_code)",
+            )
+        ],
+        0,
+    )
+    await ok(invoke, "sync")
+    assert await check_json() == ([], 0)
+
+
 # frontmatter_matches_index
 
 

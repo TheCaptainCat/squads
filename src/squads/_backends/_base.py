@@ -267,6 +267,18 @@ class AgentBackend(ABC):
         """
         return None
 
+    def render_role_skill_entries(
+        self, ctx: BackendContext, item: Item, role: RoleDef
+    ) -> dict[str, str]:
+        """Question 5, role: the pure render of every other file :meth:`generate_role_entry`
+        writes for *role*, as root-relative path to text.
+
+        Empty by default (a backend with one file per role), so only a backend that writes a
+        second file for a role is compared on it. The same contract as
+        :meth:`render_role_entry`: synchronous, side-effect-free, declared from *item*/*role*.
+        """
+        return {}
+
     def render_skill_entry(self, ctx: BackendContext, item: Item) -> str | None:
         """Question 5's skill sibling — see :meth:`render_role_entry` for the full contract.
         ``None`` by default, same rationale."""

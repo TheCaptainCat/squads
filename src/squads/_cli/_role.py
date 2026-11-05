@@ -283,6 +283,7 @@ def _resolve_addr(
 def show_role(
     ctx: typer.Context,
     raw: bool = common.raw_option(),
+    no_header: bool = common.no_header_option(),
     json_out: bool = typer.Option(False, "--json", help="Print one JSON object: the role."),
     comments: bool = typer.Option(
         False, "--comments", help="Append the discussion as comments (text output)."
@@ -292,12 +293,13 @@ def show_role(
 
     A role that is not activated shows its catalog card and how to activate it.
     """
+    common.require_raw_for_no_header(raw=raw, no_header=no_header)
     response = calls.call(ops.ROLE_SHOW, RosterAddress(addr=address_of(ctx)))
     if json_out:
         calls.print_json(ops.ROLE_SHOW, response)
         return
     calls.print_warnings(response)
-    render_role_show(response.data, console, raw=raw, comments=comments)
+    render_role_show(response.data, console, raw=raw, no_header=no_header, comments=comments)
 
 
 @_addr.command("regen")

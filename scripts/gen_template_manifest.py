@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate the per-release provenance manifest for every overridable bundled artifact: the
-24 bundled templates plus ``workflow.toml``, ``roles.toml``, ``playbook.toml`` and ``sources.toml``.
+31 bundled templates plus ``workflow.toml``, ``roles.toml``, ``playbook.toml`` and ``sources.toml``.
 
 Run this script before building a release wheel to update
 ``src/squads/_rendering/templates_manifest.json`` (the hash INDEX) and
