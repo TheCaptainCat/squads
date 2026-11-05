@@ -9,9 +9,12 @@ pytestmark = pytest.mark.anyio
 
 BASE = 'base_url = "http://127.0.0.1:9"\n'
 GITLAB = f'[sources.platform]\nconnector = "gitlab"\n{BASE}'
-TYPES = '\n[sources.platform.maps.types.labels]\nbug = "task"\n'
 INVALID = "error: sources.toml: invalid sources after merge:\n  source 'platform': "
 FILTER = "sources.platform.filter.labels: "
+
+
+def _types(profile) -> str:
+    return f'\n[sources.platform.maps.types.labels]\nbug = "{profile.ref}"\n'
 
 
 async def _listed(invoke, project, text: str) -> tuple[int, str]:
@@ -23,12 +26,14 @@ async def _listed(invoke, project, text: str) -> tuple[int, str]:
     return result.exit_code, result.output.replace(str(path), "sources.toml")
 
 
-async def _refusals(invoke, project, declared: list[tuple[str, str]]) -> list[tuple[int, str]]:
+async def _refusals(
+    invoke, project, profile, declared: list[tuple[str, str]]
+) -> list[tuple[int, str]]:
     """The load result of each (filter text, expected refusal tail) in `declared`."""
     found: list[tuple[int, str]] = []
     for expression, _ in declared:
         source = f'{GITLAB}project = "platform/api"\n\n[sources.platform.filter]\n{expression}'
-        found.append(await _listed(invoke, project, source + TYPES))
+        found.append(await _listed(invoke, project, source + _types(profile)))
     return found
 
 
@@ -38,16 +43,16 @@ def _refused(declared: list[tuple[str, str]]) -> list[tuple[int, str]]:
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_source_without_a_scope_key_fails_at_load_listing_the_keys_its_version_takes(
-    project, invoke
+    project, invoke, profile
 ) -> None:
-    loaded = await _listed(invoke, project, GITLAB + TYPES)
+    loaded = await _listed(invoke, project, GITLAB + _types(profile))
 
     assert loaded == (1, f"{INVALID}no scope key; name exactly one of: project, group\n")
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_a_source_with_two_scope_keys_fails_at_load(project, invoke) -> None:
-    text = GITLAB + 'project = "platform/api"\ngroup = "platform"\n' + TYPES
+async def test_a_source_with_two_scope_keys_fails_at_load(project, invoke, profile) -> None:
+    text = GITLAB + 'project = "platform/api"\ngroup = "platform"\n' + _types(profile)
 
     loaded = await _listed(invoke, project, text)
 
@@ -58,8 +63,8 @@ async def test_a_source_with_two_scope_keys_fails_at_load(project, invoke) -> No
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_a_scope_key_of_another_connector_fails_at_load(project, invoke) -> None:
-    loaded = await _listed(invoke, project, GITLAB + 'repository = "acme/api"\n' + TYPES)
+async def test_a_scope_key_of_another_connector_fails_at_load(project, invoke, profile) -> None:
+    loaded = await _listed(invoke, project, GITLAB + 'repository = "acme/api"\n' + _types(profile))
 
     assert loaded == (
         1,
@@ -68,17 +73,19 @@ async def test_a_scope_key_of_another_connector_fails_at_load(project, invoke) -
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_an_empty_scope_value_fails_at_load(project, invoke) -> None:
-    loaded = await _listed(invoke, project, GITLAB + 'group = "  "\n' + TYPES)
+async def test_an_empty_scope_value_fails_at_load(project, invoke, profile) -> None:
+    loaded = await _listed(invoke, project, GITLAB + 'group = "  "\n' + _types(profile))
 
     assert loaded == (1, f"{INVALID}scope key 'group' must be a non-empty string\n")
 
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_string_filter_fails_at_load_saying_filter_is_a_table_and_naming_the_scope_keys(
-    project, invoke
+    project, invoke, profile
 ) -> None:
-    loaded = await _listed(invoke, project, GITLAB + 'project = "a/b"\nfilter = "squads"\n' + TYPES)
+    loaded = await _listed(
+        invoke, project, GITLAB + 'project = "a/b"\nfilter = "squads"\n' + _types(profile)
+    )
 
     assert loaded == (
         1,
@@ -90,9 +97,12 @@ async def test_a_string_filter_fails_at_load_saying_filter_is_a_table_and_naming
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_filter_side_the_version_lacks_fails_at_load_listing_its_sides(
-    project, invoke
+    project, invoke, profile
 ) -> None:
-    text = f'{GITLAB}project = "a/b"\n\n[sources.platform.filter]\npriority = "high"\n{TYPES}'
+    text = (
+        f'{GITLAB}project = "a/b"\n\n[sources.platform.filter]\npriority = "high"\n'
+        f"{_types(profile)}"
+    )
 
     loaded = await _listed(invoke, project, text)
 
@@ -104,11 +114,11 @@ async def test_a_filter_side_the_version_lacks_fails_at_load_listing_its_sides(
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_an_empty_filter_table_or_expression_fails_at_load(project, invoke) -> None:
+async def test_an_empty_filter_table_or_expression_fails_at_load(project, invoke, profile) -> None:
     head = f'{GITLAB}project = "a/b"\n\n[sources.platform.filter]\n'
 
-    empty_table = await _listed(invoke, project, head + TYPES)
-    blank = await _listed(invoke, project, head + "labels = '''  \n '''\n" + TYPES)
+    empty_table = await _listed(invoke, project, head + _types(profile))
+    blank = await _listed(invoke, project, head + "labels = '''  \n '''\n" + _types(profile))
 
     assert empty_table == (
         1,
@@ -119,11 +129,11 @@ async def test_an_empty_filter_table_or_expression_fails_at_load(project, invoke
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_a_multi_line_expression_in_a_literal_string_loads(project, invoke) -> None:
+async def test_a_multi_line_expression_in_a_literal_string_loads(project, invoke, profile) -> None:
     text = (
         f'{GITLAB}project = "platform/api"\n\n[sources.platform.filter]\n'
         "labels = '''\n  (type::epic or type::story)\n  and not \"help wanted\"\n'''\n"
-        "type = 'issue or incident'\n" + TYPES
+        "type = 'issue or incident'\n" + _types(profile)
     )
 
     exit_code, output = await _listed(invoke, project, text)
@@ -141,7 +151,7 @@ def _outside(char: str, line: int, column: int) -> str:
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_character_outside_the_grammar_is_refused_with_its_line_and_column(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     declared = [
         ("labels = 'a & b'", _outside("'&'", 1, 3)),
@@ -150,12 +160,12 @@ async def test_a_character_outside_the_grammar_is_refused_with_its_line_and_colu
         ("labels = 'caf\u00e9'", _outside("'\u00e9'", 1, 4)),
     ]
 
-    assert await _refusals(invoke, project, declared) == _refused(declared)
+    assert await _refusals(invoke, project, profile, declared) == _refused(declared)
 
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_badly_written_keyword_or_quoted_value_is_refused_with_its_line_and_column(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     declared = [
         (
@@ -175,12 +185,12 @@ async def test_a_badly_written_keyword_or_quoted_value_is_refused_with_its_line_
         ),
     ]
 
-    assert await _refusals(invoke, project, declared) == _refused(declared)
+    assert await _refusals(invoke, project, profile, declared) == _refused(declared)
 
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_value_or_operator_out_of_place_is_refused_with_its_line_and_column(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     due = "expected 'and', 'or' or "
     quote = "; quote a value that holds a space"
@@ -198,12 +208,12 @@ async def test_a_value_or_operator_out_of_place_is_refused_with_its_line_and_col
         ("labels = '(a b)'", f"{due}')', found the value 'b'{quote} (line 1, column 4)"),
     ]
 
-    assert await _refusals(invoke, project, declared) == _refused(declared)
+    assert await _refusals(invoke, project, profile, declared) == _refused(declared)
 
 
 @pytest.mark.covers("source list", "--json")
 async def test_an_unbalanced_parenthesis_is_refused_at_the_column_it_stands_on(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     declared = [
         ("labels = '(a or b'", "'(' is not closed (line 1, column 1)"),
@@ -211,20 +221,22 @@ async def test_an_unbalanced_parenthesis_is_refused_at_the_column_it_stands_on(
         ("labels = 'a)'", "')' closes no '(' (line 1, column 2)"),
     ]
 
-    assert await _refusals(invoke, project, declared) == _refused(declared)
+    assert await _refusals(invoke, project, profile, declared) == _refused(declared)
 
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_deeply_nested_expression_is_refused_at_load_and_a_long_blank_run_loads(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     deep = "the nesting is too deep"
     declared = [
         (f"labels = '{'not ' * 65}a'", deep),
         (f"labels = '{'(' * 65}a{')' * 65}'", deep),
     ]
-    found = await _refusals(invoke, project, declared)
-    blanks = await _refusals(invoke, project, [(f'labels = "a and{"\\r\\n" * 1500}b"', "")])
+    found = await _refusals(invoke, project, profile, declared)
+    blanks = await _refusals(
+        invoke, project, profile, [(f'labels = "a and{"\\r\\n" * 1500}b"', "")]
+    )
 
     assert [(code, text.split(FILTER)[-1]) for code, text in found] == [
         (1, "nested more than 64 levels deep with 'not' or '(' (line 1, column 257)\n"),
@@ -234,8 +246,10 @@ async def test_a_deeply_nested_expression_is_refused_at_load_and_a_long_blank_ru
 
 
 @pytest.mark.covers("check", "--json")
-async def test_sq_check_reports_a_too_deep_filter_as_a_failed_sources_load(project, invoke) -> None:
-    await _refusals(invoke, project, [(f"labels = '{'not ' * 65}a'", "")])
+async def test_sq_check_reports_a_too_deep_filter_as_a_failed_sources_load(
+    project, invoke, profile
+) -> None:
+    await _refusals(invoke, project, profile, [(f"labels = '{'not ' * 65}a'", "")])
 
     checked = await invoke(["check", "--json"])
 
@@ -245,7 +259,7 @@ async def test_sq_check_reports_a_too_deep_filter_as_a_failed_sources_load(proje
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_scope_value_of_the_wrong_shape_fails_at_load_naming_the_key_and_the_shape(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     github = '[sources.platform]\nconnector = "github"\nbase_url = "http://127.0.0.1:9"\n'
     gitlab_shape = (
@@ -271,7 +285,7 @@ async def test_a_scope_value_of_the_wrong_shape_fails_at_load_naming_the_key_and
         ),
     ]
 
-    found = [await _listed(invoke, project, text + TYPES) for text, *_ in cases]
+    found = [await _listed(invoke, project, text + _types(profile)) for text, *_ in cases]
 
     assert found == [
         (1, f"{INVALID}scope key {key!r} is {value!r}, which is not {shape}\n")
@@ -281,13 +295,13 @@ async def test_a_scope_value_of_the_wrong_shape_fails_at_load_naming_the_key_and
 
 @pytest.mark.covers("source list", "--json")
 async def test_a_jira_jql_with_an_order_by_clause_fails_at_load_and_a_quoted_one_loads(
-    project, invoke
+    project, invoke, profile
 ) -> None:
     jira = (
         '[sources.platform]\nconnector = "jira"\nversion = "cloud-v3"\n'
         'base_url = "http://127.0.0.1:9"\n'
     )
-    maps = '\n[sources.platform.maps.types.type]\nStory = "task"\n'
+    maps = f'\n[sources.platform.maps.types.type]\nStory = "{profile.ref}"\n'
 
     refused = await _listed(
         invoke, project, f"{jira}jql = 'labels = squads Order\tBy created'\n" + maps
@@ -305,7 +319,9 @@ async def test_a_jira_jql_with_an_order_by_clause_fails_at_load_and_a_quoted_one
 
 
 @pytest.mark.covers("source list", "--json")
-async def test_a_quoted_value_takes_any_character_but_a_control_one(project, invoke) -> None:
+async def test_a_quoted_value_takes_any_character_but_a_control_one(
+    project, invoke, profile
+) -> None:
     head = f'{GITLAB}project = "platform/api"\n\n[sources.platform.filter]\n'
     quoted = head + 'labels = "\\"a\u00a0b\\""\n'
     outside = [
@@ -315,7 +331,7 @@ async def test_a_quoted_value_takes_any_character_but_a_control_one(project, inv
         )
     ]
 
-    loaded = await _listed(invoke, project, quoted + TYPES)
+    loaded = await _listed(invoke, project, quoted + _types(profile))
 
     assert loaded[0] == 0, loaded
-    assert await _refusals(invoke, project, outside) == _refused(outside)
+    assert await _refusals(invoke, project, profile, outside) == _refused(outside)

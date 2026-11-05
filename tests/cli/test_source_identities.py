@@ -11,14 +11,14 @@ pytestmark = pytest.mark.anyio
 SECRET = "glpat-not-a-real-token"
 
 
-def _declare(project, base_url: str, extra: str = "") -> None:
+def _declare(project, profile, base_url: str, extra: str = "") -> None:
     """Declare the `platform` source on *base_url*, with the keys of *extra* in its table."""
     path = project.squad_dir / ".overrides" / "sources.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
         f'base_url = "{base_url}"\n{extra}'
-        '\n[sources.platform.maps.types.labels]\nbug = "task"\n',
+        f'\n[sources.platform.maps.types.labels]\nbug = "{profile.ref}"\n',
         encoding="utf-8",
     )
 
@@ -48,10 +48,10 @@ async def test_identities_set_a_key_as_given_and_remove_it_with_an_empty_value(
 
 @pytest.mark.covers("operator update", "--identities")
 async def test_identities_resolve_a_handle_to_the_trackers_immutable_user_id(
-    project, invoke, alice, credentials_home
+    project, invoke, alice, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        _declare(project, tracker.base_url)
+        _declare(project, profile, tracker.base_url)
         stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
         assert stored.exit_code == 0, stored.output
         result = await invoke(["operator", "op-alice", "update", "--identities", "platform=@pchat"])
@@ -68,10 +68,10 @@ async def test_identities_resolve_a_handle_to_the_trackers_immutable_user_id(
 
 @pytest.mark.covers("operator update", "--identities")
 async def test_a_handle_on_a_source_without_a_credential_is_refused_naming_the_remedy(
-    project, invoke, alice, credentials_home
+    project, invoke, alice, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        _declare(project, tracker.base_url)
+        _declare(project, profile, tracker.base_url)
         result = await invoke(["operator", "op-alice", "update", "--identities", "platform=@pchat"])
     assert result.exit_code == 1
     assert "run `sq source credential set platform`" in " ".join(result.output.split())
@@ -81,10 +81,10 @@ async def test_a_handle_on_a_source_without_a_credential_is_refused_naming_the_r
 
 @pytest.mark.covers("operator update", "--identities")
 async def test_a_handle_on_a_disabled_or_an_undeclared_source_is_refused(
-    project, invoke, alice, credentials_home
+    project, invoke, alice, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        _declare(project, tracker.base_url, "enabled = false\n")
+        _declare(project, profile, tracker.base_url, "enabled = false\n")
         stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
         assert stored.exit_code == 0, stored.output
         disabled = await invoke(
@@ -106,16 +106,19 @@ async def test_a_pair_without_an_equals_sign_is_refused(project, invoke, alice) 
 
 
 @pytest.mark.covers("<type> update", "--set")
-async def test_set_refuses_a_map_attribute_and_names_the_option(project, invoke) -> None:
+async def test_set_refuses_a_map_attribute_and_names_the_option(project, invoke, profile) -> None:
     override = project.squad_dir / ".overrides" / "workflow.toml"
     override.parent.mkdir(parents=True, exist_ok=True)
-    override.write_text('[items.task.attributes]\nlinks = { kind = "map" }\n', encoding="utf-8")
-    created = await invoke(["create", "task", "Map host", "--author", "manager", "--json"])
+    kept = override.read_text(encoding="utf-8") if override.exists() else ""
+    override.write_text(
+        f'{kept}\n[items.{profile.host}.attributes.links]\nkind = "map"\n', encoding="utf-8"
+    )
+    created = await invoke(["create", profile.host, "Map host", "--author", "manager", "--json"])
     assert created.exit_code == 0, created.output
 
-    refused = await invoke(["task", "2", "update", "--set", "links=a=b"])
-    done = await invoke(["task", "2", "update", "--links", "a=b", "--links", "c=d"])
-    row = await read_json(invoke, ["task", "2", "show", "--json"])
+    refused = await invoke([profile.host, "2", "update", "--set", "links=a=b"])
+    done = await invoke([profile.host, "2", "update", "--links", "a=b", "--links", "c=d"])
+    row = await read_json(invoke, [profile.host, "2", "show", "--json"])
 
     assert refused.exit_code == 1
     assert "'links' is a map; set a key with `--links key=value`" in " ".join(

@@ -24,6 +24,7 @@ class Profile:
     #: The type that hosts the target kind, its ID prefix, its alias and its title in the fixture.
     host: str
     host_prefix: str
+    host_folder: str
     host_alias: str
     host_title: str
     #: The reference type: a child of the host whose sub-entities can map to the target kind.
@@ -111,6 +112,9 @@ class Profile:
     def third_id(self, number: int) -> str:
         return f"{self.third_prefix}-{number}"
 
+    def host_path(self, number: int, slug: str) -> str:
+        return f"{self.host_folder}/{self.host_prefix}-{number:06d}-{slug}.md"
+
     def ref_path(self, number: int, slug: str | None = None) -> str:
         return f"{self.ref_folder}/{self.ref_prefix}-{number:06d}-{slug or self.ref_slug}.md"
 
@@ -119,6 +123,7 @@ BUNDLED = Profile(
     squad="bundled",
     host="feature",
     host_prefix="FEAT",
+    host_folder="features",
     host_alias="f",
     host_title="Search",
     ref="task",
@@ -185,6 +190,7 @@ OVERRIDE = Profile(
     squad="override",
     host="initiative",
     host_prefix="INI",
+    host_folder="initiatives",
     host_alias="f",
     host_title="Search",
     ref="job",

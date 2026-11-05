@@ -28,6 +28,7 @@ def _problems(profile: Profile, spec: WorkflowSpec) -> list[str]:
     p = profile
     checks: list[tuple[str, bool]] = [
         ("host prefix", spec.items[p.host].prefix == p.host_prefix),
+        ("host folder", spec.items[p.host].folder == p.host_folder),
         ("host alias", spec.alias_to_type.get(p.host_alias) == p.host),
         ("host hosts the target kind", spec.item_subentity_kind(p.host) == p.target_kind),
         ("ref prefix", spec.items[p.ref].prefix == p.ref_prefix),

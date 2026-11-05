@@ -1,6 +1,6 @@
 {
   "schema_version": "0.19",
-  "counter": 1299,
+  "counter": 1300,
   "padding": 6,
   "items": {
     "12": {
@@ -8726,7 +8726,7 @@
       "type": "feature",
       "title": "CLI surface test suite",
       "slug": "cli-surface-test-suite",
-      "status": "Done",
+      "status": "InProgress",
       "description": "Rebuild the tests as in-process CLI surface tests: every command and parameter of the bundled tree, guarded coverage.",
       "parent": null,
       "author": "product-owner",
@@ -8821,7 +8821,7 @@
       ],
       "path": "features/FEAT-001173-cli-surface-test-suite.md",
       "created_at": "2026-10-27T21:29:30Z",
-      "updated_at": "2026-10-28T01:03:11Z",
+      "updated_at": "2026-11-04T23:38:31Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68407,7 +68407,7 @@
         {
           "local_id": "ST4",
           "title": "Pointers render their body; one sq-role-<slug> skill per role",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": "US2",
           "deferred_to": null,
@@ -68461,7 +68461,7 @@
         {
           "local_id": "ST10",
           "title": "memory list and board list gain --raw",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "python-dev",
           "maps_to": "US2",
           "deferred_to": null,
@@ -68479,7 +68479,7 @@
       ],
       "path": "tasks/TASK-001295-rendered-skill-pointers-role-skills-and-raw-show-output.md",
       "created_at": "2026-11-04T21:46:20Z",
-      "updated_at": "2026-11-04T23:07:48Z",
+      "updated_at": "2026-11-04T23:33:28Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68491,7 +68491,7 @@
       "type": "task",
       "title": "VS Code preview reads the --raw panel rows",
       "slug": "vs-code-preview-reads-the-raw-panel-rows",
-      "status": "Draft",
+      "status": "InProgress",
       "description": "Preview and skew canary follow the panel-row show --raw header",
       "parent": "FEAT-1290",
       "author": "tech-lead",
@@ -68499,13 +68499,13 @@
       "labels": [],
       "refs": [
         "ADR-1294:implements",
-        "TASK-1295:depends-on"
+        "TASK-1295"
       ],
       "subentities": [
         {
           "local_id": "ST1",
           "title": "Preview metadata bullets accept labels with spaces",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "typescript-dev",
           "maps_to": "US7",
           "deferred_to": null,
@@ -68514,7 +68514,7 @@
         {
           "local_id": "ST2",
           "title": "Regenerate the raw fixture and update the skew canary",
-          "status": "Todo",
+          "status": "Done",
           "assignee": "typescript-dev",
           "maps_to": "US7",
           "deferred_to": null,
@@ -68523,7 +68523,7 @@
       ],
       "path": "tasks/TASK-001296-vs-code-preview-reads-the-raw-panel-rows.md",
       "created_at": "2026-11-04T21:46:37Z",
-      "updated_at": "2026-11-04T22:38:48Z",
+      "updated_at": "2026-11-04T23:43:46Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -68653,7 +68653,7 @@
         {
           "local_id": "F1",
           "title": "Source CLI tests hard-code bundled vocabulary and fail on the override squad (142 failed, 118 errors)",
-          "status": "Open",
+          "status": "Fixed",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -68785,12 +68785,130 @@
       ],
       "path": "reviews/REV-001299-0-20-tests-against-the-cli-surface-test-rules.md",
       "created_at": "2026-11-04T22:05:56Z",
-      "updated_at": "2026-11-04T22:19:17Z",
+      "updated_at": "2026-11-04T23:56:53Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
       "slug_in_file": false,
       "id": "REV-1299"
+    },
+    "1300": {
+      "sequence_id": 1300,
+      "type": "task",
+      "title": "Fix the 0.20 test review findings",
+      "slug": "fix-the-0-20-test-review-findings",
+      "status": "InProgress",
+      "description": "Override-squad and Windows CI fixes first, then the REV-1299 findings against ADR-1172",
+      "parent": "FEAT-1173",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1299:addresses",
+        "ADR-1172"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Source CLI tests run on the override squad",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Coverage teardown passes over a skipped test",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Arrange and read source states through the CLI",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Load refusals in tests/check, markers name their parameter",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "CONTRIBUTING: one case per load-rule message",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "One case per refusal, named for it",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Whole message lines and whole JSON objects",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Check-rule cases follow the breach-test rules",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Stored-view helper merges into the override",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "Each case in its command group's module",
+          "status": "Todo",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001300-fix-the-0-20-test-review-findings.md",
+      "created_at": "2026-11-04T23:33:24Z",
+      "updated_at": "2026-11-04T23:57:03Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1300"
     }
   }
 }

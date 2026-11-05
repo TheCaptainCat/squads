@@ -12,13 +12,16 @@ pytestmark = pytest.mark.anyio
 
 SECRET = "glpat-not-a-real-token"
 SAMPLES = Path(__file__).parents[1] / "fixtures" / "converters"
-TYPES = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
+
+
+def _types(profile) -> str:
+    return f'\n[sources.platform.maps.types.type]\nissue = "{profile.ref}"\n'
 
 
 @pytest.mark.covers("source pull", "source")
 @pytest.mark.parametrize("converter", ["adf", "jira-wiki", "github-md"])
 async def test_a_description_and_a_comment_in_the_converters_format_show_as_markdown(
-    project, invoke, credentials_home, converter
+    project, invoke, credentials_home, profile, converter
 ) -> None:
     written = (SAMPLES / converter / "input.txt").read_text(encoding="utf-8").rstrip("\n")
     expected = (SAMPLES / converter / "expected.md").read_text(encoding="utf-8").rstrip("\n")
@@ -35,14 +38,14 @@ async def test_a_description_and_a_comment_in_the_converters_format_show_as_mark
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
-            f'base_url = "{tracker.base_url}"\nconverter = "{converter}"\n{TYPES}',
+            f'base_url = "{tracker.base_url}"\nconverter = "{converter}"\n{_types(profile)}',
             encoding="utf-8",
         )
         stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
         assert stored.exit_code == 0, stored.output
         pulled = await invoke(["source", "pull", "platform"])
         assert pulled.exit_code == 0, pulled.output
-        shown = await invoke(["task", "2", "show", "--json"])
+        shown = await invoke([profile.ref, "2", "show", "--json"])
         base = tracker.base_url
 
     assert shown.exit_code == 0, shown.output
@@ -54,7 +57,7 @@ async def test_a_description_and_a_comment_in_the_converters_format_show_as_mark
 
 @pytest.mark.covers("source pull", "--json")
 async def test_a_hostile_description_drops_only_its_issue_and_the_report_names_it(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     nested: dict[str, Any] = {"type": "paragraph"}
     for _ in range(400):
@@ -68,7 +71,7 @@ async def test_a_hostile_description_drops_only_its_issue_and_the_report_names_i
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             '[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
-            f'base_url = "{tracker.base_url}"\nconverter = "adf"\n{TYPES}',
+            f'base_url = "{tracker.base_url}"\nconverter = "adf"\n{_types(profile)}',
             encoding="utf-8",
         )
         stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
@@ -78,7 +81,7 @@ async def test_a_hostile_description_drops_only_its_issue_and_the_report_names_i
     assert pulled.exit_code == 0, pulled.output
     report = json.loads(pulled.stdout)["sources"][0]
     assert (report["created"], report["lines"]) == (
-        ["TASK-2"],
+        [profile.ref_id(2)],
         [
             "platform/api#12: dropped, its text cannot be converted (ValueError)",
             "platform/api#13: 1 link(s) not followed, no item holds platform/api#12",

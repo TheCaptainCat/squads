@@ -3,7 +3,7 @@ id: FEAT-1173
 sequence_id: 1173
 type: feature
 title: CLI surface test suite
-status: Done
+status: InProgress
 author: product-owner
 refs:
 - MILE-1051:targets
@@ -39,7 +39,7 @@ subentities:
   title: Override group
   status: Done
 created_at: '2026-10-27T21:29:30Z'
-updated_at: '2026-10-28T01:03:11Z'
+updated_at: '2026-11-04T23:38:31Z'
 ---
 <!-- sq:body -->
 ## Problem
@@ -287,4 +287,6 @@ The `override` group in `test_override.py`: scaffold, list, diff, update and dri
   - Test job / pytest step: Ubuntu 1m17s / 1m05s and 1m09s / 56s; macOS 1m57s / 1m39s and 1m57s / 1m38s; Windows 7m32s / 4m08s and 5m04s / 2m48s. Targets (each job under 10 min, Windows at most 15) met on both runs. Worker count: pytest-xdist -n auto (addopts).
 - [2026-10-28T01:03:11Z] `manager` Catherine Manager:
   - Done under the operator delegation to drive FEAT-1173 to the end (op-pierre, 2026-10-27): every story delivered, REV-1198 approved (19 findings Verified or Noted), coverage and verb-parity guards green, CI targets met on two runs per OS. Product defects found while testing are BUG-1183 to BUG-1197 and BUG-1200, left for the regression-test stage.
+- [2026-11-04T23:38:31Z] `manager` Catherine Manager:
+  - Reopened: TASK-1300 fixes the REV-1299 findings on the 0.20 tests against ADR-1172, which this feature's suite rebuild owns.
 <!-- sq:discussion:end -->
