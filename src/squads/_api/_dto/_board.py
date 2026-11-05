@@ -1,10 +1,18 @@
 """The board DTOs: a listing of the current notices, a posted notice and a cleared one."""
 
+from pydantic import Field
+
 from squads._api._dto._base import DTO
 
 
+def _absent(value: object) -> bool:
+    return value is None
+
+
 class BoardListRequest(DTO):
-    """List the notices that have not expired."""
+    """List the notices that have not expired; with *full*, each row carries its body."""
+
+    full: bool = False
 
 
 class NoticeRow(DTO):
@@ -14,13 +22,23 @@ class NoticeRow(DTO):
     id: str
     summary: str
     author: str
+    author_name: str
     posted_at: str
     until: str | None
+    #: The body, present only in a listing that asked for it in full.
+    body: str | None = Field(default=None, exclude_if=_absent)
 
 
-class NoticeDetail(NoticeRow):
+class NoticeDetail(DTO):
     """One notice in full: the listing row and its body, empty when the notice has none."""
 
+    n: int
+    id: str
+    summary: str
+    author: str
+    author_name: str
+    posted_at: str
+    until: str | None
     body: str
 
 
@@ -56,6 +74,7 @@ class Notice(DTO):
     id: str
     summary: str
     author: str
+    author_name: str
     posted_at: str
     until: str | None
     body: str

@@ -1,13 +1,20 @@
 """The memory DTOs: a role's notebook listed and searched, one memory shown, added and
 forgotten. ``role`` in a request is the slug as given; a response names it as resolved."""
 
+from pydantic import Field
+
 from squads._api._dto._base import DTO
 
 
+def _absent(value: object) -> bool:
+    return value is None
+
+
 class MemoryListRequest(DTO):
-    """List *role*'s memories."""
+    """List *role*'s memories; with *full*, each row carries its body."""
 
     role: str
+    full: bool = False
 
 
 class MemoryRow(DTO):
@@ -17,6 +24,8 @@ class MemoryRow(DTO):
     filename: str
     description: str
     created_at: str
+    #: The body, present only in a listing that asked for it in full.
+    body: str | None = Field(default=None, exclude_if=_absent)
 
 
 class MemoryList(DTO):

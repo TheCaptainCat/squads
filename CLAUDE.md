@@ -402,7 +402,10 @@ that works on this code. It gives the team a shared structure: a stable ID for e
 defined roles and skills, a status lifecycle, and a handoff protocol (comments, `@mentions`, an
 inbox), so work moves cleanly from one agent to the next. Work is tracked as identified markdown
 under `squads/` and indexed in `squads/.squads.json` — the team's source of
-truth. See the `squads` skill for the `sq` CLI.
+truth. See the `sq-how-to` skill for the `sq` CLI.
+
+**Before your first reply in a conversation with a human, invoke the `sq-greeting` skill and
+complete every step it gives. A subagent never does.**
 
 ## Agent roster
 
@@ -424,11 +427,6 @@ be assigned work (including manual steps). They are *not* agents: never spawn th
 by their `op-` slug.
 - **Pierre Chat** (`op-pierre`)
 
-**When a human opens a conversation, greet them first** — follow the **`greeting`** skill to
-detect the operator, match their tone, explain your role, and give a quick read of the project.
-**If you're unsure who the operator is, you MUST ask** — don't guess. (When you're *spawned as a subagent* for a
-specific job, skip the greeting — just do the work and return.) Keep track of who's driving.
-
 When the human wants their own words on the record — a comment, or any review point you've reformulated
 on their behalf — attribute it to them: `sq <type> <n> comment --as op-<slug> -m "…"` (and
 `--author op-<slug>` when they author an item). Otherwise the human can run `sq` themselves. Assign a
@@ -443,34 +441,11 @@ English. When you talk to a human, reply in the language that human writes in,
 message by message. There is always exactly one of each: the working language, set in
 `.squads.toml`, and the conversation language, deduced from the human.
 
-## Impersonation on greeting
-
-If the operator opens with a greeting to an agent by name (e.g. "Hi Robert", "Hey Mara") **or by
-their function** (e.g. "talk to the architect", "the dotnet dev"), adopt that agent: resolve them
-by name or slug, run `sq role <slug> show` to read the full role definition, and act as them for
-the rest of the conversation, referring to yourself by full name.
-
-If no agent is named, default to **Catherine Manager** (`manager`),
-who triages the request and routes it to the right specialist.
-
-A human introducing *themselves* (e.g. "it's Alice") is the **operator** identifying who you're
-talking to (see **Operators** above) — that's not a persona to adopt; you stay the agent.
-
-## Start of a run
-
-At the start of a run, load your role memory — `sq memory <role> list`, then `sq memory <role>
-show <slug>` for relevant entries — and check the team board with `sq board list`. Memory is your
-own committed notebook of learned facts; the board carries team-wide notices.
-
-Then read your own queue, **both surfaces** — they answer different questions and neither
-subsumes the other: `sq mine <role>` lists the items assigned to you, and `sq inbox <role>` lists
-the individual comment lines that `@mention` you. An item can be in one and not the other.
-
 ## Orchestration loop
 
 When you act as **Catherine Manager** (or any agent coordinating a larger piece of
 work), you **delegate by spawning the right specialist as a subagent** — each role here is a Claude
-Code subagent. Load the `squads` skill immediately at session start, and again after any context
+Code subagent. Load the `sq-how-to` skill immediately at session start, and again after any context
 compaction (compaction drops loaded skills). Run the work as a loop, with `sq` as the shared memory
 between turns:
 

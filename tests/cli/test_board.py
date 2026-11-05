@@ -42,6 +42,7 @@ async def test_post_adds_a_notice_signed_by_the_actor(project, invoke) -> None:
             "id": notice_id,
             "summary": "Freeze on Friday",
             "author": "manager",
+            "author_name": "Catherine Manager",
             "posted_at": STAMP,
             "until": None,
         }
@@ -185,6 +186,7 @@ async def test_list_json_numbers_the_current_notices_in_the_order_they_were_post
                 "id": first,
                 "summary": "First",
                 "author": "manager",
+                "author_name": "Catherine Manager",
                 "posted_at": EARLIER,
                 "until": None,
             },
@@ -193,10 +195,84 @@ async def test_list_json_numbers_the_current_notices_in_the_order_they_were_post
                 "id": second,
                 "summary": "Second",
                 "author": "manager",
+                "author_name": "Catherine Manager",
                 "posted_at": STAMP,
                 "until": "2999-01-01T00:00:00Z",
             },
         ]
+    )
+
+
+@pytest.mark.covers("board list", "--full")
+async def test_list_full_json_adds_the_body_to_each_row_and_names_the_author(
+    project, invoke
+) -> None:
+    first = await _post(invoke, "First", "-m", "Detail one", at=EARLIER)
+    second = await _post(invoke, "Second")
+    ghost = project.squad_dir / "board" / "ghost00001.md"
+    ghost.write_text(
+        "---\nsummary: Third\nauthor: ghost\nposted_at: '2026-06-07T11:00:00Z'\n---\nBody three\n",
+        encoding="utf-8",
+    )
+    rows = await read_json(invoke, ["board", "list", "--full", "--json"])
+    assert json.dumps(rows) == json.dumps(
+        [
+            {
+                "n": 1,
+                "id": first,
+                "summary": "First",
+                "author": "manager",
+                "author_name": "Catherine Manager",
+                "posted_at": EARLIER,
+                "until": None,
+                "body": "Detail one",
+            },
+            {
+                "n": 2,
+                "id": second,
+                "summary": "Second",
+                "author": "manager",
+                "author_name": "Catherine Manager",
+                "posted_at": STAMP,
+                "until": None,
+                "body": "",
+            },
+            {
+                "n": 3,
+                "id": "ghost00001",
+                "summary": "Third",
+                "author": "ghost",
+                "author_name": "ghost",
+                "posted_at": "2026-06-07T11:00:00Z",
+                "until": None,
+                "body": "Body three",
+            },
+        ]
+    )
+
+
+@pytest.mark.covers("board list", "--full")
+async def test_list_full_prints_each_body_under_its_summary(project, invoke) -> None:
+    await _post(invoke, "First", "-m", "Detail one", "-m", "Detail two", at=EARLIER)
+    await _post(invoke, "Second")
+    result = await invoke(["board", "list", "--full"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "1. First  (manager)\n\n   Detail one\n\n   Detail two\n2. Second  (manager)\n",
+    )
+
+
+@pytest.mark.covers("board list", "--full")
+async def test_list_full_raw_indents_each_body_in_its_item_and_drops_the_closing_line(
+    project, invoke
+) -> None:
+    await _post(invoke, "First", "-m", "Detail one", "-m", "Detail two", at=EARLIER)
+    await _post(invoke, "Second", "--until", "2999-01-01")
+    result = await invoke(["board", "list", "--full", "--raw"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "1. First \u2014 manager\n\n   Detail one\n\n   Detail two\n"
+        "2. Second \u2014 manager, until 2999-01-01T00:00:00Z\n",
     )
 
 
@@ -238,6 +314,46 @@ async def test_list_raw_indents_the_further_lines_of_a_multi_line_summary(projec
         0,
         "1. First line\n   Second line — manager\n"
         "\nRead a notice in full with `sq board show <n>`.\n",
+    )
+
+
+async def _eleven(invoke, **posts: str) -> None:
+    """Post eleven notices, `Notice 1` to `Notice 11`, a minute apart; *posts* maps a number to the
+    words that replace its summary."""
+    for i in range(1, 12):
+        summary = posts.get(f"n{i}", f"Notice {i}")
+        await _post(invoke, summary, at=f"2026-06-07T09:{i:02d}:00Z")
+
+
+@pytest.mark.covers("board list", "--raw")
+async def test_list_raw_indents_a_multi_line_summary_by_the_width_of_a_two_digit_marker(
+    project, invoke
+) -> None:
+    await _eleven(invoke, n10="Ten\nlines")
+    result = await invoke(["board", "list", "--raw"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "".join(f"{i}. Notice {i} \u2014 manager\n" for i in range(1, 10))
+        + "10. Ten\n    lines \u2014 manager\n"
+        "11. Notice 11 \u2014 manager\n"
+        "\nRead a notice in full with `sq board show <n>`.\n",
+    )
+
+
+@pytest.mark.covers("board list", "--full", "--raw")
+async def test_list_full_raw_indents_a_body_by_the_width_of_a_two_digit_marker(
+    project, invoke
+) -> None:
+    for i in range(1, 12):
+        body = ("-m", f"Body {i}") if i >= 9 else ()
+        await _post(invoke, f"Notice {i}", *body, at=f"2026-06-07T09:{i:02d}:00Z")
+    result = await invoke(["board", "list", "--full", "--raw"])
+    assert (result.exit_code, result.output) == (
+        0,
+        "".join(f"{i}. Notice {i} \u2014 manager\n" for i in range(1, 9))
+        + "9. Notice 9 \u2014 manager\n\n   Body 9\n"
+        "10. Notice 10 \u2014 manager\n\n    Body 10\n"
+        "11. Notice 11 \u2014 manager\n\n    Body 11\n",
     )
 
 
@@ -304,6 +420,7 @@ async def test_show_json_prints_the_whole_notice_with_an_empty_body(project, inv
                 "id": notice_id,
                 "summary": "Freeze",
                 "author": "manager",
+                "author_name": "Catherine Manager",
                 "posted_at": STAMP,
                 "until": None,
                 "body": "",
@@ -404,6 +521,7 @@ async def test_post_json_prints_the_notice_written(project, invoke) -> None:
                     "id": listed["id"],
                     "summary": "Freeze",
                     "author": "manager",
+                    "author_name": "Catherine Manager",
                     "posted_at": STAMP,
                     "until": "2999-01-01T00:00:00Z",
                     "body": "",
@@ -428,6 +546,7 @@ async def test_clear_json_prints_the_notice_taken_down(project, invoke) -> None:
                     "id": notice_id,
                     "summary": "Freeze",
                     "author": "manager",
+                    "author_name": "Catherine Manager",
                     "posted_at": STAMP,
                     "until": None,
                     "body": "",

@@ -32,3 +32,8 @@ def print_raw(console: Console, lines: list[str]) -> None:
     """*lines* written in one call to the console's file as they are: no markup, emoji,
     highlighting, wrapping or tab expansion."""
     console.file.write("\n".join(lines).rstrip("\n") + "\n")
+
+
+def indented_body(body: str, pad: str) -> list[str]:
+    """The lines of *body* under a list item: a blank line, then each line indented by *pad*."""
+    return ["", *(f"{pad}{line}".rstrip() for line in body.splitlines())]

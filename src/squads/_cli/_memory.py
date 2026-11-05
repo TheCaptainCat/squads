@@ -65,12 +65,13 @@ def list_memories(
         False, "--json", help="Print a JSON array, one object per memory."
     ),
     raw: bool = common.raw_option(),
+    full: bool = common.full_option("Add each memory's body under its summary."),
 ) -> None:
     """List the role's memories, one line each: slug and summary.
 
     Exit codes: 4 partial result; what could be read is printed. See sq docs faq.
     """
-    response = calls.call(ops.MEMORY_LIST, MemoryListRequest(role=_role(ctx)))
+    response = calls.call(ops.MEMORY_LIST, MemoryListRequest(role=_role(ctx), full=full))
     if json_out:
         calls.print_json(ops.MEMORY_LIST, response)
     else:

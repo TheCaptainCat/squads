@@ -13,7 +13,6 @@ import type { ProcessRunner } from './processRunner';
 import type {
   SqBadgeMap,
   SqBoardNotice,
-  SqBoardNoticeDetail,
   SqCollectionBadge,
   SqCollectionCatalogEntry,
   SqDiscussionEntry,
@@ -608,9 +607,10 @@ export function isSqMemoryDetail(value: unknown): value is SqMemoryDetail {
   );
 }
 
-/** Shape guard for one `sq board list --json` row. `summary` is required: unlike the memory
- * list's `created_at`, a board row has nothing else to show in its place, and the `board show`
- * the panel opens a notice with exists only in an `sq` that also emits it. */
+/** Shape guard for one `sq board list --full --json` row. `summary` and `body` are required: the
+ * panel asks for `--full`, and a row without either has nothing to show. `author_name` is
+ * optional (an older `sq` predates it) — present-and-not-a-string is still a rejection, the same
+ * contract `created_at` gets on a memory row. */
 export function isSqBoardNotice(value: unknown): value is SqBoardNotice {
   if (typeof value !== 'object' || value === null) {
     return false;
@@ -621,15 +621,11 @@ export function isSqBoardNotice(value: unknown): value is SqBoardNotice {
     typeof notice.id === 'string' &&
     typeof notice.summary === 'string' &&
     typeof notice.author === 'string' &&
+    (notice.author_name === undefined || typeof notice.author_name === 'string') &&
     typeof notice.posted_at === 'string' &&
-    (typeof notice.until === 'string' || notice.until === null)
+    (typeof notice.until === 'string' || notice.until === null) &&
+    typeof notice.body === 'string'
   );
-}
-
-/** Shape guard for `sq board show <n> --json`'s single-object payload: a list row plus a
- * required `body` string (`""` for a notice without one). */
-export function isSqBoardNoticeDetail(value: unknown): value is SqBoardNoticeDetail {
-  return isSqBoardNotice(value) && typeof (value as { body?: unknown }).body === 'string';
 }
 
 function parseJson(stdout: string): SqOutcome<unknown> {
@@ -986,7 +982,8 @@ export function getMemoryShow(
   );
 }
 
-/** `sq board list --json` — the team bulletin board's current (unexpired) notices, feeding the
+/** `sq board list --full --json` — the team bulletin board's current (unexpired) notices, each
+ * with its body, feeding the
  * `Squads: Open Team Board` panel. One or more unreadable notices exits `4` (the partial-result
  * contract), and
  * `classifyNonZeroExit` maps that to a `success` outcome carrying `omissions` — the readable
@@ -997,22 +994,11 @@ export function getBoardList(
   invocation: SqInvocation,
   workspaceRoot: string,
 ): Promise<SqOutcome<SqBoardNotice[]>> {
-  return runSqJson(runner, invocation, workspaceRoot, ['board', 'list', '--json'], isSqBoardNotice);
-}
-
-/** `sq board show <n> --json` — one notice's full record, `n` being its position in the live
- * listing, not an id: the caller compares the returned `id` with the row it clicked. */
-export function getBoardNotice(
-  runner: ProcessRunner,
-  invocation: SqInvocation,
-  workspaceRoot: string,
-  n: number,
-): Promise<SqOutcome<SqBoardNoticeDetail>> {
-  return runSqJsonObject(
+  return runSqJson(
     runner,
     invocation,
     workspaceRoot,
-    ['board', 'show', String(n), '--json'],
-    isSqBoardNoticeDetail,
+    ['board', 'list', '--full', '--json'],
+    isSqBoardNotice,
   );
 }

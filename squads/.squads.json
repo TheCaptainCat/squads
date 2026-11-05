@@ -1,6 +1,6 @@
 {
-  "schema_version": "0.19",
-  "counter": 1316,
+  "schema_version": "0.20",
+  "counter": 1318,
   "padding": 6,
   "items": {
     "12": {
@@ -412,6 +412,28 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "EPIC-897"
+    },
+    "1268": {
+      "sequence_id": 1268,
+      "type": "epic",
+      "title": "External sources: work tracked elsewhere",
+      "slug": "external-sources-work-tracked-elsewhere",
+      "status": "Done",
+      "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
+      "created_at": "2026-11-03T15:57:06Z",
+      "updated_at": "2026-11-04T18:38:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "EPIC-1268"
     },
     "13": {
       "sequence_id": 13,
@@ -9175,6 +9197,574 @@
       },
       "slug_in_file": false,
       "id": "FEAT-1249"
+    },
+    "1270": {
+      "sequence_id": 1270,
+      "type": "feature",
+      "title": "Stored view bodies",
+      "slug": "stored-view-bodies",
+      "status": "Done",
+      "description": "A view tag can store a body its projection reads at render time",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Paired view tags carry a stored body",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Body writes keep stored view bodies intact",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "One operation writes a view body, escaping markers",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Projections read the stored body at render time",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001270-stored-view-bodies.md",
+      "created_at": "2026-11-03T15:57:07Z",
+      "updated_at": "2026-11-04T05:45:49Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1270"
+    },
+    "1271": {
+      "sequence_id": 1271,
+      "type": "feature",
+      "title": "Sources spec and pull",
+      "slug": "sources-spec-and-pull",
+      "status": "Done",
+      "description": "Declare sources in sources.toml and pull opted-in issues into items",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1270:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Sources declared in a sources.toml spec document",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "A durable source identity on each item",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Map attribute kind and operator identities",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "sq source pull creates and refreshes items",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "The source_description view",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "Source-owned fields refused, broken links checked",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "List sources, unlink and relink an item",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "Comments carry attributes",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "Source credentials held where the squad is served",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001271-sources-spec-and-pull.md",
+      "created_at": "2026-11-03T15:57:07Z",
+      "updated_at": "2026-11-04T08:21:11Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1271"
+    },
+    "1272": {
+      "sequence_id": 1272,
+      "type": "feature",
+      "title": "sq source check and text converters",
+      "slug": "sq-source-check-and-text-converters",
+      "status": "Done",
+      "description": "A per-source readiness checklist, and shared tracker-text converters",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1271:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "sq source check prints a checklist per source",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "A registry of named text converters",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001272-sq-source-check-and-text-converters.md",
+      "created_at": "2026-11-03T15:57:08Z",
+      "updated_at": "2026-11-04T04:14:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1272"
+    },
+    "1273": {
+      "sequence_id": 1273,
+      "type": "feature",
+      "title": "Connectors: GitLab, GitHub and Jira",
+      "slug": "connectors-gitlab-github-and-jira",
+      "status": "Done",
+      "description": "The first connectors, registered by name and version",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1271:depends-on",
+        "FEAT-1272:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Connector registry by name and version",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "GitLab connector, any instance",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "GitHub connector, including Enterprise",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Jira Cloud connector (cloud-v3)",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Jira Data Center connector (dc-v2)",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001273-connectors-gitlab-github-and-jira.md",
+      "created_at": "2026-11-03T15:57:08Z",
+      "updated_at": "2026-11-04T08:29:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1273"
+    },
+    "1285": {
+      "sequence_id": 1285,
+      "type": "feature",
+      "title": "Scoped sources and filter expressions",
+      "slug": "scoped-sources-and-filter-expressions",
+      "status": "Done",
+      "description": "Sources name a scope; squads filters; links span a tracker's sources",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "BUG-1284:implements",
+        "ADR-1274"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Scope keys replace the label filter",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Filter expressions and pull report",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Links resolve across a tracker's sources",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Docs and changelog for scoped sources",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001285-scoped-sources-and-filter-expressions.md",
+      "created_at": "2026-11-04T09:54:38Z",
+      "updated_at": "2026-11-04T16:45:59Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1285"
+    },
+    "1288": {
+      "sequence_id": 1288,
+      "type": "feature",
+      "title": "Re-exporting private packages",
+      "slug": "re-exporting-private-packages",
+      "status": "Done",
+      "description": "Every private package's init re-exports the names other packages import, per ADR-1287; codebase swept, docs corrected.",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1287:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Guard and package sweep",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Documentation corrected",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001288-re-exporting-private-packages.md",
+      "created_at": "2026-11-04T11:05:52Z",
+      "updated_at": "2026-11-04T15:17:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "FEAT-1288"
+    },
+    "1290": {
+      "sequence_id": 1290,
+      "type": "feature",
+      "title": "Injected skills and one role skill per agent",
+      "slug": "injected-skills-and-one-role-skill-per-agent",
+      "status": "InProgress",
+      "description": "Pointers inject their body; each agent preloads its own role skill; per-type skills retire",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Skill pointers render their body at startup",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Each agent preloads its own sq-role skill",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Base skills get sq- names and lose duplicated text",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "A migration retires per-type skills and renames two",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Docs and changelog for role skills and startup",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US6",
+          "title": "The main session starts from sq-greeting",
+          "status": "Done",
+          "assignee": "product-owner",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US7",
+          "title": "show --raw and --no-header on every item",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US8",
+          "title": "AGENTS.md gets the role bodies and startup steps",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US9",
+          "title": "Startup size is measured before and after",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
+      "created_at": "2026-11-04T13:32:39Z",
+      "updated_at": "2026-11-05T07:04:50Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1290"
+    },
+    "1311": {
+      "sequence_id": 1311,
+      "type": "feature",
+      "title": "Board notices with a summary and a body",
+      "slug": "board-notices-with-a-summary-and-a-body",
+      "status": "Ready",
+      "description": "A board notice gets a one-line summary and a body; list shows summaries, show reads the body",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1269:targets",
+        "FEAT-1290"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "Post, list and show a notice by summary and body",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "Warn on a multi-line summary",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "Migrate existing notices",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "Startup text carries the board index",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "Docs describe summary and body",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001311-board-notices-with-a-summary-and-a-body.md",
+      "created_at": "2026-11-05T07:05:50Z",
+      "updated_at": "2026-11-05T08:42:46Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1311"
     },
     "42": {
       "sequence_id": 42,
@@ -35675,6 +36265,1289 @@
       "slug_in_file": false,
       "id": "TASK-1267"
     },
+    "1275": {
+      "sequence_id": 1275,
+      "type": "task",
+      "title": "Stored view bodies, escape grammar and the 0.20 schema",
+      "slug": "stored-view-bodies-escape-grammar-and-the-0-20-schema",
+      "status": "Done",
+      "description": "Paired view tags with an escaped stored body, set_view_body, read-time body; schema 0.20 runner",
+      "parent": "FEAT-1270",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Paired view tags and their check findings",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Body writes keep stored bodies intact",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "set_view_body and the escape grammar",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Projections read the stored body",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Schema 0.20 and its migration runner",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001275-stored-view-bodies-escape-grammar-and-the-0-20-schema.md",
+      "created_at": "2026-11-03T23:02:36Z",
+      "updated_at": "2026-11-03T23:59:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1275"
+    },
+    "1276": {
+      "sequence_id": 1276,
+      "type": "task",
+      "title": "Sources spec, source record, credentials and sq source pull",
+      "slug": "sources-spec-source-record-credentials-and-sq-source-pull",
+      "status": "Done",
+      "description": "sources.toml, GitLab connector and harness, source record, map kind and identities, comment attributes, credentials, pull as import events, refusals, check rules",
+      "parent": "FEAT-1271",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1275:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "sources.toml spec document and its validation",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Source record, derived lookups, namespaced author",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Map attribute kind and operator identities",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Comment attributes and sourced-comment display",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US8",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Credential store and the hidden prompt",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US9",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "sq source pull compiled to import events",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "The source_description view and show --refresh",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Ownership refusals and sq check reports",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US6",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Source list, unlink and relink",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US7",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "HTTP helper, loopback harness, GitLab connector",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001276-sources-spec-source-record-credentials-and-sq-source-pull.md",
+      "created_at": "2026-11-03T23:02:45Z",
+      "updated_at": "2026-11-04T08:21:10Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1276"
+    },
+    "1277": {
+      "sequence_id": 1277,
+      "type": "task",
+      "title": "sq source check probes and the converter registry",
+      "slug": "sq-source-check-probes-and-the-converter-registry",
+      "status": "Done",
+      "description": "Connector-neutral probe checklist served with the pull's credentials, and the four named text converters",
+      "parent": "FEAT-1272",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1276:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Probe framework, GitLab probes and sq source check",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "The adf, jira-wiki and github-md converters",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001277-sq-source-check-probes-and-the-converter-registry.md",
+      "created_at": "2026-11-03T23:02:45Z",
+      "updated_at": "2026-11-04T04:14:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1277"
+    },
+    "1278": {
+      "sequence_id": 1278,
+      "type": "task",
+      "title": "GitHub and Jira connectors behind the registry",
+      "slug": "github-and-jira-connectors-behind-the-registry",
+      "status": "Done",
+      "description": "GitHub, Jira cloud-v3 and dc-v2 connectors with their probes on recorded responses; a multi-version connector requires version",
+      "parent": "FEAT-1273",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1276:depends-on",
+        "TASK-1277:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "A multi-version connector requires version",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "GitLab connector",
+          "status": "Cancelled",
+          "assignee": null,
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "GitHub connector",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Jira Cloud connector, cloud-v3",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Jira Data Center connector, dc-v2",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001278-github-and-jira-connectors-behind-the-registry.md",
+      "created_at": "2026-11-03T23:02:46Z",
+      "updated_at": "2026-11-04T18:31:04Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1278"
+    },
+    "1279": {
+      "sequence_id": 1279,
+      "type": "task",
+      "title": "Adopter docs, stability guide and changelog for sources",
+      "slug": "adopter-docs-stability-guide-and-changelog-for-sources",
+      "status": "Done",
+      "description": "Stability contracts, the external sources adopter page, connector docs and the 0.20 changelog section",
+      "parent": "FEAT-1273",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "MILE-1269:targets",
+        "TASK-1275:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Stability guide contracts",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Adopter page for external sources",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "CHANGELOG 0.20 section",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Connector documentation",
+          "status": "Done",
+          "assignee": null,
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001279-adopter-docs-stability-guide-and-changelog-for-sources.md",
+      "created_at": "2026-11-03T23:02:46Z",
+      "updated_at": "2026-11-04T08:29:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1279"
+    },
+    "1286": {
+      "sequence_id": 1286,
+      "type": "task",
+      "title": "Scoped sources, filter expressions and cross-source links",
+      "slug": "scoped-sources-filter-expressions-and-cross-source-links",
+      "status": "Done",
+      "description": "Scope keys, a filter evaluated in squads, pull report counts, restricted issues, links across a tracker's sources",
+      "parent": "FEAT-1285",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1274:implements",
+        "BUG-1284:fixes"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Scope keys and the filter expression parser",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Restricted issues skipped and counted",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Filter on the listing and the pull report counts",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Single-issue commands decide scope and filter",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Links carry their inverse type",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Links and holders resolve across one tracker",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Probes read the scope and the filter values",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Docs and changelog for scoped sources",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001286-scoped-sources-filter-expressions-and-cross-source-links.md",
+      "created_at": "2026-11-04T09:58:37Z",
+      "updated_at": "2026-11-04T16:45:44Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1286"
+    },
+    "1289": {
+      "sequence_id": 1289,
+      "type": "task",
+      "title": "Sweep private packages to re-exporting inits",
+      "slug": "sweep-private-packages-to-re-exporting-inits",
+      "status": "Done",
+      "description": "Guard, three moves and a leaf-first sweep of every private package to the ADR-1287 re-export rule; docs corrected",
+      "parent": "FEAT-1288",
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-1287:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Guard, resolver, PENDING and the three moves",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Sweep _models",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Sweep _workflow, _roles and _interactions",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Sweep _api/_dto and _api",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Sweep _rendering, _index, _sources, _overrides, _board, _memory",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Sweep _backends, _migrations, _tui and _services",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Sweep _cli/_render, _cli, _daemon; delete PENDING",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Correct the documents stating the old rule",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001289-sweep-private-packages-to-re-exporting-inits.md",
+      "created_at": "2026-11-04T11:07:46Z",
+      "updated_at": "2026-11-04T16:41:31Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1289"
+    },
+    "1293": {
+      "sequence_id": 1293,
+      "type": "task",
+      "title": "Run the Jira connectors against a live Jira",
+      "slug": "run-the-jira-connectors-against-a-live-jira",
+      "status": "Draft",
+      "description": "Live run of jira@cloud-v3 and jira@dc-v2 to confirm the API shapes and scoped-sources behaviour",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "TASK-1278",
+        "ADR-1274"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-001293-run-the-jira-connectors-against-a-live-jira.md",
+      "created_at": "2026-11-04T18:38:36Z",
+      "updated_at": "2026-11-04T18:39:02Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "low"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1293"
+    },
+    "1295": {
+      "sequence_id": 1295,
+      "type": "task",
+      "title": "Rendered skill pointers, role skills and raw show output",
+      "slug": "rendered-skill-pointers-role-skills-and-raw-show-output",
+      "status": "Done",
+      "description": "Python side of ADR-1294, in seven dev rounds",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1294:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "show --raw prints a YAML header; --no-header prints the body alone",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US7",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "A view that fails to render leaves one line naming the command",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "The role_playbook view in every role body",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Pointers render their body; one sq-role-<slug> skill per role",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Retire the per-type sq-<type> skills from the code",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Rename to sq-how-to and sq-greeting; trim the base skills",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "sq-greeting states the startup steps; CLAUDE.md directs to it",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US6",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "AGENTS.md compiles role bodies and the shared startup steps",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US8",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "0.19 to 0.20 migration retires per-type skills and renames two",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "memory list and board list gain --raw",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST11",
+          "title": "Raw header lists the panel's rows",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US7",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001295-rendered-skill-pointers-role-skills-and-raw-show-output.md",
+      "created_at": "2026-11-04T21:46:20Z",
+      "updated_at": "2026-11-05T02:48:07Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1295"
+    },
+    "1296": {
+      "sequence_id": 1296,
+      "type": "task",
+      "title": "VS Code preview reads the --raw panel rows",
+      "slug": "vs-code-preview-reads-the-raw-panel-rows",
+      "status": "Done",
+      "description": "Preview and skew canary follow the panel-row show --raw header",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1294:implements",
+        "TASK-1295"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Preview metadata bullets accept labels with spaces",
+          "status": "Done",
+          "assignee": "typescript-dev",
+          "maps_to": "US7",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Regenerate the raw fixture and update the skew canary",
+          "status": "Done",
+          "assignee": "typescript-dev",
+          "maps_to": "US7",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001296-vs-code-preview-reads-the-raw-panel-rows.md",
+      "created_at": "2026-11-04T21:46:37Z",
+      "updated_at": "2026-11-05T03:16:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1296"
+    },
+    "1297": {
+      "sequence_id": 1297,
+      "type": "task",
+      "title": "Measure startup text before and after the role skills",
+      "slug": "measure-startup-text-before-and-after-the-role-skills",
+      "status": "Done",
+      "description": "ADR-1294 section 8 table on this repository, before and after",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "qa",
+      "labels": [],
+      "refs": [
+        "ADR-1294:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Before: startup figures at the base commit",
+          "status": "Done",
+          "assignee": "qa",
+          "maps_to": "US9",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "After: startup figures once this squad is migrated",
+          "status": "Done",
+          "assignee": "qa",
+          "maps_to": "US9",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001297-measure-startup-text-before-and-after-the-role-skills.md",
+      "created_at": "2026-11-04T21:46:38Z",
+      "updated_at": "2026-11-05T01:50:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1297"
+    },
+    "1298": {
+      "sequence_id": 1298,
+      "type": "task",
+      "title": "Docs and changelog for role skills, startup and --raw",
+      "slug": "docs-and-changelog-for-role-skills-startup-and-raw",
+      "status": "Done",
+      "description": "Adopter docs, migration guide and CHANGELOG entry",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "labels": [],
+      "refs": [
+        "ADR-1294:implements",
+        "TASK-1295:depends-on"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Docs: the role skill, rendered pointers and sq- names",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Docs: show --raw and --no-header; sq-how-to topic lines",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Docs: the main session's startup steps and default role",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Migration guide and CHANGELOG entry for 0.20",
+          "status": "Done",
+          "assignee": "tech-writer",
+          "maps_to": "US5",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001298-docs-and-changelog-for-role-skills-startup-and-raw.md",
+      "created_at": "2026-11-04T21:46:38Z",
+      "updated_at": "2026-11-05T02:58:16Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1298"
+    },
+    "1300": {
+      "sequence_id": 1300,
+      "type": "task",
+      "title": "Fix the 0.20 test review findings",
+      "slug": "fix-the-0-20-test-review-findings",
+      "status": "Done",
+      "description": "Override-squad and Windows CI fixes first, then the REV-1299 findings against ADR-1172",
+      "parent": "FEAT-1173",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1299:addresses",
+        "ADR-1172"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Source CLI tests run on the override squad",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Coverage teardown passes over a skipped test",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Arrange and read source states through the CLI",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Load refusals in tests/check, markers name their parameter",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "CONTRIBUTING: one case per load-rule message",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "One case per refusal, named for it",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST7",
+          "title": "Whole message lines and whole JSON objects",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST8",
+          "title": "Check-rule cases follow the breach-test rules",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST9",
+          "title": "Stored-view helper merges into the override",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST10",
+          "title": "Each case in its command group's module",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001300-fix-the-0-20-test-review-findings.md",
+      "created_at": "2026-11-04T23:33:24Z",
+      "updated_at": "2026-11-05T04:11:06Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1300"
+    },
+    "1308": {
+      "sequence_id": 1308,
+      "type": "task",
+      "title": "Flatten raw row values and fix the 0.20 MANUAL step 8",
+      "slug": "flatten-raw-row-values-and-fix-the-0-20-manual-step-8",
+      "status": "Done",
+      "description": "Raw rows on one line; step 8 names both required keys",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1307:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Print each raw row value on one line",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Name both required keys in the 0.20 MANUAL step 8",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001308-flatten-raw-row-values-and-fix-the-0-20-manual-step-8.md",
+      "created_at": "2026-11-05T03:17:05Z",
+      "updated_at": "2026-11-05T03:55:25Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1308"
+    },
+    "1309": {
+      "sequence_id": 1309,
+      "type": "task",
+      "title": "Keep titles and raw row values on one line",
+      "slug": "keep-titles-and-raw-row-values-on-one-line",
+      "status": "Done",
+      "description": "Refuse a line break in a title; tidy the raw row join",
+      "parent": "FEAT-1290",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1307:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Refuse a line break in a title",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Join raw row lines with splitlines and strip",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001309-keep-titles-and-raw-row-values-on-one-line.md",
+      "created_at": "2026-11-05T04:04:09Z",
+      "updated_at": "2026-11-05T04:35:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1309"
+    },
+    "1310": {
+      "sequence_id": 1310,
+      "type": "task",
+      "title": "Fix REV-1299 findings F13 to F17",
+      "slug": "fix-rev-1299-findings-f13-to-f17",
+      "status": "Done",
+      "description": "Override-tree coverage, custom-type help, pull report counters, then test fixes",
+      "parent": "FEAT-1173",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "REV-1299:addresses",
+        "ADR-1172",
+        "ADR-1274"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Drop the completion options from custom type groups",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "Require every test squad's tree in the coverage guard",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Count every pulled issue in exactly one counter",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "Split the twin-holder case and compare whole objects",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "Replace substring asserts; fold two check cases",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001310-fix-rev-1299-findings-f13-to-f17.md",
+      "created_at": "2026-11-05T04:27:13Z",
+      "updated_at": "2026-11-05T06:17:57Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "high"
+      },
+      "slug_in_file": false,
+      "id": "TASK-1310"
+    },
+    "1313": {
+      "sequence_id": 1313,
+      "type": "task",
+      "title": "Board notices: summary and body, show, warnings, migration",
+      "slug": "board-notices-summary-and-body-show-warnings-migration",
+      "status": "InProgress",
+      "description": "Python side of ADR-1312, in four dev rounds",
+      "parent": "FEAT-1311",
+      "author": "tech-lead",
+      "assignee": "python-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1312:implements"
+      ],
+      "subentities": [
+        {
+          "local_id": "ST1",
+          "title": "Stored summary over a body; post and list by summary",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST2",
+          "title": "board show and the BOARD_SHOW operation; --json shapes",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US1",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST3",
+          "title": "Multi-line summary warnings in sq check and at write time",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US2",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST4",
+          "title": "0.19 to 0.20 step copies each notice body into its summary",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US3",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST5",
+          "title": "sq-memory skill board section; role skill board line",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "ST6",
+          "title": "Measure the board section before and after on a copy",
+          "status": "Done",
+          "assignee": "python-dev",
+          "maps_to": "US4",
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "tasks/TASK-001313-board-notices-summary-and-body-show-warnings-migration.md",
+      "created_at": "2026-11-05T07:21:31Z",
+      "updated_at": "2026-11-05T09:23:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1313"
+    },
+    "1314": {
+      "sequence_id": 1314,
+      "type": "task",
+      "title": "VS Code board panel reads summaries and shows a body",
+      "slug": "vs-code-board-panel-reads-summaries-and-shows-a-body",
+      "status": "InReview",
+      "description": "Client side of ADR-1312: summaries in the board panel, body through board show",
+      "parent": "FEAT-1311",
+      "author": "tech-lead",
+      "assignee": "typescript-dev",
+      "labels": [],
+      "refs": [
+        "ADR-1312:implements"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-001314-vs-code-board-panel-reads-summaries-and-shows-a-body.md",
+      "created_at": "2026-11-05T07:21:32Z",
+      "updated_at": "2026-11-05T09:12:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1314"
+    },
+    "1315": {
+      "sequence_id": 1315,
+      "type": "task",
+      "title": "Docs and changelog for board summaries and bodies",
+      "slug": "docs-and-changelog-for-board-summaries-and-bodies",
+      "status": "Done",
+      "description": "Docs pages and the 0.20.0 CHANGELOG for ADR-1312",
+      "parent": "FEAT-1311",
+      "author": "tech-lead",
+      "assignee": "tech-writer",
+      "labels": [],
+      "refs": [
+        "ADR-1312:implements"
+      ],
+      "subentities": [],
+      "path": "tasks/TASK-001315-docs-and-changelog-for-board-summaries-and-bodies.md",
+      "created_at": "2026-11-05T07:21:32Z",
+      "updated_at": "2026-11-05T08:10:32Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "TASK-1315"
+    },
     "11": {
       "sequence_id": 11,
       "type": "bug",
@@ -40066,6 +41939,167 @@
       "slug_in_file": false,
       "id": "BUG-1248"
     },
+    "1284": {
+      "sequence_id": 1284,
+      "type": "bug",
+      "title": "Pull drops links between issues of different sources",
+      "slug": "pull-drops-links-between-issues-of-different-sources",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1271"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001284-pull-drops-links-between-issues-of-different-sources.md",
+      "created_at": "2026-11-04T09:00:26Z",
+      "updated_at": "2026-11-04T16:45:58Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "severity": "high"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1284"
+    },
+    "1302": {
+      "sequence_id": 1302,
+      "type": "bug",
+      "title": "Raw show --full --comments drops sub-entity comments",
+      "slug": "raw-show-full-comments-drops-sub-entity-comments",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001302-raw-show-full-comments-drops-sub-entity-comments.md",
+      "created_at": "2026-11-05T01:43:45Z",
+      "updated_at": "2026-11-05T02:47:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium",
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1302"
+    },
+    "1303": {
+      "sequence_id": 1303,
+      "type": "bug",
+      "title": "Role skill lines run together with no separator or label",
+      "slug": "role-skill-lines-run-together-with-no-separator-or-label",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001303-role-skill-lines-run-together-with-no-separator-or-label.md",
+      "created_at": "2026-11-05T01:43:46Z",
+      "updated_at": "2026-11-05T02:47:23Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium",
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1303"
+    },
+    "1304": {
+      "sequence_id": 1304,
+      "type": "bug",
+      "title": "Raw show header is a bullet list, not YAML front-matter",
+      "slug": "raw-show-header-is-a-bullet-list-not-yaml-front-matter",
+      "status": "Cancelled",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001304-raw-show-header-is-a-bullet-list-not-yaml-front-matter.md",
+      "created_at": "2026-11-05T01:43:46Z",
+      "updated_at": "2026-11-05T01:50:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "low",
+        "severity": "low"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1304"
+    },
+    "1305": {
+      "sequence_id": 1305,
+      "type": "bug",
+      "title": "sq-how-to repeats the managed CLAUDE.md section",
+      "slug": "sq-how-to-repeats-the-managed-claude-md-section",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001305-sq-how-to-repeats-the-managed-claude-md-section.md",
+      "created_at": "2026-11-05T01:43:47Z",
+      "updated_at": "2026-11-05T02:47:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "low",
+        "severity": "low"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1305"
+    },
+    "1306": {
+      "sequence_id": 1306,
+      "type": "bug",
+      "title": "Docs still send agents to sq-type skills and old names",
+      "slug": "docs-still-send-agents-to-sq-type-skills-and-old-names",
+      "status": "Verified",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290"
+      ],
+      "subentities": [],
+      "path": "bugs/BUG-001306-docs-still-send-agents-to-sq-type-skills-and-old-names.md",
+      "created_at": "2026-11-05T01:43:47Z",
+      "updated_at": "2026-11-05T02:47:24Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "priority": "medium",
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1306"
+    },
     "49": {
       "sequence_id": 49,
       "type": "decision",
@@ -41038,7 +43072,7 @@
       "subentities": [],
       "path": "adrs/ADR-000314-storage-id-model-for-agent-memory-and-the-team-bulletin-boar.md",
       "created_at": "2026-07-06T16:03:50Z",
-      "updated_at": "2026-11-05T07:11:01Z",
+      "updated_at": "2026-11-05T08:48:07Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -42692,6 +44726,121 @@
       "slug_in_file": false,
       "id": "ADR-1261"
     },
+    "1274": {
+      "sequence_id": 1274,
+      "type": "decision",
+      "title": "External sources: source record, stored views, sourced comments",
+      "slug": "external-sources-source-record-stored-views-sourced-comments",
+      "status": "Accepted",
+      "description": "Source record and derived lookup, nested records, stored view bodies, comment attributes, namespaced authors, server-side credentials, sources.toml, pull as import events, schema 0.20",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "EPIC-1268:addresses",
+        "FEAT-1270:addresses",
+        "FEAT-1271:addresses",
+        "FEAT-1272:addresses",
+        "FEAT-1273:addresses",
+        "ADR-880",
+        "ADR-776",
+        "ADR-1007",
+        "ADR-979",
+        "ADR-1261",
+        "ADR-622",
+        "ADR-1013",
+        "ADR-1109"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
+      "created_at": "2026-11-03T22:41:36Z",
+      "updated_at": "2026-11-05T05:57:54Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1274"
+    },
+    "1287": {
+      "sequence_id": 1287,
+      "type": "decision",
+      "title": "Private packages re-export their outside-used names",
+      "slug": "private-packages-re-export-their-outside-used-names",
+      "status": "Accepted",
+      "description": "Every private package's init re-exports exactly the names other packages import, so an importer writes one statement per package; the guard holds init shape, no reach-in and an exact surface",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "GUIDE-79",
+        "ADR-78"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001287-private-packages-re-export-their-outside-used-names.md",
+      "created_at": "2026-11-04T10:58:24Z",
+      "updated_at": "2026-11-04T12:42:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1287"
+    },
+    "1294": {
+      "sequence_id": 1294,
+      "type": "decision",
+      "title": "Rendered skill pointers and one role skill per agent",
+      "slug": "rendered-skill-pointers-and-one-role-skill-per-agent",
+      "status": "Accepted",
+      "description": "Pointers render through never-failing commands with show --raw --no-header; each role preloads sq-role-<slug>; sq-greeting states the main session's startup steps; per-type skills retire",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1290:implements",
+        "ADR-781",
+        "ADR-983",
+        "ADR-427",
+        "ADR-226"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001294-rendered-skill-pointers-and-one-role-skill-per-agent.md",
+      "created_at": "2026-11-04T19:42:58Z",
+      "updated_at": "2026-11-05T08:48:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1294"
+    },
+    "1312": {
+      "sequence_id": 1312,
+      "type": "decision",
+      "title": "Board notices and memories: a one-line summary over a body",
+      "slug": "board-notices-and-memories-a-one-line-summary-over-a-body",
+      "status": "Accepted",
+      "description": "A notice stores a summary in its frontmatter over an optional body; list shows summaries, show the body; a multi-line summary warns",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "FEAT-1311:implements",
+        "ADR-314",
+        "ADR-1294"
+      ],
+      "subentities": [],
+      "path": "adrs/ADR-001312-board-notices-and-memories-a-one-line-summary-over-a-body.md",
+      "created_at": "2026-11-05T07:09:57Z",
+      "updated_at": "2026-11-05T09:19:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "ADR-1312"
+    },
     "858": {
       "sequence_id": 858,
       "type": "contract",
@@ -43029,6 +45178,31 @@
       "attributes": {},
       "slug_in_file": false,
       "id": "MILE-1241"
+    },
+    "1269": {
+      "sequence_id": 1269,
+      "type": "milestone",
+      "title": "squads 0.20 - external sources",
+      "slug": "squads-0-20-external-sources",
+      "status": "InProgress",
+      "description": "Pull issues from GitLab, GitHub and Jira into the squad, with a schema migration",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1241:depends-on",
+        "EPIC-1268"
+      ],
+      "subentities": [],
+      "path": "milestones/MILE-001269-squads-0-20-external-sources.md",
+      "created_at": "2026-11-03T15:57:06Z",
+      "updated_at": "2026-11-04T19:08:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "MILE-1269"
     },
     "48": {
       "sequence_id": 48,
@@ -65602,1416 +67776,6 @@
       "slug_in_file": false,
       "id": "REV-1260"
     },
-    "79": {
-      "sequence_id": 79,
-      "type": "guide",
-      "title": "squads architecture: layering, data model, and the marker mechanism",
-      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
-      "status": "Published",
-      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ADR-71",
-        "ADR-72",
-        "ADR-73",
-        "ADR-74",
-        "ADR-75",
-        "ADR-76",
-        "ADR-77",
-        "ADR-78",
-        "ADR-49",
-        "ADR-1287"
-      ],
-      "subentities": [],
-      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
-      "created_at": "2026-06-12T14:25:59Z",
-      "updated_at": "2026-11-04T16:43:39Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "tech": "python",
-        "tags": [
-          "architecture"
-        ]
-      },
-      "slug_in_file": false,
-      "id": "GUIDE-79"
-    },
-    "1": {
-      "sequence_id": 1,
-      "type": "role",
-      "title": "Catherine Manager",
-      "slug": "manager",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "manager",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000001-manager.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-07-31T10:58:52Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": true,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-1"
-    },
-    "2": {
-      "sequence_id": 2,
-      "type": "role",
-      "title": "Robert Architect",
-      "slug": "architect",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000002-architect.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-2"
-    },
-    "3": {
-      "sequence_id": 3,
-      "type": "role",
-      "title": "Olivia Lead",
-      "slug": "tech-lead",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000003-tech-lead.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-3"
-    },
-    "4": {
-      "sequence_id": 4,
-      "type": "role",
-      "title": "Paul Reviewer",
-      "slug": "reviewer",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "reviewer",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000004-reviewer.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-4"
-    },
-    "5": {
-      "sequence_id": 5,
-      "type": "role",
-      "title": "Mara Tester",
-      "slug": "qa",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000005-qa.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-5"
-    },
-    "6": {
-      "sequence_id": 6,
-      "type": "role",
-      "title": "Hugo Ops",
-      "slug": "devops",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "devops",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000006-devops.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-6"
-    },
-    "7": {
-      "sequence_id": 7,
-      "type": "role",
-      "title": "Nina Product",
-      "slug": "product-owner",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000007-product-owner.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-7"
-    },
-    "8": {
-      "sequence_id": 8,
-      "type": "role",
-      "title": "Theo Writer",
-      "slug": "tech-writer",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "tech-writer",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000008-tech-writer.md",
-      "created_at": "2026-06-10T12:29:40Z",
-      "updated_at": "2026-06-10T12:29:40Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "is_default": false,
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-8"
-    },
-    "9": {
-      "sequence_id": 9,
-      "type": "role",
-      "title": "Elias Python",
-      "slug": "python-dev",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "python-dev",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000009-python-dev.md",
-      "created_at": "2026-06-10T12:29:53Z",
-      "updated_at": "2026-08-22T14:18:12Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "model": "sonnet",
-        "is_default": false,
-        "tech": "python",
-        "origin": "system",
-        "template": "dev"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-9"
-    },
-    "426": {
-      "sequence_id": 426,
-      "type": "role",
-      "title": "Ada Typescript",
-      "slug": "typescript-dev",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "typescript-dev",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/roles/ROLE-000426-typescript-dev.md",
-      "created_at": "2026-07-16T13:37:14Z",
-      "updated_at": "2026-07-16T13:37:14Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "model": "sonnet",
-        "is_default": false,
-        "tech": "typescript",
-        "origin": "system",
-        "template": "dev"
-      },
-      "slug_in_file": true,
-      "id": "ROLE-426"
-    },
-    "192": {
-      "sequence_id": 192,
-      "type": "skill",
-      "title": "greeting",
-      "slug": "greeting",
-      "status": "Active",
-      "description": "Start of a conversation with a human: detect & register the operator, then greet them — match their tone, say how you help, and give a quick read of the project. Use when a person opens a session; skip it when spawned as a subagent for a job.",
-      "parent": null,
-      "author": "greeting",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000192-greeting.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-192"
-    },
-    "193": {
-      "sequence_id": 193,
-      "type": "skill",
-      "title": "sq-bug",
-      "slug": "sq-bug",
-      "status": "Active",
-      "description": "Working with bug items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-bug",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000193-sq-bug.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-193"
-    },
-    "194": {
-      "sequence_id": 194,
-      "type": "skill",
-      "title": "sq-decision",
-      "slug": "sq-decision",
-      "status": "Active",
-      "description": "Working with decision items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-decision",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000194-sq-decision.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-194"
-    },
-    "195": {
-      "sequence_id": 195,
-      "type": "skill",
-      "title": "sq-epic",
-      "slug": "sq-epic",
-      "status": "Active",
-      "description": "Working with epic items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-epic",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000195-sq-epic.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-195"
-    },
-    "196": {
-      "sequence_id": 196,
-      "type": "skill",
-      "title": "sq-feature",
-      "slug": "sq-feature",
-      "status": "Active",
-      "description": "Working with feature items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-feature",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000196-sq-feature.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-196"
-    },
-    "197": {
-      "sequence_id": 197,
-      "type": "skill",
-      "title": "sq-guide",
-      "slug": "sq-guide",
-      "status": "Active",
-      "description": "Working with guide items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-guide",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000197-sq-guide.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-197"
-    },
-    "198": {
-      "sequence_id": 198,
-      "type": "skill",
-      "title": "sq-review",
-      "slug": "sq-review",
-      "status": "Active",
-      "description": "Working with review items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-review",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000198-sq-review.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-198"
-    },
-    "199": {
-      "sequence_id": 199,
-      "type": "skill",
-      "title": "sq-task",
-      "slug": "sq-task",
-      "status": "Active",
-      "description": "Working with task items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-task",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000199-sq-task.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-199"
-    },
-    "200": {
-      "sequence_id": 200,
-      "type": "skill",
-      "title": "squads",
-      "slug": "squads",
-      "status": "Active",
-      "description": "How to track work on this project with the squads (`sq`) CLI: create/transition items, comment, link context. Use whenever you start, hand off, or update work.",
-      "parent": null,
-      "author": "squads",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000200-squads.md",
-      "created_at": "2026-06-24T20:14:34Z",
-      "updated_at": "2026-06-24T20:14:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-200"
-    },
-    "486": {
-      "sequence_id": 486,
-      "type": "skill",
-      "title": "sq-memory",
-      "slug": "sq-memory",
-      "status": "Active",
-      "description": "Your role's committed memory notebook and the team bulletin board: check your index at the start of a run, jot one fact per memory, prune what's stale or wrong, post/clear board notices, and the memory-vs-board boundary. Use whenever you learn something worth remembering, or need to announce something to the whole team.",
-      "parent": null,
-      "author": "sq-memory",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000486-sq-memory.md",
-      "created_at": "2026-07-18T21:49:05Z",
-      "updated_at": "2026-07-18T21:49:05Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-486"
-    },
-    "508": {
-      "sequence_id": 508,
-      "type": "skill",
-      "title": "Releasing squads",
-      "slug": "releasing-squads",
-      "status": "Active",
-      "description": "The team's runbook for cutting a squads release: gates, prep, and drafting the release (the operator publishes).",
-      "parent": null,
-      "author": "releasing-squads",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ROLE-1:scopes",
-        "ROLE-6:scopes",
-        "ROLE-8:scopes"
-      ],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000508-releasing-squads.md",
-      "created_at": "2026-07-20T12:32:09Z",
-      "updated_at": "2026-10-30T22:07:42Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "when_to_use": "When preparing or cutting a squads release.",
-        "allowed_tools": "",
-        "origin": "project"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-508"
-    },
-    "834": {
-      "sequence_id": 834,
-      "type": "skill",
-      "title": "sq-contract",
-      "slug": "sq-contract",
-      "status": "Active",
-      "description": "Working with contract items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-contract",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000834-sq-contract.md",
-      "created_at": "2026-08-26T15:14:16Z",
-      "updated_at": "2026-08-26T15:14:16Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-834"
-    },
-    "835": {
-      "sequence_id": 835,
-      "type": "skill",
-      "title": "sq-milestone",
-      "slug": "sq-milestone",
-      "status": "Active",
-      "description": "Working with milestone items in this squad: lifecycle, commands, and role-specific guidance.",
-      "parent": null,
-      "author": "sq-milestone",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000835-sq-milestone.md",
-      "created_at": "2026-08-26T15:33:00Z",
-      "updated_at": "2026-08-26T15:33:00Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "origin": "system"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-835"
-    },
-    "974": {
-      "sequence_id": 974,
-      "type": "skill",
-      "title": "Launch dev host",
-      "slug": "launch-dev-host",
-      "status": "Active",
-      "description": "Open a VS Code Extension Development Host from WSL for the operator to see a client change.",
-      "parent": null,
-      "author": "launch-dev-host",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ROLE-1:scopes",
-        "ROLE-426:scopes",
-        "ROLE-5:scopes"
-      ],
-      "subentities": [],
-      "path": "agents/skills/SKILL-000974-launch-dev-host.md",
-      "created_at": "2026-09-29T14:09:09Z",
-      "updated_at": "2026-11-04T08:57:08Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "when_to_use": "When the operator needs to see a VS Code client change in a dev host, or a dev-host launch fails.",
-        "allowed_tools": "",
-        "origin": "project"
-      },
-      "slug_in_file": true,
-      "id": "SKILL-974"
-    },
-    "10": {
-      "sequence_id": 10,
-      "type": "operator",
-      "title": "Pierre Chat",
-      "slug": "op-pierre",
-      "status": "Active",
-      "description": "",
-      "parent": null,
-      "author": "op-pierre",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "operators/OP-000010-op-pierre.md",
-      "created_at": "2026-06-10T12:29:53Z",
-      "updated_at": "2026-06-10T12:29:53Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": true,
-      "id": "OP-10"
-    },
-    "1268": {
-      "sequence_id": 1268,
-      "type": "epic",
-      "title": "External sources: work tracked elsewhere",
-      "slug": "external-sources-work-tracked-elsewhere",
-      "status": "Done",
-      "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [],
-      "subentities": [],
-      "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
-      "created_at": "2026-11-03T15:57:06Z",
-      "updated_at": "2026-11-04T18:38:00Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "EPIC-1268"
-    },
-    "1269": {
-      "sequence_id": 1269,
-      "type": "milestone",
-      "title": "squads 0.20 - external sources",
-      "slug": "squads-0-20-external-sources",
-      "status": "InProgress",
-      "description": "Pull issues from GitLab, GitHub and Jira into the squad, with a schema migration",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1241:depends-on",
-        "EPIC-1268"
-      ],
-      "subentities": [],
-      "path": "milestones/MILE-001269-squads-0-20-external-sources.md",
-      "created_at": "2026-11-03T15:57:06Z",
-      "updated_at": "2026-11-04T19:08:42Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "MILE-1269"
-    },
-    "1270": {
-      "sequence_id": 1270,
-      "type": "feature",
-      "title": "Stored view bodies",
-      "slug": "stored-view-bodies",
-      "status": "Done",
-      "description": "A view tag can store a body its projection reads at render time",
-      "parent": "EPIC-1268",
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1269:targets"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Paired view tags carry a stored body",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "Body writes keep stored view bodies intact",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US3",
-          "title": "One operation writes a view body, escaping markers",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US4",
-          "title": "Projections read the stored body at render time",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001270-stored-view-bodies.md",
-      "created_at": "2026-11-03T15:57:07Z",
-      "updated_at": "2026-11-04T05:45:49Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1270"
-    },
-    "1271": {
-      "sequence_id": 1271,
-      "type": "feature",
-      "title": "Sources spec and pull",
-      "slug": "sources-spec-and-pull",
-      "status": "Done",
-      "description": "Declare sources in sources.toml and pull opted-in issues into items",
-      "parent": "EPIC-1268",
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1269:targets",
-        "FEAT-1270:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Sources declared in a sources.toml spec document",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "A durable source identity on each item",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US3",
-          "title": "Map attribute kind and operator identities",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US4",
-          "title": "sq source pull creates and refreshes items",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US5",
-          "title": "The source_description view",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US6",
-          "title": "Source-owned fields refused, broken links checked",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US7",
-          "title": "List sources, unlink and relink an item",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US8",
-          "title": "Comments carry attributes",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US9",
-          "title": "Source credentials held where the squad is served",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001271-sources-spec-and-pull.md",
-      "created_at": "2026-11-03T15:57:07Z",
-      "updated_at": "2026-11-04T08:21:11Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1271"
-    },
-    "1272": {
-      "sequence_id": 1272,
-      "type": "feature",
-      "title": "sq source check and text converters",
-      "slug": "sq-source-check-and-text-converters",
-      "status": "Done",
-      "description": "A per-source readiness checklist, and shared tracker-text converters",
-      "parent": "EPIC-1268",
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1269:targets",
-        "FEAT-1271:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "sq source check prints a checklist per source",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "A registry of named text converters",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001272-sq-source-check-and-text-converters.md",
-      "created_at": "2026-11-03T15:57:08Z",
-      "updated_at": "2026-11-04T04:14:02Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1272"
-    },
-    "1273": {
-      "sequence_id": 1273,
-      "type": "feature",
-      "title": "Connectors: GitLab, GitHub and Jira",
-      "slug": "connectors-gitlab-github-and-jira",
-      "status": "Done",
-      "description": "The first connectors, registered by name and version",
-      "parent": "EPIC-1268",
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1269:targets",
-        "FEAT-1271:depends-on",
-        "FEAT-1272:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Connector registry by name and version",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "GitLab connector, any instance",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US3",
-          "title": "GitHub connector, including Enterprise",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US4",
-          "title": "Jira Cloud connector (cloud-v3)",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US5",
-          "title": "Jira Data Center connector (dc-v2)",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001273-connectors-gitlab-github-and-jira.md",
-      "created_at": "2026-11-03T15:57:08Z",
-      "updated_at": "2026-11-04T08:29:06Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1273"
-    },
-    "1274": {
-      "sequence_id": 1274,
-      "type": "decision",
-      "title": "External sources: source record, stored views, sourced comments",
-      "slug": "external-sources-source-record-stored-views-sourced-comments",
-      "status": "Accepted",
-      "description": "Source record and derived lookup, nested records, stored view bodies, comment attributes, namespaced authors, server-side credentials, sources.toml, pull as import events, schema 0.20",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "EPIC-1268:addresses",
-        "FEAT-1270:addresses",
-        "FEAT-1271:addresses",
-        "FEAT-1272:addresses",
-        "FEAT-1273:addresses",
-        "ADR-880",
-        "ADR-776",
-        "ADR-1007",
-        "ADR-979",
-        "ADR-1261",
-        "ADR-622",
-        "ADR-1013",
-        "ADR-1109"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
-      "created_at": "2026-11-03T22:41:36Z",
-      "updated_at": "2026-11-05T05:57:54Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "ADR-1274"
-    },
-    "1275": {
-      "sequence_id": 1275,
-      "type": "task",
-      "title": "Stored view bodies, escape grammar and the 0.20 schema",
-      "slug": "stored-view-bodies-escape-grammar-and-the-0-20-schema",
-      "status": "Done",
-      "description": "Paired view tags with an escaped stored body, set_view_body, read-time body; schema 0.20 runner",
-      "parent": "FEAT-1270",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1274:implements",
-        "MILE-1269:targets"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Paired view tags and their check findings",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Body writes keep stored bodies intact",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "set_view_body and the escape grammar",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Projections read the stored body",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Schema 0.20 and its migration runner",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001275-stored-view-bodies-escape-grammar-and-the-0-20-schema.md",
-      "created_at": "2026-11-03T23:02:36Z",
-      "updated_at": "2026-11-03T23:59:23Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1275"
-    },
-    "1276": {
-      "sequence_id": 1276,
-      "type": "task",
-      "title": "Sources spec, source record, credentials and sq source pull",
-      "slug": "sources-spec-source-record-credentials-and-sq-source-pull",
-      "status": "Done",
-      "description": "sources.toml, GitLab connector and harness, source record, map kind and identities, comment attributes, credentials, pull as import events, refusals, check rules",
-      "parent": "FEAT-1271",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1274:implements",
-        "MILE-1269:targets",
-        "TASK-1275:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "sources.toml spec document and its validation",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Source record, derived lookups, namespaced author",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Map attribute kind and operator identities",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Comment attributes and sourced-comment display",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US8",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Credential store and the hidden prompt",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US9",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "sq source pull compiled to import events",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST7",
-          "title": "The source_description view and show --refresh",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US5",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST8",
-          "title": "Ownership refusals and sq check reports",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US6",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST9",
-          "title": "Source list, unlink and relink",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US7",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST10",
-          "title": "HTTP helper, loopback harness, GitLab connector",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001276-sources-spec-source-record-credentials-and-sq-source-pull.md",
-      "created_at": "2026-11-03T23:02:45Z",
-      "updated_at": "2026-11-04T08:21:10Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1276"
-    },
-    "1277": {
-      "sequence_id": 1277,
-      "type": "task",
-      "title": "sq source check probes and the converter registry",
-      "slug": "sq-source-check-probes-and-the-converter-registry",
-      "status": "Done",
-      "description": "Connector-neutral probe checklist served with the pull's credentials, and the four named text converters",
-      "parent": "FEAT-1272",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1274:implements",
-        "MILE-1269:targets",
-        "TASK-1276:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Probe framework, GitLab probes and sq source check",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "The adf, jira-wiki and github-md converters",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001277-sq-source-check-probes-and-the-converter-registry.md",
-      "created_at": "2026-11-03T23:02:45Z",
-      "updated_at": "2026-11-04T04:14:00Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1277"
-    },
-    "1278": {
-      "sequence_id": 1278,
-      "type": "task",
-      "title": "GitHub and Jira connectors behind the registry",
-      "slug": "github-and-jira-connectors-behind-the-registry",
-      "status": "Done",
-      "description": "GitHub, Jira cloud-v3 and dc-v2 connectors with their probes on recorded responses; a multi-version connector requires version",
-      "parent": "FEAT-1273",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1274:implements",
-        "MILE-1269:targets",
-        "TASK-1276:depends-on",
-        "TASK-1277:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "A multi-version connector requires version",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "GitLab connector",
-          "status": "Cancelled",
-          "assignee": null,
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "GitHub connector",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Jira Cloud connector, cloud-v3",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Jira Data Center connector, dc-v2",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US5",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001278-github-and-jira-connectors-behind-the-registry.md",
-      "created_at": "2026-11-03T23:02:46Z",
-      "updated_at": "2026-11-04T18:31:04Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1278"
-    },
-    "1279": {
-      "sequence_id": 1279,
-      "type": "task",
-      "title": "Adopter docs, stability guide and changelog for sources",
-      "slug": "adopter-docs-stability-guide-and-changelog-for-sources",
-      "status": "Done",
-      "description": "Stability contracts, the external sources adopter page, connector docs and the 0.20 changelog section",
-      "parent": "FEAT-1273",
-      "author": "tech-lead",
-      "assignee": "tech-writer",
-      "labels": [],
-      "refs": [
-        "ADR-1274:implements",
-        "MILE-1269:targets",
-        "TASK-1275:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Stability guide contracts",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Adopter page for external sources",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "CHANGELOG 0.20 section",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Connector documentation",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001279-adopter-docs-stability-guide-and-changelog-for-sources.md",
-      "created_at": "2026-11-03T23:02:46Z",
-      "updated_at": "2026-11-04T08:29:05Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1279"
-    },
     "1280": {
       "sequence_id": 1280,
       "type": "review",
@@ -67581,469 +68345,6 @@
       "slug_in_file": false,
       "id": "REV-1283"
     },
-    "1284": {
-      "sequence_id": 1284,
-      "type": "bug",
-      "title": "Pull drops links between issues of different sources",
-      "slug": "pull-drops-links-between-issues-of-different-sources",
-      "status": "Verified",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1271"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-001284-pull-drops-links-between-issues-of-different-sources.md",
-      "created_at": "2026-11-04T09:00:26Z",
-      "updated_at": "2026-11-04T16:45:58Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "severity": "high"
-      },
-      "slug_in_file": false,
-      "id": "BUG-1284"
-    },
-    "1285": {
-      "sequence_id": 1285,
-      "type": "feature",
-      "title": "Scoped sources and filter expressions",
-      "slug": "scoped-sources-and-filter-expressions",
-      "status": "Done",
-      "description": "Sources name a scope; squads filters; links span a tracker's sources",
-      "parent": "EPIC-1268",
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "BUG-1284:implements",
-        "ADR-1274"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Scope keys replace the label filter",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "Filter expressions and pull report",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US3",
-          "title": "Links resolve across a tracker's sources",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US4",
-          "title": "Docs and changelog for scoped sources",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001285-scoped-sources-and-filter-expressions.md",
-      "created_at": "2026-11-04T09:54:38Z",
-      "updated_at": "2026-11-04T16:45:59Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1285"
-    },
-    "1286": {
-      "sequence_id": 1286,
-      "type": "task",
-      "title": "Scoped sources, filter expressions and cross-source links",
-      "slug": "scoped-sources-filter-expressions-and-cross-source-links",
-      "status": "Done",
-      "description": "Scope keys, a filter evaluated in squads, pull report counts, restricted issues, links across a tracker's sources",
-      "parent": "FEAT-1285",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1274:implements",
-        "BUG-1284:fixes"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Scope keys and the filter expression parser",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Restricted issues skipped and counted",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Filter on the listing and the pull report counts",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Single-issue commands decide scope and filter",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Links carry their inverse type",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "Links and holders resolve across one tracker",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST7",
-          "title": "Probes read the scope and the filter values",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST8",
-          "title": "Docs and changelog for scoped sources",
-          "status": "Done",
-          "assignee": "tech-writer",
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001286-scoped-sources-filter-expressions-and-cross-source-links.md",
-      "created_at": "2026-11-04T09:58:37Z",
-      "updated_at": "2026-11-04T16:45:44Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1286"
-    },
-    "1287": {
-      "sequence_id": 1287,
-      "type": "decision",
-      "title": "Private packages re-export their outside-used names",
-      "slug": "private-packages-re-export-their-outside-used-names",
-      "status": "Accepted",
-      "description": "Every private package's init re-exports exactly the names other packages import, so an importer writes one statement per package; the guard holds init shape, no reach-in and an exact surface",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "GUIDE-79",
-        "ADR-78"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-001287-private-packages-re-export-their-outside-used-names.md",
-      "created_at": "2026-11-04T10:58:24Z",
-      "updated_at": "2026-11-04T12:42:18Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "ADR-1287"
-    },
-    "1288": {
-      "sequence_id": 1288,
-      "type": "feature",
-      "title": "Re-exporting private packages",
-      "slug": "re-exporting-private-packages",
-      "status": "Done",
-      "description": "Every private package's init re-exports the names other packages import, per ADR-1287; codebase swept, docs corrected.",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ADR-1287:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Guard and package sweep",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "Documentation corrected",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001288-re-exporting-private-packages.md",
-      "created_at": "2026-11-04T11:05:52Z",
-      "updated_at": "2026-11-04T15:17:34Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium"
-      },
-      "slug_in_file": false,
-      "id": "FEAT-1288"
-    },
-    "1289": {
-      "sequence_id": 1289,
-      "type": "task",
-      "title": "Sweep private packages to re-exporting inits",
-      "slug": "sweep-private-packages-to-re-exporting-inits",
-      "status": "Done",
-      "description": "Guard, three moves and a leaf-first sweep of every private package to the ADR-1287 re-export rule; docs corrected",
-      "parent": "FEAT-1288",
-      "author": "tech-lead",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "ADR-1287:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Guard, resolver, PENDING and the three moves",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Sweep _models",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Sweep _workflow, _roles and _interactions",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Sweep _api/_dto and _api",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Sweep _rendering, _index, _sources, _overrides, _board, _memory",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "Sweep _backends, _migrations, _tui and _services",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST7",
-          "title": "Sweep _cli/_render, _cli, _daemon; delete PENDING",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST8",
-          "title": "Correct the documents stating the old rule",
-          "status": "Done",
-          "assignee": "tech-writer",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001289-sweep-private-packages-to-re-exporting-inits.md",
-      "created_at": "2026-11-04T11:07:46Z",
-      "updated_at": "2026-11-04T16:41:31Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1289"
-    },
-    "1290": {
-      "sequence_id": 1290,
-      "type": "feature",
-      "title": "Injected skills and one role skill per agent",
-      "slug": "injected-skills-and-one-role-skill-per-agent",
-      "status": "InProgress",
-      "description": "Pointers inject their body; each agent preloads its own role skill; per-type skills retire",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1269:targets"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Skill pointers render their body at startup",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "Each agent preloads its own sq-role skill",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US3",
-          "title": "Base skills get sq- names and lose duplicated text",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US4",
-          "title": "A migration retires per-type skills and renames two",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US5",
-          "title": "Docs and changelog for role skills and startup",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US6",
-          "title": "The main session starts from sq-greeting",
-          "status": "Done",
-          "assignee": "product-owner",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US7",
-          "title": "show --raw and --no-header on every item",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US8",
-          "title": "AGENTS.md gets the role bodies and startup steps",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US9",
-          "title": "Startup size is measured before and after",
-          "status": "Done",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001290-injected-skills-and-one-role-skill-per-agent.md",
-      "created_at": "2026-11-04T13:32:39Z",
-      "updated_at": "2026-11-05T07:04:50Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1290"
-    },
     "1291": {
       "sequence_id": 1291,
       "type": "review",
@@ -68309,334 +68610,6 @@
       "slug_in_file": false,
       "id": "REV-1292"
     },
-    "1293": {
-      "sequence_id": 1293,
-      "type": "task",
-      "title": "Run the Jira connectors against a live Jira",
-      "slug": "run-the-jira-connectors-against-a-live-jira",
-      "status": "Draft",
-      "description": "Live run of jira@cloud-v3 and jira@dc-v2 to confirm the API shapes and scoped-sources behaviour",
-      "parent": null,
-      "author": "tech-lead",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "TASK-1278",
-        "ADR-1274"
-      ],
-      "subentities": [],
-      "path": "tasks/TASK-001293-run-the-jira-connectors-against-a-live-jira.md",
-      "created_at": "2026-11-04T18:38:36Z",
-      "updated_at": "2026-11-04T18:39:02Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "low"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1293"
-    },
-    "1294": {
-      "sequence_id": 1294,
-      "type": "decision",
-      "title": "Rendered skill pointers and one role skill per agent",
-      "slug": "rendered-skill-pointers-and-one-role-skill-per-agent",
-      "status": "Accepted",
-      "description": "Pointers render through never-failing commands with show --raw --no-header; each role preloads sq-role-<slug>; sq-greeting states the main session's startup steps; per-type skills retire",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1290:implements",
-        "ADR-781",
-        "ADR-983",
-        "ADR-427",
-        "ADR-226"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-001294-rendered-skill-pointers-and-one-role-skill-per-agent.md",
-      "created_at": "2026-11-04T19:42:58Z",
-      "updated_at": "2026-11-05T07:11:02Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "ADR-1294"
-    },
-    "1295": {
-      "sequence_id": 1295,
-      "type": "task",
-      "title": "Rendered skill pointers, role skills and raw show output",
-      "slug": "rendered-skill-pointers-role-skills-and-raw-show-output",
-      "status": "Done",
-      "description": "Python side of ADR-1294, in seven dev rounds",
-      "parent": "FEAT-1290",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1294:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "show --raw prints a YAML header; --no-header prints the body alone",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US7",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "A view that fails to render leaves one line naming the command",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "The role_playbook view in every role body",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Pointers render their body; one sq-role-<slug> skill per role",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Retire the per-type sq-<type> skills from the code",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "Rename to sq-how-to and sq-greeting; trim the base skills",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST7",
-          "title": "sq-greeting states the startup steps; CLAUDE.md directs to it",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US6",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST8",
-          "title": "AGENTS.md compiles role bodies and the shared startup steps",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US8",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST9",
-          "title": "0.19 to 0.20 migration retires per-type skills and renames two",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST10",
-          "title": "memory list and board list gain --raw",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST11",
-          "title": "Raw header lists the panel's rows",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US7",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001295-rendered-skill-pointers-role-skills-and-raw-show-output.md",
-      "created_at": "2026-11-04T21:46:20Z",
-      "updated_at": "2026-11-05T02:48:07Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1295"
-    },
-    "1296": {
-      "sequence_id": 1296,
-      "type": "task",
-      "title": "VS Code preview reads the --raw panel rows",
-      "slug": "vs-code-preview-reads-the-raw-panel-rows",
-      "status": "Done",
-      "description": "Preview and skew canary follow the panel-row show --raw header",
-      "parent": "FEAT-1290",
-      "author": "tech-lead",
-      "assignee": "typescript-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1294:implements",
-        "TASK-1295"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Preview metadata bullets accept labels with spaces",
-          "status": "Done",
-          "assignee": "typescript-dev",
-          "maps_to": "US7",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Regenerate the raw fixture and update the skew canary",
-          "status": "Done",
-          "assignee": "typescript-dev",
-          "maps_to": "US7",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001296-vs-code-preview-reads-the-raw-panel-rows.md",
-      "created_at": "2026-11-04T21:46:37Z",
-      "updated_at": "2026-11-05T03:16:24Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1296"
-    },
-    "1297": {
-      "sequence_id": 1297,
-      "type": "task",
-      "title": "Measure startup text before and after the role skills",
-      "slug": "measure-startup-text-before-and-after-the-role-skills",
-      "status": "Done",
-      "description": "ADR-1294 section 8 table on this repository, before and after",
-      "parent": "FEAT-1290",
-      "author": "tech-lead",
-      "assignee": "qa",
-      "labels": [],
-      "refs": [
-        "ADR-1294:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Before: startup figures at the base commit",
-          "status": "Done",
-          "assignee": "qa",
-          "maps_to": "US9",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "After: startup figures once this squad is migrated",
-          "status": "Done",
-          "assignee": "qa",
-          "maps_to": "US9",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001297-measure-startup-text-before-and-after-the-role-skills.md",
-      "created_at": "2026-11-04T21:46:38Z",
-      "updated_at": "2026-11-05T01:50:09Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1297"
-    },
-    "1298": {
-      "sequence_id": 1298,
-      "type": "task",
-      "title": "Docs and changelog for role skills, startup and --raw",
-      "slug": "docs-and-changelog-for-role-skills-startup-and-raw",
-      "status": "Done",
-      "description": "Adopter docs, migration guide and CHANGELOG entry",
-      "parent": "FEAT-1290",
-      "author": "tech-lead",
-      "assignee": "tech-writer",
-      "labels": [],
-      "refs": [
-        "ADR-1294:implements",
-        "TASK-1295:depends-on"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Docs: the role skill, rendered pointers and sq- names",
-          "status": "Done",
-          "assignee": "tech-writer",
-          "maps_to": "US5",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Docs: show --raw and --no-header; sq-how-to topic lines",
-          "status": "Done",
-          "assignee": "tech-writer",
-          "maps_to": "US5",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Docs: the main session's startup steps and default role",
-          "status": "Done",
-          "assignee": "tech-writer",
-          "maps_to": "US5",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Migration guide and CHANGELOG entry for 0.20",
-          "status": "Done",
-          "assignee": "tech-writer",
-          "maps_to": "US5",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001298-docs-and-changelog-for-role-skills-startup-and-raw.md",
-      "created_at": "2026-11-04T21:46:38Z",
-      "updated_at": "2026-11-05T02:58:16Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1298"
-    },
     "1299": {
       "sequence_id": 1299,
       "type": "review",
@@ -68871,124 +68844,6 @@
       "slug_in_file": false,
       "id": "REV-1299"
     },
-    "1300": {
-      "sequence_id": 1300,
-      "type": "task",
-      "title": "Fix the 0.20 test review findings",
-      "slug": "fix-the-0-20-test-review-findings",
-      "status": "Done",
-      "description": "Override-squad and Windows CI fixes first, then the REV-1299 findings against ADR-1172",
-      "parent": "FEAT-1173",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "REV-1299:addresses",
-        "ADR-1172"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Source CLI tests run on the override squad",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Coverage teardown passes over a skipped test",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Arrange and read source states through the CLI",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Load refusals in tests/check, markers name their parameter",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "CONTRIBUTING: one case per load-rule message",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "One case per refusal, named for it",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST7",
-          "title": "Whole message lines and whole JSON objects",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST8",
-          "title": "Check-rule cases follow the breach-test rules",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST9",
-          "title": "Stored-view helper merges into the override",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST10",
-          "title": "Each case in its command group's module",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001300-fix-the-0-20-test-review-findings.md",
-      "created_at": "2026-11-04T23:33:24Z",
-      "updated_at": "2026-11-05T04:11:06Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1300"
-    },
     "1301": {
       "sequence_id": 1301,
       "type": "review",
@@ -69147,141 +69002,6 @@
       "slug_in_file": false,
       "id": "REV-1301"
     },
-    "1302": {
-      "sequence_id": 1302,
-      "type": "bug",
-      "title": "Raw show --full --comments drops sub-entity comments",
-      "slug": "raw-show-full-comments-drops-sub-entity-comments",
-      "status": "Verified",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1290"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-001302-raw-show-full-comments-drops-sub-entity-comments.md",
-      "created_at": "2026-11-05T01:43:45Z",
-      "updated_at": "2026-11-05T02:47:23Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium",
-        "severity": "medium"
-      },
-      "slug_in_file": false,
-      "id": "BUG-1302"
-    },
-    "1303": {
-      "sequence_id": 1303,
-      "type": "bug",
-      "title": "Role skill lines run together with no separator or label",
-      "slug": "role-skill-lines-run-together-with-no-separator-or-label",
-      "status": "Verified",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1290"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-001303-role-skill-lines-run-together-with-no-separator-or-label.md",
-      "created_at": "2026-11-05T01:43:46Z",
-      "updated_at": "2026-11-05T02:47:23Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium",
-        "severity": "medium"
-      },
-      "slug_in_file": false,
-      "id": "BUG-1303"
-    },
-    "1304": {
-      "sequence_id": 1304,
-      "type": "bug",
-      "title": "Raw show header is a bullet list, not YAML front-matter",
-      "slug": "raw-show-header-is-a-bullet-list-not-yaml-front-matter",
-      "status": "Cancelled",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1290"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-001304-raw-show-header-is-a-bullet-list-not-yaml-front-matter.md",
-      "created_at": "2026-11-05T01:43:46Z",
-      "updated_at": "2026-11-05T01:50:08Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "low",
-        "severity": "low"
-      },
-      "slug_in_file": false,
-      "id": "BUG-1304"
-    },
-    "1305": {
-      "sequence_id": 1305,
-      "type": "bug",
-      "title": "sq-how-to repeats the managed CLAUDE.md section",
-      "slug": "sq-how-to-repeats-the-managed-claude-md-section",
-      "status": "Verified",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1290"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-001305-sq-how-to-repeats-the-managed-claude-md-section.md",
-      "created_at": "2026-11-05T01:43:47Z",
-      "updated_at": "2026-11-05T02:47:24Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "low",
-        "severity": "low"
-      },
-      "slug_in_file": false,
-      "id": "BUG-1305"
-    },
-    "1306": {
-      "sequence_id": 1306,
-      "type": "bug",
-      "title": "Docs still send agents to sq-type skills and old names",
-      "slug": "docs-still-send-agents-to-sq-type-skills-and-old-names",
-      "status": "Verified",
-      "description": "",
-      "parent": null,
-      "author": "qa",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1290"
-      ],
-      "subentities": [],
-      "path": "bugs/BUG-001306-docs-still-send-agents-to-sq-type-skills-and-old-names.md",
-      "created_at": "2026-11-05T01:43:47Z",
-      "updated_at": "2026-11-05T02:47:24Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "medium",
-        "severity": "medium"
-      },
-      "slug_in_file": false,
-      "id": "BUG-1306"
-    },
     "1307": {
       "sequence_id": 1307,
       "type": "review",
@@ -69386,390 +69106,6 @@
       "slug_in_file": false,
       "id": "REV-1307"
     },
-    "1308": {
-      "sequence_id": 1308,
-      "type": "task",
-      "title": "Flatten raw row values and fix the 0.20 MANUAL step 8",
-      "slug": "flatten-raw-row-values-and-fix-the-0-20-manual-step-8",
-      "status": "Done",
-      "description": "Raw rows on one line; step 8 names both required keys",
-      "parent": "FEAT-1290",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "REV-1307:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Print each raw row value on one line",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Name both required keys in the 0.20 MANUAL step 8",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001308-flatten-raw-row-values-and-fix-the-0-20-manual-step-8.md",
-      "created_at": "2026-11-05T03:17:05Z",
-      "updated_at": "2026-11-05T03:55:25Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1308"
-    },
-    "1309": {
-      "sequence_id": 1309,
-      "type": "task",
-      "title": "Keep titles and raw row values on one line",
-      "slug": "keep-titles-and-raw-row-values-on-one-line",
-      "status": "Done",
-      "description": "Refuse a line break in a title; tidy the raw row join",
-      "parent": "FEAT-1290",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "REV-1307:addresses"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Refuse a line break in a title",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Join raw row lines with splitlines and strip",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001309-keep-titles-and-raw-row-values-on-one-line.md",
-      "created_at": "2026-11-05T04:04:09Z",
-      "updated_at": "2026-11-05T04:35:39Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1309"
-    },
-    "1310": {
-      "sequence_id": 1310,
-      "type": "task",
-      "title": "Fix REV-1299 findings F13 to F17",
-      "slug": "fix-rev-1299-findings-f13-to-f17",
-      "status": "Done",
-      "description": "Override-tree coverage, custom-type help, pull report counters, then test fixes",
-      "parent": "FEAT-1173",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "REV-1299:addresses",
-        "ADR-1172",
-        "ADR-1274"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Drop the completion options from custom type groups",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "Require every test squad's tree in the coverage guard",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Count every pulled issue in exactly one counter",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "Split the twin-holder case and compare whole objects",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "Replace substring asserts; fold two check cases",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001310-fix-rev-1299-findings-f13-to-f17.md",
-      "created_at": "2026-11-05T04:27:13Z",
-      "updated_at": "2026-11-05T06:17:57Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {
-        "priority": "high"
-      },
-      "slug_in_file": false,
-      "id": "TASK-1310"
-    },
-    "1311": {
-      "sequence_id": 1311,
-      "type": "feature",
-      "title": "Board notices with a summary and a body",
-      "slug": "board-notices-with-a-summary-and-a-body",
-      "status": "Ready",
-      "description": "A board notice gets a one-line summary and a body; list shows summaries, show reads the body",
-      "parent": null,
-      "author": "product-owner",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "MILE-1269:targets",
-        "FEAT-1290"
-      ],
-      "subentities": [
-        {
-          "local_id": "US1",
-          "title": "Post, list and show a notice by summary and body",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US2",
-          "title": "Warn on a multi-line summary",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US3",
-          "title": "Migrate existing notices",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US4",
-          "title": "Startup text carries the board index",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "US5",
-          "title": "Docs describe summary and body",
-          "status": "Todo",
-          "assignee": null,
-          "maps_to": null,
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "features/FEAT-001311-board-notices-with-a-summary-and-a-body.md",
-      "created_at": "2026-11-05T07:05:50Z",
-      "updated_at": "2026-11-05T08:06:42Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "FEAT-1311"
-    },
-    "1312": {
-      "sequence_id": 1312,
-      "type": "decision",
-      "title": "Board notices and memories: a one-line summary over a body",
-      "slug": "board-notices-and-memories-a-one-line-summary-over-a-body",
-      "status": "Accepted",
-      "description": "A notice stores a summary in its frontmatter over an optional body; list shows summaries, show the body; a multi-line summary warns",
-      "parent": null,
-      "author": "architect",
-      "assignee": null,
-      "labels": [],
-      "refs": [
-        "FEAT-1311:implements",
-        "ADR-314",
-        "ADR-1294"
-      ],
-      "subentities": [],
-      "path": "adrs/ADR-001312-board-notices-and-memories-a-one-line-summary-over-a-body.md",
-      "created_at": "2026-11-05T07:09:57Z",
-      "updated_at": "2026-11-05T07:14:48Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "ADR-1312"
-    },
-    "1313": {
-      "sequence_id": 1313,
-      "type": "task",
-      "title": "Board notices: summary and body, show, warnings, migration",
-      "slug": "board-notices-summary-and-body-show-warnings-migration",
-      "status": "InProgress",
-      "description": "Python side of ADR-1312, in four dev rounds",
-      "parent": "FEAT-1311",
-      "author": "tech-lead",
-      "assignee": "python-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1312:implements"
-      ],
-      "subentities": [
-        {
-          "local_id": "ST1",
-          "title": "Stored summary over a body; post and list by summary",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST2",
-          "title": "board show and the BOARD_SHOW operation; --json shapes",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US1",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST3",
-          "title": "Multi-line summary warnings in sq check and at write time",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US2",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST4",
-          "title": "0.19 to 0.20 step copies each notice body into its summary",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US3",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST5",
-          "title": "sq-memory skill board section; role skill board line",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        },
-        {
-          "local_id": "ST6",
-          "title": "Measure the board section before and after on a copy",
-          "status": "Done",
-          "assignee": "python-dev",
-          "maps_to": "US4",
-          "deferred_to": null,
-          "attributes": {}
-        }
-      ],
-      "path": "tasks/TASK-001313-board-notices-summary-and-body-show-warnings-migration.md",
-      "created_at": "2026-11-05T07:21:31Z",
-      "updated_at": "2026-11-05T08:24:41Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1313"
-    },
-    "1314": {
-      "sequence_id": 1314,
-      "type": "task",
-      "title": "VS Code board panel reads summaries and shows a body",
-      "slug": "vs-code-board-panel-reads-summaries-and-shows-a-body",
-      "status": "InReview",
-      "description": "Client side of ADR-1312: summaries in the board panel, body through board show",
-      "parent": "FEAT-1311",
-      "author": "tech-lead",
-      "assignee": "typescript-dev",
-      "labels": [],
-      "refs": [
-        "ADR-1312:implements"
-      ],
-      "subentities": [],
-      "path": "tasks/TASK-001314-vs-code-board-panel-reads-summaries-and-shows-a-body.md",
-      "created_at": "2026-11-05T07:21:32Z",
-      "updated_at": "2026-11-05T07:41:22Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1314"
-    },
-    "1315": {
-      "sequence_id": 1315,
-      "type": "task",
-      "title": "Docs and changelog for board summaries and bodies",
-      "slug": "docs-and-changelog-for-board-summaries-and-bodies",
-      "status": "Done",
-      "description": "Docs pages and the 0.20.0 CHANGELOG for ADR-1312",
-      "parent": "FEAT-1311",
-      "author": "tech-lead",
-      "assignee": "tech-writer",
-      "labels": [],
-      "refs": [
-        "ADR-1312:implements"
-      ],
-      "subentities": [],
-      "path": "tasks/TASK-001315-docs-and-changelog-for-board-summaries-and-bodies.md",
-      "created_at": "2026-11-05T07:21:32Z",
-      "updated_at": "2026-11-05T08:10:32Z",
-      "created_session": null,
-      "modified_session": null,
-      "attributes": {},
-      "slug_in_file": false,
-      "id": "TASK-1315"
-    },
     "1316": {
       "sequence_id": 1316,
       "type": "review",
@@ -69790,7 +69126,7 @@
         {
           "local_id": "F1",
           "title": "Raw board and memory lists print a partial list before exit 4",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69801,7 +69137,7 @@
         {
           "local_id": "F2",
           "title": "memory list --raw breaks the bullet on a multi-line summary",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69812,7 +69148,7 @@
         {
           "local_id": "F3",
           "title": "Migration tests parse files with a src helper and assert substrings",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69823,7 +69159,7 @@
         {
           "local_id": "F4",
           "title": "Migration rewrites non-mapping and frontmatter-less notice files",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69834,7 +69170,7 @@
         {
           "local_id": "F5",
           "title": "sq ui board screen: no test, bold breaks on multi-paragraph summaries",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69845,7 +69181,7 @@
         {
           "local_id": "F6",
           "title": "The splitlines line-break boundary is not pinned by any test",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69856,7 +69192,7 @@
         {
           "local_id": "F7",
           "title": "Three board and skill tests assert slices or substrings",
-          "status": "Fixed",
+          "status": "Verified",
           "assignee": null,
           "maps_to": null,
           "deferred_to": null,
@@ -69867,6 +69203,39 @@
         {
           "local_id": "F8",
           "title": "board post strips leading indentation from the body",
+          "status": "Verified",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F9",
+          "title": "Raw list continuation falls out of items numbered 10 and above",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "medium"
+          }
+        },
+        {
+          "local_id": "F10",
+          "title": "ADR-1312 §3 post/clear entry keys omit author_name",
+          "status": "Fixed",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {
+            "severity": "low"
+          }
+        },
+        {
+          "local_id": "F11",
+          "title": "memory list --full test folds the --raw interaction into one case",
           "status": "Fixed",
           "assignee": null,
           "maps_to": null,
@@ -69878,7 +69247,7 @@
       ],
       "path": "reviews/REV-001316-board-notice-and-memory-summaries.md",
       "created_at": "2026-11-05T08:13:42Z",
-      "updated_at": "2026-11-05T08:24:38Z",
+      "updated_at": "2026-11-05T09:23:50Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {
@@ -69886,6 +69255,502 @@
       },
       "slug_in_file": false,
       "id": "REV-1316"
+    },
+    "79": {
+      "sequence_id": 79,
+      "type": "guide",
+      "title": "squads architecture: layering, data model, and the marker mechanism",
+      "slug": "squads-architecture-layering-data-model-and-the-marker-mecha",
+      "status": "Published",
+      "description": "A standalone-readable map of how squads is built: the cli to services to index/backends/rendering layering, the item/sub-entity/index data model, and the marker mechanism — pointing at sq docs internals for depth and citing the standing ADRs.",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ADR-71",
+        "ADR-72",
+        "ADR-73",
+        "ADR-74",
+        "ADR-75",
+        "ADR-76",
+        "ADR-77",
+        "ADR-78",
+        "ADR-49",
+        "ADR-1287"
+      ],
+      "subentities": [],
+      "path": "guides/GUIDE-000079-squads-architecture-layering-data-model-and-the-marker-mecha.md",
+      "created_at": "2026-06-12T14:25:59Z",
+      "updated_at": "2026-11-04T16:43:39Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "tech": "python",
+        "tags": [
+          "architecture"
+        ]
+      },
+      "slug_in_file": false,
+      "id": "GUIDE-79"
+    },
+    "1": {
+      "sequence_id": 1,
+      "type": "role",
+      "title": "Catherine Manager",
+      "slug": "manager",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "manager",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000001-manager.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-07-31T10:58:52Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": true,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-1"
+    },
+    "2": {
+      "sequence_id": 2,
+      "type": "role",
+      "title": "Robert Architect",
+      "slug": "architect",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "architect",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000002-architect.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-2"
+    },
+    "3": {
+      "sequence_id": 3,
+      "type": "role",
+      "title": "Olivia Lead",
+      "slug": "tech-lead",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "tech-lead",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000003-tech-lead.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-3"
+    },
+    "4": {
+      "sequence_id": 4,
+      "type": "role",
+      "title": "Paul Reviewer",
+      "slug": "reviewer",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "reviewer",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000004-reviewer.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-4"
+    },
+    "5": {
+      "sequence_id": 5,
+      "type": "role",
+      "title": "Mara Tester",
+      "slug": "qa",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000005-qa.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-5"
+    },
+    "6": {
+      "sequence_id": 6,
+      "type": "role",
+      "title": "Hugo Ops",
+      "slug": "devops",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "devops",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000006-devops.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-6"
+    },
+    "7": {
+      "sequence_id": 7,
+      "type": "role",
+      "title": "Nina Product",
+      "slug": "product-owner",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000007-product-owner.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-7"
+    },
+    "8": {
+      "sequence_id": 8,
+      "type": "role",
+      "title": "Theo Writer",
+      "slug": "tech-writer",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "tech-writer",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000008-tech-writer.md",
+      "created_at": "2026-06-10T12:29:40Z",
+      "updated_at": "2026-06-10T12:29:40Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "is_default": false,
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-8"
+    },
+    "9": {
+      "sequence_id": 9,
+      "type": "role",
+      "title": "Elias Python",
+      "slug": "python-dev",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "python-dev",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000009-python-dev.md",
+      "created_at": "2026-06-10T12:29:53Z",
+      "updated_at": "2026-08-22T14:18:12Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "model": "sonnet",
+        "is_default": false,
+        "tech": "python",
+        "origin": "system",
+        "template": "dev"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-9"
+    },
+    "426": {
+      "sequence_id": 426,
+      "type": "role",
+      "title": "Ada Typescript",
+      "slug": "typescript-dev",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "typescript-dev",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/roles/ROLE-000426-typescript-dev.md",
+      "created_at": "2026-07-16T13:37:14Z",
+      "updated_at": "2026-07-16T13:37:14Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "model": "sonnet",
+        "is_default": false,
+        "tech": "typescript",
+        "origin": "system",
+        "template": "dev"
+      },
+      "slug_in_file": true,
+      "id": "ROLE-426"
+    },
+    "192": {
+      "sequence_id": 192,
+      "type": "skill",
+      "title": "sq-greeting",
+      "slug": "sq-greeting",
+      "status": "Active",
+      "description": "For the main session only, never a subagent: identify the operator, adopt a role, read its role, queue, mentions, board and memory, then greet. Use when a person opens a session.",
+      "parent": null,
+      "author": "sq-greeting",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000192-sq-greeting.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "SKILL-192"
+    },
+    "200": {
+      "sequence_id": 200,
+      "type": "skill",
+      "title": "sq-how-to",
+      "slug": "sq-how-to",
+      "status": "Active",
+      "description": "How to track work on this project with the squads (`sq`) CLI: addressing items, bodies and comments, common commands, and the `sq docs` topics to read next. Use whenever you start, hand off, or update work.",
+      "parent": null,
+      "author": "sq-how-to",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000200-sq-how-to.md",
+      "created_at": "2026-06-24T20:14:34Z",
+      "updated_at": "2026-06-24T20:14:34Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "SKILL-200"
+    },
+    "486": {
+      "sequence_id": 486,
+      "type": "skill",
+      "title": "sq-memory",
+      "slug": "sq-memory",
+      "status": "Active",
+      "description": "Your role's committed memory notebook and the team bulletin board: check your index at the start of a run, jot one fact per memory, prune what's stale or wrong, post/clear board notices, and the memory-vs-board boundary. Use whenever you learn something worth remembering, or need to announce something to the whole team.",
+      "parent": null,
+      "author": "sq-memory",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000486-sq-memory.md",
+      "created_at": "2026-07-18T21:49:05Z",
+      "updated_at": "2026-07-18T21:49:05Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "origin": "system"
+      },
+      "slug_in_file": true,
+      "id": "SKILL-486"
+    },
+    "508": {
+      "sequence_id": 508,
+      "type": "skill",
+      "title": "Releasing squads",
+      "slug": "releasing-squads",
+      "status": "Active",
+      "description": "The team's runbook for cutting a squads release: gates, prep, and drafting the release (the operator publishes).",
+      "parent": null,
+      "author": "releasing-squads",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ROLE-1:scopes",
+        "ROLE-6:scopes",
+        "ROLE-8:scopes"
+      ],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000508-releasing-squads.md",
+      "created_at": "2026-07-20T12:32:09Z",
+      "updated_at": "2026-10-30T22:07:42Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "when_to_use": "When preparing or cutting a squads release.",
+        "allowed_tools": "",
+        "origin": "project"
+      },
+      "slug_in_file": true,
+      "id": "SKILL-508"
+    },
+    "974": {
+      "sequence_id": 974,
+      "type": "skill",
+      "title": "Launch dev host",
+      "slug": "launch-dev-host",
+      "status": "Active",
+      "description": "Open a VS Code Extension Development Host from WSL for the operator to see a client change.",
+      "parent": null,
+      "author": "launch-dev-host",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "ROLE-1:scopes",
+        "ROLE-426:scopes",
+        "ROLE-5:scopes"
+      ],
+      "subentities": [],
+      "path": "agents/skills/SKILL-000974-launch-dev-host.md",
+      "created_at": "2026-09-29T14:09:09Z",
+      "updated_at": "2026-11-04T08:57:08Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "when_to_use": "When the operator needs to see a VS Code client change in a dev host, or a dev-host launch fails.",
+        "allowed_tools": "",
+        "origin": "project"
+      },
+      "slug_in_file": true,
+      "id": "SKILL-974"
+    },
+    "10": {
+      "sequence_id": 10,
+      "type": "operator",
+      "title": "Pierre Chat",
+      "slug": "op-pierre",
+      "status": "Active",
+      "description": "",
+      "parent": null,
+      "author": "op-pierre",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "operators/OP-000010-op-pierre.md",
+      "created_at": "2026-06-10T12:29:53Z",
+      "updated_at": "2026-06-10T12:29:53Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": true,
+      "id": "OP-10"
+    },
+    "1317": {
+      "sequence_id": 1317,
+      "type": "bug",
+      "title": "Daemon keeps serving old code under an editable install",
+      "slug": "daemon-keeps-serving-old-code-under-an-editable-install",
+      "status": "Open",
+      "description": "The daemon fingerprint covers config and overrides only, so a code change is invisible to it.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-001317-daemon-keeps-serving-old-code-under-an-editable-install.md",
+      "created_at": "2026-11-05T09:24:18Z",
+      "updated_at": "2026-11-05T09:24:18Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1317"
+    },
+    "1318": {
+      "sequence_id": 1318,
+      "type": "bug",
+      "title": "Daemon outlives its deleted squad folder",
+      "slug": "daemon-outlives-its-deleted-squad-folder",
+      "status": "Open",
+      "description": "Nothing checks that the squad folder still exists; only the idle timer ends a daemon.",
+      "parent": null,
+      "author": "qa",
+      "assignee": null,
+      "labels": [],
+      "refs": [],
+      "subentities": [],
+      "path": "bugs/BUG-001318-daemon-outlives-its-deleted-squad-folder.md",
+      "created_at": "2026-11-05T09:24:19Z",
+      "updated_at": "2026-11-05T09:24:19Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {
+        "severity": "medium"
+      },
+      "slug_in_file": false,
+      "id": "BUG-1318"
     }
   }
 }

@@ -11,7 +11,7 @@ refs:
 description: Slug-file-per-memory + own lighter board store, both off the global counter
   and outside .squads.json
 created_at: '2026-07-06T16:03:50Z'
-updated_at: '2026-11-05T07:11:01Z'
+updated_at: '2026-11-05T08:48:07Z'
 ---
 <!-- sq:body -->
 # Context
@@ -78,7 +78,7 @@ place), content-hash/uuid ids, dedup/collapse on read.
 # Options weighed — board storage
 
 The board needs a **light reference id** so `clear <id>` works, and an **expiry** (`--until`).
-It does *not* need the item model: a notice has text, author, posted-at, and an optional
+It does *not* need the item model: a notice has a summary, a body, author, posted-at, and an optional
 until — no status lifecycle, sub-entities, refs, assignee, or workflow machine, and forcing it
 through the item model would re-introduce the global-counter collision for a second
 high-frequency artifact and drag in lifecycle that does not fit an ephemeral notice.
@@ -103,13 +103,14 @@ its stable slug** (`show <slug>`); `list`/`search` read the `.md` files directly
 frontmatter / content grep).
 
 **Board: its own lighter store, not the item model** — one file per notice under
-`squads/board/`, named by its short-hash id, with light frontmatter (`author`, `posted_at`,
-optional `until`) over the notice text, and expiry applied as a read-time filter. The board is **addressed by an ephemeral positional
+`squads/board/`, named by its short-hash id, with light frontmatter (`summary`, `author`, `posted_at`,
+optional `until`) over an optional freeform body, and expiry applied as a read-time filter. The board is **addressed by an ephemeral positional
 ordinal** that is the entry's position in the freshly-computed live listing (`list_notices`,
 sorted and unexpired, read straight from the `.md` files); `clear <n>` resolves the n-th entry to
 the notice's stable hash.
 
-> **Narrowed 2026-11-05 by ADR-1312 §1 and §5.** A notice's frontmatter is `summary`, `author`, `posted_at` and optional `until`, over an optional body. A summary, of a notice or a memory, is one line; `sq check` warns on one that holds a line break and never refuses it.
+A summary, of a memory or a notice, is one line. `list` shows summaries and `show` the body;
+`sq check` warns on a summary that holds a line break and never refuses it (ADR-1312).
 
 The memory-vs-board difference is purely in *how the CLI addresses entries* — durable slug vs
 ephemeral position in the live listing — matching each tier's semantics.
@@ -228,4 +229,6 @@ the same file-per-entry idiom for one storage mental model across both lighter t
   - 2026-10-25 audit: partly stale, targeted present-tense edits; the decision is unchanged. Corrected the board id: it is the filename stem, not a frontmatter key (BoardNotice.to_frontmatter_dict omits it, as memory omits its slug); named the frontmatter keys both stores write; memory folders are per role or operator slug; the listing sorts by posted_at; removal is sq board clear (there is no prune). Removed the two references to the reversed .index.jsonl revision and the "being added" framing.
 - [2026-11-05T07:11:01Z] `architect` Robert Architect:
   - Amended in place 2026-11-05 per ADR-1312 §1 and §5, board rule 6: one dated note under the board paragraph of the Decision (a notice gains a one-line `summary` over an optional body; a multi-line summary of either tier warns). No other text changed. Status unchanged. ADR-1312 is not yet accepted.
+- [2026-11-05T08:48:07Z] `architect` Robert Architect:
+  - 2026-11-05, op-pierre's rule that a body states only the current decision: the ADR-1312 dated note is folded into the Decision. The board paragraph names `summary` in the frontmatter over an optional body, a new paragraph states the one-line summary and the warning, and the notice's needs in Options weighed name summary and body. The why is ADR-1312 (accepted).
 <!-- sq:discussion:end -->

@@ -11,18 +11,20 @@ from squads._api import (
     MemoryRow,
     MemorySearch,
 )
-from squads._cli._render._raw import print_raw
+from squads._cli._render._raw import indented_body, print_raw
 from squads._cli._render._style import e
 
 
 def _raw_memory(m: MemoryRow) -> list[str]:
     """A memory as a markdown bullet, each further summary line indented under it."""
     first, *rest = m.description.splitlines() or [""]
-    return [f"- `{m.slug}`: {first}", *(f"  {line}".rstrip() for line in rest)]
+    lines = [f"- `{m.slug}`: {first}", *(f"  {line}".rstrip() for line in rest)]
+    return [*lines, *(indented_body(m.body, "  ") if m.body else [])]
 
 
 def render_memories(listing: MemoryList, console: Console, *, raw: bool = False) -> None:
-    """One line per memory: its slug and summary; *raw* prints one markdown bullet each."""
+    """One line per memory: its slug and summary; *raw* prints one markdown bullet each. A listing
+    that carries the bodies prints each under its memory."""
     if raw:
         lines = [line for m in listing.items for line in _raw_memory(m)]
         print_raw(console, lines or [f"no memories for {listing.role}"])
@@ -32,6 +34,8 @@ def render_memories(listing: MemoryList, console: Console, *, raw: bool = False)
         return
     for m in listing.items:
         console.print(f"[bold]{e(m.slug)}[/bold]  {e(m.description)}")
+        for line in indented_body(m.body, "  ") if m.body else []:
+            console.print(e(line) if line else "")
 
 
 def render_memory_search(found: MemorySearch, console: Console) -> None:

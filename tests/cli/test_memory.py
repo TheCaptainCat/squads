@@ -77,6 +77,40 @@ async def test_add_with_a_multi_line_summary_stores_it_and_warns(project, invoke
     assert [r["description"] for r in rows] == ["First\nSecond"]
 
 
+@pytest.mark.covers("memory list", "--full")
+async def test_list_full_json_adds_the_body_to_each_row(project, invoke) -> None:
+    await _remember(invoke, "Plain", "--slug", "plain")
+    rows = await read_json(invoke, ["memory", "manager", "list", "--full", "--json"])
+    assert rows == [
+        {
+            "slug": "plain",
+            "filename": "plain.md",
+            "description": "Plain",
+            "created_at": STAMP,
+            "body": "Plain",
+        }
+    ]
+
+
+@pytest.mark.covers("memory list", "--full")
+async def test_list_full_prints_each_body_under_its_summary(project, invoke) -> None:
+    await _remember(invoke, "Alpha", "--slug", "alpha")
+    await _remember(invoke, "Beta", "--slug", "beta")
+    text = await invoke(["memory", "manager", "list", "--full"])
+    assert (text.exit_code, text.output) == (0, "alpha  Alpha\n\n  Alpha\nbeta  Beta\n\n  Beta\n")
+
+
+@pytest.mark.covers("memory list", "--full", "--raw")
+async def test_list_full_raw_indents_each_body_in_its_bullet(project, invoke) -> None:
+    await _remember(invoke, "Alpha", "--slug", "alpha")
+    await _remember(invoke, "Beta", "--slug", "beta")
+    raw = await invoke(["memory", "manager", "list", "--full", "--raw"])
+    assert (raw.exit_code, raw.output) == (
+        0,
+        "- `alpha`: Alpha\n\n  Alpha\n- `beta`: Beta\n\n  Beta\n",
+    )
+
+
 @pytest.mark.covers("memory list", "--raw")
 async def test_list_raw_indents_the_further_lines_of_a_multi_line_summary(project, invoke) -> None:
     await _remember(invoke, "First\n\nSecond", "--slug", "split")
