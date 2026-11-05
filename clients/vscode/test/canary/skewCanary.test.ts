@@ -300,11 +300,18 @@ function assertListRowKeys(row: object, attributes: AttributeNamesByType): void 
 }
 
 /** The ADR-427 #2/US2 contract for `sq show --raw`: an H1 title, then a metadata block of
- * bold-key bullets, and none of `sq show`'s default Rich box-drawing chrome. */
+ * bold-label bullets (a label may hold spaces) led by the `type` row, with no glyph on a badge
+ * row, and none of `sq show`'s default Rich box-drawing chrome. */
 function assertCleanMarkdownDossier(text: string): void {
   const lines = text.split('\n');
   expect(lines[0]).toMatch(/^# \S/);
-  expect(lines.some((line) => /^- \*\*[\w-]+:\*\* /.test(line))).toBe(true);
+  const bullets = lines.filter((line) => /^- \*\*[\w][\w -]*:\*\* /.test(line));
+  expect(bullets.length).toBeGreaterThan(0);
+  expect(bullets).toContainEqual(expect.stringMatching(/^- \*\*type:\*\* \S/));
+  // A badge row carries its plain text; the glyph is display chrome, not raw content.
+  expect(
+    bullets.filter((line) => /^- \*\*(status|priority):\*\* \p{Extended_Pictographic}/u.test(line)),
+  ).toEqual([]);
   expect(text).not.toMatch(/[─│┌┐└┘├┤┬┴┼╭╮╰╯═║]/);
   expect(text).not.toMatch(/^=== .+ ===$/m);
 }
@@ -562,6 +569,11 @@ const DISCUSSION_ENTRY_KEYS = [
   'hash',
   'short_hash',
   'edited_ts',
+  'attributes',
+  'source',
+  'author_url',
+  'identity',
+  'trusted',
 ] as const;
 
 function assertDiscussionEntryKeys(entry: object): void {
@@ -572,14 +584,52 @@ function assertDiscussionEntryKeys(entry: object): void {
 describe('the discussion-entry key assertion', () => {
   const base = { author: 'Ada', ts: '2026-01-01T00:00:00Z', body: 'hi' };
   const hashes = { hash: 'a'.repeat(64), short_hash: 'aaaaaaa', edited_ts: null };
+  const provenance = {
+    attributes: {},
+    source: null,
+    author_url: null,
+    identity: null,
+    trusted: true,
+  };
   const shapes: readonly { name: string; payload: object; passes: boolean }[] = [
-    { name: 'the full set', payload: { ...base, author_slug: 'a', ...hashes }, passes: true },
-    { name: 'the hash keys omitted', payload: { ...base, author_slug: 'a' }, passes: false },
-    { name: 'author_slug omitted', payload: base, passes: false },
+    {
+      name: 'the full set',
+      payload: { ...base, author_slug: 'a', ...hashes, ...provenance },
+      passes: true,
+    },
+    {
+      name: 'the hash keys omitted',
+      payload: { ...base, author_slug: 'a', ...provenance },
+      passes: false,
+    },
+    {
+      name: 'the provenance keys omitted',
+      payload: { ...base, author_slug: 'a', ...hashes },
+      passes: false,
+    },
+    {
+      name: 'one provenance key omitted',
+      payload: (({ trusted: _trusted, ...rest }) => ({
+        ...base,
+        author_slug: 'a',
+        ...hashes,
+        ...rest,
+      }))(provenance),
+      passes: false,
+    },
+    { name: 'author_slug omitted', payload: { ...base, ...hashes, ...provenance }, passes: false },
     { name: 'a renamed key', payload: { ...base, slug: 'a' }, passes: false },
     { name: 'a key dropped', payload: { author: 'Ada', ts: base.ts }, passes: false },
-    { name: 'an unmodelled key', payload: { ...base, extra: 1 }, passes: false },
-    { name: 'a non-string author_slug', payload: { ...base, author_slug: 1 }, passes: false },
+    {
+      name: 'an unmodelled key',
+      payload: { ...base, author_slug: 'a', ...hashes, ...provenance, extra: 1 },
+      passes: false,
+    },
+    {
+      name: 'a non-string author_slug',
+      payload: { ...base, author_slug: 1, ...hashes, ...provenance },
+      passes: false,
+    },
   ];
 
   it.each(shapes)('$name', ({ payload, passes }) => {
@@ -1056,7 +1106,15 @@ describe.skipIf(!SQ_AVAILABLE && PIN_FAILURE === undefined)(
         'origin',
         'display',
       ];
-      const OPERATOR_LIST_KEYS = ['id', 'slug', 'full_name', 'pronouns', 'status', 'display'];
+      const OPERATOR_LIST_KEYS = [
+        'id',
+        'slug',
+        'full_name',
+        'pronouns',
+        'status',
+        'display',
+        'identities',
+      ];
 
       it('role and operator list rows carry pronouns (null when unset) and the adapter guard accepts them', () => {
         runSq(['role', 'manager', 'update', '--pronouns', 'she/her']);

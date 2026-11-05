@@ -242,7 +242,8 @@ fixture, on its own copy of a squad built once per module, under the frozen cloc
   The key is the command path with `<type>`, `<kind>` and `<host>` placeholders
   (`"<type> update"`, `"<host> comment edit"`); the root callback is `""`. An option is named by its
   first long flag (`-m` is `--message`), and a leaf with no parameters is declared by its key alone
-  (`covers("sync")`). At teardown `invoke` fails the test if a declared pair was never reached.
+  (`covers("sync")`). At teardown `invoke` fails the test if a declared pair was never reached,
+  unless the test skipped itself.
 - Assert the exit code and the whole output line or JSON object, never a substring, and read state
   back through the CLI (`show --json` or the command's `--json` form), not from item files.
 - Check each new test once when you write it: break the effect it asserts, watch it fail, restore it.
@@ -273,7 +274,7 @@ The rules:
 - Declare what a test breaches with `@pytest.mark.breaches("<rule>")`, `"<rule>:param"` or
   `"<rule>@<level>"`, literal strings only. At teardown `check_json` fails the test if no run
   reported the rule after a run that did not, or, for `:param`, if the member was not selected
-  with a param when it did.
+  with a param when it did; a test that skipped itself is not checked.
 - Use the helpers in `tests/check/_arrange.py` (`create`, `add_ref`, `edit_item_file`, `repair`,
   …) rather than writing new ones per module.
 - Show each new test red three ways when you write it, then restore: make the member report

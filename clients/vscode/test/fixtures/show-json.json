@@ -30,7 +30,12 @@
           "edited_ts": null,
           "hash": "e9206909e66333e3858ec7a9952860a9e4d1114f9b1653f70e972c390848c79e",
           "short_hash": "e920690",
-          "body": "- Sketched."
+          "body": "- Sketched.",
+          "attributes": {},
+          "source": null,
+          "author_url": null,
+          "identity": null,
+          "trusted": true
         }
       ],
       "display": {
@@ -97,7 +102,12 @@
       "edited_ts": null,
       "hash": "3e290646c440104af52ec6cea750e10b518b0eb939eb2190d304706c03ce186c",
       "short_hash": "3e29064",
-      "body": "- Started."
+      "body": "- Started.",
+      "attributes": {},
+      "source": null,
+      "author_url": null,
+      "identity": null,
+      "trusted": true
     }
   ],
   "badges": {

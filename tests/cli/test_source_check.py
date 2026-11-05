@@ -10,8 +10,6 @@ from tests import _tracker_harness as harness
 pytestmark = pytest.mark.anyio
 
 SECRET = "glpat-not-a-real-token"
-MAPS = '\n[sources.platform.maps.types.type]\nissue = "task"\n'
-PRIORITY = '\n[sources.platform.maps.fields.priority.labels]\n"priority::high" = "high"\n'
 HEAD = '[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
 ACCESS = [
     "  pass  http://tracker answers",
@@ -19,11 +17,28 @@ ACCESS = [
     "  pass  the token reads the issues of the scope",
 ]
 HEADER = "platform (gitlab@v4)"
-GITHUB_MAPS = '\n[sources.platform.maps.types.labels]\nsquads = "task"\n'
 
 
-async def _declare(invoke, project, base_url: str, maps: str = MAPS, head: str = HEAD) -> None:
+def _maps(profile) -> str:
+    return f'\n[sources.platform.maps.types.type]\nissue = "{profile.ref}"\n'
+
+
+def _priority(profile) -> str:
+    return (
+        f"\n[sources.platform.maps.fields.{profile.badge}.labels]\n"
+        f'"priority::high" = "{profile.badge_value}"\n'
+    )
+
+
+def _github_maps(profile) -> str:
+    return f'\n[sources.platform.maps.types.labels]\nsquads = "{profile.ref}"\n'
+
+
+async def _declare(
+    invoke, project, profile, base_url: str, maps: str | None = None, head: str = HEAD
+) -> None:
     """Declare the `platform` source on *base_url* and store its credential."""
+    maps = _maps(profile) if maps is None else maps
     path = project.squad_dir / ".overrides" / "sources.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f'{head}base_url = "{base_url}"\n{maps}', encoding="utf-8")
@@ -50,10 +65,12 @@ async def _checked(invoke, tracker: harness.Tracker, *args: str) -> tuple[int, s
 
 @pytest.mark.covers("source check", "source")
 async def test_a_source_that_passes_every_probe_prints_an_all_pass_checklist_and_exits_0(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, MAPS + PRIORITY)
+        await _declare(
+            invoke, project, profile, tracker.base_url, _maps(profile) + _priority(profile)
+        )
         await _operator(invoke, "Alice Tester", "4567")
         await _operator(invoke, "Bob Tester", "4568")
         code, output = await _checked(invoke, tracker, "platform")
@@ -74,10 +91,10 @@ async def test_a_source_that_passes_every_probe_prints_an_all_pass_checklist_and
 
 @pytest.mark.covers("source check", "source")
 async def test_a_missing_credential_is_the_only_line_of_its_source_and_exits_1(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url)
+        await _declare(invoke, project, profile, tracker.base_url)
         assert (await invoke(["source", "credential", "remove", "platform"])).exit_code == 0
         code, output = await _checked(invoke, tracker, "platform")
         asked = tracker.requests
@@ -98,13 +115,17 @@ async def test_a_missing_credential_is_the_only_line_of_its_source_and_exits_1(
 
 @pytest.mark.covers("source check", "--json")
 async def test_a_mapped_label_the_tracker_lacks_is_a_blocking_vocabulary_failure_naming_the_map(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    urgent = PRIORITY + '"priority::urgent" = "medium"\n'
+    urgent = _priority(profile) + f'"priority::urgent" = "{profile.badge_other_value}"\n'
     wrong = '\n[sources.platform.maps.links]\nduplicates = "related"\n'
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         await _declare(
-            invoke, project, tracker.base_url, MAPS + 'ghost = "task"\n' + urgent + wrong
+            invoke,
+            project,
+            profile,
+            tracker.base_url,
+            _maps(profile) + f'ghost = "{profile.ref}"\n' + urgent + wrong,
         )
         result = await invoke(["source", "check", "--json"])
         base = tracker.base_url
@@ -127,8 +148,9 @@ async def test_a_mapped_label_the_tracker_lacks_is_a_blocking_vocabulary_failure
         (
             "vocabulary",
             "fail",
-            "maps.fields.priority.labels: 'priority::urgent' is not among the tracker's labels",
-            "correct it in [sources.platform.maps.fields.priority.labels] in sources.toml, "
+            f"maps.fields.{profile.badge}.labels: 'priority::urgent' is not among the "
+            "tracker's labels",
+            f"correct it in [sources.platform.maps.fields.{profile.badge}.labels] in sources.toml, "
             "or create it on the tracker",
         ),
         (
@@ -143,13 +165,15 @@ async def test_a_mapped_label_the_tracker_lacks_is_a_blocking_vocabulary_failure
 
 @pytest.mark.covers("source check", "source")
 async def test_an_unmapped_label_and_an_unknown_author_are_warnings_and_exit_0(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         _route(tracker, "/api/v4/projects/platform%2Fapi/issues")["body"][0]["labels"].append(
             "priority::low"
         )
-        await _declare(invoke, project, tracker.base_url, MAPS + PRIORITY)
+        await _declare(
+            invoke, project, profile, tracker.base_url, _maps(profile) + _priority(profile)
+        )
         await _operator(invoke, "Alice Tester", "4567")
         await _operator(invoke, "Carol Tester", "7777")
         assert (await invoke(["source", "pull", "platform"])).exit_code == 0
@@ -163,10 +187,11 @@ async def test_an_unmapped_label_and_an_unknown_author_are_warnings_and_exit_0(
                 *ACCESS,
                 "  pass  every value the maps name exists on the tracker",
                 "  warn  label 'priority::low' on platform/api#12 has no entry in "
-                "maps.fields.priority.labels",
-                "        fix: add it to [sources.platform.maps.fields.priority.labels] in "
+                f"maps.fields.{profile.badge}.labels",
+                f"        fix: add it to [sources.platform.maps.fields.{profile.badge}.labels] in "
                 "sources.toml",
-                "  warn  author asmith (id 4568) of platform/api#13, a comment on TASK-4 is in "
+                "  warn  author asmith (id 4568) of platform/api#13, a comment on "
+                f"{profile.ref_id(4)} is in "
                 "no operator's identities",
                 "        fix: run `sq operator <slug> update --identities platform=4568`",
                 "  warn  op-carol holds user id 7777 of source 'platform', which the tracker no "
@@ -180,9 +205,9 @@ async def test_an_unmapped_label_and_an_unknown_author_are_warnings_and_exit_0(
 
 @pytest.mark.covers("source check", "source")
 async def test_the_coverage_probes_read_only_the_issues_the_filter_selects(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    by_label = '\n[sources.platform.maps.types.labels]\nbug = "task"\n'
+    by_label = f'\n[sources.platform.maps.types.labels]\nbug = "{profile.ref}"\n'
     only_squads = '\n[sources.platform.filter]\nlabels = "squads"\n'
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         issues = _route(tracker, "/api/v4/projects/platform%2Fapi/issues")["body"]
@@ -203,7 +228,7 @@ async def test_the_coverage_probes_read_only_the_issues_the_filter_selects(
                 "author": {"id": 9999, "username": "zed", "name": "Zed"},
             }
         )
-        await _declare(invoke, project, tracker.base_url, by_label + only_squads)
+        await _declare(invoke, project, profile, tracker.base_url, by_label + only_squads)
         await _operator(invoke, "Alice Tester", "4567")
         code, output = await _checked(invoke, tracker, "platform")
 
@@ -217,22 +242,23 @@ async def test_the_coverage_probes_read_only_the_issues_the_filter_selects(
 
 @pytest.mark.covers("source check", "source")
 async def test_an_issue_mapping_to_two_types_stays_a_coverage_warning(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    two = MAPS + '\n[sources.platform.maps.types.labels]\nbug = "bug"\n'
+    two = _maps(profile) + f'\n[sources.platform.maps.types.labels]\nbug = "{profile.retype_to}"\n'
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, two)
+        await _declare(invoke, project, profile, tracker.base_url, two)
         _, output = await _checked(invoke, tracker, "platform")
 
-    assert "  warn  platform/api#12 maps to several types: bug, task" in output
+    types = ", ".join(sorted([profile.ref, profile.retype_to]))
+    assert f"  warn  platform/api#12 maps to several types: {types}" in output
 
 
 @pytest.mark.covers("source check", "--json")
 async def test_a_disabled_source_is_still_listed_and_probed(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, head=HEAD + "enabled = false\n")
+        await _declare(invoke, project, profile, tracker.base_url, head=HEAD + "enabled = false\n")
         await _operator(invoke, "Alice Tester", "4567")
         await _operator(invoke, "Bob Tester", "4568")
         result = await invoke(["source", "check", "--json"])
@@ -277,10 +303,10 @@ async def _stopped(invoke, tracker: harness.Tracker, args: list[str]) -> tuple[s
 
 @pytest.mark.covers("source pull", "source")
 async def test_a_pull_on_a_source_failing_access_prints_the_checklist_line_and_writes_nothing(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url)
+        await _declare(invoke, project, profile, tracker.base_url)
         _failing_token(tracker)
         before = (await invoke(["reflog", "--json"])).output
         stopped, asked = await _stopped(invoke, tracker, ["source", "pull", "platform"])
@@ -297,16 +323,16 @@ async def test_a_pull_on_a_source_failing_access_prints_the_checklist_line_and_w
 
 @pytest.mark.covers("<type> show", "--refresh")
 async def test_show_refresh_on_a_source_failing_access_prints_the_line_and_writes_nothing(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url)
+        await _declare(invoke, project, profile, tracker.base_url)
         assert (await invoke(["source", "pull", "platform"])).exit_code == 0
         _failing_token(tracker)
-        before = (await invoke(["task", "2", "show", "--json"])).output
+        before = (await invoke([profile.ref, "2", "show", "--json"])).output
         reflog = (await invoke(["reflog", "--json"])).output
-        stopped, asked = await _stopped(invoke, tracker, ["task", "2", "show", "--refresh"])
-        after = (await invoke(["task", "2", "show", "--json"])).output
+        stopped, asked = await _stopped(invoke, tracker, [profile.ref, "2", "show", "--refresh"])
+        after = (await invoke([profile.ref, "2", "show", "--json"])).output
         reflog_after = (await invoke(["reflog", "--json"])).output
 
     assert stopped.startswith("error: http://tracker did not accept the token")
@@ -319,7 +345,7 @@ async def test_show_refresh_on_a_source_failing_access_prints_the_line_and_write
 
 @pytest.mark.covers("source pull", "--json")
 async def test_an_unnamed_pull_reports_a_source_failing_access_pulls_the_others_and_exits_1(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with (
         harness.serve(harness.load_routes("gitlab/routes.json")) as healthy,
@@ -331,7 +357,7 @@ async def test_an_unnamed_pull_reports_a_source_failing_access_pulls_the_others_
         path.write_text(
             "".join(
                 f'[sources.{name}]\nconnector = "gitlab"\nproject = "platform/api"\n'
-                f'base_url = "{tracker.base_url}"\n{MAPS.replace("platform", name)}\n'
+                f'base_url = "{tracker.base_url}"\n{_maps(profile).replace("platform", name)}\n'
                 for name, tracker in (("platform", healthy), ("other", refusing))
             ),
             encoding="utf-8",
@@ -340,12 +366,12 @@ async def test_an_unnamed_pull_reports_a_source_failing_access_pulls_the_others_
             stored = await invoke(["source", "credential", "set", name], input=f"{SECRET}\n")
             assert stored.exit_code == 0, stored.output
         result = await invoke(["source", "pull", "--json"])
-        shown = await invoke(["task", "2", "show", "--json"])
+        shown = await invoke([profile.ref, "2", "show", "--json"])
 
     reports = {r["name"]: r for r in json.loads(result.stdout)["sources"]}
     assert result.exit_code == 1
     assert (reports["platform"]["created"], reports["platform"]["failed"]) == (
-        ["TASK-2", "TASK-3"],
+        [profile.ref_id(2), profile.ref_id(3)],
         False,
     )
     assert reports["other"]["failed"] is True
@@ -356,10 +382,10 @@ async def test_an_unnamed_pull_reports_a_source_failing_access_pulls_the_others_
 
 @pytest.mark.covers("operator update", "--identities")
 async def test_resolving_a_handle_on_a_source_failing_access_stops_and_stores_nothing(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url)
+        await _declare(invoke, project, profile, tracker.base_url)
         assert (await invoke(["operator", "add", "Alice Tester"])).exit_code == 0
         _failing_token(tracker)
         stopped, asked = await _stopped(
@@ -376,11 +402,13 @@ async def test_resolving_a_handle_on_a_source_failing_access_stops_and_stores_no
 
 @pytest.mark.covers("source check", "source")
 async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         _route(tracker, "/api/v4/projects/platform%2Fapi/issues")["body"] = []
-        await _declare(invoke, project, tracker.base_url, MAPS + PRIORITY)
+        await _declare(
+            invoke, project, profile, tracker.base_url, _maps(profile) + _priority(profile)
+        )
         code, output = await _checked(invoke, tracker, "platform")
 
     assert (code, output) == (
@@ -392,9 +420,11 @@ async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
                 "  warn  the scope project 'platform/api' holds no issue",
                 "        fix: create an issue in the scope, or correct `project` of source "
                 "'platform' in sources.toml",
-                "  warn  maps.fields.priority.labels: 'priority::high' is carried by no issue in "
+                f"  warn  maps.fields.{profile.badge}.labels: 'priority::high' is carried by no "
+                "issue in "
                 "the scope, so it cannot be confirmed among the tracker's labels",
-                "        fix: correct it in [sources.platform.maps.fields.priority.labels] in "
+                "        fix: correct it in "
+                f"[sources.platform.maps.fields.{profile.badge}.labels] in "
                 "sources.toml",
                 "  pass  every in-scope value, author and identity is accounted for",
                 "",
@@ -405,14 +435,14 @@ async def test_a_filter_selecting_nothing_is_a_warning_and_confirms_no_label(
 
 @pytest.mark.covers("source check", "source")
 async def test_a_scope_the_tracker_does_not_know_is_a_blocking_access_failure_naming_its_key(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, head=HEAD.replace("api", "nope"))
+        await _declare(invoke, project, profile, tracker.base_url, head=HEAD.replace("api", "nope"))
         gitlab = await _checked(invoke, tracker, "platform")
     with harness.serve(harness.load_routes("github/routes.json")) as tracker:
         github_head = '[sources.platform]\nconnector = "github"\nrepository = "acme/nope"\n'
-        await _declare(invoke, project, tracker.base_url, head=github_head)
+        await _declare(invoke, project, profile, tracker.base_url, head=github_head)
         github = await _checked(invoke, tracker, "platform")
 
     assert [(code, output.splitlines()[-2:]) for code, output in (gitlab, github)] == [
@@ -437,11 +467,11 @@ async def test_a_scope_the_tracker_does_not_know_is_a_blocking_access_failure_na
 
 @pytest.mark.covers("source check", "source")
 async def test_a_filter_accepting_no_listed_issue_is_a_warning_and_exits_0(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     only = '\n[sources.platform.filter]\nlabels = "priority::high and not priority::high"\n'
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, MAPS + only)
+        await _declare(invoke, project, profile, tracker.base_url, _maps(profile) + only)
         code, output = await _checked(invoke, tracker, "platform")
 
     assert (code, output.splitlines()[4:6]) == (
@@ -455,16 +485,23 @@ async def test_a_filter_accepting_no_listed_issue_is_a_warning_and_exits_0(
 
 @pytest.mark.covers("source check", "source")
 async def test_a_filter_value_missing_on_a_listable_side_fails_and_on_an_unlistable_side_warns(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     ghost = '\n[sources.platform.filter]\nlabels = "ghost"\n'
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, MAPS + ghost)
+        await _declare(invoke, project, profile, tracker.base_url, _maps(profile) + ghost)
         listable = await _checked(invoke, tracker, "platform")
     github_head = '[sources.platform]\nconnector = "github"\nrepository = "acme/api"\n'
     bug = '\n[sources.platform.filter]\ntype = "Ghost"\n'
     with harness.serve(harness.load_routes("github/routes.json")) as tracker:
-        await _declare(invoke, project, tracker.base_url, GITHUB_MAPS + bug, head=github_head)
+        await _declare(
+            invoke,
+            project,
+            profile,
+            tracker.base_url,
+            _github_maps(profile) + bug,
+            head=github_head,
+        )
         unlistable = await _checked(invoke, tracker, "platform")
 
     assert [(code, output.splitlines()[4:6]) for code, output in (listable, unlistable)] == [
@@ -489,13 +526,13 @@ async def test_a_filter_value_missing_on_a_listable_side_fails_and_on_an_unlista
 
 @pytest.mark.covers("source check", "source")
 async def test_an_off_host_redirect_is_a_host_failure_naming_base_url_not_an_answer(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
         _route(tracker, "/api/v4/version").update(
             status=302, headers={"Location": "http://203.0.113.9/elsewhere"}
         )
-        await _declare(invoke, project, tracker.base_url)
+        await _declare(invoke, project, profile, tracker.base_url)
         code, output = await _checked(invoke, tracker, "platform")
 
     lines = output.splitlines()

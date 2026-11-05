@@ -23,7 +23,7 @@ from squads._workflow import WorkflowSpec, bundled_spec, load_workflow_spec
 from tests import _cli_surface as cli_surface
 from tests import _write_guard
 from tests._endpoint_client import EndpointClient
-from tests._helpers import make_service
+from tests._helpers import REPORTS, call_was_skipped, make_service
 from tests._parity import ParityApi
 from tests._squads import (
     FROZEN,
@@ -204,6 +204,14 @@ def runner():
     return CliRunner()
 
 
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]):  # pyright: ignore[reportUnusedFunction]  # pytest hook
+    """Keep each phase's report on the item, so a fixture's teardown can read how the call ended."""
+    report = yield
+    item.stash.setdefault(REPORTS, {})[report.when] = report
+    return report
+
+
 def _declared_pairs(node: pytest.Item) -> set[cli_surface.Pair]:
     """The pairs the `covers` markers of *node* declare; a marker that is not made of string
     literals fails the test."""
@@ -250,11 +258,10 @@ def _reached(
 @pytest.fixture
 def invoke(request: pytest.FixtureRequest, runner: CliRunner):
     """`runner.invoke` on a worker thread with a fresh template cache, so an async test can call
-    the CLI. In the remote modes the command goes to the daemon application of the squad, through
-    its command endpoint (`remote`) or an `HttpApi` handed to the root callback (`routes`).
+    the CLI; the remote modes send the command to the daemon (`remote`) or an `HttpApi` (`routes`).
 
-    Each call records the pairs it reaches (`reached_pairs`, given a failed call's output too);
-    at teardown the test fails when a pair its `covers` markers declare was not reached.
+    Each call records the pairs it reaches; at teardown the test fails when a pair its `covers`
+    markers declare was not reached, unless the test skipped itself.
     """
     reached: set[cli_surface.Pair] = set()
     mode = os.environ.get("SQUADS_TEST_MODE")
@@ -282,6 +289,8 @@ def invoke(request: pytest.FixtureRequest, runner: CliRunner):
         parity.close()
     if endpoint is not None:
         endpoint.close()
+    if call_was_skipped(request.node):
+        return
     missing = _declared_pairs(request.node) - reached
     if missing:
         listed = ", ".join(

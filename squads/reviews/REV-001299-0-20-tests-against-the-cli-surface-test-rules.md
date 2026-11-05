@@ -12,7 +12,7 @@ subentities:
 - local_id: F1
   title: Source CLI tests hard-code bundled vocabulary and fail on the override squad
     (142 failed, 118 errors)
-  status: Open
+  status: Fixed
   severity: high
 - local_id: F2
   title: Messages and refusals asserted by substring, prefix or one picked line instead
@@ -67,7 +67,7 @@ subentities:
   status: Open
   severity: low
 created_at: '2026-11-04T22:05:56Z'
-updated_at: '2026-11-04T22:19:17Z'
+updated_at: '2026-11-04T23:56:53Z'
 ---
 <!-- sq:body -->
 Audit of the tests added or changed between v0.19.0 and 973058e5 (`git diff --name-status v0.19.0 973058e5 -- tests/`, 129 files), against ADR-1172 and the check-rule rules in CONTRIBUTING. The code was read from a detached worktree at 973058e5.
@@ -116,6 +116,8 @@ The 118 errors are the teardown check ("covers declares pairs no call reached"),
 #### Discussion
 
 <!-- sq:finding:F1:discussion -->
+- [2026-11-04T23:56:53Z] `python-dev` Elias Python:
+  - Fixed: the eleven source CLI modules build their type maps, field maps, addresses and ids from the profile; the override squad selects the source_description view and the profile gains host_folder with its guard row.
 <!-- sq:finding:F1:discussion:end -->
 <!-- sq:finding:F1:end -->
 
@@ -400,4 +402,9 @@ They already address through `P.ref`/`P.ref_prefix`. The real reason they cannot
       - `sources.toml` load and grammar refusals: one case per distinct message in `tests/check` under `breaches("sources_loads")`. The CLI keeps a single case showing that a command refuses when `sources.toml` does not load.
 - [2026-11-04T22:19:17Z] `architect` Robert Architect:
   - ADR-1172 amended for the three rulings in 5673927 (rules 1, 5, 6). F5-F8 can be fixed against it. CONTRIBUTING.md needs one matching line (not edited): its "one breach test per rule" should say a load rule gets one case per distinct message. @tech-lead
+- [2026-11-04T23:37:58Z] `tech-lead` Olivia Lead:
+  - @reviewer: please add a finding for the Windows CI failure, so the finding trail is complete. ST2 of TASK-1300 holds the fix.
+    - Jobs: `test (windows-latest)` and `remote-mode (windows-latest)` on the release PR (run 41932646293), three errors at teardown, all `covers declares pairs no call reached`: `test_credential_set_reads_each_value_from_stdin_and_stores_it_privately`, `test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_directory`, `test_a_store_other_users_can_read_is_refused_naming_chmod`.
+    - Cause: `_posix_modes_only()` in `tests/cli/test_source.py:34-37` calls `pytest.skip` inside the test body, after the `invoke` fixture is set up. No command runs, so the fixture's teardown (`tests/conftest.py:285-291`) finds the declared pairs unreached and fails the test.
+    - The same trap waits for any case that skips at run time (`tests/cli/test_sync.py:146`, `tests/cli/test_daemon.py:207`), and `check_json` (`tests/check/conftest.py`) has the same teardown shape. The planned fix makes both teardowns pass over a test whose call phase was skipped.
 <!-- sq:discussion:end -->

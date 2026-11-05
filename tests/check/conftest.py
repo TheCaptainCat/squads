@@ -17,6 +17,7 @@ from squads import __version__
 from squads._workflow import _validator_names as workflow_validatornames
 from squads._workflow import bundled_spec, parse_validator_entry
 from tests import _check_surface as check_surface
+from tests._helpers import call_was_skipped
 
 type Issue = dict[str, str]
 type Select = Callable[..., Path]
@@ -164,6 +165,8 @@ def check_json(request: pytest.FixtureRequest, invoke: Any, observed: Observed, 
         return CheckRun(issues, result.exit_code)
 
     yield _run
+    if call_was_skipped(request.node):
+        return
     missing = _unhonoured(_declarations(request.node), observed)
     if missing:
         pytest.fail("breaches declares what no run showed: " + "; ".join(missing), pytrace=False)

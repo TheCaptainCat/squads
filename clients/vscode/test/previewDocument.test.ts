@@ -61,6 +61,23 @@ describe('splitDossierMarkdown', () => {
     expect(body).toBe('Body paragraph one.\n\n- a body bullet, not metadata');
   });
 
+  it('keeps a row whose label has spaces in the header', () => {
+    const text =
+      '# MS-9 — Title\n\n- **type:** milestone\n- **target date:** 2026-12-01\n- **status:** Ready\n\nBody.';
+    const { header, body } = splitDossierMarkdown(text);
+    expect(header).toBe(
+      '# MS-9 — Title\n\n- **type:** milestone\n- **target date:** 2026-12-01\n- **status:** Ready',
+    );
+    expect(body).toBe('Body.');
+  });
+
+  it('does not take a body that opens with a metadata-looking bullet for the header', () => {
+    const text = '# TASK-1 — Title\n\n- **status:** Ready\n\n- **note to self:** body text';
+    const { header, body } = splitDossierMarkdown(text);
+    expect(header).toBe('# TASK-1 — Title\n\n- **status:** Ready');
+    expect(body).toBe('- **note to self:** body text');
+  });
+
   it('falls back to an empty header when the text has no H1 (e.g. a failure message)', () => {
     const { header, body } = splitDossierMarkdown('Squads: unable to load TASK-452');
     expect(header).toBe('');

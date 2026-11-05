@@ -20,12 +20,15 @@ SECRET = "glpat-not-a-real-token"
 HEAD = (
     f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\nbase_url = "{TRACKER}/"\n'
 )
-TYPES = '\n[sources.platform.maps.types.labels]\nbug = "task"\n'
-SOURCE = HEAD + TYPES
 
 
-def _declare(project: SquadPaths, text: str = SOURCE) -> None:
-    """Write the squad's `sources.toml` override."""
+def _types(profile) -> str:
+    return f'\n[sources.platform.maps.types.labels]\nbug = "{profile.ref}"\n'
+
+
+def _declare(project: SquadPaths, profile, text: str | None = None) -> None:
+    """Write the squad's `sources.toml` override: *text*, or `platform` with its type map."""
+    text = HEAD + _types(profile) if text is None else text
     path = project.squad_dir / ".overrides" / "sources.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -59,7 +62,7 @@ async def test_override_scaffold_sources_writes_a_stamped_starter(project, invok
     path = project.squad_dir / ".overrides" / "sources.toml"
     assert scaffolded.exit_code == 0
     assert path.read_text(encoding="utf-8").startswith(f"# squads:override-base:{__version__}\n")
-    assert listed == [
+    assert [row for row in listed if row["name"] == "sources"] == [
         {
             "name": "sources",
             "kind": "sources",
@@ -69,6 +72,7 @@ async def test_override_scaffold_sources_writes_a_stamped_starter(project, invok
     ]
 
 
+@pytest.mark.bundled_only("the scaffolded worked example maps tracker types onto bundled ones")
 @pytest.mark.covers("override scaffold", "name")
 async def test_the_scaffolded_worked_example_loads_once_uncommented(project, invoke) -> None:
     await invoke(["override", "scaffold", "sources"])
@@ -88,9 +92,9 @@ async def test_the_scaffolded_worked_example_loads_once_uncommented(project, inv
 
 @pytest.mark.covers("source credential remove", "source")
 async def test_a_map_target_the_squad_does_not_declare_fails_naming_source_map_and_value(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    _declare(project, HEAD + '\n[sources.platform.maps.types.labels]\nbug = "defect"\n')
+    _declare(project, profile, HEAD + '\n[sources.platform.maps.types.labels]\nbug = "defect"\n')
 
     result = await invoke(["source", "credential", "remove", "platform"])
 
@@ -104,9 +108,9 @@ async def test_a_map_target_the_squad_does_not_declare_fails_naming_source_map_a
 
 @pytest.mark.covers("source credential remove", "source")
 async def test_a_source_with_no_type_map_fails_naming_the_source_and_the_map(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    _declare(project, HEAD)
+    _declare(project, profile, HEAD)
 
     result = await invoke(["source", "credential", "remove", "platform"])
 
@@ -116,9 +120,9 @@ async def test_a_source_with_no_type_map_fails_naming_the_source_and_the_map(
 
 @pytest.mark.covers("source credential remove", "source")
 async def test_a_gitlab_version_it_does_not_register_lists_the_known_ones(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    _declare(project, HEAD + 'version = "v1"\n' + TYPES)
+    _declare(project, profile, HEAD + 'version = "v1"\n' + _types(profile))
 
     result = await invoke(["source", "credential", "remove", "platform"])
 
@@ -128,9 +132,9 @@ async def test_a_gitlab_version_it_does_not_register_lists_the_known_ones(
 
 @pytest.mark.covers("source credential remove", "source")
 async def test_a_broken_sources_document_leaves_the_rest_of_the_squad_working(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    _declare(project, "[sources.platform\n")
+    _declare(project, profile, "[sources.platform\n")
 
     listed = await invoke(["list", "--json"])
     refused = await invoke(["source", "credential", "remove", "platform"])
@@ -149,10 +153,10 @@ async def test_a_broken_sources_document_leaves_the_rest_of_the_squad_working(
 @pytest.mark.covers("source credential set", "source")
 @pytest.mark.covers("source credential set", "--json")
 async def test_credential_set_reads_each_value_from_stdin_and_stores_it_privately(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     _posix_modes_only()
-    _declare(project)
+    _declare(project, profile)
 
     result = await invoke(
         ["source", "credential", "set", "platform", "--json"], input=f"{SECRET}\n"
@@ -171,10 +175,10 @@ async def test_credential_set_reads_each_value_from_stdin_and_stores_it_privatel
 
 @pytest.mark.covers("source credential set", "source")
 async def test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_directory(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     _posix_modes_only()
-    _declare(project)
+    _declare(project, profile)
     store = CredentialStore().path()
     store.parent.mkdir(parents=True)
     store.parent.chmod(0o755)
@@ -197,9 +201,9 @@ async def test_credential_set_ignores_what_a_crash_left_and_tightens_an_open_dir
 @pytest.mark.covers("source credential remove", "source")
 @pytest.mark.covers("source credential remove", "--json")
 async def test_credential_remove_deletes_the_entry_and_a_second_removal_finds_none(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
-    _declare(project)
+    _declare(project, profile)
     await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
 
     first = await invoke(["source", "credential", "remove", "platform"])
@@ -215,10 +219,10 @@ async def test_credential_remove_deletes_the_entry_and_a_second_removal_finds_no
 
 @pytest.mark.covers("source credential remove", "source")
 async def test_a_store_other_users_can_read_is_refused_naming_chmod(
-    project, invoke, credentials_home
+    project, invoke, credentials_home, profile
 ) -> None:
     _posix_modes_only()
-    _declare(project)
+    _declare(project, profile)
     await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
     CredentialStore().path().chmod(0o640)
 

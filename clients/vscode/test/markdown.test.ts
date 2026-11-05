@@ -553,10 +553,10 @@ describe('renderMarkdownToHtml', () => {
     expect(html).not.toContain('data-item-id="F10"');
   });
 
-  it('renders the TASK-430 sq show --raw fixture (no crash, clean prose)', () => {
+  it('renders the sq show --raw fixture (no crash, clean prose)', () => {
     const html = renderMarkdownToHtml(fixture('show-raw.txt'));
-    expect(html).toContain('Open sq show --raw');
-    expect(html).toContain('data-item-id="TASK-430"');
+    expect(html).toContain('Release 1.0');
+    expect(html).toContain('data-item-id="EPIC-2"');
   });
 });
 

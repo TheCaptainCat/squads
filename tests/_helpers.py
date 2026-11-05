@@ -5,6 +5,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pytest
+
 if TYPE_CHECKING:
     from squads._backends import AgentBackend
     from squads._interactions import PlaybookSpec
@@ -75,3 +77,13 @@ def make_service(
         ),
         backends,
     )
+
+
+#: Where `pytest_runtest_makereport` keeps each phase's report of a test item.
+REPORTS = pytest.StashKey[dict[str, pytest.TestReport]]()
+
+
+def call_was_skipped(node: pytest.Item) -> bool:
+    """Whether the test body ended in a skip, so no claim its markers make could be checked."""
+    call = node.stash.get(REPORTS, {}).get("call")
+    return call is not None and call.skipped
