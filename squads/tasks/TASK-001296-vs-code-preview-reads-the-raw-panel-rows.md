@@ -3,7 +3,7 @@ id: TASK-1296
 sequence_id: 1296
 type: task
 title: VS Code preview reads the --raw panel rows
-status: InProgress
+status: Done
 parent: FEAT-1290
 author: tech-lead
 assignee: typescript-dev
@@ -23,7 +23,7 @@ subentities:
   assignee: typescript-dev
   maps_to: US7
 created_at: '2026-11-04T21:46:37Z'
-updated_at: '2026-11-05T03:10:11Z'
+updated_at: '2026-11-05T03:16:24Z'
 ---
 <!-- sq:body -->
 ## Goal
@@ -115,4 +115,6 @@ Story US7.
   - Gates: npm run check clean, npm test 768/768, npm run test:canary 92/92 against the dev sq (0.20.0, .venv/bin on PATH as CI does). Removing trusted or identities from the canary lists makes it fail; restored. The 'no .squads.toml found' line is the canary's own probe that it runs outside any squad, not a failure. sq check clean.
 - [2026-11-05T03:10:11Z] `typescript-dev` Ada Typescript:
   - REV-1307 F1 and F2 fixed under clients/vscode/ only, uncommitted. Gates: npm run check clean, npm test 770/770, npm run test:canary 92/92. Each new test fails when its fix is reverted. @reviewer ready for re-review.
+- [2026-11-05T03:16:24Z] `manager` Catherine Manager:
+  - Done: REV-1307 approved (F1, F2 verified; F3 is server-side, deferred to the python-dev follow-up). Non-visual change to the parser and canary, accepted directly.
 <!-- sq:discussion:end -->

@@ -1,12 +1,16 @@
 """`sq operator …`: registering people, listing them, and the addressed verbs (show, update,
 status, remove, body and the comment listing)."""
 
+import json
 from typing import Any
 
 import pytest
 
+from tests import _tracker_harness as harness
 from tests._profile import selected
-from tests.cli._output import entry_text, printed, read_json
+from tests.cli import _source_checks as source_checks
+from tests.cli import _source_connectors as source_connectors
+from tests.cli._output import alice_document, entry_text, printed, read_json
 from tests.cli._roster import (
     actors_of,
     body_of,
@@ -420,4 +424,159 @@ async def test_update_json_prints_the_operator_after_the_update(project, invoke)
             "display": {"name": "Alice T", "pronouns": None},
             "identities": {},
         }
+    )
+
+
+SECRET = "glpat-not-a-real-token"
+
+
+def _declare(project, profile, base_url: str, extra: str = "") -> None:
+    """Declare the `platform` source on *base_url*, with the keys of *extra* in its table."""
+    path = project.squad_dir / ".overrides" / "sources.toml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f'[sources.platform]\nconnector = "gitlab"\nproject = "platform/api"\n'
+        f'base_url = "{base_url}"\n{extra}'
+        f'\n[sources.platform.maps.types.labels]\nbug = "{profile.ref}"\n',
+        encoding="utf-8",
+    )
+
+
+async def _alice(invoke) -> object:
+    return await read_json(invoke, ["operator", "op-alice", "show", "--json"])
+
+
+@pytest.fixture
+async def alice(invoke) -> None:
+    result = await invoke(["operator", "add", "Alice Tester"])
+    assert result.exit_code == 0, result.output
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_resolving_a_handle_on_a_source_failing_access_stops_and_stores_nothing(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_checks.declare(invoke, project, profile, tracker.base_url)
+        assert (await invoke(["operator", "add", "Alice Tester"])).exit_code == 0
+        source_checks.failing_token(tracker)
+        stopped, asked = await source_checks.stopped(
+            invoke, tracker, ["operator", "op-alice", "update", "--identities", "platform=@pchat"]
+        )
+        shown = await invoke(["operator", "op-alice", "show", "--json"])
+
+    assert stopped == source_checks.TOKEN_REFUSED
+    assert (json.loads(shown.output), asked) == (
+        alice_document({}),
+        ["/api/v4/version", "/api/v4/user"],
+    )
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_a_jira_cloud_handle_binds_only_on_an_exact_match_or_an_account_id(
+    project, invoke, credentials_home, profile
+) -> None:
+    jira = source_connectors.jira(profile, "cloud-v3")
+    pierre = "712020:0a1b2c3d-2222-4444-8888-bbbbbbbbbbbb"
+    with harness.serve(harness.load_routes("jira-cloud/routes.json")) as tracker:
+        await source_connectors.declare(
+            invoke, project, jira.format(base=tracker.base_url), source_connectors.USER_FIELD
+        )
+        assert (await invoke(["operator", "add", "Alice Tester"])).exit_code == 0
+        update = ["operator", "op-alice", "update", "--identities"]
+        prefix = await invoke([*update, "platform=@Pierre"])
+        exact = await invoke([*update, "platform=@Pierre Chat"])
+        shown = await invoke(["operator", "op-alice", "show", "--json"])
+        by_id = await invoke([*update, f"platform=@{pierre}"])
+
+    assert (prefix.exit_code, prefix.output) == (
+        1,
+        "error: no one user has the display name or email 'Pierre' exactly; Jira found Pierre "
+        f"Martin ({pierre}). Name the account as @<accountId>\n",
+    )
+    assert (exact.exit_code, by_id.exit_code) == (0, 0)
+    assert json.loads(shown.output) == alice_document({"platform": pierre})
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_identities_set_a_key_as_given_and_remove_it_with_an_empty_value(
+    project, invoke, alice
+) -> None:
+    first = await invoke(["operator", "op-alice", "update", "--identities", "src=4567"])
+    set_value = await _alice(invoke)
+    second = await invoke(["operator", "op-alice", "update", "--identities", "src="])
+
+    assert (first.exit_code, second.exit_code) == (0, 0)
+    assert set_value == alice_document({"src": "4567"})
+    assert await _alice(invoke) == alice_document({})
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_identities_resolve_a_handle_to_the_trackers_immutable_user_id(
+    project, invoke, alice, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        _declare(project, profile, tracker.base_url)
+        stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
+        assert stored.exit_code == 0, stored.output
+        result = await invoke(["operator", "op-alice", "update", "--identities", "platform=@pchat"])
+        assert result.exit_code == 0, result.output
+        assert await _alice(invoke) == alice_document({"platform": "4567"})
+
+        missing = await invoke(
+            ["operator", "op-alice", "update", "--identities", "platform=@nobody"]
+        )
+    assert (missing.exit_code, missing.output) == (
+        1,
+        "error: source 'platform' has no user '@nobody'\n",
+    )
+    assert await _alice(invoke) == alice_document({"platform": "4567"})
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_a_handle_on_a_source_without_a_credential_is_refused_naming_the_remedy(
+    project, invoke, alice, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        _declare(project, profile, tracker.base_url)
+        result = await invoke(["operator", "op-alice", "update", "--identities", "platform=@pchat"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: source 'platform' has no stored credential\n"
+        "  fix: run `sq source credential set platform`\n",
+    )
+    assert await _alice(invoke) == alice_document({})
+    assert tracker.requests == []
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_a_handle_on_a_disabled_or_an_undeclared_source_is_refused(
+    project, invoke, alice, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        _declare(project, profile, tracker.base_url, "enabled = false\n")
+        stored = await invoke(["source", "credential", "set", "platform"], input=f"{SECRET}\n")
+        assert stored.exit_code == 0, stored.output
+        disabled = await invoke(
+            ["operator", "op-alice", "update", "--identities", "platform=@pchat"]
+        )
+        undeclared = await invoke(["operator", "op-alice", "update", "--identities", "x=@pchat"])
+    assert (disabled.exit_code, disabled.output) == (
+        1,
+        "error: source 'platform' is disabled (`enabled = false` in its sources.toml table); "
+        "enable it to fetch from it\n",
+    )
+    assert (undeclared.exit_code, undeclared.output) == (
+        1,
+        "error: no source 'x' is declared (declared: platform)\n",
+    )
+    assert tracker.requests == []
+
+
+@pytest.mark.covers("operator update", "--identities")
+async def test_a_pair_without_an_equals_sign_is_refused(project, invoke, alice) -> None:
+    result = await invoke(["operator", "op-alice", "update", "--identities", "novalue"])
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: --identities expects key=value, got 'novalue'\n",
     )

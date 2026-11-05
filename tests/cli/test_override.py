@@ -874,3 +874,37 @@ async def test_update_json_prints_the_overrides_restamped_and_the_unreadable_one
         + "\n"
     )
     assert result.stderr == NOT_UTF8.format(path=broken)
+
+
+@pytest.mark.covers("override scaffold", "name")
+async def test_override_scaffold_sources_writes_a_stamped_starter(project, invoke) -> None:
+    scaffolded = await invoke(["override", "scaffold", "sources"])
+    listed = await read_json(invoke, ["override", "list", "--json"])
+
+    path = project.squad_dir / ".overrides" / "sources.toml"
+    assert scaffolded.exit_code == 0
+    assert path.read_text(encoding="utf-8").startswith(f"# squads:override-base:{__version__}\n")
+    # the override squad lists its own documents too: only the scaffolded one is compared
+    assert [row for row in listed if row["name"] == "sources"] == [
+        {
+            "name": "sources",
+            "kind": "sources",
+            "base_version": __version__,
+            "state": "current",
+        }
+    ]
+
+
+@pytest.mark.bundled_only("the scaffolded worked example maps tracker types onto bundled ones")
+@pytest.mark.covers("override scaffold", "name")
+async def test_the_scaffolded_worked_example_loads_once_uncommented(project, invoke) -> None:
+    await invoke(["override", "scaffold", "sources"])
+    path = project.squad_dir / ".overrides" / "sources.toml"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("# --- Worked example"))
+    example = [line.removeprefix("# ") if line != "#" else "" for line in lines[start + 2 : -1]]
+    path.write_text("\n".join([*lines[: start + 1], *example]) + "\n", encoding="utf-8")
+
+    listed = await read_json(invoke, ["source", "list", "--json"])
+
+    assert [s["name"] for s in listed["sources"]] == ["platform"]

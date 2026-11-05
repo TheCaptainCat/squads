@@ -11,11 +11,14 @@ import pytest
 
 from squads._paths import SquadPaths
 from tests import _stored_view as stored
+from tests import _tracker_harness as harness
 from tests._helpers import create_item, make_service
 from tests._readable import init_readable, lines
 from tests._squads import paths_of
 from tests.cli import _bundled_documents as documents
+from tests.cli import _source_links as source_links
 from tests.cli._output import json_text, printed, read_json
+from tests.cli._pulled import RECORDS
 
 pytestmark = pytest.mark.anyio
 
@@ -273,10 +276,15 @@ async def test_views_json_marks_a_view_that_keeps_a_stored_body(project, invoke)
 
     rows = await read_json(invoke, ["workflow", "views", "--json"])
 
-    assert {row["view"]: row["stored"] for row in rows if row["stored"]} == {
-        stored.VIEW: True,
-        "source_description": True,
+    declared: dict[str, Any] = {
+        "view": stored.VIEW,
+        "source_kind": "source",
+        "source_name": None,
+        "transform": None,
+        "stored": True,
     }
+    by_name: list[dict[str, Any]] = [*documents.VIEWS, declared]
+    assert rows == sorted(by_name, key=lambda row: row["view"])
 
 
 # --- view -----------------------------------------------------------------------------------
@@ -829,3 +837,32 @@ async def test_a_container_heading_is_the_declared_text_or_the_title_cased_plura
     job = next((override_project.squad_dir / "jobs").glob("JOB-*.md"))
     assert "\n## Desired Outcomes\n" in initiative.read_text(encoding="utf-8")
     assert "\n## Actions\n" in job.read_text(encoding="utf-8")
+
+
+@pytest.mark.covers("workflow view", "--json")
+async def test_a_reference_reads_as_the_item_another_source_of_its_tracker_holds(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_links.declare_two(invoke, project, profile, tracker.base_url)
+        for name in ("epics", "stories"):
+            await invoke(["source", "pull", name])
+        viewed = json.loads(
+            (
+                await invoke(
+                    ["workflow", "view", "source_description", profile.ref_id(2), "--json"]
+                )
+            ).output
+        )
+        base = tracker.base_url
+
+    assert viewed == {
+        **RECORDS[12],
+        "name": "epics",
+        "url": f"{base}/platform/api/-/issues/12",
+        "trusted": False,
+        "text": (
+            f"Steps in ![shot]({base}/platform/api/uploads/abc/shot.png), "
+            f"see {profile.ref_id(3)} and platform/other#4."
+        ),
+    }

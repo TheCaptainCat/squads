@@ -6,10 +6,9 @@ A sourced item is arranged by editing the file of an item the CLI created, since
 the record.
 """
 
-import re
-
 import pytest
 
+from tests._squads import FROZEN
 from tests.check._arrange import (
     activate,
     add_roster,
@@ -84,54 +83,55 @@ async def test_two_items_that_hold_one_issue_are_an_error(squad, invoke, check_j
 
 
 @pytest.mark.breaches("source_declared")
-async def test_an_item_whose_source_is_disabled_or_undeclared_is_a_warning(
-    squad, invoke, check_json
-) -> None:
+async def test_an_item_whose_source_is_disabled_is_a_warning(squad, invoke, check_json) -> None:
     task = await _mirror(invoke, squad, "Mirror")
     assert await check_json() == ([], 0)
 
     write_override(squad, "sources.toml", SOURCES.replace("project", "enabled = false\nproject"))
-    disabled = await check_json()
-    write_override(squad, "sources.toml", SOURCES.replace("platform", "other"))
-    undeclared = await check_json()
 
-    assert (disabled, undeclared) == (
-        (
-            [
-                issue(
-                    "source_declared",
-                    "warn",
-                    task,
-                    "source 'platform' is disabled (enabled = false); no pull refreshes "
-                    "platform/api#12",
-                )
-            ],
-            0,
-        ),
-        (
-            [
-                issue(
-                    "source_declared",
-                    "warn",
-                    task,
-                    "source 'platform' is not declared in sources.toml; no pull refreshes "
-                    "platform/api#12",
-                )
-            ],
-            0,
-        ),
+    assert await check_json() == (
+        [
+            issue(
+                "source_declared",
+                "warn",
+                task,
+                "source 'platform' is disabled (enabled = false); no pull refreshes "
+                "platform/api#12",
+            )
+        ],
+        0,
+    )
+
+
+@pytest.mark.breaches("source_declared")
+async def test_an_item_whose_source_is_undeclared_is_a_warning(squad, invoke, check_json) -> None:
+    task = await _mirror(invoke, squad, "Mirror")
+    assert await check_json() == ([], 0)
+
+    write_override(squad, "sources.toml", SOURCES.replace("platform", "other"))
+
+    assert await check_json() == (
+        [
+            issue(
+                "source_declared",
+                "warn",
+                task,
+                "source 'platform' is not declared in sources.toml; no pull refreshes "
+                "platform/api#12",
+            )
+        ],
+        0,
     )
 
 
 @pytest.mark.breaches("source_issue_reachable")
 async def test_an_item_whose_issue_the_pull_lost_is_a_warning(squad, invoke, check_json) -> None:
-    kept = await _mirror(invoke, squad, "Kept", issue_id="12")
+    await _mirror(invoke, squad, "Kept", issue_id="12")
     assert await check_json() == ([], 0)
 
     gone = await _mirror(invoke, squad, "Gone", issue_id="13", state="gone")
     moved = await _mirror(invoke, squad, "Moved", issue_id="14", state="out-of-filter")
 
-    assert kept not in {i["item"] for i in (await check_json())[0]}
     assert await check_json() == (
         [
             issue(
@@ -639,18 +639,18 @@ async def test_a_comment_whose_attribute_line_is_not_a_json_object_of_strings_is
 
     edit_item_file(squad, task, ":\n  - Noted.", ':\n  <!-- sq:attrs {"n":1} -->\n  - Noted.')
 
-    found, code = await check_json()
-    assert (code, len(found), found[0]["rule"], found[0]["level"], found[0]["item"]) == (
+    stamp = FROZEN.strftime("%Y-%m-%dT%H:%M:%SZ")
+    assert await check_json() == (
+        [
+            issue(
+                "comment_attributes_valid",
+                "error",
+                task,
+                f"the comment by `tech-lead` at {stamp} has an sq:attrs line that is not "
+                "one JSON object of strings; it reads as comment text",
+            )
+        ],
         3,
-        1,
-        "comment_attributes_valid",
-        "error",
-        task,
-    )
-    assert re.fullmatch(
-        r"the comment by `tech-lead` at \d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ has an sq:attrs line "
-        r"that is not one JSON object of strings; it reads as comment text",
-        found[0]["message"],
     )
 
 

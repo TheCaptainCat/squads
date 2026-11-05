@@ -2,6 +2,7 @@
 exit code each earns."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -119,3 +120,45 @@ async def test_a_superseded_record_names_the_declared_supersession_kind(
             "rule": "supersedes_incoming",
         }
     ]
+
+
+RECORD = {
+    "name": "platform",
+    "id": "48211",
+    "key": "platform/api#12",
+    "state": "open",
+    "updated_at": "2026-11-03T20:41:07Z",
+    "author_id": "4567",
+}
+
+
+async def _mirror(invoke, project, profile, title: str, record: dict[str, str]) -> Path:
+    """An item of the host type whose file carries *record* as its `source`; no command writes a
+    record that lacks a field."""
+    created = await invoke(["create", profile.host, title, "--author", "manager"])
+    assert created.exit_code == 0, created.output
+    path = next(
+        p
+        for p in (project.squad_dir / profile.host_folder).glob(f"{profile.host_prefix}-*.md")
+        if title.lower() in p.name
+    )
+    lines = "source:\n" + "".join(f"  {key}: '{value}'\n" for key, value in record.items())
+    text = path.read_text(encoding="utf-8")
+    path.write_text(text.replace("\nstatus:", f"\n{lines}status:", 1), encoding="utf-8")
+    return path
+
+
+@pytest.mark.covers("check")
+async def test_an_item_whose_source_record_is_malformed_is_refused_naming_its_file(
+    project, invoke, profile
+) -> None:
+    await _mirror(invoke, project, profile, "Mirror", RECORD)
+
+    result = await invoke(["check"])
+
+    assert (result.exit_code, result.output) == (
+        3,
+        f"error {profile.host_prefix}-000002-mirror.md: invalid item data in "
+        f"{profile.host_path(2, 'mirror')}: source.author_handle: Field required\n"
+        f"{profile.host_author_warning}",
+    )

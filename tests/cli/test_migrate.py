@@ -592,9 +592,17 @@ async def test_up_refuses_a_workflow_override_naming_a_type_or_alias_source_and_
 
     result = await invoke(["migrate", "up"])
 
-    assert result.exit_code == 1
-    assert "alias 'source' shadows the built-in `sq source` command" in result.output
-    assert "`sq migrate chlog v0.19.0..v0.20.0`" in result.output
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: this squad's workflow override could not be loaded, so `sq migrate up` cannot "
+        "run under the vocabulary it declares.\n"
+        f"  file:  {override}\n"
+        "  cause: Invalid workflow spec:\n"
+        "  - item 'task': alias 'source' shadows the built-in `sq source` command \u2014 rename "
+        "or drop the alias; a squad upgrading follows the steps `sq migrate chlog "
+        "v0.19.0..v0.20.0` prints, run with the release it is upgrading from\n"
+        "Correct the file, then re-run `sq migrate up`.\n",
+    )
     assert _snapshot(squad) == before
 
 

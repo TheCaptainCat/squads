@@ -76,6 +76,8 @@ def _problems(profile: Profile, spec: WorkflowSpec) -> list[str]:
             ("badge value", p.badge_value in codes),
             ("badge other value", p.badge_other_value in codes),
         ]
+    on_host = any(f.code == p.badge for f in spec.fields_for(p.host))
+    checks.append(("host carries the badge field as declared", on_host == p.host_has_badge))
     third_field = next((f for f in spec.fields_for(p.third_kind) if f.code == p.third_field), None)
     checks.append(("third kind field", third_field is not None))
     if third_field is not None:

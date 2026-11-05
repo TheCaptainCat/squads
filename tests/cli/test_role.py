@@ -1700,3 +1700,19 @@ async def test_show_raw_points_to_the_how_to_through_a_command_and_names_no_skil
     assert re.findall(r"`sq-[a-z][a-z-]*`", out) == []
     assert "`greeting`" not in out
     assert "sq role manager show" not in out
+
+
+@pytest.mark.covers("role add", "slug")
+async def test_a_role_cannot_take_the_slug_that_names_sourced_authors(project, invoke) -> None:
+    result = await invoke(
+        [
+            *("role", "add", "source", "--name", "Src", "--job-title", "Scribe"),
+            *("--desc", "d", "--mission", "m"),
+        ]
+    )
+
+    assert (result.exit_code, result.output) == (
+        1,
+        "error: slug 'source' is reserved as the namespace of authors that are not roles; "
+        "a role needs another slug\n",
+    )

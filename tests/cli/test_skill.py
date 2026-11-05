@@ -274,6 +274,17 @@ async def test_show_raw_lists_the_panel_rows_then_the_body_and_no_header_prints_
     assert "\x1b" not in raw
 
 
+@pytest.mark.covers("skill show", "--raw")
+async def test_show_raw_joins_a_multi_line_when_to_use_so_the_file_row_stays_in_the_list(
+    project, invoke
+) -> None:
+    await _add(invoke, "Deploy Notes", "--when-to-use", "On release\nor hotfix")
+    raw = (await printed(invoke, ["skill", SLUG, "show", "--raw"])).splitlines()
+    rows = raw[: raw.index("")]
+    assert "- **when to use:** On release or hotfix" in rows
+    assert all(row.startswith("- ") for row in rows)
+
+
 @pytest.mark.covers("skill show", "--comments")
 async def test_show_comments_appends_the_discussion(project, invoke) -> None:
     await _add(invoke)
