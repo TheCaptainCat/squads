@@ -14,6 +14,11 @@ if TYPE_CHECKING:
 #: The side of an issue that holds its labels, and the side that holds its issue type.
 LABELS = "labels"
 TYPE = "type"
+#: The sides only the status map reads: the tracker's own state, Jira's status name and its
+#: status category.
+STATE_SIDE = "state"
+STATUS_SIDE = "status"
+CATEGORY_SIDE = "category"
 
 
 class RestrictedIssueError(Exception):

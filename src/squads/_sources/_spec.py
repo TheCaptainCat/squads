@@ -2,9 +2,9 @@
 supplies by default."""
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from squads._errors import SquadsError
 from squads._sources._credentials import normalise_base_url
@@ -25,6 +25,25 @@ class SourceMaps(BaseModel):
     #: Badge field to tracker side to tracker value to badge value.
     fields: dict[str, dict[str, dict[str, str]]] = Field(default_factory=dict)
     links: dict[str, str] = Field(default_factory=dict)
+    #: Tracker side to tracker value to the workflow statuses it gives, the first that the item's
+    #: lifecycle holds winning; declared per source only and empty when the source has no map.
+    statuses: dict[str, dict[str, tuple[str, ...]]] = Field(default_factory=dict)
+
+    @field_validator("statuses", mode="before")
+    @classmethod
+    def _bare_status_is_a_list(cls, value: object) -> object:
+        """Read a status written as a bare string as a list of one."""
+        if not isinstance(value, dict):
+            return value
+        return {
+            side: {
+                key: (status,) if isinstance(status, str) else status
+                for key, status in cast("dict[str, Any]", table).items()
+            }
+            if isinstance(table, dict)
+            else table
+            for side, table in cast("dict[str, Any]", value).items()
+        }
 
 
 class SourceScope(BaseModel):

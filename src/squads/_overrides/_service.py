@@ -791,6 +791,11 @@ _SOURCES_SCAFFOLD_BODY = """\
 #     the issue: `labels`, `type`, and for jira its priority field. A source's entries overlay
 #     the connector's defaults in the bundled document key by key; an entry set to "" unmaps the
 #     tracker value.
+#   - `maps.statuses.<side>` is opt-in, per source only: it sends a tracker value to a list of
+#     workflow statuses, and a pull that takes an issue sets its item to the first one its type
+#     has (a bare string is a list of one). The sides are checked in order, the first that maps
+#     a value deciding: `state` then `labels` (gitlab, github); `status`, `category` then
+#     `labels` (jira). Without it the pull never writes an item's status.
 #   - Every map target must exist in the squad's workflow spec.
 #
 # See state after editing: sq override diff sources
@@ -809,6 +814,12 @@ _SOURCES_SCAFFOLD_BODY = """\
 # [sources.platform.maps.types.labels]
 # "type::bug" = "bug"
 # "type::story" = "feature"
+#
+# [sources.platform.maps.statuses.state]
+# closed = ["Done", "Verified"]
+#
+# [sources.platform.maps.statuses.labels]
+# "workflow::doing" = "InProgress"
 # -----------------------------------------------------------------------------
 """
 

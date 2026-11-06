@@ -7,6 +7,7 @@ from typing import Any, cast
 
 from squads._errors import SquadsError
 from squads._sources._connector import (
+    STATE_SIDE,
     TYPE,
     Comment,
     Connector,
@@ -105,7 +106,7 @@ class GitLabConnector(Connector):
             updated_at=text(record, "updated_at"),
             author_id=author_id,
             author_handle=author_handle,
-            sides=((TYPE, text(record, "issue_type")),),
+            sides=((TYPE, text(record, "issue_type")), (STATE_SIDE, str(state))),
             labels=tuple(str(label) for label in cast("list[Any]", labels))
             if isinstance(labels, list)
             else (),

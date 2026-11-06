@@ -47,3 +47,30 @@ async def pull(invoke, *args: str) -> dict[str, Any]:
     result = await invoke(["source", "pull", *args, "--json"])
     assert result.exit_code == 0, (result.output, result.stderr, repr(result.exception))
     return json.loads(result.stdout)
+
+
+def status_map(
+    *, state: dict[str, list[str]] | None = None, labels: dict[str, str] | None = None
+) -> str:
+    """The `maps.statuses` tables of the `platform` source: *state* sends the tracker's states to
+    lists of statuses, *labels* sends labels to one status."""
+    text = ""
+    if state:
+        text += "\n[sources.platform.maps.statuses.state]\n"
+        text += "".join(f"{key} = {json.dumps(statuses)}\n" for key, statuses in state.items())
+    if labels:
+        text += "\n[sources.platform.maps.statuses.labels]\n"
+        text += "".join(
+            f"{json.dumps(key)} = {json.dumps(status)}\n" for key, status in labels.items()
+        )
+    return text
+
+
+async def statuses(invoke, profile) -> dict[int, str]:
+    """The status of each item the pull made, by item number."""
+    found: dict[int, str] = {}
+    for number in (2, 3):
+        shown = await invoke([profile.ref, str(number), "show", "--json"])
+        assert shown.exit_code == 0, shown.output
+        found[number] = json.loads(shown.output)["status"]
+    return found

@@ -3,7 +3,7 @@
 Grammar:
   sq source list [--json]                        — the declared sources and their state
   sq source check [<source>] [--json]            — probe each source; exit 1 on a blocking failure
-  sq source pull [<source>] [--dry-run] [--json] — pull the issues of a source, or of every one
+  sq source pull [<source>] [--dry-run] [--full] [--json] — pull the issues of a source
   sq source credential set <source> [--json]     — store the credential of a source
   sq source credential remove <source> [--json]  — delete it
 
@@ -98,6 +98,12 @@ def pull(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Check what the pull would write, and write nothing."
     ),
+    full: bool = typer.Option(
+        False,
+        "--full",
+        help="Read every held issue the source selects in detail, not only the changed ones, "
+        "and apply the status map to it.",
+    ),
     json_out: bool = typer.Option(
         False, "--json", help="Print one JSON object: each source's counts and report lines."
     ),
@@ -107,7 +113,9 @@ def pull(
     Each issue becomes an item whose title, description, mapped fields and
     comments follow the tracker; a second pull writes only what changed.
     """
-    response = calls.call(ops.SOURCE_PULL, SourcePullRequest(name=source, dry_run=dry_run))
+    response = calls.call(
+        ops.SOURCE_PULL, SourcePullRequest(name=source, dry_run=dry_run, full=full)
+    )
     if json_out:
         calls.print_json(ops.SOURCE_PULL, response)
     else:

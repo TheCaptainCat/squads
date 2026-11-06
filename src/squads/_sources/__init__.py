@@ -11,6 +11,8 @@ from squads._sources._loader import SOURCES_OVERRIDE_MESSAGES as SOURCES_OVERRID
 from squads._sources._loader import bundled_sources_raw as bundled_sources_raw
 from squads._sources._loader import bundled_sources_toml_text as bundled_sources_toml_text
 from squads._sources._loader import load_sources as load_sources
+from squads._sources._maps import StatusChoice as StatusChoice
+from squads._sources._maps import mapped_status as mapped_status
 from squads._sources._maps import mapped_types as mapped_types
 from squads._sources._maps import mapped_values as mapped_values
 from squads._sources._probes import ACCESS as ACCESS

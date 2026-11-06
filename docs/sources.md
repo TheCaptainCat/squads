@@ -5,11 +5,12 @@ its credential, and `sq source pull` lists the issues of the source's **scope** 
 repository, a query) and turns each one the source selects into an item. The tracker
 owns what it wrote: the item's title, its mapped badge fields, its description and its comments
 follow the tracker on every pull. The squad's own prose, refs, assignee and comments sit beside
-them and are never touched by a pull.
+them and are never touched by a pull. The item's status is the squad's too, unless the source
+declares a **status map**, which lets the tracker move it: a closed issue then closes its item.
 
 This page covers declaring a source, choosing which of its issues become items, its credential,
-checking and pulling it, reading what a pull wrote, what the squad cannot change on a pulled item,
-and the `sq check` reports about sources.
+checking and pulling it, the status map, reading what a pull wrote, what the squad cannot change on
+a pulled item, and the `sq check` reports about sources.
 
 ```bash
 sq override scaffold sources               # start .overrides/sources.toml
@@ -64,6 +65,7 @@ The table key is the source's name, a slug (lowercase letters, digits and `-`). 
 | `maps.types.<side>` | the connector's | a tracker value on one side of the issue to an item type |
 | `maps.fields.<field>.<side>` | the connector's | a tracker value on one side of the issue to a badge value of `<field>` |
 | `maps.links` | the connector's | tracker link type to ref kind |
+| `maps.statuses.<side>` | none | a tracker value on one side of the issue to an ordered list of workflow statuses; per source only (see [The status map](#the-status-map)) |
 
 **A scope is required.** Each source names exactly one scope, under a key its connector version
 takes: `project` or `group` for `gitlab`, `repository` for `github`, `jql` for `jira`. The scope
@@ -90,7 +92,8 @@ listing the sides it has, and so does a map written as a value where a side is d
 give different values for an issue, nothing is set: the issue is not created, or the badge field
 is left alone, and the pull reports the values it found
 (`platform/api#12: priority left alone, its values map to high, low`). Values that agree do not
-conflict.
+conflict. The status map is the one map whose sides are ranked rather than peers: the first side
+that maps a value decides (see [The status map](#the-status-map)).
 
 **The version rule.** `version` may be left out only when its connector has exactly one registered
 version, which the source then uses. `jira` has two, `cloud-v3` and `dc-v2`, and squads never picks
@@ -139,8 +142,10 @@ tracker value the defaults map. Messages spell a connector version `<name>@<vers
 
 **What is checked at load.** Every map target must exist in the squad's workflow: a type in
 `maps.types`, a declared badge field and one of its badge codes in `maps.fields`, a ref kind in
-`maps.links`. `maps.types` must map at least one tracker value, since there is no default type.
-Every problem is listed at once, naming the source, the map and the value, and a note marks an
+`maps.links`, and a status in `maps.statuses`, which has checks of its own (see
+[A status map that does not load](#a-status-map-that-does-not-load)). `maps.types` must map at
+least one tracker value, since there is no default type. Every problem is listed at once, naming
+the source, the map and the value, and a note marks an
 entry the source inherited from the connector's defaults:
 
 ```
@@ -345,13 +350,14 @@ error: source 'platform' has no stored credential
 credential is stored, how many items it holds and the newest `updated_at` among them:
 
 ```
-Source    Connector  State    Credential  Items  Newest update
-platform  gitlab@v4  enabled  stored      2      2026-11-03T10:30:00Z
+Source    Connector  State    Credential  Items  Newest update         Status map
+platform  gitlab@v4  enabled  stored      2      2026-11-03T10:30:00Z  yes
 ```
 
+The last column says whether the source declares a status map: `yes`, or `-` when it does not.
 `--json` prints `{sources}`, each `{name, connector, version, enabled, credential, items,
-newest_updated_at}`, with `credential` a boolean and `newest_updated_at` `null` when no item holds
-a known time.
+newest_updated_at, status_map}`, with `credential` and `status_map` booleans and
+`newest_updated_at` `null` when no item holds a known time.
 
 ## Checking a source
 
@@ -421,7 +427,7 @@ same line and its fix, before anything is fetched or written.
 ## Pulling
 
 ```bash
-sq source pull [<source>] [--dry-run] [--json]
+sq source pull [<source>] [--dry-run] [--full] [--json]
 ```
 
 Every source is checked for access before any is fetched. A named source stops at its first
@@ -449,7 +455,7 @@ line reads `platform: no issues`. In the order the line prints them:
 | Counter | The issue |
 |---|---|
 | `created <n> (<IDs>)` | No item holds it, and the pull made an item for it (`would create` under `--dry-run`). |
-| `refreshed` | An item holds it, and the pull changed something: the title, a mapped field, the record, the description, a comment, or the state. An issue with some of its changes dropped is refreshed, and the drop is named on its line. |
+| `refreshed` | An item holds it, and the pull changed something: the title, a mapped field, the record, the description, a comment, the state, or the status the status map gives. An issue with some of its changes dropped is refreshed, and the drop is named on its line. |
 | `unchanged` | An item holds it, and the pull wrote nothing for it, an `out-of-filter` or `gone` item whose issue has not changed included. |
 | `dropped` | The squad refused every change the pull compiled for it, so nothing was written, whether or not an item holds it. The line names why, and the next pull retries. |
 | `gone` | An item holds it, and the tracker neither lists it nor returns it by ID: deleted, or now restricted. |
@@ -462,9 +468,9 @@ An issue the filter rejects while an item of this source holds it is not filtere
 refreshed or unchanged, and its `out-of-filter` line stays. A filtered-out issue is never named,
 logged or written, nor is one skipped for having no type; one that maps to two types is named on
 every pull. The lines under the counters name what needs a reader's eye: an issue that maps to
-two types, a badge field whose sides give two values, a held issue that left the selection or was
-deleted, an issue another source's item holds, a link not followed, and anything the squad
-refused.
+two types, a badge field whose sides give two values, a status the status map moved or left alone
+(see [The status map](#the-status-map)), a held issue that left the selection or was deleted, an
+issue another source's item holds, a link not followed, and anything the squad refused.
 
 **What an issue becomes.** An issue the source selects and no item on its tracker holds becomes an
 item of the type `maps.types` gives it, read from every side the map names; an issue that maps to
@@ -496,14 +502,16 @@ detail, counts as `held elsewhere` and is named on a `held by` line (see
 [Links across sources](#links-across-sources)). Within the pull that first creates an issue,
 every source that selects it reads it in detail. A changed issue
 updates its item's title, mapped fields, record, description and comments: a comment edited on
-the tracker is edited in place, and a comment deleted on the tracker is kept and reported.
+the tracker is edited in place, and a comment deleted on the tracker is kept and reported. On a
+source with a status map, it also sets the item's status (see [The status map](#the-status-map)).
+`--full` drops the shortcut for unchanged issues (see [The full pull](#the-full-pull)).
 
 **When a held issue leaves the selection.** The item stays, its `source` record's `state` says
 why, and the report names it:
 
 | The issue | `state` | Report line |
 |---|---|---|
-| is listed and the filter accepts it | `open` or `closed` | none; `closed` is reported when it changes |
+| is listed and the filter accepts it | `open` or `closed` | none; `closed` is reported when it changes (`<key>: closed; <ID> stays`), or, when the status map moves the item, the move is reported instead |
 | is listed and the filter rejects it | `out-of-filter` | `<key>: out-of-filter (rejected by the filter); <ID> stays` |
 | is not listed, and the tracker returns it by ID | `out-of-filter` | `<key>: out-of-filter (outside the scope); <ID> stays` |
 | is neither listed nor returned by ID (deleted, or now restricted) | `gone` | `<key>: deleted or no longer readable; <ID> stays` |
@@ -533,10 +541,210 @@ none.
 under the index lock, against the index as it stands then, so other commands wait only for that
 last part. Two pulls of one source at once cannot both create an issue: the second finds the
 first's item and refreshes it. A comment edited or deleted on a tracker that does not move the
-issue's `updated_at` is picked up at the issue's next change, or by `show --refresh`.
+issue's `updated_at` is picked up at the issue's next change, by `show --refresh`, or by a full
+pull.
 
 Each change a pull makes is in the reflog under the actor `source:<name>`, and a change of an
 item's record under the `source` op.
+
+### The full pull
+
+```bash
+sq source pull platform --full --dry-run   # what it would change, every status move included
+sq source pull platform --full
+```
+
+`--full` reads in detail every listed issue that the source selects and an item holds, whether or
+not it changed, and refreshes its item: the title, the mapped fields, the description, the
+comments, the links and, on a source with a status map, the status. A held item whose issue the
+listing does not return is fetched by ID, as in every pull. An issue no item of the source holds is
+handled as in a plain pull, so an issue that is filtered out, maps to no type or is held elsewhere
+still costs only its listing row. Like a plain pull, it covers the named source, or every enabled
+source when no name is given, and it takes `--dry-run` and `--json`.
+
+- **It writes only what differs**, so a second full pull of an unchanged tracker writes nothing,
+  and it stores nothing of its own.
+- **It picks up what a plain pull misses** until an issue next changes: a comment edited or deleted
+  on the tracker, or a link added, without the issue's `updated_at` moving.
+- **It overrides statuses set by hand.** On a source with a status map, it moves every item whose
+  issue the source still selects to the status the map gives now, whatever status the squad set
+  since. An `out-of-filter` or `gone` item is not moved. Nothing asks before it runs:
+  `--dry-run` lists every move first, and the report lists the moves made.
+- **Its cost:** one detail read per held issue the source selects, which means its comments and its
+  links, often several requests, on top of the listing. A large scope meets the tracker's rate
+  limits, and the pull waits and retries as usual (see [Network safety](#network-safety)), so the
+  run can be long. Name one source rather than pulling them all. The fetch runs outside every lock,
+  and the index lock is held only to compile and apply, as in a plain pull.
+
+## The status map
+
+A source without a status map leaves status entirely to the squad: the tracker's open or closed
+lands only in the `source` record's `state`, and no pull writes the item's status. A source that
+declares `maps.statuses` lets the tracker move it: when a pull takes an issue from the tracker, the
+item's status follows the issue.
+
+```toml
+[sources.platform.maps.statuses.state]
+closed = ["Done", "Verified"]
+
+[sources.platform.maps.statuses.labels]
+"workflow::doing" = "InProgress"
+"workflow::review" = "InReview"
+"wontfix" = "Cancelled"
+```
+
+**The shape.** `maps.statuses` is keyed by side like `maps.types`, and each side is a table from a
+tracker value to the statuses it gives. Keys are spelled as the tracker spells them, case included.
+The map is declared per source only: no connector default turns it on, and the bundled document
+declares none.
+
+**The sides, in the order they are checked:**
+
+| Connector | Status sides, in order | Values |
+|---|---|---|
+| `gitlab@v4` | `state`, `labels` | `state`: GitLab's `opened` or `closed` |
+| `github@v3` | `state`, `labels` | `state`: GitHub's `open` or `closed` |
+| `jira@cloud-v3`, `jira@dc-v2` | `status`, `category`, `labels` | `status`: the issue's status name as the instance spells it; `category`: its status category key, `new`, `indeterminate` or `done` |
+
+The record's `out-of-filter` and `gone` are the squad's own states, not tracker values: no side
+carries them, so they cannot be mapped.
+
+**A value takes an ordered list of statuses.** The first status in the list that is a state of the
+lifecycle of the item's type is the one the value gives, and a bare string is a list of one. A
+status name means the same thing in every type, so one list covers every type of a squad with
+several lifecycles: `closed = ["Done", "Verified"]` closes a task as `Done`, and a bug whose
+lifecycle ends in `Verified` as `Verified`. The list is resolved against the item's current type,
+so a retyped item takes the first listed status its new lifecycle holds.
+
+**The first side that maps a value decides.** The pull walks the connector's status sides in the
+order of the table, and the first side that maps one of the issue's values gives the status. On
+GitLab and GitHub a mapped `closed` therefore comes before any label, and on Jira a mapped status
+name comes before its category, and both before labels. The order is the connector's, not yours:
+you choose which side speaks for a value by mapping it or leaving it out.
+
+- **A value a side does not map falls through** to the next side. A source that maps only `closed`
+  on `state` lets its labels decide every open issue.
+- **A side that maps a value decides, even when it gives nothing for the type.** When none of the
+  value's statuses is in the item type's lifecycle, the status is left alone and the issue's line
+  says so; the walk does not go on to the next side, so a mistyped or missing status shows rather
+  than letting a lower side speak in its place.
+- **Two values of one side that give different statuses set nothing**, such as two labels mapped to
+  `InProgress` and `InReview`: the status is left alone and the issue's line names the statuses
+  found. Values that agree do not conflict, and a side with one value, such as `state`, never does.
+
+This ranking is the status map's own. The sides of `maps.types` and `maps.fields` are peers, and
+sides that disagree there set nothing (see [Declaring a source](#declaring-a-source)).
+
+### When the map applies
+
+The pull sets the status when it takes the issue from the tracker, and only then:
+
+- **at creation:** the item is created at the status the map gives for its type, or at the type's
+  initial status when no side maps the issue, or, with a line on the report, when the mapped list
+  holds none of its statuses or the squad's checks refuse the mapped status;
+- **on a pull that reads a held issue in detail** because its listed `updated_at` or state differs
+  from the record, while the source selects it (the record's new state is `open` or `closed`);
+- **on every `show --refresh` and `source relink`**, since both ask for that issue now;
+- **on every held, selected issue under `--full`** (see [The full pull](#the-full-pull)).
+
+Between those moments the status is the squad's. A pull of an unchanged issue writes nothing, so a
+status set by hand after the tracker's last change stands until the issue changes again, and any
+change re-applies the map, a new comment included. An item whose record is `out-of-filter` or `gone`
+is never moved; an issue the filter accepts again is a change, and the map applies.
+
+The tracker reports something that has already happened, so the pull sets the mapped status
+without the lifecycle's transition rule, as `status --force` does: a `Draft` item whose issue closes
+goes to `Done` even where the lifecycle has no `Draft` to `Done` move. A reopened issue that maps
+elsewhere moves the item out of a terminal status the same way. The status must still be a state
+of the item type's lifecycle.
+
+**The squad's checks still apply to a mapped status.** The item must pass the per-item checks
+your workflow selects at `error` level at the mapped status (for example `assignee_present@error`
+on a type, which refuses `InProgress` on an item with no assignee):
+
+- **The checks accept the mapped status:** the item moves, even out of a current status they
+  refuse.
+- **They refuse the mapped status but accept the item at its current status** (for an item being
+  created, its type's initial status): the status is the cause, so it is left alone and the
+  issue's line gives the reason, while the rest of the refresh lands: the title, the mapped
+  fields, the description, the comments and the record. An item being created is created at its
+  type's initial status. The move is tried again the next time the map applies.
+- **They refuse the item at both statuses**, as `parent_present@error` refuses an item with no
+  parent whatever its status: the status is not the cause, so it is left alone and no status line
+  appears. The issue's other changes meet the same checks as any write, and a refused one drops
+  the issue with a line naming the check
+  (`platform/api#12: dropped, task requires a parent of type feature`); an issue to create is not
+  created, and the next pull retries it.
+
+**What the report says.** The pull writes the status only when the mapped one differs from the
+item's, and names the move on the issue's line, under the actor `source:<name>` in the reflog. A
+status write counts the issue as `refreshed`. The same lines show on `show --refresh` and
+`source relink`:
+
+```
+platform/api#13: TASK-<n> moved to Done (state closed)
+platform/api#13: TASK-<n> would move to Done (state closed)
+platform/api#14: closed maps to Verified, none of which is a status of task; left alone
+platform/api#12: status left alone, its labels map to InProgress, Ready
+platform/api#15: status left alone, InProgress is refused: status is InProgress but nobody is assigned
+```
+
+The first line names the side and the value that gave the status; `would move` is the
+`--dry-run` form. When an issue closes and the map moves its item, the move line stands in for
+`<key>: closed; <ID> stays`.
+
+**A status set by hand on a mapped item.** `sq <type> <n> status` and `update --status` succeed on
+an item whose source declares a status map, and are never refused; they warn that the next change
+of the issue takes the status back:
+
+```
+warning: the status follows source 'platform' again when issue platform/api#12 next changes
+```
+
+There is no warning when the status does not change, or when the item's source declares no map.
+
+### A status map that does not load
+
+The status map is checked at load with the other maps, and every problem is listed at once. A side
+the connector version does not read for the status map, a `state` or `category` key outside its
+fixed set, a status the workflow spec does not declare, an empty list, an empty status name, a
+status listed twice in one list, a value written where a side is due, and a status map under a
+connector default all fail:
+
+```
+connectors.gitlab.v4: maps.statuses is declared per source, not as a connector default; move it under [sources.<name>.maps.statuses]
+source 'platform': maps.statuses.status: the connector has no side 'status' for the status map (sides: state, labels)
+source 'platform': maps.statuses.state: 'closd' is not a state of the tracker (valid: opened, closed)
+source 'platform': maps.statuses.state: 'closed' -> 'Shipped' is not a status of the workflow
+source 'platform': maps.statuses.state: 'opened' lists no status
+source 'platform': maps.statuses.state: 'closed' lists an empty status name
+source 'platform': maps.statuses.state: 'closed' lists 'Done' twice
+source 'platform': maps.statuses.wontfix is a value, not a side: write it under maps.statuses.<side>, one of: state, labels
+```
+
+On Jira, a `category` key outside its set reads `'<key>' is not a category of the tracker (valid:
+new, indeterminate, done)`. Whether a listed status suits a given type is decided per item at pull
+time, since a type's lifecycle may hold some of a list and not others. A workflow override that
+later drops or renames a mapped status makes `sources.toml` fail to load, which fails the source
+commands only, and `sq check` reports it under `sources_loads`. `status` and `labels` keys are
+checked against the tracker by `sq source check` (see
+[What the probes can confirm](#what-the-probes-can-confirm)).
+
+### Declaring a map on a source that already has items
+
+Items pulled before the source declared its map keep their status until the map next applies to
+them. They move:
+
+- all at once, with `sq source pull <source> --full` (run it with `--dry-run` first, since it
+  overrides statuses set by hand);
+- one by one, when each issue next changes on the tracker;
+- one item at a time, with `sq <type> <n> show --refresh`.
+
+**Every operator who pulls, and every job that runs `sq check`, needs squads 0.20.1 or later.**
+An earlier release refuses a `sources.toml` that declares `maps.statuses`: its `sq source` commands
+fail, and its `sq check` reports the sources document as an error and exits `3`, so a CI gate that
+runs only `sq check` fails too. Its item commands, such as `show`, `list`, `status` and `comment`,
+keep working.
 
 ## Links across sources
 
@@ -571,8 +779,9 @@ reads now, and an item whose source is no longer declared matches nothing.
   line, no count. A Jira link to an issue under a security level stays on the not-followed line,
   by key only, on every pull that reads its issue, since no pull can ever create its item (see
   [Restricted issues](#restricted-issues)).
-- **A link added between two held issues** appears when either issue next changes, or with
-  `show --refresh`, like an edited comment: an unchanged issue is not read again for its links.
+- **A link added between two held issues** appears when either issue next changes, with
+  `show --refresh` or with a full pull, like an edited comment: an unchanged issue is not read
+  again for its links.
 
 Splitting one project over several sources, say one for epics and one for stories with a filter
 each, keeps every link between them.
@@ -636,7 +845,9 @@ then shows the item. It fetches that one issue and never lists the scope: the co
 from the issue whether it is in the scope (on GitLab from its project path, on GitHub from its
 repository, both ignoring case, on Jira with one search for the issue within the JQL), and squads
 evaluates the filter
-on it, so the item ends `open`, `closed`, `out-of-filter` or `gone` as a pull would set it:
+on it, so the item ends `open`, `closed`, `out-of-filter` or `gone` as a pull would set it. On a
+source with a status map it applies the map each time, whether or not the issue changed (see
+[When the map applies](#when-the-map-applies)):
 
 ```bash
 sq task <n> show --refresh
@@ -663,6 +874,13 @@ Everything else stays the squad's: status, assignee, labels, parent, refs, a bad
 does not map, the body prose below the description, and new comments. A body write keeps the
 description as it is (see [workflow.md § "Stored views"](workflow.md#stored-views)). Retyping a
 pulled item keeps its record.
+
+**Status is the squad's, driven by a declared map.** On a source without a status map, no pull
+writes an item's status. On a source that declares one, status is still never refused, since the
+squad moves an item through its working statuses while the issue stays open on the tracker, but it
+is the one field of the squad's that a pull also writes: when the pull takes the issue from the
+tracker, the status follows the map. A move by hand succeeds with a warning that the next change of
+the issue takes it back (see [The status map](#the-status-map)).
 
 **No one acts as a source.** Only a pull writes as `source:<name>`: `--as source:<name>` on any
 command, and an `as` naming one in an `sq import` file, are refused:
@@ -699,7 +917,8 @@ unlink, relink.
 immutable ID; on GitLab an immutable ID resolves only for an issue the scope lists, and a key for
 any issue the token can read. It refreshes the record, title, mapped fields, description and
 comments at once, and sets the state as `show --refresh` does: an issue outside the scope, or one
-the filter rejects, is linked as `out-of-filter`. The prose the unlink left stays the squad's. It
+the filter rejects, is linked as `out-of-filter`. On a source with a status map, it applies the map
+to the item. The prose the unlink left stays the squad's. It
 is refused, with the reason:
 
 - on an item that still holds a record, naming `source unlink`;
@@ -796,7 +1015,8 @@ and its `key` follows it.
   defaults send `blocks` to `blocks`, so the blocking issue's item gets the `blocks` ref whichever
   issue is read, and `relates_to` to `related`, so each of the two items gets a `related` ref to
   the other.
-- **Open or closed:** an issue in GitLab's `opened` state is `open`; any other is `closed`.
+- **Open or closed:** an issue in GitLab's `opened` state is `open`; any other is `closed`. The
+  status map reads GitLab's own value, `opened` or `closed`, on its `state` side, then `labels`.
 - **Comments** are the issue's notes; GitLab's system notes are left out.
 - **IDs:** the global issue ID (`gid://gitlab/Issue/<n>`); keys read `group/project#12`.
 - **References** `#12`, `project#12` and `group/project#12` are read relative to the issue's own
@@ -817,7 +1037,8 @@ and its `key` follows it.
 - **Links:** `blocked_by` and `blocking`, GitHub's issue dependencies, each the other's inverse;
   the default sends `blocking` to `blocks`. An instance without issue dependencies gives no links.
 - **Restricted:** GitHub has no per-issue restriction; the repository's visibility is the scope's.
-- **Open or closed:** GitHub's own `state`.
+- **Open or closed:** GitHub's own `state`. The status map reads it, `open` or `closed`, on its
+  `state` side, then `labels`.
 - **IDs:** the issue's node ID; keys read `owner/repo#12`. References `#12` and `owner/repo#12`
   are read relative to the issue's repository.
 
@@ -854,7 +1075,9 @@ Both Jira connectors are **experimental**: they are tested against recorded resp
   the inward one, and `"is blocked by" = "depends-on"` gives the inward issue's item a
   `depends-on` ref the same way.
 - **Open or closed:** an issue whose status is in Jira's `done` category is `closed`; any other is
-  `open`, so a custom workflow needs no map.
+  `open`, so a custom workflow needs no map. The status map reads, in this order, `status` (the
+  status name as the instance spells it), `category` (its category key, `new`, `indeterminate` or
+  `done`) and `labels`, so a map can follow a custom workflow status by status.
 - **The author** is the issue's creator, never its editable reporter, so a request raised on
   someone's behalf is attributed to whoever created it.
 - **Restricted issues and comments are not pulled:** an issue carrying a security level, a
@@ -872,10 +1095,17 @@ Both Jira connectors are **experimental**: they are tested against recorded resp
 
 `sq source check` checks each map key, and each value a filter expression names, against its own
 side: a `labels` key against the tracker's labels, a `type` key against its issue types, a
-`priority` key against its priorities, and a `maps.links` key against its link types. A key the
-tracker does not hold is a blocking failure. When the tracker cannot list a side (Jira Data
-Center's labels, GitHub's issue types), a key that no issue in the scope carries is a warning
-instead, since its absence cannot be proven.
+`priority` key against its priorities, a `maps.statuses.status` key against Jira's statuses, and a
+`maps.links` key against its link types; a `maps.statuses.labels` key is checked like any label,
+and `state` and `category` keys are checked at load, against their fixed sets. A key the tracker
+does not hold is a blocking failure. When the tracker cannot list a side (Jira Data Center's
+labels, GitHub's issue types), a key that no issue in the scope carries is a warning instead, since
+its absence cannot be proven.
+
+```
+  FAIL  maps.statuses.status: 'In Progres' is not among the tracker's statuses
+        fix: correct it in [sources.jira-prod.maps.statuses.status] in sources.toml, or create it on the tracker
+```
 
 ## Converters
 

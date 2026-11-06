@@ -683,3 +683,27 @@ async def test_a_rate_limit_and_an_unconfirmable_value_are_not_blamed_on_the_fil
             "        fix: wait until the tracker's limit resets, then run it again",
         ]
     )
+
+
+@pytest.mark.covers("source check", "source")
+async def test_a_mapped_jira_status_the_instance_lacks_is_a_blocking_vocabulary_failure(
+    project, invoke, credentials_home, profile
+) -> None:
+    jira = source_connectors.jira(profile, "cloud-v3") + (
+        f'\n[sources.platform.maps.statuses.status]\n"In Progress" = "{profile.working}"\n'
+        f'"In Progres" = "{profile.working}"\n'
+    )
+    with harness.serve(harness.load_routes("jira-cloud/routes.json")) as tracker:
+        await source_connectors.declare(
+            invoke, project, jira.format(base=tracker.base_url), source_connectors.USER_FIELD
+        )
+        result = await invoke(["source", "check", "platform"])
+        output = result.output.replace(tracker.base_url, "http://tracker")
+
+    assert result.exit_code == 1
+    assert (
+        "  FAIL  maps.statuses.status: 'In Progres' is not among the tracker's statuses\n"
+        "        fix: correct it in [sources.platform.maps.statuses.status] in sources.toml, "
+        "or create it on the tracker\n"
+    ) in output
+    assert "In Progress'" not in output

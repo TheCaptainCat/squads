@@ -109,6 +109,11 @@ class Profile:
     #: The status a reference item moves to from its initial status, and its initial status.
     initial: str
     moved: str
+    #: Two more statuses of the reference type's lifecycle, and one the squad declares that the
+    #: lifecycle lacks.
+    working: str
+    done: str
+    foreign: str
     #: The status a sub-entity of the reference kind starts at and one it moves to.
     kind_initial: str
     kind_moved: str
@@ -212,6 +217,9 @@ BUNDLED = Profile(
     needs_parent=(),
     initial="Draft",
     moved="Ready",
+    working="InProgress",
+    done="Done",
+    foreign="Accepted",
     kind_initial="Todo",
     kind_moved="InProgress",
 )
@@ -286,6 +294,9 @@ OVERRIDE = Profile(
     needs_parent=("job",),
     initial="Draft",
     moved="Ready",
+    working="InProgress",
+    done="Done",
+    foreign="Accepted",
     kind_initial="Todo",
     kind_moved="InProgress",
 )

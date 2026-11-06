@@ -1,5 +1,6 @@
 """What a sourced item's tracker owns: the refusal of a squad write to its title, a field its
-source maps, its stored view body or a comment a source wrote."""
+source maps, its stored view body or a comment a source wrote, and the warning on a status move
+a mapped source will take back."""
 
 from collections.abc import Iterable
 
@@ -36,6 +37,22 @@ def mapped_field_codes(item: Item, sources: SourcesSource) -> frozenset[str]:
     except SquadsError:
         return frozenset()
     return frozenset(declared.maps.fields) if declared is not None else frozenset()
+
+
+def status_follow_warning(item: Item, sources: SourcesSource, *, by: str) -> list[str]:
+    """The warning that *by* moving the status of *item* will be undone: the one-item list when
+    the item's source declares a status map and *by* is not that source, else empty. An
+    unreadable or undeclared source gives none."""
+    record = item.source
+    if record is None or source_of(by) == record.name:
+        return []
+    try:
+        declared = sources().sources.get(record.name)
+    except SquadsError:
+        return []
+    if declared is None or not declared.maps.statuses:
+        return []
+    return [f"the status follows source {record.name!r} again when issue {record.key} next changes"]
 
 
 def refuse_owned_update(

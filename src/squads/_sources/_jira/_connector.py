@@ -11,6 +11,8 @@ from typing import Any, cast
 
 from squads._errors import SquadsError
 from squads._sources._connector import (
+    CATEGORY_SIDE,
+    STATUS_SIDE,
     TYPE,
     Comment,
     Connector,
@@ -210,7 +212,12 @@ class JiraConnector(Connector):
             author_id=author_id,
             author_handle=author_handle,
             labels=names(fields.get(_LABELS)),
-            sides=((TYPE, text(mapping(fields.get(_ISSUE_TYPE)), "name")), (_PRIORITY, priority)),
+            sides=(
+                (TYPE, text(mapping(fields.get(_ISSUE_TYPE)), "name")),
+                (_PRIORITY, priority),
+                (STATUS_SIDE, text(mapping(fields.get(_STATUS)), "name")),
+                (CATEGORY_SIDE, category),
+            ),
             locator=(("id", issue_id),),
         )
 
