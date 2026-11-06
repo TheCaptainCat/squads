@@ -3,7 +3,7 @@ id: TASK-1322
 sequence_id: 1322
 type: task
 title: Document the status map and the full pull
-status: InReview
+status: Done
 parent: FEAT-1320
 author: tech-lead
 assignee: tech-writer
@@ -34,7 +34,7 @@ subentities:
   assignee: tech-writer
   maps_to: US5
 created_at: '2026-11-06T15:26:53Z'
-updated_at: '2026-11-06T16:31:04Z'
+updated_at: '2026-11-06T16:33:09Z'
 priority: high
 ---
 <!-- sq:body -->

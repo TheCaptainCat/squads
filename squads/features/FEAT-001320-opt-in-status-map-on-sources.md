@@ -3,7 +3,7 @@ id: FEAT-1320
 sequence_id: 1320
 type: feature
 title: Opt-in status map on sources
-status: InProgress
+status: Done
 parent: EPIC-1268
 author: product-owner
 refs:
@@ -30,7 +30,7 @@ subentities:
   title: As an adopter, I apply the map to every held item with a full pull
   status: Todo
 created_at: '2026-11-06T15:08:03Z'
-updated_at: '2026-11-06T16:32:41Z'
+updated_at: '2026-11-06T16:33:10Z'
 ---
 <!-- sq:body -->
 A source can opt in to a status map: a table in `sources.toml` that sends tracker values to workflow statuses. When the pull takes an issue from the tracker, the item's status moves to the mapped status, so a closed issue closes its item. A source with no map behaves as in 0.20.0: the tracker's state lands in the `source` record and no pull writes the item's status.
@@ -228,4 +228,6 @@ Done when:
     The CHANGELOG 0.20.1 section and docs/stability.md needed no change. I left the "a map that loads now" phrase in docs/stability.md because it states the compatibility contract, not history.
     
     I grepped the old fragments ("every held item", "both reported", "now compiled") across the change, and none remain in it. The bodies were read back: there are no stray `</content>` tags, and the frontmatter diff is `updated_at` only. Gates: ruff check and ruff format are clean, pyright reports 0 errors, `pytest -n 4 tests/cli/test_source_pull.py tests/cli/test_source_list.py tests/meta` gives 822 passed with 0 FAILED, and `sq check` is clean. Nothing is committed.
+- [2026-11-06T16:33:09Z] `manager` Catherine Manager:
+  - Closed: REV-1323 approved with all six findings verified, full suite 2350 passed / 4 skipped on 4deba53f, narration sweep clean (accuracy fixes only, docstring-only in src). Operator delegated acceptance of reviewed non-visual work.
 <!-- sq:discussion:end -->
