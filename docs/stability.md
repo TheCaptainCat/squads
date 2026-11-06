@@ -383,6 +383,21 @@ folder in the squad directory. The frozen surfaces are:
   `converter` and `maps`, which a source's maps overlay key by key; an entry set to `""` unmaps a
   value. Every map target must exist in the workflow spec, and `maps.types` must not be empty
   once overlaid. See [sources.md § "Declaring a source"](sources.md#declaring-a-source).
+- **The status map:** `maps.statuses.<side>` is declared on a `[sources.<name>]` table only; under
+  `[connectors.<name>.<version>]` it fails at load. Each side is a table from a tracker value to a
+  status name or a non-empty list of distinct, non-empty status names, a bare string standing for a
+  list of one, and every name must be a status the workflow spec declares. The status sides and
+  their order are fixed per connector version: `state` then `labels` on `gitlab@v4` and
+  `github@v3`, `status`, `category` then `labels` on `jira@cloud-v3` and `jira@dc-v2`. A `state`
+  key is one of `opened` and `closed` on `gitlab@v4`, `open` and `closed` on `github@v3`; a
+  `category` key one of `new`, `indeterminate` and `done`. A key of `maps.statuses` that is not a
+  status side of the version, and a key outside those fixed sets, fail at load. The reading is
+  fixed: the first side, in that order, that maps one of the issue's values decides; a value a
+  side does not map falls through; the first listed status the item type's lifecycle holds wins;
+  values of one side that give two statuses set nothing. A source without `maps.statuses` never
+  has its items' status written by a pull. What loads keeps its meaning in later releases: a
+  per-source order of the sides, if one comes, will be a new key, never a new reading of a map
+  that loads now. See [sources.md § "The status map"](sources.md#the-status-map).
 - **The source filter:** `filter` is optional; when present it is a non-empty table whose keys
   are sides of the connector version and whose values are each one boolean expression, a string.
   An issue is selected when every expression is true for its values on that side. The expression
@@ -879,7 +894,7 @@ change in any release.
 
 ### The source commands
 
-`sq source pull [<source>] [--dry-run] [--json]`, `sq source check [<source>] [--json]`,
+`sq source pull [<source>] [--dry-run] [--full] [--json]`, `sq source check [<source>] [--json]`,
 `sq source list [--json]`, `sq source credential set <source> [--json]` and
 `sq source credential remove <source> [--json]` are the `sq source` group, and every item type
 gains `source unlink [--json]`, `source relink <source> <issue> [--json]` and
@@ -1423,7 +1438,7 @@ The frozen surface includes:
 - **Operators:** `operator list --json` rows and `operator <addr> show --json` carry
   `identities`, an object of source name to tracker user ID (`{}` when none is set)
 - **Sources:** `sq source list --json` is `{sources}`, each
-  `{name, connector, version, enabled, credential, items, newest_updated_at}`; `sq source pull
+  `{name, connector, version, enabled, credential, items, newest_updated_at, status_map}`; `sq source pull
   --json` is `{dry_run, sources}`, each `{name, created, refreshed, unchanged, left_out, lines,
   failed, dropped, gone, restricted, held_elsewhere, filtered_out, skipped_no_type}`;
   `sq source check --json` is `{ok, sources}`, each `{name, connector, version, enabled, ok,

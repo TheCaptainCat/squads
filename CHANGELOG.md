@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1]
+
+### Migration
+
+**No schema change and nothing to run.** A squad at 0.20 keeps its schema, its item files and its `source` records, and a source that declares no status map pulls exactly as on 0.20.0.
+
+- **A squad that declares a status map needs 0.20.1 on every machine that pulls or runs `sq check`.** 0.20.0 refuses a `sources.toml` that declares `maps.statuses` (`unknown key 'statuses' in 'maps'`): its `sq source` commands fail, and its `sq check` reports the sources document as an error and exits `3`, so a CI gate that runs only `sq check` goes red too. Its item commands (`show`, `list`, `status`, `comment`) keep working. Upgrade every operator and every CI job that runs `sq source` or `sq check` on the squad before adding the map.
+- **Items pulled before the map keep their status until the map next applies to them.** Move them all with `sq source pull <source> --full` (preview with `--dry-run` first, since it overrides statuses set by hand), one by one as each issue next changes on the tracker, or one item at a time with `show --refresh`. See [docs/sources.md § "Declaring a map on a source that already has items"](docs/sources.md#declaring-a-map-on-a-source-that-already-has-items).
+
+### Added
+
+- **A source can let the tracker move its items' status.** Declare `maps.statuses.<side>` on a source in `squads/.overrides/sources.toml`, mapping a tracker value to an ordered list of workflow statuses, and a pull that takes the issue from the tracker sets the item to the first listed status its type's lifecycle holds; a bare string is a list of one, so `closed = ["Done", "Verified"]` closes a task as `Done` and a bug as `Verified`. The status sides are checked in a fixed order and the first that maps one of the issue's values decides: `state` (GitLab's `opened` or `closed`, GitHub's `open` or `closed`) then `labels` on GitLab and GitHub; `status` (the status name), `category` (`new`, `indeterminate` or `done`) then `labels` on Jira. A value a side does not map falls through to the next side, so a source that maps only `closed` lets its labels decide every open issue. A side that maps a value but lists no status of the item's type leaves the status alone, and two labels that give different statuses set nothing; both are named on the issue's line. The map is per source only: no connector default turns it on, and the bundled document declares none. `sq override scaffold sources` shows it in its commented example. See [docs/sources.md § "The status map"](docs/sources.md#the-status-map).
+
+- **When the map applies.** At creation (the item starts at the mapped status, or its type's initial one when nothing maps), whenever a pull reads a held issue because it changed on the tracker while the source selects it, on every `show --refresh` and `source relink`, and on every held issue the source still selects under `--full`. The status is set without the lifecycle's transition rule, as `status --force` does, and only when it differs. A status set by hand stands until the issue next changes, and `out-of-filter` and `gone` items are never moved. A move counts the issue as `refreshed` and is named on its line, `platform/api#13: TASK-9 moved to Done (state closed)`, or `would move` under `--dry-run`; the items left alone read `platform/api#14: closed maps to Verified, none of which is a status of task; left alone` and `platform/api#12: status left alone, its labels map to InProgress, Ready`. The squad's `error`-level checks still apply at the mapped status. When they accept it, the item moves, even out of a current status they refuse. When they refuse it but accept the item at its current status (its type's initial one for an item being created), the status is left alone and named, `platform/api#15: status left alone, InProgress is refused: status is InProgress but nobody is assigned`, while the title, fields, description, comments and record still land, and an item being created starts at its initial status. When they refuse the item at both, as `parent_present@error` does on an item with no parent, the status is left alone with no status line, and the issue's other changes meet the same checks as any write, a refused one dropping the issue: `platform/api#12: dropped, task requires a parent of type feature`.
+
+- **A bad status map is refused when `sources.toml` loads.** Every problem is listed at once, naming the source, the side and the key: a side the connector does not read for the status map (`the connector has no side 'status' for the status map (sides: state, labels)`), a `state` or `category` key outside its fixed set (`'closd' is not a state of the tracker (valid: opened, closed)`), a status the workflow does not declare (`'closed' -> 'Shipped' is not a status of the workflow`), an empty list, an empty status name, a status listed twice, a value written where a side is due, and a status map under `[connectors.<name>.<version>]` (`maps.statuses is declared per source, not as a connector default`). As with any sources error, only the source commands fail and `sq check` reports it under `sources_loads`. On Jira, `sq source check` fails on a `maps.statuses.status` key the instance has no status for: `maps.statuses.status: 'In Progres' is not among the tracker's statuses`.
+
+- **`sq source pull --full [<source>]`.** Reads every held issue the source selects in detail, changed or not, and writes only what differs: on a source with a status map it moves each of those items to the status the map gives now (an `out-of-filter` or `gone` item is not moved), overriding statuses set by hand, and on any source it picks up a comment edited or deleted, or a link added, that a plain pull misses until the issue next changes. Nothing asks before it runs: `--dry-run` lists the moves, and the report lists the moves made. It costs one detail read per held issue the source selects (comments and links, often several requests) on top of the listing, subject to the tracker's rate limits, so name one source. It takes `--dry-run` and `--json`.
+
+### Changed
+
+- **A manual status move on a mapped item warns.** `sq <type> <n> status` and `update --status` on an item whose source declares a status map still succeed, and say who takes the status back: `warning: the status follows source 'platform' again when issue platform/api#12 next changes`. Nothing warns when the status does not change or the source has no map.
+- **`sq source list` shows a `Status map` column** (`yes` or `-`), and each `--json` row ends with `status_map`, a boolean.
+
 ## [0.20.0]
 
 ### Migration
@@ -1907,6 +1931,7 @@ Initial release.
 - **Docs** — README, plus `docs/` (workflow, internals, adoption, agents, tutorial, roles,
   backends, recipes, faq); `py.typed`; MIT licensed.
 
+[0.20.1]: https://github.com/TheCaptainCat/squads/compare/v0.20.0...HEAD
 [0.20.0]: https://github.com/TheCaptainCat/squads/compare/v0.19.0...v0.20.0
 [0.19.0]: https://github.com/TheCaptainCat/squads/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/TheCaptainCat/squads/compare/v0.17.0...v0.18.0

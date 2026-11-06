@@ -15,7 +15,7 @@ from squads._errors import SquadsError
 from squads._models import is_valid_slug
 from squads._sources._converters import CONVERTERS
 from squads._sources._filter import Expression, FilterSyntaxError, parse_expression
-from squads._sources._registry import CONNECTORS
+from squads._sources._registry import CONNECTORS, ConnectorEntry
 from squads._sources._spec import (
     ConnectorDefaults,
     SourceMaps,
@@ -202,6 +202,50 @@ def _map_problems(name: str, maps: SourceMaps, own: SourceMaps, spec: WorkflowSp
     return problems
 
 
+def _status_key_problems(
+    where: str, key: str, entry: ConnectorEntry, side: str, table: tuple[str, ...]
+) -> list[str]:
+    """What is wrong with one tracker value of a status side and the statuses it lists."""
+    problems: list[str] = []
+    valid = dict(entry.status_enums).get(side)
+    if valid is not None and key not in valid:
+        problems.append(
+            f"{where}: {key!r} is not a {side} of the tracker (valid: {', '.join(valid)})"
+        )
+    if not table:
+        problems.append(f"{where}: {key!r} lists no status")
+    for position, status in enumerate(table):
+        if not status.strip():
+            problems.append(f"{where}: {key!r} lists an empty status name")
+        elif status in table[:position]:
+            problems.append(f"{where}: {key!r} lists {status!r} twice")
+    return problems
+
+
+def _status_problems(
+    name: str, maps: SourceMaps, entry: ConnectorEntry, spec: WorkflowSpec
+) -> list[str]:
+    """What is wrong with the status map of source *name*: a side the connector version does not
+    read for it, a value of a fixed set it is not in, and a status the workflow does not declare."""
+    problems: list[str] = []
+    for side, table in sorted(maps.statuses.items()):
+        where = f"source {name!r}: maps.statuses.{side}"
+        if side not in entry.status_sides:
+            problems.append(
+                f"{where}: the connector has no side {side!r} for the status map "
+                f"(sides: {', '.join(entry.status_sides)})"
+            )
+            continue
+        for key, statuses in sorted(table.items()):
+            problems.extend(_status_key_problems(where, key, entry, side, statuses))
+            problems.extend(
+                f"{where}: {key!r} -> {status!r} is not a status of the workflow"
+                for status in statuses
+                if status.strip() and status not in spec.statuses
+            )
+    return problems
+
+
 _SEGMENT_RE = re.compile(r"[A-Za-z0-9_.-]+")
 _ORDER_BY_RE = re.compile(r"\border\s+by\b", re.IGNORECASE)
 
@@ -365,7 +409,9 @@ def _resolve(
             for field in {*defaults.maps.fields, *decl.maps.fields}
         },
         links=_overlay(defaults.maps.links, decl.maps.links),
+        statuses=decl.maps.statuses,
     )
+    problems.extend(_status_problems(name, maps, CONNECTORS[(decl.connector, version)], spec))
     if not maps.types:
         problems.append(
             f"source {name!r}: maps.types is empty; map at least one tracker type or label to an "
@@ -416,6 +462,11 @@ def _connector_defaults(
             defaults, errors = _parse(ConnectorDefaults, table, where)
             problems.extend(errors)
             if defaults is not None:
+                if defaults.maps.statuses:
+                    problems.append(
+                        f"{where}: maps.statuses is declared per source, not as a connector "
+                        "default; move it under [sources.<name>.maps.statuses]"
+                    )
                 problems.extend(
                     _side_problems(where, defaults.maps, CONNECTORS[(name, version)].sides)
                 )
@@ -433,8 +484,7 @@ def _side_shape_problems(name: str, table: Any) -> list[str]:
     if not isinstance(maps, dict):
         return []
     found = cast("dict[str, Any]", maps)
-    known = _known_sides(cast("dict[str, Any]", table))
-    sides = f"one of: {', '.join(known)}" if known else "a side of the connector"
+    entry = _known_entry(cast("dict[str, Any]", table))
     entries: list[str] = []
     types = found.get("types")
     if isinstance(types, dict):
@@ -453,24 +503,38 @@ def _side_shape_problems(name: str, table: Any) -> list[str]:
                 for key, v in cast("dict[str, Any]", by_side).items()
                 if not isinstance(v, dict)
             ]
+    statuses = found.get("statuses")
+    if isinstance(statuses, dict):
+        entries += [
+            f"maps.statuses.{key}"
+            for key, v in cast("dict[str, Any]", statuses).items()
+            if not isinstance(v, dict)
+        ]
     return [
-        f"source {name!r}: {entry} is a value, not a side: write it under {entry.rsplit('.', 1)[0]}"
-        f".<side>, {sides}"
-        for entry in entries
+        f"source {name!r}: {path} is a value, not a side: write it under {path.rsplit('.', 1)[0]}"
+        f".<side>, {_sides_hint(entry, path.startswith('maps.statuses.'))}"
+        for path in entries
     ]
 
 
-def _known_sides(table: dict[str, Any]) -> tuple[str, ...]:
-    """The sides of the connector version *table* names, when it names one that is known."""
+def _sides_hint(entry: ConnectorEntry | None, status: bool) -> str:
+    """The sides a map of the connector version *entry* reads, as a message lists them."""
+    if entry is None:
+        return "a side of the connector"
+    return f"one of: {', '.join(entry.status_sides if status else entry.sides)}"
+
+
+def _known_entry(table: dict[str, Any]) -> ConnectorEntry | None:
+    """The registry entry of the connector version *table* names, when it names a known one."""
     connector, version = table.get("connector"), table.get("version")
     if not isinstance(connector, str):
-        return ()
+        return None
     versions = _versions_of(connector)
     if isinstance(version, str) and (connector, version) in CONNECTORS:
-        return CONNECTORS[(connector, version)].sides
+        return CONNECTORS[(connector, version)]
     if version is None and len(versions) == 1:
-        return CONNECTORS[(connector, versions[0])].sides
-    return ()
+        return CONNECTORS[(connector, versions[0])]
+    return None
 
 
 def _scope_part(table: Any) -> dict[str, Any]:

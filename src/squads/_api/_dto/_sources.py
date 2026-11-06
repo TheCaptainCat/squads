@@ -52,10 +52,12 @@ class CredentialRemoved(DTO):
 
 class SourcePullRequest(DTO):
     """Pull the issues of the source *name*, or of every enabled source when it is ``None``;
-    *dry_run* stops after the checks and writes nothing."""
+    *dry_run* stops after the checks and writes nothing, and *full* reads every held, selected
+    issue in detail instead of only the ones that changed."""
 
     name: str | None = None
     dry_run: bool = False
+    full: bool = False
 
 
 class SourcePullReport(DTO):
@@ -146,8 +148,8 @@ class SourceListRequest(DTO):
 
 class SourceRow(DTO):
     """One declared source: its connector, whether it is enabled, whether a credential is stored
-    for it (never the value), how many items it holds and when the newest of them changed on the
-    tracker."""
+    for it (never the value), how many items it holds, when the newest of them changed on the
+    tracker, and whether it declares a status map."""
 
     name: str
     connector: str
@@ -156,6 +158,7 @@ class SourceRow(DTO):
     credential: bool
     items: int
     newest_updated_at: str | None
+    status_map: bool
 
 
 class SourceListed(DTO):

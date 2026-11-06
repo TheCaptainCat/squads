@@ -62,6 +62,7 @@ from squads._services._item_read_ops import ItemReadOpsMixin
 from squads._services._results import FoundComment
 from squads._services._retype import RetypeMixin
 from squads._services._roster_ops import RosterOpsMixin
+from squads._services._tracker_owned import status_follow_warning
 from squads._workflow import ROSTER_OPERATOR, ROSTER_ROLE, ROSTER_SKILL
 
 #: A discussion's address: the item id and, for a sub-entity's, its ``(kind, local id)``.
@@ -219,7 +220,15 @@ class ItemWriteOpsMixin(ItemReadOpsMixin, RosterOpsMixin):
             unset_attributes=req.unset_attributes or None,
             map_attributes=maps or None,
         )
-        return Response(data=ItemUpdated(entry=await self._row(updated), nothing_to_clear=False))
+        warnings = (
+            status_follow_warning(item, self.sources, by=actor.current_actor())
+            if req.status is not None and req.status != item.status
+            else []
+        )
+        return Response(
+            data=ItemUpdated(entry=await self._row(updated), nothing_to_clear=False),
+            warnings=warnings,
+        )
 
     async def set_item_body(self, req: ItemBodyRequest) -> Response[ItemWritten]:
         """Set or append to the item's body."""

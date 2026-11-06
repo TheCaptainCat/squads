@@ -5,15 +5,15 @@ names exists, and which tracker values nothing maps."""
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
-from squads._sources._connector import LABELS, TYPE, Issue
+from squads._sources._connector import LABELS, STATUS_SIDE, TYPE, Issue
 from squads._sources._http import HttpClient, MalformedAnswerError
 from squads._sources._probes import Expected
 from squads._sources._records import is_object, mapping, names, records, text
 from squads._sources._spec import SourceScope
 from squads._sources._tracker_probes import TrackerProbes
 
-#: The REST resources that list the issue types and the priorities: tracker API names.
-_LISTS = ("issuetype", "priority")
+#: The REST resource that lists the values of each side the tracker enumerates: tracker API names.
+_LISTS = ("issuetype", "priority", "status")
 
 
 @dataclass(frozen=True)
@@ -74,12 +74,12 @@ class JiraProbes(TrackerProbes):
         )
 
     def known_values(self, side: str, issues: list[Issue]) -> tuple[frozenset[str], bool]:
-        """The issue types, priorities or labels the instance has. Its labels are the ones on
-        the in-scope issues and every label the version lists."""
+        """The issue types, priorities, statuses or labels the instance has. Its labels are the
+        ones on the in-scope issues and every label the version lists."""
         if side == LABELS:
             seen = {label for issue in issues for label in issue.labels}
             return frozenset(seen | self._hooks.extra_labels()), self._hooks.labels_complete
-        listed = _LISTS[0] if side == TYPE else _LISTS[1]
+        listed = {TYPE: _LISTS[0], STATUS_SIDE: _LISTS[2]}.get(side, _LISTS[1])
         return frozenset(names(self._http.get(f"{self._api}/{listed}"))), True
 
     def link_types(self) -> tuple[str, ...]:

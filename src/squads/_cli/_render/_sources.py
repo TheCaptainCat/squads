@@ -74,7 +74,15 @@ def render_listed(listed: SourceListed, console: Console) -> None:
         )
         return
     table = Table(box=None, pad_edge=False)
-    for column in ("Source", "Connector", "State", "Credential", "Items", "Newest update"):
+    for column in (
+        "Source",
+        "Connector",
+        "State",
+        "Credential",
+        "Items",
+        "Newest update",
+        "Status map",
+    ):
         table.add_column(column)
     for row in listed.sources:
         table.add_row(
@@ -84,6 +92,7 @@ def render_listed(listed: SourceListed, console: Console) -> None:
             "stored" if row.credential else "[yellow]none[/yellow]",
             str(row.items),
             e(row.newest_updated_at or "-"),
+            "yes" if row.status_map else "-",
         )
     console.print(table)
 

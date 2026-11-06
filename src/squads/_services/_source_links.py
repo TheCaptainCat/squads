@@ -98,6 +98,7 @@ class SourceLinksMixin(ItemOpsMixin, PullMixin):
                     ),
                     default=None,
                 ),
+                status_map=bool(source.maps.statuses),
             )
             for name, source in sorted(declared.sources.items())
         ]

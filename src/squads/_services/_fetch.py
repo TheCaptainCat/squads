@@ -100,16 +100,21 @@ def _triage(
     source: SourceSpec,
     stored: Mapping[str, frozenset[tuple[str, str]]],
     elsewhere: Mapping[str, str],
+    *,
+    full: bool = False,
 ) -> _Triage:
     """Sort the listing rows into those to read in detail, those that need nothing, those the
     filter rejects, those an item of another source of the tracker holds (*elsewhere*: ID to that
-    holder, reported and never read, selected issues only) and the ones the type map leaves out."""
+    holder, reported and never read, selected issues only) and the ones the type map leaves out.
+    With *full*, a held issue the source selects is read in detail whether or not it changed."""
     out = _Triage()
     for issue in listing:
         accepted = source.accepts(issue)
         if issue.id in stored:
             state = issue.state if accepted else OUT_OF_FILTER
-            if stored[issue.id] == frozenset({(issue.updated_at, state)}):
+            if stored[issue.id] == frozenset({(issue.updated_at, state)}) and not (
+                full and accepted
+            ):
                 out.untouched += 1
             else:
                 out.wanted.append(issue)
@@ -140,10 +145,11 @@ def _fetch(
     stored: Mapping[str, frozenset[tuple[str, str]]],
     linked: Mapping[str, str],
     elsewhere: Mapping[str, str],
+    full: bool,
 ) -> SourceFetch:
     listing = connector.listing()
     listed = frozenset(issue.id for issue in listing)
-    triage = _triage(listing, source, stored, elsewhere)
+    triage = _triage(listing, source, stored, elsewhere, full=full)
     skipped = triage.lines
     untouched = triage.untouched
     found: dict[str, FetchedIssue | None] = {}
@@ -185,14 +191,17 @@ async def fetch_source(
     stored: Mapping[str, frozenset[tuple[str, str]]],
     linked: Mapping[str, str],
     elsewhere: Mapping[str, str],
+    *,
+    full: bool = False,
 ) -> SourceFetch:
     """The issues of *source* to read in detail, through the *connector* :func:`open_connector`
     returned: a selected issue no item holds that maps to one type, and a held issue whose listed
     ``updated_at`` or state differs from the stored ones (*stored*: ID to the ``(updated_at,
-    state)`` of each item holding it). Each held item of *linked* (ID to last known key) the
-    listing lacks is fetched by ID. An issue an item of another source of the tracker holds
-    (*elsewhere*: ID to how the report names that item) costs its listing row only."""
-    return await aio.to_thread(lambda: _fetch(connector, source, stored, linked, elsewhere))
+    state)`` of each item holding it), or every held issue the source selects when *full*. Each
+    held item of *linked* (ID to last known key) the listing lacks is fetched by ID. An issue an
+    item of another source of the tracker holds (*elsewhere*: ID to how the report names that
+    item) costs its listing row only."""
+    return await aio.to_thread(lambda: _fetch(connector, source, stored, linked, elsewhere, full))
 
 
 def _fetch_one(connector: Connector, found: Issue | None, issue_id: str) -> SourceFetch:

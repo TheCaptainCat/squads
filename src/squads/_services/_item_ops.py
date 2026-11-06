@@ -1,6 +1,7 @@
 """The item operations: an item's show, a listing of items and a status move, each answering
 with its DTO."""
 
+from squads import _actor as actor
 from squads import _spans as spans
 from squads._api import (
     ItemAddress,
@@ -34,6 +35,7 @@ from squads._services._item_dto import (
 )
 from squads._services._items import ItemsMixin
 from squads._services._subentities import SubentitiesMixin
+from squads._services._tracker_owned import status_follow_warning
 
 #: The note the duplicate-id warning carries on a read.
 _DUPLICATE_READ_NOTE = "showing the indexed file; run `sq check`"
@@ -158,6 +160,13 @@ class ItemOpsMixin(ItemsMixin, CollabMixin, SubentitiesMixin):
         """Move the item to the requested status, as the declared actor; answers its new row."""
         item = await self.addressed_item(req)
         await self.adopt_declared_actor()
+        warnings = (
+            status_follow_warning(item, self.sources, by=actor.current_actor())
+            if req.status != item.status
+            else []
+        )
         moved = await self.set_status(item.id, req.status, force=req.force)
         names = await self.display_names()
-        return Response(data=ItemWritten(entry=item_row(moved, self.spec, names)))
+        return Response(
+            data=ItemWritten(entry=item_row(moved, self.spec, names)), warnings=warnings
+        )

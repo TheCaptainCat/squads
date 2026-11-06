@@ -7,6 +7,7 @@ import pytest
 from tests import _tracker_harness as harness
 from tests.cli import _source_declared as source_declared
 from tests.cli import _source_links as source_links
+from tests.cli import _source_pulls as source_pulls
 
 pytestmark = pytest.mark.anyio
 
@@ -43,6 +44,7 @@ def _listing(connector: str = "gitlab", version: str = "v4") -> dict[str, object
                 "credential": False,
                 "items": 0,
                 "newest_updated_at": None,
+                "status_map": False,
             }
         ]
     }
@@ -71,7 +73,13 @@ async def test_source_list_shows_each_source_and_whether_a_credential_is_stored(
     project, invoke, credentials_home, profile
 ) -> None:
     with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
-        await source_links.declare(invoke, project, profile, tracker.base_url)
+        await source_links.declare(
+            invoke,
+            project,
+            profile,
+            tracker.base_url,
+            source_pulls.status_map(state={"closed": [profile.done]}),
+        )
         source_links.declare_more(
             project,
             '\n[sources.idle]\nconnector = "gitlab"\nproject = "platform/api"\nbase_url = "http://127.0.0.1:9"\n'
@@ -80,6 +88,7 @@ async def test_source_list_shows_each_source_and_whether_a_credential_is_stored(
         )
         await source_links.pull(invoke)
         listed = await invoke(["source", "list", "--json"])
+        table = await invoke(["source", "list"])
 
     assert listed.exit_code == 0, listed.output
     assert json.loads(listed.output) == {
@@ -92,6 +101,7 @@ async def test_source_list_shows_each_source_and_whether_a_credential_is_stored(
                 "credential": False,
                 "items": 0,
                 "newest_updated_at": None,
+                "status_map": False,
             },
             {
                 "name": "platform",
@@ -101,10 +111,16 @@ async def test_source_list_shows_each_source_and_whether_a_credential_is_stored(
                 "credential": True,
                 "items": 2,
                 "newest_updated_at": "2026-11-03T10:30:00Z",
+                "status_map": True,
             },
         ]
     }
     assert source_links.SECRET not in listed.output
+    rows = {line.split()[0]: line.split()[-1] for line in table.output.splitlines()[1:]}
+    assert (table.output.splitlines()[0].split()[-2:], rows) == (
+        ["Status", "map"],
+        {"idle": "-", "platform": "yes"},
+    )
 
 
 @pytest.mark.covers("source list", "--json")
@@ -162,3 +178,39 @@ async def test_a_jira_jql_quoting_order_by_loads(project, invoke, profile) -> No
 
     assert exit_code == 0, output
     assert json.loads(output) == _listing("jira", "cloud-v3")
+
+
+@pytest.mark.covers("source list", "--json")
+async def test_a_bad_status_map_fails_the_sources_document_with_every_problem_named(
+    project, invoke, profile
+) -> None:
+    text = (
+        f'[connectors.gitlab.v4.maps.statuses.state]\nclosed = "{profile.done}"\n\n'
+        f'{GITLAB}project = "platform/api"\n{_types(profile)}'
+        f'\n[sources.platform.maps.statuses.category]\ndone = "{profile.done}"\n'
+        f'\n[sources.platform.maps.statuses.state]\nopen = "{profile.done}"\nclosed = ["Nope"]\n'
+        f'\n[sources.platform.maps.statuses.labels]\nnone = []\nblank = [""]\n'
+        f'twice = ["{profile.done}", "{profile.done}"]\n'
+        f'\n[sources.other]\nconnector = "gitlab"\nproject = "platform/other"\n{BASE}'
+        f'\n[sources.other.maps.statuses]\nclosed = "{profile.done}"\n'
+    )
+
+    exit_code, output = await _listed(invoke, project, text)
+
+    assert exit_code == 1
+    assert output == (
+        "error: sources.toml: invalid sources after merge:\n"
+        "  connectors.gitlab.v4: maps.statuses is declared per source, not as a connector "
+        "default; move it under [sources.<name>.maps.statuses]\n"
+        "  source 'platform': maps.statuses.category: the connector has no side 'category' for "
+        "the status map (sides: state, labels)\n"
+        "  source 'platform': maps.statuses.labels: 'blank' lists an empty status name\n"
+        "  source 'platform': maps.statuses.labels: 'none' lists no status\n"
+        f"  source 'platform': maps.statuses.labels: 'twice' lists '{profile.done}' twice\n"
+        "  source 'platform': maps.statuses.state: 'closed' -> 'Nope' is not a status of the "
+        "workflow\n"
+        "  source 'platform': maps.statuses.state: 'open' is not a state of the tracker "
+        "(valid: opened, closed)\n"
+        "  source 'other': maps.statuses.closed is a value, not a side: write it under "
+        "maps.statuses.<side>, one of: state, labels\n"
+    )

@@ -30,7 +30,7 @@ subentities:
   title: As an adopter, I apply the map to every held item with a full pull
   status: Todo
 created_at: '2026-11-06T15:08:03Z'
-updated_at: '2026-11-06T15:37:56Z'
+updated_at: '2026-11-06T16:32:41Z'
 ---
 <!-- sq:body -->
 A source can opt in to a status map: a table in `sources.toml` that sends tracker values to workflow statuses. When the pull takes an issue from the tracker, the item's status moves to the mapped status, so a closed issue closes its item. A source with no map behaves as in 0.20.0: the tracker's state lands in the `source` record and no pull writes the item's status.
@@ -46,7 +46,7 @@ An adopter who wants a closed issue to close its item declares that once, per so
 - A per-source, opt-in map from tracker values to ordered lists of workflow statuses, declared in `sources.toml` beside the type, field and link maps.
 - Validation at load against the workflow spec.
 - The pull applying the map when it takes an issue from the tracker, without the transition rule, reported on the issue's line.
-- `sq source pull --full`, which applies the map to every held item at once.
+- `sq source pull --full`, which applies the map at once to every held item whose issue the source selects.
 - The docs and a warning on manual status changes telling an adopter which side owns status for a mapped source.
 - Identical behaviour on a hosted squad: the map is spec data read where the squad is served.
 
@@ -156,12 +156,12 @@ Done when:
 
 <!-- sq:story:US6:body -->
 Done when:
-- `sq source pull --full [<source>]` reads every held, selected issue in detail, with no shortcut for unchanged issues, and applies the status map to every held item; without a name it covers every enabled source.
+- `sq source pull --full [<source>]` reads every held, selected issue in detail, with no shortcut for unchanged issues, and applies the status map to their items; without a name it covers every enabled source.
 - It writes only what differs, so a second full pull of an unchanged tracker writes nothing.
 - On a source with a status map it overrides statuses set by hand, and the docs say so.
 - `--dry-run` lists every move and writes nothing; the pull report lists the moves made.
 - It also picks up what a plain pull misses until the issue next changes: an edited or deleted comment, or a link added.
-- The docs state its cost: one detail read per held issue (comments and links, often several requests) on top of the listing, subject to the tracker's rate limits, and advise naming one source.
+- The docs state its cost: one detail read per held issue the source selects (comments and links, often several requests) on top of the listing, subject to the tracker's rate limits, and advise naming one source.
 - It stores nothing and needs no migration.
 <!-- sq:story:US6:body:end -->
 
@@ -214,4 +214,18 @@ Done when:
   - Drop both: no change to the source view (the docs say which side owns status), and no warning before sq source pull --full fetches (--dry-run previews the moves, and the pull report lists the moves made). @architect @product-owner @tech-lead align ADR-1274 section 15, this feature and TASK-1321.
 - [2026-11-06T15:37:06Z] `product-owner` Nina Product:
   - Aligned to the ruling 10b7aa9: the source view is out of scope and US6 has no pre-fetch warning; --dry-run previews the moves and the pull report lists them. @manager
+- [2026-11-06T16:32:41Z] `tech-writer` Theo Writer:
+  - @manager Process-narration sweep of FEAT-1320 done (whole feature, 862fbfc9~1..HEAD: src, tests, docs/sources.md, docs/stability.md, CHANGELOG 0.20.1, and the bodies of FEAT-1320, TASK-1321, TASK-1322 and their sub-entities). I found no phase, round, review or ticket narration in the delivered text, and no ticket IDs in code or test names. I made accuracy fixes where the fix round's "every held issue the source selects" wording had not reached older text, plus one ambiguous phrase:
+    
+    - `src/squads/_services/_pull.py` `Compiler.move_status` docstring: "when it differs and the issue is selected, and say so on the issue's line" became "when it differs, the issue is selected and the squad's checks accept it". The docstring now covers the validator gate. Only the docstring changed; behaviour is untouched.
+    - `docs/sources.md` § When the map applies, at creation: "...or when the squad's checks refuse the mapped status (both reported)" became "...when no side maps the issue, or, with a line on the report, when the mapped list holds none of its statuses or the squad's checks refuse the mapped status". The old "both" pointed at three cases.
+    - `docs/sources.md` § The full pull, cost bullet: rewrapped an over-long line. The wording is unchanged.
+    - FEAT-1320 body, In scope: "applies the map to every held item at once" became "...at once to every held item whose issue the source selects".
+    - FEAT-1320 US6: "applies the status map to every held item" became "...to their items". The cost bullet's "per held issue" became "per held issue the source selects".
+    - TASK-1321 ST6: "applies the map to every held item" became "...to their items". "because every held issue is now compiled" became "because `--full` compiles every held, selected issue".
+    - TASK-1322 ST2: the cost wording now reads "per held issue the source selects".
+    
+    The CHANGELOG 0.20.1 section and docs/stability.md needed no change. I left the "a map that loads now" phrase in docs/stability.md because it states the compatibility contract, not history.
+    
+    I grepped the old fragments ("every held item", "both reported", "now compiled") across the change, and none remain in it. The bodies were read back: there are no stray `</content>` tags, and the frontmatter diff is `updated_at` only. Gates: ruff check and ruff format are clean, pyright reports 0 errors, `pytest -n 4 tests/cli/test_source_pull.py tests/cli/test_source_list.py tests/meta` gives 822 passed with 0 FAILED, and `sq check` is clean. Nothing is committed.
 <!-- sq:discussion:end -->

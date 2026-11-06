@@ -3,46 +3,47 @@ id: TASK-1321
 sequence_id: 1321
 type: task
 title: Status map on sources and the full pull
-status: InProgress
+status: InReview
 parent: FEAT-1320
 author: tech-lead
 assignee: python-dev
 refs:
 - MILE-1319:targets
+- REV-1323:addresses
 description: maps.statuses per source, applied by the pull, plus sq source pull --full
 subentities:
 - local_id: ST1
   title: Declare maps.statuses and the status sides
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US1
 - local_id: ST2
   title: Validate the status map at load and in the probes
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US4
 - local_id: ST3
   title: Apply the status map in the pull compiler
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US2
 - local_id: ST4
   title: Keep a source without a map unchanged
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US3
 - local_id: ST5
   title: Warn on a manual status move on a mapped item
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US5
 - local_id: ST6
   title: Add sq source pull --full
-  status: Todo
+  status: Done
   assignee: python-dev
   maps_to: US6
 created_at: '2026-11-06T15:26:05Z'
-updated_at: '2026-11-06T15:37:56Z'
+updated_at: '2026-11-06T16:31:04Z'
 priority: high
 ---
 <!-- sq:body -->
@@ -223,11 +224,11 @@ Tests: one `tests/cli/test_item_source.py` case, a status move on a mapped item 
 ### ST6 — Add sq source pull --full
 
 <!-- sq:subtask:ST6:body -->
-`sq source pull --full [<source>]` reads every held, selected issue in detail and applies the map to every held item.
+`sq source pull --full [<source>]` reads every held, selected issue in detail and applies the map to their items.
 
 - `SourcePullRequest.full` and the `--full` option (`src/squads/_cli/_source.py`). Without a name it covers every enabled source, as a plain pull does.
 - `src/squads/_services/_fetch.py`: with `full`, `_triage` sends every held issue the source selects to the detail fetch, instead of counting it `untouched`. Unheld issues (filtered out, without a type, or held elsewhere) and held items missing from the listing are handled as in a plain pull. The fetch stays outside every lock.
-- The compiler is unchanged. It writes only what differs, so a second full pull of an unchanged tracker writes nothing. Comment edits and deletions, and links added, are picked up because every held issue is now compiled.
+- The compiler is unchanged. It writes only what differs, so a second full pull of an unchanged tracker writes nothing. Comment edits and deletions, and links added, are picked up because `--full` compiles every held, selected issue.
 - No warning before the fetch. Under `--dry-run` the report lists every move and nothing is written; without it, the report lists the moves made. The CLI makes one call, `SOURCE_PULL`, so it works the same on a hosted squad.
 - Check that the shim already treats `source pull` as a long command, and that the operation's timeout suits a full read.
 
@@ -250,4 +251,58 @@ Declare `@pytest.mark.covers("source pull", "--full")`.
 <!-- sq:discussion -->
 - [2026-11-06T15:37:28Z] `tech-lead` Olivia Lead:
   - Aligned to op-pierre ruling 10b7aa9: no source-view change, and no warning before sq source pull --full fetches (ST6 and the body updated; --dry-run and the report list the moves). SourceRow.status_map stays, for the sq source list line of US1 only; the pre-pull SOURCE_LIST call is gone. @product-owner US6 still says the full pull warns before it fetches.
+- [2026-11-06T15:54:39Z] `python-dev` Elias Python:
+  - @manager TASK-1321 is implemented, ST1 to ST6 are Done. Not committed, not pushed; full suite not run.
+    
+    **ST3 answer.** The importer's create accepts any state of the item type's lifecycle with no transition rule (`_create_model` takes `status`, and only the catalog gate checks it is a state of the type). So `Compiler.create` sets `CreateEvent.status` directly and no forced status event follows. A refresh emits `StatusEvent(force=True)`.
+    
+    **Files changed (src)**
+    - `_sources/`: `_spec.py` (`SourceMaps.statuses`, a bare string normalised to a list), `_registry.py` (`status_sides`, `status_enums`), `_connector.py` (side names), `_maps.py` (`mapped_status`, `StatusChoice`), `_loader.py` (load checks, connector-default refusal), `_tracker_probes.py`, `_jira/_probes.py`, `_jira/_connector.py`, `_gitlab/_connector.py`, `_github/_connector.py`, `__init__.py`.
+    - `_services/`: `_pull.py` (create and refresh hook, dry-run wording), `_fetch.py` (`full` in `_triage`/`fetch_source`), `_source_links.py` (`status_map` on the list row), `_tracker_owned.py` (`status_follow_warning`), `_item_ops.py` and `_item_write_ops.py` (the warning).
+    - `_api/_dto/_sources.py` (`SourcePullRequest.full`, `SourceRow.status_map`), `_cli/_source.py` (`--full`), `_cli/_render/_sources.py` (Status map column), `_overrides/_service.py` (scaffold rule and example).
+    - The shim already treats `source pull` as a long command and the operation has `Timeout.LONG`, so nothing changed there. No schema bump, no migration.
+    
+    **Tests added (7 new cases; the existing `source list` cases gained the `status_map` key)**
+    - `tests/cli/test_source_pull.py`: creation at the mapped status (list form, state before labels, label fall-through); no-fit and conflict lines, no fall-through, out-of-filter not moved; move on change, `--dry-run`, unchanged pull, hand-set status holds; Jira status before category; `--full` (moves, comment edit picked up, dry-run writes nothing, second full pull writes nothing, detail reads only under `--full`).
+    - `tests/cli/test_source_list.py`: mapped and unmapped source (text and `--json`); a document holding every load refusal.
+    - `tests/cli/test_source_check.py`: unknown Jira status is blocking.
+    - `tests/cli/test_item_source.py`: the warning (mapped, unmapped, unchanged status); `show --refresh` and `relink` apply the map.
+    - Support: `tests/_profile.py` (`working`, `done`, `foreign`) plus its meta check, `tests/cli/_source_pulls.py` helpers, and a recorded `/rest/api/3/status` route in `tests/fixtures/sources/jira-cloud/routes.json`.
+    - Falsified: 16 breaks, each turned its test red (create status, out-of-filter guard, dry-run wording, unchanged-issue shortcut, `--full` shortcut, Jira order, no-fit fall-through, conflict, state/labels order, list flag, enum check, connector-default refusal, Jira probe, warning, refresh hook, Jira side value). After restoring, green. One trap for anyone redoing this: `uv run` rebuilds the package by mtime, so a restored file must be touched or the stale broken build stays installed.
+    
+    **Gates**
+    - `uv run --all-extras pyright`: `0 errors, 0 warnings, 0 informations`
+    - `uv run --all-extras ruff check .`: `All checks passed!`
+    - `uv run --all-extras ruff format --check .`: `676 files already formatted`
+    - `pytest tests/meta tests/cli/{test_source_pull,test_source_list,test_source_check,test_item_source,test_show,test_item_verbs,test_override,test_comment_verbs,test_check}.py -n 4`: `1122 passed in 44.84s`
+    - Same source modules with `--squad override`: `103 passed in 19.88s`
+    - `~/.local/bin/sq check`: `no issues`
+    
+    **Adopter-visible changes for the writer**
+    1. `maps.statuses.<side>` in `sources.toml`, per source only. Value is a status or an ordered list; the first status the item type's lifecycle has wins. Sides, checked in order, first match wins: `state` then `labels` (GitLab, GitHub); `status`, `category` then `labels` (Jira). A value a side does not map falls through; a side that maps a value but gives no status for the type stops the walk. Two labels that resolve to different statuses set nothing. `state` keys: `opened`/`closed` (GitLab), `open`/`closed` (GitHub); `category` keys: `new`/`indeterminate`/`done`.
+    2. When it applies: at creation, when a pull fetches a changed issue while the source selects it, on every `show --refresh` and `relink`, and for every held selected issue under `--full`. The status is set without the transition rule. `out-of-filter` and `gone` items are never moved. A source without the map pulls as before.
+    3. Load errors (the sources document fails, `sq check` reports it under `sources_loads`):
+       - `connectors.gitlab.v4: maps.statuses is declared per source, not as a connector default; move it under [sources.<name>.maps.statuses]`
+       - `source '<n>': maps.statuses.<side>: the connector has no side '<side>' for the status map (sides: state, labels)`
+       - `... : '<key>' is not a state of the tracker (valid: opened, closed)` (`category` for Jira)
+       - `... : '<key>' -> '<status>' is not a status of the workflow`
+       - `... : '<key>' lists no status`, `lists an empty status name`, `lists '<status>' twice`
+       - `source '<n>': maps.statuses.<key> is a value, not a side: write it under maps.statuses.<side>, one of: state, labels`
+    4. Report lines, on the issue's line (also in `show --refresh` and `relink` output):
+       - `<key>: <ID> moved to <Status> (<side> <value>)`, and `would move to` under `--dry-run`, for example `platform/api#13: TASK-3 moved to Done (state closed)`.
+       - `<key>: <value> maps to A, B, none of which is a status of <type>; left alone`
+       - `<key>: status left alone, its labels map to A, B`
+       - A status write counts the issue as `refreshed`. When the move happens, the old `<state>; <ID> stays` line is not printed.
+    5. New `sq source pull --full [<source>]`, composable with `--dry-run` and `--json`. It reads every held, selected issue in detail (comments and links), writes only what differs, applies the map to every held item (overriding hand-set statuses on a mapped source) and picks up comment edits that a plain pull misses. No warning before the fetch, as ruled. Unheld issues cost only their listing row.
+    6. Warning, never a refusal: `sq <type> <n> status <s>` and `update --status <s>` on an item whose source declares `maps.statuses` print `warning: the status follows source '<name>' again when issue <key> next changes`. There is none when the status does not change, the item has no record, the source has no map, or the writer is the source itself. Status is not in the tracker-owned refusals.
+    7. `sq source list`: new `Status map` column (`yes` or `-`), and `status_map` (bool) on each row of `--json`. `docs/sources.md:348` shows the old table.
+    8. `sq override scaffold sources`: the commented rules and worked example gain the status map. The worked example is loaded by a test.
+    9. `sq source check` on Jira: `maps.statuses.status` keys are checked against `GET /rest/api/<n>/status`, blocking when absent (`maps.statuses.status: '<key>' is not among the tracker's statuses`); `labels` keys follow the existing per-side rule.
+    10. Risk for the upgrade note: a squad that declares the map can no longer load its sources on a 0.20.0 build (extra key), which fails only the source commands.
+- [2026-11-06T16:14:04Z] `python-dev` Elias Python:
+  - @manager REV-1323 F1 and F3 (code part) fixed, both set Fixed on the review. Not committed. F1: src/squads/_services/_pull.py (Compiler.refusal, gate in move_status and create; description converted before the move line). New case test_a_status_a_validator_refuses_is_left_alone_and_the_rest_of_the_issue_lands in tests/cli/test_source_pull.py (bundled only, assignee_present@error): falsified on both the refresh and create paths. New adopter-visible line: '<key>: status left alone, <Status> is refused: <reason>'; the item is created at its initial status in that case. F3: src/squads/_cli/_source.py help. Writer: CHANGELOG 'every held item under --full' -> 'every held issue the source selects'; F2 stays with the writer. Gates: pyright 0 errors, ruff check All checks passed!, ruff format 676 files already formatted. Tests (tests/meta plus source, show, override cli modules, -n 4): 924 passed. sq check clean.
+- [2026-11-06T16:21:23Z] `python-dev` Elias Python:
+  - @manager REV-1323 F3 (reopened) and F4 fixed and set Fixed. Not committed. F3: --full help in src/squads/_cli/_source.py now 'Read every held issue the source selects in detail, not only the changed ones, and apply the status map to it.' F4: src/squads/_services/_pull.py, create and refresh report 'status left alone, X is refused' only when the item passes before the move and fails after; otherwise only the existing dropped line prints. Adopter-visible for the writer: that line no longer appears when the refusal holds at any status (it was never a documented line beyond F1's wording). Test: test_a_refusal_that_holds_at_every_status_is_not_blamed_on_the_mapped_status in tests/cli/test_source_pull.py, falsified (red without the base check). Gates: pyright 0 errors, ruff check clean, ruff format 676 files already formatted; tests/meta + source/show/override cli, -n 4: see handback. sq check clean.
+- [2026-11-06T16:26:08Z] `python-dev` Elias Python:
+  - @manager REV-1323 F5 fixed and set Fixed. Not committed. Compiler.move_status now decides on the mapped status (move if it passes; left-alone line only if it fails while the current status passes; no status line if both fail), restoring the move of an unassigned InProgress task whose issue closes under assignee_present@error. Case test_an_item_failing_a_validator_at_its_status_still_moves_to_one_that_passes in tests/cli/test_source_pull.py, red with the old early return. No adopter-visible text change. Gates: pyright 0 errors, ruff check clean, ruff format clean; tests/meta + source/show/override cli -n 4 passed. sq check clean.
 <!-- sq:discussion:end -->

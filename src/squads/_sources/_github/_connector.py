@@ -5,7 +5,7 @@ import urllib.parse
 from collections.abc import Iterator, Mapping
 
 from squads._errors import SquadsError
-from squads._sources._connector import TYPE, Comment, Connector, Issue, Link, Reference
+from squads._sources._connector import STATE_SIDE, TYPE, Comment, Connector, Issue, Link, Reference
 from squads._sources._github._probes import BLOCKED_BY, BLOCKING, GitHubProbes
 from squads._sources._http import HttpClient, NotFoundError, UnexpectedAnswerError
 from squads._sources._probes import Expected, Family, ProbeResult
@@ -110,7 +110,7 @@ class GitHubConnector(Connector):
             updated_at=text(record, "updated_at"),
             author_id=author_id,
             author_handle=author_handle,
-            sides=((TYPE, text(mapping(record.get("type")), "name")),),
+            sides=((TYPE, text(mapping(record.get("type")), "name")), (STATE_SIDE, str(state))),
             labels=names(record.get("labels")),
             locator=(("repo", repo), ("number", number)),
         )

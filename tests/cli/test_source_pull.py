@@ -1572,3 +1572,289 @@ async def test_a_link_read_only_from_the_blocked_end_makes_the_ref_on_the_held_b
     assert pulled == pull_document(pull_report(refreshed=1, unchanged=1))
     assert "/api/v4/projects/77/issues/12/links" not in asked
     assert host == item(profile, 2)
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_first_pull_creates_each_item_at_the_status_its_map_gives(
+    project, invoke, credentials_home, profile
+) -> None:
+    extra = source_pulls.status_map(
+        state={"closed": [profile.foreign, profile.done]},
+        labels={"squads": profile.working, "priority::high": profile.working},
+    )
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, extra)
+        pulled = await source_pulls.pull(invoke, "platform")
+        statuses = await source_pulls.statuses(invoke, profile)
+
+    assert pulled == pull_document(pull_report(created=[profile.ref_id(2), profile.ref_id(3)]))
+    # the closed issue takes the first status of its list its type has, from the state, which is
+    # checked before the labels; the open one falls through to its labels, which agree
+    assert statuses == {2: profile.working, 3: profile.done}
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_status_the_map_cannot_give_is_reported_and_an_out_of_filter_item_is_not_moved(
+    project, invoke, credentials_home, profile
+) -> None:
+    extra = source_pulls.status_map(
+        state={"closed": [profile.foreign]},
+        labels={"squads": profile.working, "priority::high": profile.moved},
+    )
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, extra)
+        created = await source_pulls.pull(invoke, "platform")
+        first = await source_pulls.statuses(invoke, profile)
+        await source_pulls.declare(
+            invoke,
+            project,
+            profile,
+            tracker.base_url,
+            _FILTER.format("squads and not bug")
+            + source_pulls.status_map(labels={"squads": profile.working}),
+        )
+        again = await source_pulls.pull(invoke, "platform")
+        second = await source_pulls.statuses(invoke, profile)
+
+    names = [profile.ref_id(2), profile.ref_id(3)]
+    assert created == pull_document(
+        pull_report(
+            created=names,
+            lines=[
+                f"platform/api#12: status left alone, its labels map to "
+                f"{profile.working}, {profile.moved}",
+                f"platform/api#13: closed maps to {profile.foreign}, none of which is a status "
+                f"of {profile.ref}; left alone",
+            ],
+        )
+    )
+    # a side that maps a value decides even when no listed status fits: the closed issue's label
+    # does not speak in its place
+    assert first == {2: profile.initial, 3: profile.initial}
+    assert again == pull_document(
+        pull_report(
+            refreshed=1,
+            unchanged=1,
+            lines=[
+                "platform/api#12: out-of-filter (rejected by the filter); "
+                f"{profile.ref_id(2)} stays"
+            ],
+        )
+    )
+    assert second == first
+
+
+@pytest.mark.covers("source pull", "--dry-run")
+async def test_a_changed_issue_moves_its_item_and_a_hand_set_status_holds_until_it_changes_again(
+    project, invoke, credentials_home, profile
+) -> None:
+    mapped = source_pulls.status_map(state={"closed": [profile.done]})
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url)
+        await source_pulls.pull(invoke, "platform")
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, mapped)
+        # items pulled before the map was declared stay until their issue changes
+        declared = await source_pulls.pull(invoke, "platform")
+        source_pulls.listing(tracker)[1]["updated_at"] = "2026-11-05T08:00:00Z"
+        before = await _state(invoke, profile, tracker)
+        dry = await source_pulls.pull(invoke, "platform", "--dry-run")
+        untouched = await _state(invoke, profile, tracker)
+        moved = await source_pulls.pull(invoke, "platform")
+        statuses = await source_pulls.statuses(invoke, profile)
+        hand = await invoke([profile.ref, "3", "status", profile.moved, "--force"])
+        held = await source_pulls.pull(invoke, "platform")
+        after = await source_pulls.statuses(invoke, profile)
+
+    third = profile.ref_id(3)
+    assert declared == pull_document(pull_report(unchanged=2))
+    assert before == untouched
+    assert dry == pull_document(
+        pull_report(
+            refreshed=1,
+            unchanged=1,
+            lines=[f"platform/api#13: {third} would move to {profile.done} (state closed)"],
+        ),
+        dry_run=True,
+    )
+    assert moved == pull_document(
+        pull_report(
+            refreshed=1,
+            unchanged=1,
+            lines=[f"platform/api#13: {third} moved to {profile.done} (state closed)"],
+        )
+    )
+    assert statuses == {2: profile.initial, 3: profile.done}
+    assert hand.exit_code == 0, hand.output
+    assert held == pull_document(pull_report(unchanged=2))
+    assert after == {2: profile.initial, 3: profile.moved}
+
+
+@pytest.mark.covers("source pull", "source")
+async def test_a_jira_issue_takes_its_status_from_the_status_name_before_its_category(
+    project, invoke, credentials_home, profile
+) -> None:
+    jira = source_connectors.jira(profile, "cloud-v3") + (
+        f'\n[sources.platform.maps.statuses.status]\n"In Progress" = "{profile.working}"\n'
+        f'\n[sources.platform.maps.statuses.category]\nindeterminate = "{profile.moved}"\n'
+        f'done = "{profile.done}"\n'
+    )
+    with harness.serve(harness.load_routes("jira-cloud/routes.json")) as tracker:
+        await source_connectors.declare(
+            invoke, project, jira.format(base=tracker.base_url), source_connectors.USER_FIELD
+        )
+        pulled = await source_connectors.pull(invoke)
+        statuses = await source_pulls.statuses(invoke, profile)
+
+    assert pulled == pull_document(pull_report(created=[profile.ref_id(2), profile.ref_id(3)]))
+    # the first issue's status name is mapped, so its category does not speak; the second
+    # issue's status name is not, so its category does
+    assert statuses == {2: profile.working, 3: profile.done}
+
+
+@pytest.mark.covers("source pull", "--full")
+async def test_a_full_pull_applies_the_map_to_every_held_item_and_reads_what_a_pull_misses(
+    project, invoke, credentials_home, profile
+) -> None:
+    mapped = source_pulls.status_map(state={"closed": [profile.done]})
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url)
+        await source_pulls.pull(invoke, "platform")
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, mapped)
+        note = _notes(tracker, 12)[1]
+        note["body"] = "It returns 500 for an empty body."
+        note["updated_at"] = "2026-11-04T08:00:00Z"
+        before = len(tracker.requests)
+        plain = await source_pulls.pull(invoke, "platform")
+        plain_asked = [p for p, _, _ in tracker.requests[before:] if p.endswith("/notes")]
+        state = await _state(invoke, profile, tracker)
+        dry = await source_pulls.pull(invoke, "platform", "--full", "--dry-run")
+        unwritten = await _state(invoke, profile, tracker)
+        before = len(tracker.requests)
+        full = await source_pulls.pull(invoke, "platform", "--full")
+        full_asked = {p for p, _, _ in tracker.requests[before:] if p.endswith("/notes")}
+        statuses = await source_pulls.statuses(invoke, profile)
+        edited = await shown_item(invoke, profile, tracker, 2)
+        quiet = await _state(invoke, profile, tracker)
+        second = await source_pulls.pull(invoke, "platform", "--full")
+        after = await _state(invoke, profile, tracker)
+
+    third = profile.ref_id(3)
+    move = f"platform/api#13: {third} moved to {profile.done} (state closed)"
+    assert plain == pull_document(pull_report(unchanged=2))
+    assert plain_asked == []
+    assert dry == pull_document(
+        pull_report(refreshed=2, lines=[move.replace("moved", "would move")]), dry_run=True
+    )
+    assert unwritten == state
+    assert full == pull_document(pull_report(refreshed=2, lines=[move]))
+    assert full_asked == {
+        "/api/v4/projects/77/issues/12/notes",
+        "/api/v4/projects/77/issues/13/notes",
+    }
+    assert statuses == {2: profile.initial, 3: profile.done}
+    assert edited["discussion"][0]["body"] == "- It returns 500 for an empty body."
+    assert second == pull_document(pull_report(unchanged=2))
+    assert after == quiet
+
+
+@pytest.mark.bundled_only("the validator is selected on the bundled task type")
+@pytest.mark.covers("source pull", "source")
+async def test_a_status_a_validator_refuses_is_left_alone_and_the_rest_of_the_issue_lands(
+    project, invoke, credentials_home, profile
+) -> None:
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir(parents=True, exist_ok=True)
+    (overrides / "workflow.toml").write_text(
+        f'[items.{profile.ref}]\nvalidators = ["assignee_present@error"]\n', encoding="utf-8"
+    )
+    extra = source_pulls.status_map(labels={"squads": profile.working})
+    refused = (
+        f"status left alone, {profile.working} is refused: "
+        f"status is {profile.working} but nobody is assigned"
+    )
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, extra)
+        created = await source_pulls.pull(invoke, "platform")
+        first = await source_pulls.statuses(invoke, profile)
+        issue = source_pulls.listing(tracker)[0]
+        issue["title"] = "Login fails on a blank password"
+        issue["updated_at"] = "2026-11-05T08:00:00Z"
+        changed = await source_pulls.pull(invoke, "platform")
+        statuses = await source_pulls.statuses(invoke, profile)
+        shown = await shown_item(invoke, profile, tracker, 2)
+
+    names = [profile.ref_id(2), profile.ref_id(3)]
+    assert created == pull_document(
+        pull_report(
+            created=names,
+            lines=[f"platform/api#12: {refused}", f"platform/api#13: {refused}"],
+        )
+    )
+    assert first == {2: profile.initial, 3: profile.initial}
+    assert changed == pull_document(
+        pull_report(refreshed=1, unchanged=1, lines=[f"platform/api#12: {refused}"])
+    )
+    assert statuses == first
+    assert shown["title"] == "Login fails on a blank password"
+    assert shown["source"]["updated_at"] == "2026-11-05T08:00:00Z"
+
+
+@pytest.mark.bundled_only("the validator is selected on the bundled task type")
+@pytest.mark.covers("source pull", "source")
+async def test_a_refusal_that_holds_at_every_status_is_not_blamed_on_the_mapped_status(
+    project, invoke, credentials_home, profile
+) -> None:
+    overrides = project.squad_dir / ".overrides"
+    overrides.mkdir(parents=True, exist_ok=True)
+    (overrides / "workflow.toml").write_text(
+        f'[items.{profile.ref}]\nvalidators = ["parent_present@error"]\n', encoding="utf-8"
+    )
+    extra = source_pulls.status_map(
+        state={"closed": [profile.done]}, labels={"squads": profile.working}
+    )
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, extra)
+        pulled = await source_pulls.pull(invoke, "platform")
+
+    why = f"{profile.ref} requires a parent of type {profile.host}"
+    assert pulled == pull_document(
+        pull_report(
+            dropped=2,
+            lines=[
+                "platform/api#12: a link was dropped, no item "
+                "'platform:gid://gitlab/Issue/9001' in the index",
+                f"platform/api#12: dropped, {why}",
+                f"platform/api#13: dropped, {why}",
+            ],
+        )
+    )
+
+
+@pytest.mark.bundled_only("the validator is selected on the bundled task type")
+@pytest.mark.covers("source pull", "source")
+async def test_an_item_failing_a_validator_at_its_status_still_moves_to_one_that_passes(
+    project, invoke, credentials_home, profile
+) -> None:
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_pulls.declare(invoke, project, profile, tracker.base_url)
+        await source_pulls.pull(invoke, "platform")
+        hand = await invoke([profile.ref, "3", "status", profile.working])
+        overrides = project.squad_dir / ".overrides"
+        (overrides / "workflow.toml").write_text(
+            f'[items.{profile.ref}]\nvalidators = ["assignee_present@error"]\n', encoding="utf-8"
+        )
+        mapped = source_pulls.status_map(state={"closed": [profile.done]})
+        await source_pulls.declare(invoke, project, profile, tracker.base_url, mapped)
+        source_pulls.listing(tracker)[1]["updated_at"] = "2026-11-05T08:00:00Z"
+        pulled = await source_pulls.pull(invoke, "platform")
+        statuses = await source_pulls.statuses(invoke, profile)
+
+    assert hand.exit_code == 0, hand.output
+    assert pulled == pull_document(
+        pull_report(
+            refreshed=1,
+            unchanged=1,
+            lines=[f"platform/api#13: {profile.ref_id(3)} moved to {profile.done} (state closed)"],
+        )
+    )
+    assert statuses == {2: profile.initial, 3: profile.done}

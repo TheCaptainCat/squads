@@ -7,6 +7,7 @@ import pytest
 
 from tests import _tracker_harness as harness
 from tests.cli import _source_links as source_links
+from tests.cli import _source_pulls as source_pulls
 from tests.cli._output import pull_document, pull_report
 from tests.cli._pulled import DESCRIPTION, RECORDS, shown_item
 
@@ -362,3 +363,55 @@ async def test_relink_by_a_gitlab_id_the_scope_does_not_list_says_to_use_the_key
         "resolves an ID only through the scope's listing, so relink it by its key "
         "(group/project#12)\n",
     )
+
+
+@pytest.mark.covers("<type> status", "status")
+@pytest.mark.covers("<type> update", "--status")
+async def test_a_status_move_on_an_item_of_a_mapped_source_warns_and_succeeds(
+    project, invoke, credentials_home, profile
+) -> None:
+    mapped = source_pulls.status_map(state={"closed": [profile.done]})
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_links.declare(invoke, project, profile, tracker.base_url)
+        await source_links.pull(invoke)
+        plain = await invoke([profile.ref, "2", "status", profile.moved])
+        await source_links.declare(invoke, project, profile, tracker.base_url, mapped)
+        status = await invoke([profile.ref, "2", "status", profile.working])
+        update = await invoke([profile.ref, "2", "update", "--status", profile.moved, "--force"])
+        same = await invoke([profile.ref, "2", "update", "--status", profile.moved, "--force"])
+        shown = await invoke([profile.ref, "2", "show", "--json"])
+
+    warning = (
+        "warning: the status follows source 'platform' again when issue platform/api#12 "
+        "next changes\n"
+    )
+    assert [r.exit_code for r in (plain, status, update, same)] == [0, 0, 0, 0]
+    assert (plain.stderr, status.stderr, update.stderr, same.stderr) == ("", warning, warning, "")
+    assert json.loads(shown.output)["status"] == profile.moved
+
+
+@pytest.mark.covers("<type> source relink", "source")
+@pytest.mark.covers("<type> show", "--refresh")
+async def test_show_refresh_and_relink_apply_the_status_map_each_time(
+    project, invoke, credentials_home, profile
+) -> None:
+    mapped = source_pulls.status_map(
+        state={"closed": [profile.done]}, labels={"priority::high": profile.working}
+    )
+    with harness.serve(harness.load_routes("gitlab/routes.json")) as tracker:
+        await source_links.declare(invoke, project, profile, tracker.base_url)
+        await source_links.pull(invoke)
+        await source_links.declare(invoke, project, profile, tracker.base_url, mapped)
+        refreshed = await invoke([profile.ref, "3", "show", "--refresh", "--json"])
+        await invoke([profile.ref, "2", "source", "unlink"])
+        relinked = await invoke(
+            [profile.ref, "2", "source", "relink", "platform", "platform/api#12", "--json"]
+        )
+        statuses = await source_pulls.statuses(invoke, profile)
+
+    first = profile.ref_id(2)
+    assert refreshed.exit_code == 0, (refreshed.output, refreshed.stderr)
+    assert json.loads(relinked.output)["lines"] == [
+        f"platform/api#12: {first} moved to {profile.working} (labels priority::high)"
+    ]
+    assert statuses == {2: profile.working, 3: profile.done}

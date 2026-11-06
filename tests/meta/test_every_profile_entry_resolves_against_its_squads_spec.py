@@ -50,6 +50,12 @@ def _problems(profile: Profile, spec: WorkflowSpec) -> list[str]:
         ("third kind plural", spec.subentity_kinds[p.third_kind].plural == p.third_kind_plural),
         ("initial status", spec.initial_status(p.ref) == p.initial),
         ("moved status", spec.can_transition(p.ref, p.initial, p.moved)),
+        ("working status", p.working in spec.workflow_for(p.ref).states),
+        ("done status", p.done in spec.workflow_for(p.ref).states),
+        (
+            "foreign status",
+            p.foreign in spec.statuses and p.foreign not in spec.workflow_for(p.ref).states,
+        ),
         ("kind initial status", spec.subentity_initial(p.kind) == p.kind_initial),
         ("kind moved status", spec.subentity_can_transition(p.kind, p.kind_initial, p.kind_moved)),
         ("retype source prefix", spec.items[p.retype_from].prefix == p.retype_from_prefix),

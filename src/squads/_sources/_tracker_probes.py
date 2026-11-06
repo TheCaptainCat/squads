@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterator
 
 from squads._errors import SquadsError
-from squads._sources._connector import LABELS, TYPE, Issue
+from squads._sources._connector import LABELS, STATUS_SIDE, TYPE, Issue
 from squads._sources._filter import words
 from squads._sources._http import (
     HttpClient,
@@ -236,6 +236,16 @@ class TrackerProbes(ABC):
                 for side, table in sorted(sides.items())
             ]
             + [
+                (
+                    f"maps.statuses.{side}",
+                    sources_toml(expected, f"statuses.{side}"),
+                    side,
+                    dict.fromkeys(table),
+                )
+                for side, table in sorted(maps.statuses.items())
+                if side in (LABELS, STATUS_SIDE)
+            ]
+            + [
                 (f"filter.{side}", filter_toml(expected), side, dict.fromkeys(words(expression)))
                 for side, expression in sorted(expected.filter.items())
             ]
@@ -283,7 +293,9 @@ class TrackerProbes(ABC):
     def _missing(label: str, where: str, side: str, key: str, certain: bool) -> ProbeResult:
         """The result for a map or filter *key* that *side* of the tracker was not found to hold:
         a failure when the list of values is complete, else a warning."""
-        noun = {LABELS: "labels", TYPE: "issue types"}.get(side, f"{side} values")
+        noun = {LABELS: "labels", TYPE: "issue types", STATUS_SIDE: "statuses"}.get(
+            side, f"{side} values"
+        )
         fix = f"correct it in {where}"
         if certain:
             return ProbeResult(

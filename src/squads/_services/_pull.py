@@ -9,7 +9,15 @@ from squads import _clock as clock
 from squads import _discussion as discussion
 from squads._api import Response, SourcePulled, SourcePullReport, SourcePullRequest
 from squads._errors import SquadsError
-from squads._models import GONE, OUT_OF_FILTER, SOURCE_AUTHOR_PREFIX, Item, SquadsDB, split_ref
+from squads._models import (
+    GONE,
+    OUT_OF_FILTER,
+    SOURCE_AUTHOR_PREFIX,
+    Item,
+    SquadsDB,
+    prefix_for,
+    split_ref,
+)
 from squads._services._fetch import connector_for, fetch_source, open_connector, require_enabled
 from squads._services._import import ImportMixin
 from squads._services._import_model import (
@@ -20,9 +28,11 @@ from squads._services._import_model import (
     RefEvent,
     ResolvedEvent,
     SourceEvent,
+    StatusEvent,
     UpdateEvent,
     ViewBodyEvent,
 )
+from squads._services._validators import ValidatorEngine
 from squads._sources import (
     Comment,
     Connector,
@@ -30,7 +40,9 @@ from squads._sources import (
     Issue,
     SourceFetch,
     SourceSpec,
+    StatusChoice,
     load_converter,
+    mapped_status,
     mapped_types,
     mapped_values,
     missing_credential,
@@ -125,8 +137,11 @@ class Compiler:
         source: SourceSpec,
         now: datetime,
         created_before: frozenset[str] = frozenset(),
+        *,
+        dry_run: bool = False,
     ):
         self.service = service
+        self.dry_run = dry_run
         self.db = db
         self.source = source
         self.now = now
@@ -200,6 +215,14 @@ class Compiler:
                 )
         return out
 
+    def mapped_status(self, issue: Issue, item_type: str) -> StatusChoice | None:
+        """The status the source's map gives *issue* as an item of *item_type*, or ``None`` when
+        the source has no status map or no side maps the issue."""
+        if not self.source.maps.statuses:
+            return None
+        states = self.service.spec.workflow_for(item_type).states
+        return mapped_status(self.source, issue, item_type, states)
+
     def record(self, issue: Issue, state: str) -> dict[str, str]:
         return {
             "name": self.source.name,
@@ -259,9 +282,38 @@ class Compiler:
         declared = {f.code for f in self.service.spec.fields_for(item_type)}
         fields = {c: v for c, v in self.mapped_fields(issue).items() if c in declared}
         handle = self.handle(issue)
+        choice = self.mapped_status(issue, item_type)
+        if choice is not None and choice.problem:
+            self.say(f"{issue.key}: {choice.problem}")
+        elif choice is not None and choice.status != (
+            initial := self.service.spec.initial_status(item_type)
+        ):
+            candidate = Item(
+                sequence_id=self.db.counter + 1,
+                type=item_type,
+                prefix=prefix_for(item_type, self.service.spec),
+                title=issue.title or item_type,
+                slug="candidate",
+                status=choice.status,
+                author=self.actor,
+                path="candidate.md",
+                created_at=self.now,
+                updated_at=self.now,
+            )
+            if self.refusal(candidate.model_copy(update={"status": initial})) is not None:
+                choice = None  # refused at any status: the pull's own drop line says why
+            elif (why := self.refusal(candidate)) is not None:
+                self.say(f"{issue.key}: status left alone, {choice.status} is refused: {why}")
+                choice = None
         self.emit(
             label,
-            CreateEvent(type=item_type, title=issue.title, fields=fields, handle=handle),
+            CreateEvent(
+                type=item_type,
+                title=issue.title,
+                fields=fields,
+                handle=handle,
+                status=(choice.status or None) if choice is not None else None,
+            ),
         )
         self.emit(label, SourceEvent(target=handle, record=self.record(issue, state)))
         self.emit(
@@ -297,18 +349,57 @@ class Compiler:
                 ),
             )
         record = self.record(issue, state)
+        text = _lf(self.convert(issue.description, issue.key))
+        moved = self.move_status(label, item, issue, state)
         if item.source is None or item.source.model_dump() != record:
-            if item.source is not None and item.source.state != state and state != "open":
+            if (
+                item.source is not None
+                and item.source.state != state
+                and state != "open"
+                and not moved
+            ):
                 reason = f" ({why})" if why else ""
                 self.say(f"{issue.key}: {state}{reason}; {item.id} stays")
             self.emit(label, SourceEvent(target=item.id, record=record))
-        text = _lf(self.convert(issue.description, issue.key))
         if await self.service.stored_description(item, DESCRIPTION_VIEW) != text:
             self.emit(label, ViewBodyEvent(target=item.id, view=DESCRIPTION_VIEW, text=text))
         existing = await self.service.comments(item.id)
         self.comments(
             label, item.id, fetched.comments, existing=existing, seq=item, issue_key=issue.key
         )
+
+    def refusal(self, candidate: Item) -> str | None:
+        """Why the squad's per-item validators refuse *candidate*, or ``None`` if they accept it."""
+        engine = ValidatorEngine(
+            spec=self.service.spec, playbook=self.service.playbook, paths=self.service.paths
+        )
+        try:
+            engine.gate(candidate, self.db)
+        except SquadsError as exc:
+            return str(exc)
+        return None
+
+    def move_status(self, label: str, item: Item, issue: Issue, state: str) -> bool:
+        """Set the status the source's map gives *issue* on *item* without the transition rule, when
+        it differs, the issue is selected and the squad's checks accept it; whether it moved."""
+        choice = self.mapped_status(issue, item.type) if state in ("open", "closed") else None
+        if choice is None:
+            return False
+        if choice.problem:
+            self.say(f"{issue.key}: {choice.problem}")
+            return False
+        if choice.status == item.status:
+            return False
+        candidate = item.model_copy(deep=True)
+        candidate.status = choice.status
+        if (why := self.refusal(candidate)) is not None:
+            if self.refusal(item) is None:
+                self.say(f"{issue.key}: status left alone, {choice.status} is refused: {why}")
+            return False  # refused at both statuses: the pull's drop line says why
+        self.emit(label, StatusEvent(target=item.id, status=choice.status, force=True))
+        verb = "would move" if self.dry_run else "moved"
+        self.say(f"{issue.key}: {item.id} {verb} to {choice.status} ({choice.side} {choice.value})")
+        return True
 
     def comments(
         self,
@@ -435,7 +526,12 @@ class PullMixin(ImportMixin):
 
     @staticmethod
     async def _fetch_one_source(
-        db: SquadsDB, source: SourceSpec, connector: Connector, peers: frozenset[str]
+        db: SquadsDB,
+        source: SourceSpec,
+        connector: Connector,
+        peers: frozenset[str],
+        *,
+        full: bool,
     ) -> SourceFetch:
         """The fetch of *source*: what the items already hold of it decides what is read in
         detail."""
@@ -455,7 +551,12 @@ class PullMixin(ImportMixin):
             if record is not None and record.name in peers - {source.name}:
                 elsewhere.setdefault(record.id, f"{db.items[seq].id} of source {record.name!r}")
         return await fetch_source(
-            connector, source, stored, {record.id: record.key for record in held}, elsewhere
+            connector,
+            source,
+            stored,
+            {record.id: record.key for record in held},
+            elsewhere,
+            full=full,
         )
 
     async def pull_sources(self, req: SourcePullRequest) -> Response[SourcePulled]:
@@ -494,7 +595,10 @@ class PullMixin(ImportMixin):
             try:
                 peers = declared.peers(source.name)
                 fetched.append(
-                    Fetched(source, await self._fetch_one_source(db, source, connector, peers))
+                    Fetched(
+                        source,
+                        await self._fetch_one_source(db, source, connector, peers, full=req.full),
+                    )
                 )
             except SquadsError as exc:
                 if req.name is not None:
@@ -505,7 +609,9 @@ class PullMixin(ImportMixin):
         jobs: list[CompileJob] = [
             (
                 entry.source,
-                lambda db, before, entry=entry: self._compile_source(db, entry, now, before),
+                lambda db, before, entry=entry: self._compile_source(
+                    db, entry, now, before, dry_run=req.dry_run
+                ),
             )
             for entry in fetched
         ]
@@ -590,9 +696,15 @@ class PullMixin(ImportMixin):
                 )
 
     async def _compile_source(
-        self, db: SquadsDB, entry: Fetched, now: datetime, before: frozenset[str] = frozenset()
+        self,
+        db: SquadsDB,
+        entry: Fetched,
+        now: datetime,
+        before: frozenset[str] = frozenset(),
+        *,
+        dry_run: bool = False,
     ) -> Compiled:
-        compiler = Compiler(self, db, entry.source, now, before)
+        compiler = Compiler(self, db, entry.source, now, before, dry_run=dry_run)
         fetch = entry.fetch
         compiler.out.unchanged += fetch.untouched
         compiler.out.restricted = fetch.restricted
