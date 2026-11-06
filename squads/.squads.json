@@ -1,6 +1,6 @@
 {
   "schema_version": "0.20",
-  "counter": 1318,
+  "counter": 1320,
   "padding": 6,
   "items": {
     "12": {
@@ -418,7 +418,7 @@
       "type": "epic",
       "title": "External sources: work tracked elsewhere",
       "slug": "external-sources-work-tracked-elsewhere",
-      "status": "Done",
+      "status": "InProgress",
       "description": "Agents work on issues humans file on GitLab, GitHub and Jira, pulled into the squad",
       "parent": null,
       "author": "product-owner",
@@ -428,7 +428,7 @@
       "subentities": [],
       "path": "epics/EPIC-001268-external-sources-work-tracked-elsewhere.md",
       "created_at": "2026-11-03T15:57:06Z",
-      "updated_at": "2026-11-04T18:38:00Z",
+      "updated_at": "2026-11-06T15:08:00Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -44750,12 +44750,13 @@
         "ADR-1261",
         "ADR-622",
         "ADR-1013",
-        "ADR-1109"
+        "ADR-1109",
+        "FEAT-1320:addresses"
       ],
       "subentities": [],
       "path": "adrs/ADR-001274-external-sources-source-record-stored-views-sourced-comments.md",
       "created_at": "2026-11-03T22:41:36Z",
-      "updated_at": "2026-11-05T05:57:54Z",
+      "updated_at": "2026-11-06T15:12:58Z",
       "created_session": null,
       "modified_session": null,
       "attributes": {},
@@ -69751,6 +69752,101 @@
       },
       "slug_in_file": false,
       "id": "BUG-1318"
+    },
+    "1319": {
+      "sequence_id": 1319,
+      "type": "milestone",
+      "title": "squads 0.20.1 - tracker state moves status",
+      "slug": "squads-0-20-1-tracker-state-moves-status",
+      "status": "Draft",
+      "description": "Opt-in status map on sources: a closed issue can close its item",
+      "parent": null,
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "EPIC-1268"
+      ],
+      "subentities": [],
+      "path": "milestones/MILE-001319-squads-0-20-1-tracker-state-moves-status.md",
+      "created_at": "2026-11-06T15:08:00Z",
+      "updated_at": "2026-11-06T15:08:00Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "MILE-1319"
+    },
+    "1320": {
+      "sequence_id": 1320,
+      "type": "feature",
+      "title": "Opt-in status map on sources",
+      "slug": "opt-in-status-map-on-sources",
+      "status": "Draft",
+      "description": "A per-source map from tracker state to workflow status, declared in sources.toml",
+      "parent": "EPIC-1268",
+      "author": "product-owner",
+      "assignee": null,
+      "labels": [],
+      "refs": [
+        "MILE-1319:targets",
+        "ADR-1274:addresses"
+      ],
+      "subentities": [
+        {
+          "local_id": "US1",
+          "title": "As an adopter, I declare a status map on a source",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US2",
+          "title": "As an adopter, a closed issue closes its item",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US3",
+          "title": "As an adopter, a source without a map is unchanged",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US4",
+          "title": "As an adopter, a bad map is refused when the spec loads",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        },
+        {
+          "local_id": "US5",
+          "title": "As an adopter, I read which side owns status",
+          "status": "Todo",
+          "assignee": null,
+          "maps_to": null,
+          "deferred_to": null,
+          "attributes": {}
+        }
+      ],
+      "path": "features/FEAT-001320-opt-in-status-map-on-sources.md",
+      "created_at": "2026-11-06T15:08:03Z",
+      "updated_at": "2026-11-06T15:11:09Z",
+      "created_session": null,
+      "modified_session": null,
+      "attributes": {},
+      "slug_in_file": false,
+      "id": "FEAT-1320"
     }
   }
 }

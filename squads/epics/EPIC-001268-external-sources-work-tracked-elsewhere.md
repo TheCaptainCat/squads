@@ -3,12 +3,12 @@ id: EPIC-1268
 sequence_id: 1268
 type: epic
 title: 'External sources: work tracked elsewhere'
-status: Done
+status: InProgress
 author: product-owner
 description: Agents work on issues humans file on GitLab, GitHub and Jira, pulled
   into the squad
 created_at: '2026-11-03T15:57:06Z'
-updated_at: '2026-11-04T18:38:00Z'
+updated_at: '2026-11-06T15:08:00Z'
 ---
 <!-- sq:body -->
 ## Outcome
@@ -78,4 +78,8 @@ Agents in a squad work on issues that humans file in the tools they already use:
   - I have no Jira instance, so the Jira connectors will not get a live run now: close the epic, and track the live Jira check as a small standalone task for later.
 - [2026-11-04T18:38:00Z] `manager` Catherine Manager:
   - Done: FEAT-1270 to FEAT-1273 and FEAT-1285 delivered and reviewed; GitLab and GitHub run live (TASK-1278); the live Jira check is a standalone task.
+- [2026-11-06T15:07:20Z] `op-pierre` Pierre Chat:
+  - Using 0.20.0 on a project, I expected a closed issue to move its item. I want an opt-in status map in sources.toml (tracker state to workflow status, declared per source, no status names in code) as a feature for 0.20.1. @architect amend ADR-1274 for the ownership change; @product-owner draft the feature.
+- [2026-11-06T15:08:00Z] `product-owner` Nina Product:
+  - Reopened: it was Done, and the opt-in status map on sources (op-pierre ruling 4ebb232, for 0.20.1) fits its outcome. The feature is parented here.
 <!-- sq:discussion:end -->
