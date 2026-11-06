@@ -3,13 +3,13 @@ id: MILE-1319
 sequence_id: 1319
 type: milestone
 title: squads 0.20.1 - tracker state moves status
-status: Draft
+status: InProgress
 author: product-owner
 refs:
 - EPIC-1268
 description: 'Opt-in status map on sources: a closed issue can close its item'
 created_at: '2026-11-06T15:08:00Z'
-updated_at: '2026-11-06T15:08:00Z'
+updated_at: '2026-11-06T15:23:42Z'
 ---
 <!-- sq:body -->
 The first patch release after 0.20.0: a squad can let a tracker's open or closed state move the item's workflow status, per source and by opt-in. Until now a pull never touches an item's status, so a closed issue leaves its item where it was.

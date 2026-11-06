@@ -24,7 +24,7 @@ description: Source record and derived lookup, nested records, stored view bodie
   comment attributes, namespaced authors, server-side credentials, sources.toml, pull
   as import events, schema 0.20
 created_at: '2026-11-03T22:41:36Z'
-updated_at: '2026-11-06T15:12:58Z'
+updated_at: '2026-11-06T15:37:03Z'
 ---
 <!-- sq:body -->
 ## Context
@@ -612,13 +612,13 @@ An issue the filter rejects while this source's own item holds it is not filtere
 
 ### 15. The status map
 
-A source may declare `maps.statuses`, a map from tracker values to workflow statuses (rulings 524438a, 36eb2e8 and ecfcbf7). A source without it leaves status entirely to the squad: the tracker's open or closed lands only in the record's `state`, and no pull writes the item's status.
+A source may declare `maps.statuses`, a map from tracker values to workflow statuses (rulings 524438a, 36eb2e8, ecfcbf7 and db47414). A source without it leaves status entirely to the squad: the tracker's open or closed lands only in the record's `state`, and no pull writes the item's status.
 
-**Shape.** `maps.statuses.<side>`, keyed by side like `maps.types`, each side a table of tracker value to status name:
+**Shape.** `maps.statuses.<side>`, keyed by side like `maps.types`, each side a table of tracker value to an ordered list of status names:
 
 ```toml
 [sources.platform.maps.statuses.state]
-closed = "Done"
+closed = ["Done", "Verified"]
 
 [sources.platform.maps.statuses.labels]
 "workflow::doing" = "InProgress"
@@ -634,37 +634,48 @@ closed = "Done"
   | `github@v3` | `state`, `labels` | `state`: GitHub's `open` or `closed` |
   | `jira@cloud-v3`, `jira@dc-v2` | `status`, `category`, `labels` | `status`: the issue's status name as the instance spells it; `category`: its status category key, `new`, `indeterminate` or `done` |
 
+- **A value is an ordered list of statuses**, and the first one that is a state of the lifecycle of the item's type is the one the value gives (ruling db47414). A status name means the same thing in every type, so one list per tracker value covers every type of a squad with several lifecycles: `closed = ["Done", "Verified"]` closes a task as `Done` and a bug whose lifecycle ends in `Verified` as `Verified`. A bare string is a one-element list. An empty list, an empty name and a name listed twice fail at load.
 - Keys are spelled as the tracker spells them, case included, like every map key. `state` and `category` are fixed API enums, so a key outside them fails at load; `status` and `labels` keys are checked by the probes of `sq source check` under the per-side rule of §14 (**Tracker API enums**): Jira lists its statuses, so a `status` key it does not hold is blocking.
 - The record's `out-of-filter` and `gone` are squad states, not tracker values, and no side carries them: they cannot be mapped.
 - The map is per source. `maps.statuses` under `[connectors.<name>.<version>]` fails at load, so no connector default turns it on, and no status name appears in code: every target is read from the source's own declaration.
 
-**Precedence is the order of the sides: first match wins.** The pull walks the connector version's status sides in their declared order, and the first side that maps one of the issue's values gives the status. On GitLab and GitHub a mapped `closed` therefore comes before any label, and on Jira a mapped status name before its category, and both before labels. A value a side does not map falls through to the next side, so an adopter decides which side speaks for a value by mapping it or leaving it out: a source that maps only `closed` on `state` lets its labels decide every open issue.
+**Precedence is the order of the sides: first match wins.** The pull walks the connector version's status sides in their declared order, and the first side that maps one of the issue's values gives the status, resolved through that value's list against the item's type. On GitLab and GitHub a mapped `closed` therefore comes before any label, and on Jira a mapped status name before its category, and both before labels. A value a side does not map falls through to the next side, so an adopter decides which side speaks for a value by mapping it or leaving it out: a source that maps only `closed` on `state` lets its labels decide every open issue.
 
 - The order is the connector version's, not the adopter's. Any priority an adopter needs is spelled by what each side maps; the only order a fixed list cannot give, labels before the tracker's own lifecycle, is the one the rulings exclude. Every key of `maps.statuses` that is not a side is refused today, so a per-source order can come later as a new key without changing what a file that loads now means.
-- Within one side, values that map to two different statuses (two labels) set nothing: the walk stops there, the status is left alone, and the issue's line names the values found. Values that agree do not conflict. A side that gives one value can never conflict.
+- A side that maps a value decides, even when none of its listed statuses is in the item's lifecycle: the walk stops, the status is left alone, and the issue's line says so. It does not fall through to the next side, so a mistyped or missing status shows rather than letting a lower side speak in its place.
+- Within one side, values whose lists resolve to two different statuses for the item's type (two labels) set nothing: the walk stops there, the status is left alone, and the issue's line names the values found. Values that agree do not conflict. A side that gives one value can never conflict.
 - This replaces the rule that sides which disagree set nothing for the status map only. `maps.types` and `maps.fields` keep it: their sides are peers, so a disagreement between them is a tracker data error. The status map's sides are ranked, because the tracker's lifecycle and a label legitimately both hold on one issue, and the lifecycle is the tracker's own word.
 
-**Validation at load**, collect-all with the other map checks of §8: a side the connector version does not have for the status map fails, listing its status sides; a `state` or `category` key outside its enum fails, listing the enum; every target must be a declared status that belongs to the lifecycle of at least one type the source's `maps.types` targets, so a target that can never apply is refused, naming the source, the side, the key and the value. A workflow override that later drops or renames a mapped status makes `sources.toml` fail to load, which fails the source commands only and is reported by `sq check` under `sources_loads` (§8).
+**Validation at load**, collect-all with the other map checks of §8: a side the connector version does not have for the status map fails, listing its status sides; a `state` or `category` key outside its enum fails, listing the enum; every listed status must be declared in the workflow spec, so a misspelled one is refused, naming the source, the side, the key and the status. Whether a listed status suits a given type is decided per item at pull time, since a type's lifecycle may hold some of a list and not others. A workflow override that later drops or renames a mapped status makes `sources.toml` fail to load, which fails the source commands only and is reported by `sq check` under `sources_loads` (§8).
 
 **When the map applies.** The pull sets the status whenever it takes the issue from the tracker, and only then:
 
-- on creation: the item is created at the mapped status, or at its type's initial status when no side maps the issue;
+- on creation: the item is created at the status the map gives for the type it is created as, or at that type's initial status when no side maps the issue, or when the mapped list holds none of its statuses (reported);
 - on a pull that fetches the issue in detail because its listed `updated_at` or state differs from the record (§14), and only while the source selects it (the record's new state is `open` or `closed`);
-- on `relink` and on `show --refresh`, each time, since both are an explicit request to take that issue now.
+- on `relink` and on `show --refresh`, each time, since both are an explicit request to take that issue now;
+- on every held, selected issue under `sq source pull --full` (below).
 
 Between those moments the status is the squad's. A pull of an unchanged issue writes nothing, so a status the squad set after the tracker's last change stands until the issue changes again. Labels are not kept in the record (ruling 7238207), so the pull cannot tell which part of the issue changed: any change, a comment included, re-applies the map. An item whose record is `out-of-filter` or `gone` is not moved; an issue the filter accepts again is a change, and the map applies.
 
 The pull writes the status only when the mapped one differs from the item's, through the importer's existing `status` op under the actor `source:<name>`, so the reflog records it like any other sourced change; ADR-622 gains no op. A status write counts the issue as `refreshed`, and the issue's line names it: `platform/api#12: TASK-<n> moved to Done (state closed)`, `would move` under `--dry-run`.
 
-**The lifecycle.** The tracker reports a fact that has already happened, so the pull sets the mapped status without the transition rule, as `status --force` does: a `Draft` item whose issue closes goes to `Done` even where the lifecycle has no `Draft` to `Done` edge. The status must still be a state of the lifecycle of the item's current type. An item retyped to a type whose lifecycle lacks the mapped status is left alone, and the issue's line says so (`status Done is not a status of bug, left alone`); this is a standing skip under §14, so it counts as applied and does not refetch the issue. A terminal mapped status needs no special case: a reopened issue that maps elsewhere moves the item out of it the same way.
+**The lifecycle.** The tracker reports a fact that has already happened, so the pull sets the mapped status without the transition rule, as `status --force` does: a `Draft` item whose issue closes goes to `Done` even where the lifecycle has no `Draft` to `Done` edge. The status must still be a state of the lifecycle of the item's current type. The list is resolved against the item's current type, so a retyped item takes the first listed status its new lifecycle holds. Only an item whose type's lifecycle holds none of the listed statuses is left alone, and the issue's line says so (`closed maps to Done, Verified, none of which is a status of bug; left alone`); this is a standing skip under §14, so it counts as applied and does not refetch the issue. A terminal mapped status needs no special case: a reopened issue that maps elsewhere moves the item out of it the same way.
 
 **Ownership.** Status stays squad-owned, and is never refused. The squad moves an item through its working statuses while the issue stays open on the tracker, which a refusal would forbid. On an item whose source declares `maps.statuses`, `sq <type> <n> status` succeeds with a warning: the status follows source `<name>` again when issue `<key>` next changes. §11's list of what the tracker owns is unchanged; what changes is that status, among the squad's fields, is the one a pull also writes, under the conditions above.
 
-**Hosted squad.** The map is spec data in `squads/.overrides/sources.toml`, read where the squad is served, and the pull, `relink` and `show --refresh` apply it there, in the serving side's transaction. No client sends anything new. An edit to the map retires the daemon like any override edit (§8).
+**The full pull.** `sq source pull --full [<source>]` reads every issue in detail and drops the shortcut for unchanged issues. Like a plain pull, it covers the named source, or every enabled source when no name is given; the docs advise naming one.
+
+- Every listed issue that the source selects and an item holds is fetched in detail and refreshed: title, mapped fields, description, comments, links and the status map. Each held item missing from the listing is fetched by ID, as in every pull. Issues the source does not hold are handled as in a plain pull, so an issue that is filtered out, has no type or is held elsewhere still costs only its listing row.
+- It writes only what differs, so a second full pull of an unchanged tracker writes nothing. On a source with a status map, it moves every held item to the status the map gives now, and that overrides any status the squad set by hand. `--dry-run` lists every move first, and the pull report lists the moves made.
+- It also picks up what a plain pull misses until an issue next changes: a comment edited or deleted, or a link added, without the issue's `updated_at` moving (§14).
+- Cost: one detail read per held issue, which means its comments and its links, often several requests, on top of the listing. Large scopes meet the tracker's rate limits, and the pull backs off as usual, so the run can be long. The fetch runs outside every lock, and the index lock is held only for the compile and apply (§14).
+- It stores nothing, so it needs no schema change. It is the remedy for items pulled before a source declared its map.
+
+**Hosted squad.** The map is spec data in `squads/.overrides/sources.toml`, read where the squad is served, and the pull (`--full` included), `relink` and `show --refresh` apply it there, in the serving side's transaction. No client sends anything new. An edit to the map retires the daemon like any override edit (§8).
 
 **No schema change.** Item files keep their shape: status is an ordinary core value, and the `source` record keeps its seven keys. `maps.statuses` is a key of a spec document, which the schema version does not cover, so a patch release carries it with no migration. A 0.20.0 build refuses a `sources.toml` that declares it, so on such a squad every operator who pulls needs the release that brings it; the other commands keep working on 0.20.0, since a sources document that does not load fails only the commands that read a source (§8). A squad that declares no map behaves exactly as before.
 
-**Delivered text owed.** `docs/sources.md`: the key table row for `maps.statuses`, the status sides per connector in each connector's "Open or closed" line, the precedence rule beside the side rule of the other maps, the status line of the pull report, the ownership section's "Everything else stays the squad's" paragraph, and the upgrade note that items already pulled move at their issue's next change or on `show --refresh`. `docs/stability.md`: the `maps.statuses` grammar and the status sides. The `sq override scaffold sources` text, and the CHANGELOG entry for the patch.
+**Delivered text owed.** `docs/sources.md`: the key table row for `maps.statuses`, the status sides per connector in each connector's "Open or closed" line, the precedence rule beside the side rule of the other maps, the status line of the pull report, the ownership section's "Everything else stays the squad's" paragraph, the list form and its per-type resolution, `sq source pull --full` with its cost and its override of hand-set statuses, and the upgrade note that items already pulled move with a full pull, at their issue's next change, or on `show --refresh`. `docs/stability.md`: the `maps.statuses` grammar and the status sides. The `sq override scaffold sources` text, and the CHANGELOG entry for the patch.
 
 ## Rejected
 
@@ -689,6 +700,8 @@ The pull writes the status only when the mapped one differs from the item's, thr
 - **Applying the status map on every pull** (§15). It would revert every status the squad sets between tracker changes, which is a refusal by another name.
 - **Storing the issue's labels, or the last status the map gave, in the record** (§15). It would let the pull re-apply the map only when a mapped side changes, at the price of a new record key and a schema bump; any change of the issue re-applies it instead.
 - **Sides that disagree set nothing, for the status map** (§15, ruling ecfcbf7). The tracker's lifecycle and a label both hold on one issue by design; the connector's side order decides, first match wins.
+- **A status map per item type** (§15, ruling db47414). A status name means the same thing in every type, so one ordered list per tracker value covers every lifecycle without repeating the map per type.
+- **A bulk status command apart from the pull** (§15). `--full` is the same pull without its shortcut, so it reuses the fetch, the compile and the report, and it brings the rest of the item up to date too.
 - **Last match wins** (§15). It gives the same results with the order reversed, but reads less like the priority list it is.
 - **Mapping `out-of-filter` and `gone`** (§15). They record the squad's selection, not the tracker's word on the work; a filter edit would move statuses in bulk.
 - **Honouring the lifecycle's transitions on a mapped status** (§15). The tracker reports what already happened; a refused transition would leave the item behind the tracker on every pull.
@@ -703,7 +716,7 @@ The pull writes the status only when the mapped one differs from the item's, thr
 - `docs/stability.md` needs the nested-record rule, the `map` kind, the `source` record, the namespaced author grammar and the reserved `source` slug, the paired view tag and its escape, the `source` view source kind, the attribute line, the `sources.toml` grammar and the credential store's location; the adopter docs say that more author words may be reserved, and keep a source connector apart from the MCP connector of FEAT-319.
 - ADR-880 §2 and §4, ADR-776 §1, ADR-1007 §1 and §4, ADR-979 §2 and §2b, ADR-1261 §5 and ADR-622 are narrowed in place, each with a dated note pointing here.
 - A source names one scope key and an optional `filter` table of one expression per side, parsed by `_sources/_filter.py`; the connector registry declares each version's scope keys, a connector answers whether one issue is in its scope, and a link carries its inverse type. Issue identity, link and reference resolution and `source_id_unique` span every source of one tracker, derived from `sources.toml` (§14).
-- `SourceMaps` gains `statuses`, and the connector registry declares each version's status sides in order; the pull compiles a `status` event, set without the transition rule, and `sq <type> <n> status` warns on an item whose source declares a status map (§15).
+- `SourceMaps` gains `statuses`, and the connector registry declares each version's status sides in order; a status value is a list resolved against the item's type; `sq source pull` gains `--full`; the pull compiles a `status` event, set without the transition rule, and `sq <type> <n> status` warns on an item whose source declares a status map (§15).
 - A pull does not block other served commands: the daemon serves commands concurrently, and a pull holds only the index lock, for its compile and apply (§14). Its network fetch runs outside every lock.
 <!-- sq:body:end -->
 
@@ -871,4 +884,21 @@ The pull writes the status only when the mapped one differs from the item's, thr
       1. Any change to the issue, a comment included, re-applies the map, because labels are not stored. The alternative stores the labels or the last mapped status in the record, which needs a schema bump. Recommend: accept the re-apply.
       2. A source holds one map for all its types. A type whose lifecycle lacks the target (for example a bug that closes as Fixed while tasks close as Done) is skipped and reported. Per-type targets could come later as a new key. Recommend: one map for now.
       3. Items pulled before the upgrade move at their issue's next change, or one by one with `show --refresh`. Nothing applies the map in bulk. Recommend: document it and add no bulk command.
+- [2026-11-06T15:17:42Z] `op-pierre` Pierre Chat:
+  - My answers to the status map questions.
+  - 1. Accept the re-apply: any change to the issue applies the map again, with no stored labels and no schema bump.
+  - 2. Each mapped value takes a list of target statuses, and the first one in the item type lifecycle wins (for example closed = [Done, Verified]). A status name means the same thing in every type, so one ordered list per value covers every type.
+  - 3. Add a hard pull that reads every issue of the scope in detail and applies the map to all held items, so items pulled before the upgrade move at once.
+  - @architect amend section 15 accordingly.
+- [2026-11-06T15:18:44Z] `architect` Robert Architect:
+  - - Amended §15 in place (2026-11-06) per op-pierre ruling db47414. Status unchanged.
+      - A mapped value is an ordered list of statuses, for example `closed = ["Done", "Verified"]`. The first status in the item's current type's lifecycle wins, and a bare string is a one-element list. At load, every listed status must exist in the workflow; empty lists, empty names and duplicates are refused. A side that maps a value decides even when no listed status fits the type, and that item is the only one skipped and reported. Two labels conflict only when their lists resolve to different statuses for that type.
+      - Re-applying the map on any change of the issue is accepted as written, with no stored labels.
+      - New `sq source pull --full [<source>]`: covers the named source, or every enabled one when no name is given. It reads every held, selected issue in detail with no shortcut for unchanged issues, writes only what differs, and applies the map to every held item. That overrides statuses set by hand, so it warns first, and `--dry-run` lists the moves. It also picks up comment edits and links that a plain pull misses. Cost: one detail read per held issue (comments and links, often several requests) on top of the listing, under the usual rate-limit back-off. It stores nothing, so no schema bump.
+      - Two more Rejected entries: a status map per item type, and a bulk command apart from the pull. The Consequences and delivered-text lists are updated.
+    - @manager §15 is ready for FEAT-1320. Before tasks are cut, @product-owner should align US2 (the map ignores transitions) and US4 (the load check is now that each status exists in the workflow), and add the full pull.
+- [2026-11-06T15:20:19Z] `op-pierre` Pierre Chat:
+  - Keep the status map applying only when the issue changes (the pull already skips an issue whose updated_at and state are unchanged), with sq source pull --full to apply it to every held item. Section 15 stands as amended.
+- [2026-11-06T15:37:03Z] `architect` Robert Architect:
+  - Amended §15 in place (2026-11-06) per the op-pierre ruling on FEAT-1320: `sq source pull --full` gives no warning before it fetches. `--dry-run` previews the moves and the pull report lists the moves made. No other mention of a pre-fetch warning remained. @manager
 <!-- sq:discussion:end -->
