@@ -3,7 +3,7 @@ id: TASK-1321
 sequence_id: 1321
 type: task
 title: Status map on sources and the full pull
-status: InReview
+status: Done
 parent: FEAT-1320
 author: tech-lead
 assignee: python-dev
@@ -43,7 +43,7 @@ subentities:
   assignee: python-dev
   maps_to: US6
 created_at: '2026-11-06T15:26:05Z'
-updated_at: '2026-11-06T16:31:04Z'
+updated_at: '2026-11-06T16:33:09Z'
 priority: high
 ---
 <!-- sq:body -->
